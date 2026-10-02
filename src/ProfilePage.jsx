@@ -49,7 +49,10 @@ function ProfilePage({ slug }) {
   return (
     <div style={{ minHeight: '100vh', background: '#262422' }}>
       <main style={{ maxWidth: 1440, margin: '0 auto', padding: '0 32px 64px' }}>
-        <section style={{ padding: '22px 0 26px' }}>
+        <div style={{ paddingTop: 14 }}>
+          <Link to="/" style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', color: '#a8a29c' }}>← ALL PLAYERS</Link>
+        </div>
+        <section style={{ padding: '10px 0 26px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,270px),1fr))', gap: 12, alignItems: 'stretch' }}>
             <BioCard profile={p} />
             <PercentileSnapshot profile={p} onPickGroup={setTab} />

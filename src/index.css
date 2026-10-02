@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+  background: #262422;
+  color: #ece8e3;
+  font-family: Montserrat, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: #8fb0e6; text-decoration: none; }
+a:hover { color: #ece8e3; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+.tab-btn:hover { color: #ece8e3 !important; background: #2f2c2a !important; }

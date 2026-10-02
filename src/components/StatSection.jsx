@@ -7,7 +7,7 @@ import SectionHeader from './SectionHeader.jsx'
 const pct = (v, of) => `${(v / of * 100).toFixed(2)}%`
 
 // Flat team-color blocks on the chart's x scale (chartModel's X), one per stint,
-// each starting on the point of the team's first season.
+// each starting on the point of the team's first season and ending on the last.
 function TeamTimeline({ seasons }) {
   const L = seasons.length - 1
   const X = f => (L ? Math.min(330, 24 + (f / L) * 282) : 165 + f * 60)

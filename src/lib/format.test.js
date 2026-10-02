@@ -59,13 +59,27 @@ describe('chart', () => {
 
 describe('shot map', () => {
   const zones = Object.fromEntries(ZONES.map(({ id }) => [id, { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 5 } }]))
+  const league = Object.fromEntries(ZONES.map(({ id }) => [id, { fga: 100, fgm: 40 }]))
+  const zone = (shift, mode, id) => shotModel({ zones: shift, league }, mode).find(z => z.id === id)
   test('no change is neutral in every mode', () => {
-    for (const mode of ['value', 'freq', 'fg']) expect(shotModel(zones, mode).every(z => z.small)).toBe(true)
+    for (const mode of ['value', 'freq', 'fg']) expect(shotModel({ zones, league }, mode).every(z => z.small)).toBe(true)
   })
   test('a hotter rim is a positive FG% and value delta', () => {
     const hot = { ...zones, rim: { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 8 } } }
-    expect(shotModel(hot, 'fg').find(z => z.id === 'rim').label).toBe('+30.0')
-    expect(shotModel(hot, 'value').find(z => z.id === 'rim').delta).toBeGreaterThan(0)
+    expect(zone(hot, 'fg', 'rim').label).toBe('+30.0')
+    expect(zone(hot, 'value', 'rim').delta).toBeGreaterThan(0)
+  })
+  test('more shots from a zone at below-league shooting is a negative value delta', () => {
+    const wing = { rest: { fga: 10, fgm: 3 }, recent: { fga: 30, fgm: 9 } }
+    const shift = { ...zones, wing3_l: wing }
+    expect(zone(shift, 'freq', 'wing3_l').delta).toBeGreaterThan(0)
+    expect(zone(shift, 'fg', 'wing3_l').small).toBe(true)
+    expect(zone(shift, 'value', 'wing3_l').delta).toBeLessThan(0)
+  })
+  test('value is points above league per 100 FGA', () => {
+    // 14 zones x 10 FGA; rim 8/10 vs league 40% at 2 pts: 2 * (8 - 4) / 140 * 100
+    const hot = { ...zones, rim: { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 8 } } }
+    expect(zone(hot, 'value', 'rim').label).toBe('+4.3')
   })
   test('zone fill thresholds', () => {
     expect(zoneFill(0.3, 'value')).toBe('rgba(236,232,227,.04)')

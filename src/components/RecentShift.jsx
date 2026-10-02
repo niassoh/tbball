@@ -14,7 +14,7 @@ const monthDay = d => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', { m
 
 function ShotMap({ shotShift }) {
   const [mode, setMode] = useState('value')
-  const zones = shotModel(shotShift.zones, mode)
+  const zones = shotModel(shotShift, mode)
   return (
     <>
       <div style={{ padding: '10px 14px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

@@ -6,6 +6,7 @@ import { MONO } from './lib/format.js'
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 const initials = name => name.split(' ').map(w => w[0]).slice(0, 2).join('')
 const span = p => (p.seasons[0] === p.seasons[1] ? p.seasons[0] : `${p.seasons[0]} – ${p.seasons[1]}`)
+const bpm = p => (p.recentBpm === null ? '' : `BPM ${p.recentBpm > 0 ? '+' : ''}${p.recentBpm.toFixed(1).replace('-', '−')}`)
 
 function Avatar({ player, size }) {
   const [failed, setFailed] = useState(false)
@@ -49,7 +50,6 @@ export default function PlayerIndex() {
 
       {featured.length > 0 && (
         <section style={{ marginBottom: 28 }}>
-          <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', color: '#8a847e', marginBottom: 10 }}>WITH PORTRAITS</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 10 }}>
             {featured.map(p => (
               <Link key={p.slug} to={`/player/${p.slug}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, background: '#2c2a28', border: '1px solid #544f4b', color: '#ece8e3' }}>
@@ -57,6 +57,7 @@ export default function PlayerIndex() {
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                   <span style={{ fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
                   <span style={{ fontFamily: MONO, fontSize: 10, color: '#a8a29c' }}>{p.team} · {span(p)}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 10, color: '#8fb0e6' }}>{bpm(p)}</span>
                 </span>
               </Link>
             ))}
@@ -73,6 +74,7 @@ export default function PlayerIndex() {
                 <Avatar player={p} size={26} />
                 <span style={{ flex: 1, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
                 <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', whiteSpace: 'nowrap' }}>{p.team} · {p.seasons[1].slice(0, 4)}</span>
+                <span style={{ fontFamily: MONO, fontSize: 10, color: '#a8a29c', whiteSpace: 'nowrap', minWidth: 58, textAlign: 'right' }}>{bpm(p)}</span>
               </Link>
             ))}
           </div>

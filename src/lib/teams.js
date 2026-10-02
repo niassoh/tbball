@@ -13,18 +13,22 @@ export const TEAM_COLORS = {
 export const initials = name => name.split(' ').map(w => w[0]).slice(0, 2).join('')
 
 // Team stints for the season charts, in season-index units: season i spans
-// [i - 0.5, i + 0.5], split evenly between the teams it lists in order, and
+// [i - 0.5, i + 0.5], cut at the first and last season so the strip ends where
+// the chart lines do, split evenly between the teams it lists in order, and
 // adjoining pieces on the same team merge (LAC, then [LAC, CLE] = one LAC stint
 // ending mid-season).
 export const teamStints = seasons => {
   const out = []
+  const last = seasons.length - 1
   seasons.forEach((s, i) => {
     const teams = s.teams && s.teams.length ? s.teams : [s.tm]
+    const start = last ? Math.max(i - 0.5, 0) : -0.5
+    const width = (last ? Math.min(i + 0.5, last) : 0.5) - start
     teams.forEach((team, j) => {
-      const from = i - 0.5 + j / teams.length
-      const to = i - 0.5 + (j + 1) / teams.length
-      const last = out[out.length - 1]
-      if (last && last.team === team && Math.abs(last.to - from) < 1e-9) Object.assign(last, { to, last: s.label })
+      const from = start + (j / teams.length) * width
+      const to = start + ((j + 1) / teams.length) * width
+      const prev = out[out.length - 1]
+      if (prev && prev.team === team && Math.abs(prev.to - from) < 1e-9) Object.assign(prev, { to, last: s.label })
       else out.push({ team, from, to, first: s.label, last: s.label })
     })
   })

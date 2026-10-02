@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
 import { MODES, shotModel } from '../lib/shot.js'
+import { DIVIDERS } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -36,11 +37,7 @@ function ShotMap({ shotShift }) {
               {zones.map(z => <path key={z.id} d={z.d} fill={z.fill} fillRule="evenodd" />)}
             </g>
             <g fill="none" stroke="#3d3a37" strokeWidth="1">
-              <line x1="250" y1="1" x2="250" y2="190" />
-              <line x1="30" y1="190" x2="170" y2="190" /><line x1="330" y1="190" x2="470" y2="190" />
-              <line x1="170" y1="250" x2="330" y2="250" />
-              <line x1="170" y1="250" x2="110" y2="302" /><line x1="330" y1="250" x2="390" y2="302" />
-              <line x1="110" y1="302" x2="1" y2="319" /><line x1="390" y1="302" x2="499" y2="319" />
+              {DIVIDERS.map((l, i) => <line key={i} {...l} />)}
             </g>
             <g fill="none" stroke="#6b655f" strokeWidth="2">
               <rect x="1" y="1" width="498" height="318" />

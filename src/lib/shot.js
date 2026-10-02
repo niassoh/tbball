@@ -1,25 +1,10 @@
-// Shot-profile shift map. Zone paths and label positions are copied verbatim
-// from the design reference (ZD); values come from raw FGA/FGM counts per
-// zone (thinking-bball scripts/shotshift.js) for the recent window vs the rest
-// of the season.
+// Shot-profile shift map. Zone shapes come from lib/court.js (built from the
+// court geometry); values come from raw FGA/FGM counts per zone
+// (thinking-bball scripts/shotshift.js) for the recent window vs the rest of
+// the season.
+import { ZONES } from './court.js'
 
-// [id, svg path, labelX, labelY, name, shot value]
-export const ZONES = [
-  ['rim', 'M300 52 a50 50 0 1 0 -100 0 a50 50 0 1 0 100 0', 250, 52, 'RIM', 2],
-  ['paint_l', 'M170 1 H250 V190 H170 Z M300 52 a50 50 0 1 0 -100 0 a50 50 0 1 0 100 0 M250 1 H330 V190 H250 Z', 208, 150, 'PAINT L', 2],
-  ['paint_r', 'M250 1 H330 V190 H250 Z M300 52 a50 50 0 1 0 -100 0 a50 50 0 1 0 100 0 M170 1 H250 V190 H170 Z', 292, 150, 'PAINT R', 2],
-  ['mid_l_short', 'M30 1 H170 V190 H30 Z', 100, 100, 'MID L SHORT', 2],
-  ['mid_r_short', 'M330 1 H470 V190 H330 Z', 400, 100, 'MID R SHORT', 2],
-  ['mid_c', 'M170 190 H330 V250 H170 Z M300 52 a50 50 0 1 0 -100 0 a50 50 0 1 0 100 0', 250, 222, 'MID C', 2],
-  ['mid_l_long', 'M30 141.5 A237.5 237.5 0 0 0 110 302 L170 250 L170 190 L30 190 Z', 108, 232, 'MID L LONG', 2],
-  ['mid_r_long', 'M470 141.5 A237.5 237.5 0 0 1 390 302 L330 250 L330 190 L470 190 Z', 392, 232, 'MID R LONG', 2],
-  ['mid_c_long', 'M170 250 H330 L390 302 A237.5 237.5 0 0 1 110 302 Z', 250, 268, 'MID C LONG', 2],
-  ['c3_l', 'M1 1 H30 V141.5 H1 Z', 16, 72, 'CORNER 3 L', 3],
-  ['c3_r', 'M470 1 H499 V141.5 H470 Z', 484, 72, 'CORNER 3 R', 3],
-  ['wing3_l', 'M1 141.5 H30 A237.5 237.5 0 0 0 110 302 L1 319 Z', 30, 262, 'WING 3 L', 3],
-  ['wing3_r', 'M499 141.5 H470 A237.5 237.5 0 0 1 390 302 L499 319 Z', 470, 262, 'WING 3 R', 3],
-  ['top3', 'M110 302 A237.5 237.5 0 0 0 390 302 L499 319 H1 Z', 250, 312, 'TOP 3', 3]
-]
+export { ZONES }
 
 // Neutral thresholds and color scales per mode (README §2).
 export const MODES = {
@@ -44,11 +29,11 @@ export const zoneFill = (d, mode) => {
 
 export function shotModel(zones, mode) {
   const totals = { rest: 0, recent: 0 }
-  for (const [id] of ZONES) {
+  for (const { id } of ZONES) {
     totals.rest += zones[id].rest.fga
     totals.recent += zones[id].recent.fga
   }
-  return ZONES.map(([id, d, lx, ly, name, points]) => {
+  return ZONES.map(({ id, d, lx, ly, name, points }) => {
     const rest = zoneValue(zones[id].rest, totals.rest, points, mode)
     const recent = zoneValue(zones[id].recent, totals.recent, points, mode)
     const delta = rest === null || recent === null ? null : recent - rest

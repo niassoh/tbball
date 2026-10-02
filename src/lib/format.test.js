@@ -58,7 +58,7 @@ describe('chart', () => {
 })
 
 describe('shot map', () => {
-  const zones = Object.fromEntries(ZONES.map(([id]) => [id, { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 5 } }]))
+  const zones = Object.fromEntries(ZONES.map(({ id }) => [id, { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 5 } }]))
   test('no change is neutral in every mode', () => {
     for (const mode of ['value', 'freq', 'fg']) expect(shotModel(zones, mode).every(z => z.small)).toBe(true)
   })

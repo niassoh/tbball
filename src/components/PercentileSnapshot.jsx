@@ -8,6 +8,10 @@ const GROUPS = [
   ['Defense', 'defense', ['Def FGA <6ft /36', 'Def FGA Diff%', 'Forced TOV', 'DRTG On', 'Team Def']]
 ]
 const rowGrid = { display: 'grid', gridTemplateColumns: '100px minmax(0,1fr) 38px', gap: 8 }
+// Bars and dots slide to the new season's percentile (rows are keyed by stat, so
+// they persist across seasons); skipped when the viewer asks for reduced motion.
+const EASE = '.45s cubic-bezier(.2,.8,.2,1)'
+const slide = props => (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'none' : props.map(x => `${x} ${EASE}`).join(', '))
 
 export default function PercentileSnapshot({ profile: p, onPickGroup }) {
   const L = p.seasons.length - 1
@@ -58,9 +62,9 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
                     <span style={{ fontSize: 11, fontWeight: 500, color: '#d6d1cb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right' }}>{label}</span>
                     <div style={{ position: 'relative', height: 18, display: 'flex', alignItems: 'center' }}>
                       <div style={{ position: 'absolute', left: 0, right: 0, height: 14, background: '#34312e' }} />
-                      <div style={{ position: 'absolute', left: 0, height: 14, width: w, background: c }} />
+                      <div style={{ position: 'absolute', left: 0, height: 14, width: w, background: c, transition: slide(['width', 'background-color']) }} />
                       <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#6b655f' }} />
-                      <div style={{ position: 'absolute', left: w, transform: 'translateX(-50%)', width: 19, height: 19, borderRadius: '50%', background: c, border: '1.5px solid #ece8e3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8.5, fontWeight: 600, color: '#1f1d1c' }}>{v.p}</div>
+                      <div style={{ position: 'absolute', left: w, transform: 'translateX(-50%)', width: 19, height: 19, borderRadius: '50%', background: c, transition: slide(['left', 'background-color']), border: '1.5px solid #ece8e3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8.5, fontWeight: 600, color: '#1f1d1c' }}>{v.p}</div>
                     </div>
                     <span style={{ fontFamily: MONO, fontSize: 11, textAlign: 'right' }}>{fmt(s, v.n)}</span>
                   </div>

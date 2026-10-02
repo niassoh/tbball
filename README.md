@@ -7,6 +7,10 @@ from the thinking-bball repo. All data comes from that repo's API:
 - `GET /api/profile/:slug` — one player's profile document
 - `/assets/players/webp/<slug>-<size>.webp` — generated portraits
 
+Players without a portrait show their initials over a muted team-color disc with a faint
+team logo (`public/logos/<ABBR>.png`, ESPN's white primary logos at 184px; colors in
+`src/lib/teams.js`). Defunct franchises have no logo and get a plain disc.
+
 ## Run
 
 ```sh

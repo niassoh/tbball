@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchPlayers, headshotUrl } from './api.js'
 import { MONO } from './lib/format.js'
+import TeamInitials from './components/TeamInitials.jsx'
 
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-const initials = name => name.split(' ').map(w => w[0]).slice(0, 2).join('')
 const span = p => (p.seasons[0] === p.seasons[1] ? p.seasons[0] : `${p.seasons[0]} – ${p.seasons[1]}`)
 const bpm = p => (p.recentBpm === null ? '' : `BPM ${p.recentBpm > 0 ? '+' : ''}${p.recentBpm.toFixed(1).replace('-', '−')}`)
 
@@ -16,7 +16,7 @@ function Avatar({ player, size }) {
       {showImage ? (
         <img src={headshotUrl(player.slug, 100)} alt="" loading="lazy" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%' }} />
       ) : (
-        <span style={{ fontSize: size * 0.36, fontWeight: 800, color: '#6b655f' }}>{initials(player.name)}</span>
+        <TeamInitials name={player.name} team={player.team} fontSize={size * 0.36} />
       )}
     </div>
   )

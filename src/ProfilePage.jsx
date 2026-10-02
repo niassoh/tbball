@@ -64,7 +64,7 @@ function ProfilePage({ slug }) {
         {tab === 'career' && <Career profile={p} num={tabIndex + 1} />}
 
         <footer style={{ marginTop: 56, paddingTop: 16, borderTop: '1px solid #544f4b', display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', fontFamily: MONO, fontSize: 11, color: '#8a847e' }}>
-          <span>Percentiles vs. players with 800+ MP · Career and league average = minutes-weighted · Shifts = last 30 days of the season vs. the rest</span>
+          <span>Percentiles vs. players with 800+ MP · Career and league average = minutes-weighted · Recent shift = games in the last 30 days of the season vs. the rest</span>
           <span>thinkingbasketball.net</span>
         </footer>
       </main>

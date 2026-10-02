@@ -26,7 +26,7 @@ npm run build
 
 ## Differences from the design reference
 
-- The shift card uses **the last 30 days of the season vs. the rest** (one league-wide window), not last 15 games.
+- The shift card ("Recent Shift") uses **the last 30 days of the season vs. the rest** (one league-wide window), not last 15 games; the subheader shows how many games that is for the player.
 - The Career "Gravity" cell shows ORTG On / DRTG On per season (the data the handoff specifies); the design's rim-points copy and hard-coded historical peaks are not used.
 - WOWY covers the latest season with the current team rather than career.
 - Draft and jersey number are omitted from the bio line; stats without a data source (Matchup DFG% Diff, Pts / 100 Allowed) are hidden.

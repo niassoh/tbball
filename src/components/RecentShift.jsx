@@ -71,7 +71,7 @@ function CoreStats({ profile: p }) {
         <span style={subhead}>CORE STATS</span>
         <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#8a847e', whiteSpace: 'nowrap' }}>
           {legendSwatch('#8a847e', 'SEASON', true, true)}
-          {legendSwatch('#ece8e3', 'LAST 30 DAYS', true)}
+          {legendSwatch('#ece8e3', 'RECENT', true)}
         </span>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: '4px 14px 12px', gap: 2 }}>
@@ -107,15 +107,23 @@ function CoreStats({ profile: p }) {
   )
 }
 
+// "LAST 12 GAMES (MAR 14 – APR 12)": the shared 30-day window, counted in this player's games.
+const windowLabel = (win, games) => {
+  const span = win ? ` (${monthDay(win.start)} – ${monthDay(win.end)})` : ''
+  if (games === null) return `LAST 30 DAYS${span}`
+  return `LAST ${games} GAME${games === 1 ? '' : 'S'}${span}`
+}
+
 export default function RecentShift({ profile: p }) {
   const win = (p.shotShift && p.shotShift.window) || (p.recentShift && p.recentShift.window)
+  const games = p.gameLog && p.gameLog.recent ? p.gameLog.recent.games : null
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Last 30 Days Shift</span>
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Recent Shift</span>
           <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
-            Δ = LAST 30 DAYS − REST OF SEASON{win ? ` · ${monthDay(win.start)} – ${monthDay(win.end)}` : ''}
+            Δ = {windowLabel(win, games)} − REST OF SEASON
           </span>
         </div>
         <div style={{ display: 'flex', gap: '6px 10px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', fontFamily: MONO, fontSize: 9, color: '#a8a29c' }}>
@@ -123,8 +131,14 @@ export default function RecentShift({ profile: p }) {
           {legendSwatch('#fa962a', 'WORSE')}
         </div>
       </div>
-      {p.shotShift ? <ShotMap shotShift={p.shotShift} /> : <span style={{ ...subhead, padding: '12px 14px' }}>NO SHOT DATA THIS SEASON</span>}
-      {p.recentShift && <CoreStats profile={p} />}
+      {games === 0 ? (
+        <span style={{ ...subhead, padding: '12px 14px' }}>NO GAMES IN THE RECENT WINDOW</span>
+      ) : (
+        <>
+          {p.shotShift ? <ShotMap shotShift={p.shotShift} /> : <span style={{ ...subhead, padding: '12px 14px' }}>NO SHOT DATA THIS SEASON</span>}
+          {p.recentShift && <CoreStats profile={p} />}
+        </>
+      )}
     </div>
   )
 }

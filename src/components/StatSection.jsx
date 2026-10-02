@@ -28,8 +28,26 @@ function TeamTimeline({ seasons }) {
   )
 }
 
+// Hover card for one season point: square, flat, mono, the site's orange rule.
+function PointTip({ p, season }) {
+  const teams = season.teams && season.teams.length ? season.teams.join('/') : season.tm
+  const flip = p.x > 200
+  const anchor = Math.min(110, Math.max(20, p.has ? p.y : p.ly ?? 75))
+  return (
+    <div style={{ position: 'absolute', left: pct(p.x, 330), top: pct(anchor, 150), transform: flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)', zIndex: 2, pointerEvents: 'none', background: '#1f1d1c', border: '1px solid #6b655f', borderTop: '2px solid #fa962a', padding: '6px 9px 7px', fontFamily: MONO, whiteSpace: 'nowrap', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <span style={{ fontSize: 9, letterSpacing: '.06em', color: '#8a847e' }}>{season.label} · {teams}</span>
+      <span style={{ fontSize: 15, fontWeight: 700, color: p.has ? '#ece8e3' : '#6b655f', lineHeight: 1.1 }}>{p.has ? p.value : '—'}</span>
+      {p.has && <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.04em', color: p.color }}>{p.pctl} PCT</span>}
+      {p.showLg && <span style={{ fontSize: 9, letterSpacing: '.04em', color: '#8a847e' }}>LG {p.lgValue}</span>}
+    </div>
+  )
+}
+
 function SeasonChart({ stat, label, seasons }) {
   const m = chartModel(stat, seasons)
+  const [hover, setHover] = useState(null)
+  const L = seasons.length - 1
+  const slot = L ? 282 / L : 60
   return (
     <div style={{ flex: '0 1 330px', minWidth: 260, display: 'flex', flexDirection: 'column', gap: 10, background: '#2c2a28', border: '1px solid #544f4b', padding: 16, alignSelf: 'stretch' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
@@ -39,7 +57,7 @@ function SeasonChart({ stat, label, seasons }) {
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 0, borderTop: '2px dashed #8a847e' }} />{m.legend}</span>
         </span>
       </div>
-      <div style={{ position: 'relative', flex: 1, minHeight: 200, display: 'flex' }}>
+      <div onMouseLeave={() => setHover(null)} style={{ position: 'relative', flex: 1, minHeight: 200, display: 'flex' }}>
         <svg viewBox="0 0 330 150" preserveAspectRatio="none" style={{ width: '100%', height: '100%', minHeight: 200, display: 'block', overflow: 'visible', position: 'absolute', inset: 0 }}>
           {m.bands.map((b, i) => <path key={i} d={b.d} fill={b.fill} />)}
           <line x1="0" x2="330" y1="134" y2="134" stroke="#6b655f" vectorEffect="non-scaling-stroke" />
@@ -49,16 +67,26 @@ function SeasonChart({ stat, label, seasons }) {
         {m.pts.map(p => (
           <span key={`dots-${p.i}`}>
             {p.ly !== null && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.ly, 150), width: 5, height: 5, marginLeft: -2.5, marginTop: -2.5, borderRadius: '50%', background: '#8a847e', pointerEvents: 'none' }} />}
-            {p.has && <span title={`${p.value} · ${p.pctl} pct`} style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.y, 150), width: p.r * 2, height: p.r * 2, marginLeft: -p.r, marginTop: -p.r, borderRadius: '50%', background: p.color, border: p.current ? '1.5px solid #ece8e3' : 'none', boxSizing: 'border-box' }} />}
+            {p.has && (() => {
+              const r = hover === p.i ? Math.max(p.r, 3.5) + 1.5 : p.r
+              return <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.y, 150), width: r * 2, height: r * 2, marginLeft: -r, marginTop: -r, borderRadius: '50%', background: p.color, border: p.current || hover === p.i ? '1.5px solid #ece8e3' : 'none', boxSizing: 'border-box', pointerEvents: 'none' }} />
+            })()}
           </span>
         ))}
         {m.pts.map(p => (
           <span key={`labels-${p.i}`}>
             {p.showValue && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.valueY, 150), transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: 10.5, fontWeight: 600, color: '#ece8e3', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{p.value}</span>}
             {p.showValue && p.showLg && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.lgY, 150), transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: 8.5, color: '#8a847e', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{p.lgValue}</span>}
-            <span style={{ position: 'absolute', left: pct(p.x, 330), top: '96%', transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: seasons.length > 9 ? 8.5 : 9.5, color: p.current ? '#ece8e3' : '#8a847e', whiteSpace: 'nowrap', display: p.hideSeason ? 'none' : 'block' }}>{p.season}</span>
+            <span style={{ position: 'absolute', left: pct(p.x, 330), top: '96%', transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: seasons.length > 9 ? 8.5 : 9.5, color: p.current || hover === p.i ? '#ece8e3' : '#8a847e', whiteSpace: 'nowrap', display: p.hideSeason && hover !== p.i ? 'none' : 'block' }}>{p.season}</span>
           </span>
         ))}
+        {hover !== null && <span style={{ position: 'absolute', left: pct(m.pts[hover].x, 330), top: 0, bottom: '9%', width: 1, background: 'rgba(236,232,227,.22)', pointerEvents: 'none' }} />}
+        {m.pts.map(p => {
+          const from = Math.max(0, p.x - slot / 2)
+          const to = Math.min(330, p.x + slot / 2)
+          return <span key={`hit-${p.i}`} onMouseEnter={() => setHover(p.i)} style={{ position: 'absolute', top: 0, bottom: 0, left: pct(from, 330), width: pct(to - from, 330) }} />
+        })}
+        {hover !== null && <PointTip p={m.pts[hover]} season={seasons[hover]} />}
       </div>
       <TeamTimeline seasons={seasons} />
     </div>

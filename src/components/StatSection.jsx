@@ -12,15 +12,15 @@ function TeamTimeline({ seasons }) {
   const L = seasons.length - 1
   const X = f => (L ? 24 + (f / L) * 282 : 165 + f * 60)
   return (
-    <div style={{ position: 'relative', height: 13 }}>
+    <div style={{ position: 'relative', height: 16 }}>
       {teamStints(seasons).map(s => {
         const left = X(s.from)
         const w = X(s.to) - left
         const color = TEAM_COLORS[s.team]
         return (
-          <div key={`${s.team}-${s.from}`} title={s.first === s.last ? `${s.team} · ${s.first}` : `${s.team} · ${s.first} – ${s.last}`} style={{ position: 'absolute', top: 0, bottom: 0, left: pct(left, 330), width: `calc(${pct(w, 330)} - 1px)`, background: color ? `color-mix(in srgb, ${color} 28%, #2c2a28)` : '#34312e', borderTop: `2px solid ${color ? `color-mix(in srgb, ${color} 80%, #2c2a28)` : '#544f4b'}`, display: 'flex', alignItems: 'center', gap: 3, padding: w >= 16 ? '0 3px' : 0, boxSizing: 'border-box', overflow: 'hidden' }}>
-            {color && w >= 16 && <img src={`/logos/${s.team}.png`} alt="" style={{ width: 8, height: 8, objectFit: 'contain', flex: 'none', opacity: 0.55 }} />}
-            {w >= 42 && <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '.04em', color: '#8a847e', whiteSpace: 'nowrap' }}>{s.team}</span>}
+          <div key={`${s.team}-${s.from}`} title={s.first === s.last ? `${s.team} · ${s.first}` : `${s.team} · ${s.first} – ${s.last}`} style={{ position: 'absolute', top: 0, bottom: 0, left: pct(left, 330), width: `calc(${pct(w, 330)} - 1px)`, borderTop: `3px solid ${color || '#6b655f'}`, display: 'flex', alignItems: 'center', gap: 3, paddingTop: 2, boxSizing: 'border-box', overflow: 'hidden' }}>
+            {color && w >= 12 && <img src={`/logos/${s.team}.png`} alt="" style={{ width: 9, height: 9, objectFit: 'contain', flex: 'none', opacity: 0.9 }} />}
+            {w >= 38 && <span style={{ fontFamily: MONO, fontSize: 8.5, fontWeight: 600, letterSpacing: '.04em', color: '#c9c4be', whiteSpace: 'nowrap' }}>{s.team}</span>}
           </div>
         )
       })}

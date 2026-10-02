@@ -64,8 +64,7 @@ function CoreStats({ profile: p }) {
   const rows = p.recentShift.stats.filter(r => p.stats[r.stat])
   return (
     <>
-      <div style={{ padding: '10px 0 0', borderTop: '1px solid #544f4b', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '4px 8px' }}>
-        <span style={subhead}>CORE STATS</span>
+      <div style={{ padding: '10px 0 0', borderTop: '1px solid #544f4b', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px' }}>
         <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#8a847e', whiteSpace: 'nowrap' }}>
           {legendSwatch('#8a847e', 'SEASON', true, true)}
           {legendSwatch('#ece8e3', 'RECENT', true)}

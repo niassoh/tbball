@@ -1,9 +1,31 @@
 import { useState } from 'react'
 import { MONO, fmt, heat } from '../lib/format.js'
 import { chartModel } from '../lib/chart.js'
+import { TEAM_COLORS, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
 
 const pct = (v, of) => `${(v / of * 100).toFixed(2)}%`
+
+// Flat team-color blocks on the chart's x scale (chartModel's X), one per stint.
+function TeamTimeline({ seasons }) {
+  const L = seasons.length - 1
+  const X = f => Math.min(330, Math.max(0, L ? 24 + (f / L) * 282 : 165 + f * 60))
+  return (
+    <div style={{ position: 'relative', height: 16 }}>
+      {teamStints(seasons).map(s => {
+        const left = X(s.from)
+        const w = X(s.to) - left
+        const color = TEAM_COLORS[s.team]
+        return (
+          <div key={`${s.team}-${s.from}`} title={s.first === s.last ? `${s.team} · ${s.first}` : `${s.team} · ${s.first} – ${s.last}`} style={{ position: 'absolute', top: 0, bottom: 0, left: pct(left, 330), width: `calc(${pct(w, 330)} - 1px)`, background: color ? `color-mix(in srgb, ${color} 70%, #2c2a28)` : '#3d3a37', display: 'flex', alignItems: 'center', gap: 3, padding: '0 3px', boxSizing: 'border-box', overflow: 'hidden' }}>
+            {color && w >= 16 && <img src={`/logos/${s.team}.png`} alt="" style={{ width: 10, height: 10, objectFit: 'contain', flex: 'none' }} />}
+            {w >= 42 && <span style={{ fontFamily: MONO, fontSize: 8.5, fontWeight: 600, letterSpacing: '.04em', color: '#ece8e3', whiteSpace: 'nowrap' }}>{s.team}</span>}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 function SeasonChart({ stat, label, seasons }) {
   const m = chartModel(stat, seasons)
@@ -37,6 +59,7 @@ function SeasonChart({ stat, label, seasons }) {
           </span>
         ))}
       </div>
+      <TeamTimeline seasons={seasons} />
     </div>
   )
 }

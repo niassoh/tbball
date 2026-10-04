@@ -123,14 +123,15 @@ function ShotMap({ shotShift }) {
   )
 }
 
-// Each slider is centred on the season average; its ends are this far either side,
-// in the stat's own units. Set a little past the 90th-percentile change across
-// players in 2025-26 (BPM 1.8, Load 5.8, Net On 11.2, AuPM / g 2.4); bigger swings
-// pin to the end.
-const RANGE = { BPM: 2, Load: 6, 'Net On': 12, 'AuPM / g': 2.5 }
+// Each slider is centred on the season average and the recent dot moves by how far
+// the recent value would shift the player within the league (percentile points),
+// so a change reads by how much it matters league-wide, not by its raw size. The
+// ends are this many points either side: between the 90th (34) and 95th (44)
+// percentile swing across players and stats in 2025-26; bigger swings pin to the end.
+const RANGE = 40
 
 function CoreStats({ profile: p }) {
-  const rows = p.recentShift.stats.filter(r => p.stats[r.stat] && RANGE[r.stat])
+  const rows = p.recentShift.stats.filter(r => p.stats[r.stat])
   return (
     <>
       <div style={{ padding: '10px 0 0', borderTop: '1px solid #544f4b', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px' }}>
@@ -143,11 +144,12 @@ function CoreStats({ profile: p }) {
         {rows.map(r => {
           const stat = p.stats[r.stat]
           const change = r.recent.value - r.season.value
-          const shift = Math.max(-1, Math.min(1, change / RANGE[r.stat]))
+          // Percentiles already read higher-is-better, so lower-better stats need no flip.
+          const move = r.recent.pctl - r.season.pctl
           const p0 = 50
-          const p1 = 50 + shift * 50
-          const neutral = Math.abs(shift) < 0.1
-          const good = change > 0 !== stat.lowerBetter
+          const p1 = 50 + Math.max(-1, Math.min(1, move / RANGE)) * 50
+          const neutral = Math.abs(move) < 3
+          const good = move > 0
           const color = neutral ? '#8a847e' : good ? rgb(BETTER) : '#93a398'
           // A drop is drawn light grey-green: the darker WORSE tone disappears into the track.
           const bg = neutral ? '#6b655f' : good ? rgb(BETTER) : '#93a398'

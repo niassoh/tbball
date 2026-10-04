@@ -123,12 +123,13 @@ function ShotMap({ shotShift }) {
   )
 }
 
-// Each slider is centred on the season average and the recent dot moves by how far
-// the recent value would shift the player within the league (percentile points),
-// so a change reads by how much it matters league-wide, not by its raw size. The
-// ends are this many points either side: between the 90th (34) and 95th (44)
-// percentile swing across players and stats in 2025-26; bigger swings pin to the end.
-const RANGE = 40
+// Each slider is centred on the season average and the recent dot moves by the
+// change in units of the league's spread (standard deviation across players), so
+// a change reads by how much it matters league-wide, not by its raw size, and
+// stars at the top of the league can still move. The ends are this many spreads
+// either side: between the 90th (1.3) and 95th (1.6) percentile change across
+// players and stats in 2025-26; bigger swings pin to the end.
+const RANGE = 1.5
 
 function CoreStats({ profile: p }) {
   const rows = p.recentShift.stats.filter(r => p.stats[r.stat])
@@ -144,11 +145,11 @@ function CoreStats({ profile: p }) {
         {rows.map(r => {
           const stat = p.stats[r.stat]
           const change = r.recent.value - r.season.value
-          // Percentiles already read higher-is-better, so lower-better stats need no flip.
-          const move = r.recent.pctl - r.season.pctl
+          // Right is better, so a lower-better stat moves right when it falls.
+          const move = (stat.lowerBetter ? -change : change) / r.spread
           const p0 = 50
           const p1 = 50 + Math.max(-1, Math.min(1, move / RANGE)) * 50
-          const neutral = Math.abs(move) < 3
+          const neutral = Math.abs(move) < 0.1
           const good = move > 0
           const color = neutral ? '#8a847e' : good ? rgb(BETTER) : '#93a398'
           // A drop is drawn light grey-green: the darker WORSE tone disappears into the track.

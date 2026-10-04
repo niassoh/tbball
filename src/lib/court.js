@@ -9,7 +9,7 @@
 
 export const BASKET = { x: 250, y: 52 }
 export const R3 = 237.5
-const RIM_R = 50
+export const RIM_R = 50
 const CORNER_X = 30
 const CORNER_Y = 141.5
 const PAINT_X = 170 // paint spans x 170..330
@@ -85,23 +85,38 @@ const SHAPES = [
   ['top3', [[...arc(P, Pm), Qm, { x: 499, y: 319 }, { x: 1, y: 319 }, Q]], 250, 312, 'TOP 3', 3]
 ]
 
-// Zone divider lines drawn over the court (the court outline is drawn separately).
+// Lines between the map's groups not already drawn by the court outline: the
+// short/long midrange split at free-throw depth outside the paint.
 const seg = (a, b) => ({ x1: a.x, y1: a.y, x2: b.x, y2: b.y })
 export const DIVIDERS = [
-  seg({ x: 250, y: 1 }, { x: 250, y: FT_Y }),
   seg(B, { x: PAINT_X, y: FT_Y }),
-  seg(mirror(B), { x: 330, y: FT_Y }),
-  seg({ x: PAINT_X, y: MID_C_Y }, { x: 330, y: MID_C_Y }),
-  seg({ x: PAINT_X, y: MID_C_Y }, P),
-  seg({ x: 330, y: MID_C_Y }, Pm),
-  seg(P, Q),
-  seg(Pm, Qm)
+  seg(mirror(B), { x: 330, y: FT_Y })
 ]
 
 const toPath = rings =>
   rings.map(ring => 'M' + ring.map(p => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' L') + ' Z').join(' ')
 
 export const ZONES = SHAPES.map(([id, rings, lx, ly, name, points]) => ({ id, rings, d: toPath(rings), lx, ly, name, points }))
+
+// What the shot map shows: the zones grouped by distance. Short midrange is
+// everything inside free-throw depth but outside the rim (paint included); long
+// midrange is every other two.
+const GROUP_SPECS = [
+  ['rim', 'RIM', ['rim'], 250, 52, 2],
+  ['short_mid', 'SHORT MID', ['paint_l', 'paint_r', 'mid_l_short', 'mid_r_short'], 250, 150, 2],
+  ['long_mid', 'LONG MID', ['mid_c', 'mid_l_long', 'mid_r_long', 'mid_c_long'], 250, 222, 2],
+  ['three', '3PT', ['c3_l', 'c3_r', 'wing3_l', 'wing3_r', 'top3'], 250, 296, 3]
+]
+export const GROUPS = GROUP_SPECS.map(([id, name, zones, lx, ly, points]) => ({
+  id,
+  name,
+  zones,
+  rings: zones.flatMap(z => ZONES.find(x => x.id === z).rings),
+  d: zones.map(z => ZONES.find(x => x.id === z).d).join(' '),
+  lx,
+  ly,
+  points
+}))
 
 // Even-odd point-in-polygon over all rings (matches fill-rule="evenodd").
 export const contains = (rings, x, y) => {

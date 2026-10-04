@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
 import { MODES, shotModel } from '../lib/shot.js'
-import { DIVIDERS } from '../lib/court.js'
+import { BASKET, DIVIDERS, RIM_R } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -10,7 +10,6 @@ const legendSwatch = (color, label, round = false, hollow = false) => (
   </span>
 )
 const subhead = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#8a847e' }
-const monthDay = d => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).toUpperCase()
 
 function ShotMap({ shotShift }) {
   const [mode, setMode] = useState('value')
@@ -38,6 +37,7 @@ function ShotMap({ shotShift }) {
             </g>
             <g fill="none" stroke="#3d3a37" strokeWidth="1">
               {DIVIDERS.map((l, i) => <line key={i} {...l} />)}
+              <circle cx={BASKET.x} cy={BASKET.y} r={RIM_R} />
             </g>
             <g fill="none" stroke="#6b655f" strokeWidth="2">
               <rect x="1" y="1" width="498" height="318" />
@@ -50,8 +50,9 @@ function ShotMap({ shotShift }) {
             </g>
           </svg>
           {zones.map(z => (
-            <div key={z.id} title={z.name} style={{ position: 'absolute', left: `${z.lx / 5}%`, top: `${z.ly / 3.2}%`, transform: z.rotate ? 'translate(-50%,-50%) rotate(-90deg)' : 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: MONO, whiteSpace: 'nowrap', pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,.8)', opacity: z.small ? 0.55 : 1 }}>
-              <span style={{ fontSize: z.small ? '9.5px' : '12px', fontWeight: 700, color: '#ece8e3', lineHeight: 1.1 }}>{z.label}</span>
+            <div key={z.id} style={{ position: 'absolute', left: `${z.lx / 5}%`, top: `${z.ly / 3.2}%`, transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, fontFamily: MONO, whiteSpace: 'nowrap', pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,.8)' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#ece8e3', lineHeight: 1.1, opacity: z.small ? 0.55 : 1 }}>{z.label}</span>
+              <span style={{ fontSize: '7.5px', letterSpacing: '.08em', color: '#a8a29c' }}>{z.name}</span>
             </div>
           ))}
         </div>
@@ -103,23 +104,19 @@ function CoreStats({ profile: p }) {
   )
 }
 
-// "LAST 12 GAMES (MAR 14 – APR 12)": the shared 30-day window, counted in this player's games.
-const windowLabel = (win, games) => {
-  const span = win ? ` (${monthDay(win.start)} – ${monthDay(win.end)})` : ''
-  if (games === null) return `LAST 30 DAYS${span}`
-  return `LAST ${games} GAME${games === 1 ? '' : 'S'}${span}`
-}
+// The shared 30-day window, counted in this player's games when known.
+const windowLabel = games =>
+  games === null ? 'THE LAST 30 DAYS' : `LAST ${games} GAME${games === 1 ? '' : 'S'}`
 
 export default function RecentShift({ profile: p }) {
-  const win = (p.shotShift && p.shotShift.window) || (p.recentShift && p.recentShift.window)
   const games = p.gameLog && p.gameLog.recent ? p.gameLog.recent.games : null
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Recent Shift</span>
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Last 30 Days</span>
           <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
-            Δ = {windowLabel(win, games)} − REST OF SEASON
+            DIFFERENCE BETWEEN {windowLabel(games)} AND REST OF SEASON
           </span>
         </div>
         <div style={{ display: 'flex', gap: '6px 10px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', fontFamily: MONO, fontSize: 9, color: '#a8a29c' }}>

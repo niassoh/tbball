@@ -61,6 +61,9 @@ describe('shot map', () => {
   const zones = Object.fromEntries(ZONES.map(({ id }) => [id, { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 5 } }]))
   const league = Object.fromEntries(ZONES.map(({ id }) => [id, { fga: 100, fgm: 40 }]))
   const zone = (shift, mode, id) => shotModel({ zones: shift, league }, mode).find(z => z.id === id)
+  test('the map shows four distance groups', () => {
+    expect(shotModel({ zones, league }, 'freq').map(z => z.name)).toEqual(['RIM', 'SHORT MID', 'LONG MID', '3PT'])
+  })
   test('no change is neutral in every mode', () => {
     for (const mode of ['value', 'freq', 'fg']) expect(shotModel({ zones, league }, mode).every(z => z.small)).toBe(true)
   })
@@ -69,12 +72,17 @@ describe('shot map', () => {
     expect(zone(hot, 'fg', 'rim').label).toBe('+30.0')
     expect(zone(hot, 'value', 'rim').delta).toBeGreaterThan(0)
   })
-  test('more shots from a zone at below-league shooting is a negative value delta', () => {
-    const wing = { rest: { fga: 10, fgm: 3 }, recent: { fga: 30, fgm: 9 } }
-    const shift = { ...zones, wing3_l: wing }
-    expect(zone(shift, 'freq', 'wing3_l').delta).toBeGreaterThan(0)
-    expect(zone(shift, 'fg', 'wing3_l').small).toBe(true)
-    expect(zone(shift, 'value', 'wing3_l').delta).toBeLessThan(0)
+  test('more 3s at below-league shooting is a negative value delta', () => {
+    const cold = { rest: { fga: 10, fgm: 3 }, recent: { fga: 30, fgm: 9 } }
+    const shift = { ...zones, c3_l: cold, c3_r: cold, wing3_l: cold, wing3_r: cold, top3: cold }
+    expect(zone(shift, 'freq', 'three').delta).toBeGreaterThan(0)
+    expect(zone(shift, 'fg', 'three').small).toBe(true)
+    expect(zone(shift, 'value', 'three').delta).toBeLessThan(0)
+  })
+  test('a group sums its zones', () => {
+    const hot = { ...zones, paint_l: { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 9 } } }
+    // short mid: 40 FGA in both windows, makes 20 -> 24
+    expect(zone(hot, 'fg', 'short_mid').label).toBe('+10.0')
   })
   test('value is points above league per 100 FGA', () => {
     // 14 zones x 10 FGA; rim 8/10 vs league 40% at 2 pts: 2 * (8 - 4) / 140 * 100

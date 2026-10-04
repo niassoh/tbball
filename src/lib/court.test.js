@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ZONES, contains, classify, isThree, P, BASKET, R3 } from './court.js'
+import { GROUPS, ZONES, contains, classify, isThree, P, BASKET, R3 } from './court.js'
 
 const zonesAt = (x, y) => ZONES.filter(z => contains(z.rings, x, y)).map(z => z.id)
 
@@ -32,6 +32,11 @@ describe('court geometry', () => {
   test('3pt land straight below the arc is TOP 3, not long midrange', () => {
     expect(zonesAt(250, 300)).toEqual(['top3'])
     expect(classify(250, 300, 3)).toBe('top3')
+  })
+
+  test('every zone is in exactly one group, and group labels sit in their group', () => {
+    for (const z of ZONES) expect(GROUPS.filter(g => g.zones.includes(z.id)).length).toBe(1)
+    for (const g of GROUPS) expect(contains(g.rings, g.lx, g.ly)).toBe(true)
   })
 
   test('the rim is not shaded by MID C, and paint halves do not overlap', () => {

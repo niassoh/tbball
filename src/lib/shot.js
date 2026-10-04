@@ -1,10 +1,10 @@
-// Shot-profile shift map. Zone shapes come from lib/court.js (built from the
-// court geometry); values come from raw FGA/FGM counts per zone
-// (thinking-bball scripts/shotshift.js) for the recent window vs the rest of
-// the season, plus the league's counts per zone for the whole season.
-import { ZONES } from './court.js'
+// Shot-profile shift map by distance group (rim, short mid, long mid, 3s). Group
+// shapes come from lib/court.js; values come from raw FGA/FGM counts per zone
+// (thinking-bball scripts/shotshift.js) for the recent window vs the rest of the
+// season, plus the league's counts per zone, summed over each group's zones.
+import { GROUPS, ZONES } from './court.js'
 
-export { ZONES }
+export { GROUPS, ZONES }
 
 // Neutral thresholds and color scales per mode (README §2).
 export const MODES = {
@@ -30,15 +30,18 @@ export const zoneFill = (d, mode) => {
   return d > 0 ? `rgba(89,126,193,${alpha})` : `rgba(250,150,42,${alpha})`
 }
 
+const sum = cells => cells.reduce((a, c) => ({ fga: a.fga + c.fga, fgm: a.fgm + c.fgm }), { fga: 0, fgm: 0 })
+
 export function shotModel({ zones, league }, mode) {
   const totals = { rest: 0, recent: 0 }
   for (const { id } of ZONES) {
     totals.rest += zones[id].rest.fga
     totals.recent += zones[id].recent.fga
   }
-  return ZONES.map(({ id, d, lx, ly, name, points }) => {
-    const rest = zoneValue(zones[id].rest, totals.rest, points, league[id], mode)
-    const recent = zoneValue(zones[id].recent, totals.recent, points, league[id], mode)
+  return GROUPS.map(({ id, zones: ids, d, lx, ly, name, points }) => {
+    const lg = sum(ids.map(z => league[z]))
+    const rest = zoneValue(sum(ids.map(z => zones[z].rest)), totals.rest, points, lg, mode)
+    const recent = zoneValue(sum(ids.map(z => zones[z].recent)), totals.recent, points, lg, mode)
     const delta = rest === null || recent === null ? null : recent - rest
     const small = delta === null || Math.abs(delta) < MODES[mode].th
     return {
@@ -50,8 +53,7 @@ export function shotModel({ zones, league }, mode) {
       delta,
       small,
       fill: zoneFill(delta, mode),
-      label: delta === null ? '—' : (delta >= 0 ? '+' : '−') + Math.abs(delta).toFixed(1),
-      rotate: name.startsWith('CORNER')
+      label: delta === null ? '—' : (delta >= 0 ? '+' : '−') + Math.abs(delta).toFixed(1)
     }
   })
 }

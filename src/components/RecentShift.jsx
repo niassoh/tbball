@@ -81,7 +81,6 @@ function ShotMap({ shotShift }) {
           {/* Court markings over the bands, light and thin so they read the same on every color. */}
           <g fill="none" stroke="rgba(236,232,227,.4)" strokeWidth="1.5" pointerEvents="none">
             <rect x="1" y="1" width="498" height={COURT_H - 2} />
-            <rect x="170" y="1" width="160" height="189" />
             <path d={THREE_LINE} />
             {BAND_EDGES.map(d => <path key={d} d={d} />)}
             <line x1="220" y1="40" x2="280" y2="40" />

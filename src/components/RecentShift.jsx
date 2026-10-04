@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
 import { BETTER, MODES, WORSE, rgb, shotModel } from '../lib/shot.js'
-import { BASKET, INSIDE_THREE, RIM_R, SHORT_MID_R, THREE_LINE } from '../lib/court.js'
+import { BASKET, COURT_H, INSIDE_THREE, THREE_LINE } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -29,34 +29,28 @@ function ShotMap({ shotShift }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 12px', gap: 10 }}>
         <div style={{ position: 'relative' }}>
-          <svg viewBox="0 0 500 320" style={{ width: '100%', height: 'auto', display: 'block' }}>
-            <rect x="0" y="0" width="500" height="320" fill="#262422" />
+          <svg viewBox={`0 0 500 ${COURT_H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+            <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />
             <defs>
-              <clipPath id="courtClip"><rect x="1" y="1" width="498" height="318" /></clipPath>
+              <clipPath id="courtClip"><rect x="1" y="1" width="498" height={COURT_H - 2} /></clipPath>
               <clipPath id="insideThree"><path d={INSIDE_THREE} /></clipPath>
             </defs>
             <g clipPath="url(#courtClip)">
               {zones.map(z => <path key={z.id} d={z.d} fill={z.fill} fillRule="evenodd" clipPath={z.clip ? 'url(#insideThree)' : undefined} />)}
-              <g fill="none" stroke="#262422" strokeWidth="3">
-                <circle cx={BASKET.x} cy={BASKET.y} r={RIM_R} />
-                <circle cx={BASKET.x} cy={BASKET.y} r={SHORT_MID_R} />
-                <path d={THREE_LINE} />
-              </g>
             </g>
-            <g fill="none" stroke="#6b655f" strokeWidth="2">
-              <rect x="1" y="1" width="498" height="318" />
+            {/* Court markings over the bands, light and thin so they read the same on every color. */}
+            <g fill="none" stroke="rgba(236,232,227,.3)" strokeWidth="1.5">
+              <rect x="1" y="1" width="498" height={COURT_H - 2} />
               <rect x="170" y="1" width="160" height="189" />
-              <circle cx="250" cy="190" r="60" />
-              <path d="M30 1 L30 141.5 A237.5 237.5 0 0 0 470 141.5 L470 1" />
-              <path d="M210 52 A40 40 0 0 0 290 52" />
+              <path d={THREE_LINE} />
               <line x1="220" y1="40" x2="280" y2="40" />
-              <circle cx="250" cy="52" r="7.5" />
+              <circle cx={BASKET.x} cy={BASKET.y} r="7.5" />
             </g>
           </svg>
           {zones.map(z => (
-            <div key={z.id} style={{ position: 'absolute', left: `${z.lx / 5}%`, top: `${z.ly / 3.2}%`, transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, fontFamily: MONO, whiteSpace: 'nowrap', pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,.8)' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#ece8e3', lineHeight: 1.1, opacity: z.small ? 0.55 : 1 }}>{z.label}</span>
-              <span style={{ fontSize: '7.5px', letterSpacing: '.08em', color: '#a8a29c' }}>{z.name}</span>
+            <div key={z.id} style={{ position: 'absolute', left: `${z.lx / 5}%`, top: `${(z.ly / COURT_H) * 100}%`, transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '3px 6px 4px', background: 'rgba(31,29,28,.72)', fontFamily: MONO, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#ece8e3', lineHeight: 1, opacity: z.small ? 0.7 : 1 }}>{z.label}</span>
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', color: '#d6d1cb', lineHeight: 1 }}>{z.name}</span>
             </div>
           ))}
         </div>

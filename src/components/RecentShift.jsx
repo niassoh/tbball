@@ -123,8 +123,14 @@ function ShotMap({ shotShift }) {
   )
 }
 
+// Each slider is centred on the season average; its ends are this far either side,
+// in the stat's own units. Set a little past the 90th-percentile change across
+// players in 2025-26 (BPM 1.8, Load 5.8, Net On 11.2, AuPM / g 2.4); bigger swings
+// pin to the end.
+const RANGE = { BPM: 2, Load: 6, 'Net On': 12, 'AuPM / g': 2.5 }
+
 function CoreStats({ profile: p }) {
-  const rows = p.recentShift.stats.filter(r => p.stats[r.stat])
+  const rows = p.recentShift.stats.filter(r => p.stats[r.stat] && RANGE[r.stat])
   return (
     <>
       <div style={{ padding: '10px 0 0', borderTop: '1px solid #544f4b', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px' }}>
@@ -136,13 +142,12 @@ function CoreStats({ profile: p }) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: '4px 14px 12px', gap: 2 }}>
         {rows.map(r => {
           const stat = p.stats[r.stat]
-          const p0 = r.season.pctl
-          const p1 = r.recent.pctl
-          // The slider places both values by percentile, which already reads higher-is-better,
-          // so it sets the color; the number is the raw change in the stat's own units.
-          const neutral = Math.abs(p1 - p0) < 3
-          const good = p1 > p0
           const change = r.recent.value - r.season.value
+          const shift = Math.max(-1, Math.min(1, change / RANGE[r.stat]))
+          const p0 = 50
+          const p1 = 50 + shift * 50
+          const neutral = Math.abs(shift) < 0.1
+          const good = change > 0 !== stat.lowerBetter
           const color = neutral ? '#8a847e' : good ? rgb(BETTER) : '#93a398'
           // A drop is drawn light grey-green: the darker WORSE tone disappears into the track.
           const bg = neutral ? '#6b655f' : good ? rgb(BETTER) : '#93a398'

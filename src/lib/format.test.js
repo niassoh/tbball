@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { col, heat, ord, fmt } from './format.js'
 import { chartModel, seasonTick } from './chart.js'
-import { shotModel, zoneFill, ZONES } from './shot.js'
+import { BANDS, shotModel, zoneFill } from './shot.js'
 
 describe('format', () => {
   test('percentile color endpoints', () => {
@@ -58,10 +58,10 @@ describe('chart', () => {
 })
 
 describe('shot map', () => {
-  const zones = Object.fromEntries(ZONES.map(({ id }) => [id, { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 5 } }]))
-  const league = Object.fromEntries(ZONES.map(({ id }) => [id, { fga: 100, fgm: 40 }]))
-  const zone = (shift, mode, id) => shotModel({ zones: shift, league }, mode).find(z => z.id === id)
-  test('the map shows four distance groups', () => {
+  const zones = Object.fromEntries(BANDS.map(({ id }) => [id, { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 5 } }]))
+  const league = Object.fromEntries(BANDS.map(({ id }) => [id, { fga: 100, fgm: 40 }]))
+  const band = (shift, mode, id) => shotModel({ zones: shift, league }, mode).find(z => z.id === id)
+  test('the map shows four distance bands', () => {
     expect(shotModel({ zones, league }, 'freq').map(z => z.name)).toEqual(['RIM', 'SHORT MID', 'LONG MID', '3PT'])
   })
   test('no change is neutral in every mode', () => {
@@ -69,37 +69,31 @@ describe('shot map', () => {
   })
   test('a hotter rim is a positive FG% and value delta', () => {
     const hot = { ...zones, rim: { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 8 } } }
-    expect(zone(hot, 'fg', 'rim').label).toBe('+30.0')
-    expect(zone(hot, 'value', 'rim').delta).toBeGreaterThan(0)
+    expect(band(hot, 'fg', 'rim').label).toBe('+30.0')
+    expect(band(hot, 'value', 'rim').delta).toBeGreaterThan(0)
   })
   test('more 3s at below-league shooting is a negative value delta', () => {
-    const cold = { rest: { fga: 10, fgm: 3 }, recent: { fga: 30, fgm: 9 } }
-    const shift = { ...zones, c3_l: cold, c3_r: cold, wing3_l: cold, wing3_r: cold, top3: cold }
-    expect(zone(shift, 'freq', 'three').delta).toBeGreaterThan(0)
-    expect(zone(shift, 'fg', 'three').small).toBe(true)
-    expect(zone(shift, 'value', 'three').delta).toBeLessThan(0)
-  })
-  test('a group sums its zones', () => {
-    const hot = { ...zones, paint_l: { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 9 } } }
-    // short mid: 40 FGA in both windows, makes 20 -> 24
-    expect(zone(hot, 'fg', 'short_mid').label).toBe('+10.0')
+    const shift = { ...zones, three: { rest: { fga: 10, fgm: 3 }, recent: { fga: 30, fgm: 9 } } }
+    expect(band(shift, 'freq', 'three').delta).toBeGreaterThan(0)
+    expect(band(shift, 'fg', 'three').small).toBe(true)
+    expect(band(shift, 'value', 'three').delta).toBeLessThan(0)
   })
   test('value is points above league per 100 FGA', () => {
-    // 14 zones x 10 FGA; rim 8/10 vs league 40% at 2 pts: 2 * (8 - 4) / 140 * 100
+    // 4 bands x 10 FGA; rim vs league 40% at 2 pts: 2 * (8 - 4) / 40 * 100 = 20, before 2 * (5 - 4) / 40 * 100 = 5
     const hot = { ...zones, rim: { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 8 } } }
-    expect(zone(hot, 'value', 'rim').label).toBe('+4.3')
+    expect(band(hot, 'value', 'rim').label).toBe('+15.0')
   })
-  test('zone fill thresholds', () => {
+  test('increases are green, decreases dark grey-green, small changes neutral', () => {
     expect(zoneFill(0.3, 'value')).toBe('rgba(236,232,227,.04)')
-    expect(zoneFill(0.5, 'freq')).toBe('rgba(89,126,193,0.10)')
-    expect(zoneFill(-10, 'fg')).toBe('rgba(250,150,42,0.60)')
+    expect(zoneFill(0.5, 'freq')).toBe('rgba(151,193,151,0.35)')
+    expect(zoneFill(-10, 'fg')).toBe('rgba(70,80,74,0.90)')
   })
   test('the largest change on the map gets the deepest color', () => {
     const cold = { rest: { fga: 10, fgm: 6 }, recent: { fga: 10, fgm: 2 } }
     const cool = { rest: { fga: 10, fgm: 6 }, recent: { fga: 10, fgm: 4 } }
-    const m = shotModel({ zones: { ...zones, rim: cold, paint_l: cool }, league }, 'fg')
+    const m = shotModel({ zones: { ...zones, rim: cold, short_mid: cool }, league }, 'fg')
     const alpha = id => Number(m.find(z => z.id === id).fill.match(/,([\d.]+)\)$/)[1])
-    expect(alpha('rim')).toBe(0.6)
+    expect(alpha('rim')).toBe(0.9)
     expect(alpha('short_mid')).toBeLessThan(alpha('rim'))
   })
 })

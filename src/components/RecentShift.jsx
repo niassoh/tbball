@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
-import { MODES, shotModel } from '../lib/shot.js'
-import { BASKET, DIVIDERS, RIM_R, THREE_LINE } from '../lib/court.js'
+import { BETTER, MODES, WORSE, rgb, shotModel } from '../lib/shot.js'
+import { BASKET, INSIDE_THREE, RIM_R, SHORT_MID_R, THREE_LINE } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -31,14 +31,17 @@ function ShotMap({ shotShift }) {
         <div style={{ position: 'relative' }}>
           <svg viewBox="0 0 500 320" style={{ width: '100%', height: 'auto', display: 'block' }}>
             <rect x="0" y="0" width="500" height="320" fill="#262422" />
-            <defs><clipPath id="courtClip"><rect x="1" y="1" width="498" height="318" /></clipPath></defs>
+            <defs>
+              <clipPath id="courtClip"><rect x="1" y="1" width="498" height="318" /></clipPath>
+              <clipPath id="insideThree"><path d={INSIDE_THREE} /></clipPath>
+            </defs>
             <g clipPath="url(#courtClip)">
-              {zones.map(z => <path key={z.id} d={z.d} fill={z.fill} fillRule="evenodd" />)}
-            </g>
-            <g fill="none" stroke="#262422" strokeWidth="3">
-              {DIVIDERS.map((l, i) => <line key={i} {...l} />)}
-              <circle cx={BASKET.x} cy={BASKET.y} r={RIM_R} />
-              <path d={THREE_LINE} />
+              {zones.map(z => <path key={z.id} d={z.d} fill={z.fill} fillRule="evenodd" clipPath={z.clip ? 'url(#insideThree)' : undefined} />)}
+              <g fill="none" stroke="#262422" strokeWidth="3">
+                <circle cx={BASKET.x} cy={BASKET.y} r={RIM_R} />
+                <circle cx={BASKET.x} cy={BASKET.y} r={SHORT_MID_R} />
+                <path d={THREE_LINE} />
+              </g>
             </g>
             <g fill="none" stroke="#6b655f" strokeWidth="2">
               <rect x="1" y="1" width="498" height="318" />
@@ -79,8 +82,8 @@ function CoreStats({ profile: p }) {
           const p1 = r.recent.pctl
           const neutral = Math.abs(p1 - p0) < 3
           const good = r.delta > 0 !== stat.lowerBetter
-          const color = neutral ? '#8a847e' : good ? '#8fb0e6' : '#fa962a'
-          const bg = neutral ? '#6b655f' : good ? '#597ec1' : '#fa962a'
+          const color = neutral ? '#8a847e' : good ? rgb(BETTER) : '#93a398'
+          const bg = neutral ? '#6b655f' : rgb(good ? BETTER : WORSE)
           const lo = Math.min(p0, p1)
           const hi = Math.max(p0, p1)
           return (
@@ -121,8 +124,8 @@ export default function RecentShift({ profile: p }) {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '6px 10px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', fontFamily: MONO, fontSize: 9, color: '#a8a29c' }}>
-          {legendSwatch('#597ec1', 'BETTER')}
-          {legendSwatch('#fa962a', 'WORSE')}
+          {legendSwatch(rgb(BETTER), 'BETTER')}
+          {legendSwatch(rgb(WORSE), 'WORSE')}
         </div>
       </div>
       {games === 0 ? (

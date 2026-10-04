@@ -22,8 +22,8 @@ const SHOT_KEYFRAMES = '@keyframes shotIn { 0% { opacity: 0; transform: translat
 const spread = i => [((i * 37) % 11) - 5, ((i * 53) % 11) - 5]
 
 // On a hovered (darkened) zone: makes blue, misses orange. Dots are see-through
-// so overlapping shots build up and show density; last N games stronger than the
-// rest of the season.
+// so overlapping shots build up and show density. Hover shows the last N games;
+// clicking adds the rest of the season underneath, fainter.
 const MAKE = '#6f9be8'
 const MISS = '#fa962a'
 
@@ -41,15 +41,31 @@ function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) 
 function ShotMap({ shotShift }) {
   const [mode, setMode] = useState('value')
   const [hover, setHover] = useState(null)
+  const [expanded, setExpanded] = useState(false)
   const zones = shotModel(shotShift, mode)
   const band = zones.find(z => z.id === hover)
   const index = BANDS.findIndex(b => b.id === hover)
   // Rest of season underneath, last N games on top; each set ripples out from the rim.
+  // Numbered before the recent filter so a shot keeps its key and offset when the rest is added.
   const shots = (hover === null ? [] : (shotShift.shots || []).filter(s => s[4] === index))
     .map((s, i) => ({ s, i, r: Math.hypot(s[0], s[1]) }))
+    .filter(x => expanded || x.s[3])
     .sort((a, b) => a.s[3] - b.s[3] || a.r - b.r)
   const far = Math.max(1, ...shots.map(x => x.r))
   const animate = !reduceMotion()
+  const enter = id => {
+    if (id === hover) return
+    setHover(id)
+    setExpanded(false)
+  }
+  const leave = () => {
+    setHover(null)
+    setExpanded(false)
+  }
+  const toggle = id => {
+    setHover(id)
+    setExpanded(e => (id === hover ? !e : true))
+  }
   return (
     <>
       <div style={{ padding: '10px 14px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -64,7 +80,7 @@ function ShotMap({ shotShift }) {
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 12px' }}>
-        <svg viewBox={`0 0 500 ${COURT_H}`} onMouseLeave={() => setHover(null)} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        <svg viewBox={`0 0 500 ${COURT_H}`} onMouseLeave={leave} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <style>{SHOT_KEYFRAMES}</style>
           <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />
           <defs>
@@ -74,7 +90,7 @@ function ShotMap({ shotShift }) {
           <g clipPath="url(#courtClip)">
             {zones.map(z => (
               <path key={z.id} d={z.d} fill={hover === z.id ? '#121110' : z.fill} fillRule="evenodd" clipPath={z.clip ? 'url(#insideThree)' : undefined}
-                onMouseEnter={() => setHover(z.id)} onClick={() => setHover(h => (h === z.id ? null : z.id))}
+                onMouseEnter={() => enter(z.id)} onClick={() => toggle(z.id)}
                 style={{ cursor: 'pointer', opacity: hover && hover !== z.id ? 0.3 : 1, transition: 'opacity .15s' }} />
             ))}
           </g>

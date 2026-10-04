@@ -27,12 +27,13 @@ const bandValue = (cell, total, points, league, mode) => {
   return total ? ((points * (cell.fgm - cell.fga * (league.fgm / league.fga))) / total) * 100 : null
 }
 
-// The map's scale reads by brightness: a neutral grey-green near zero, darkening
-// toward near-black as a change gets more negative and brightening to the site's
-// green as it gets more positive. It runs from the neutral threshold up to the
-// map's largest change (never less than the mode's own scale).
-const NEUTRAL = [88, 102, 93]
-const DARKEST = [26, 29, 27]
+// The map's scale reads by brightness: near zero a zone matches the card's court
+// background, darkening toward near-black as a change gets more negative and
+// brightening to a muted green as it gets more positive. It runs from the neutral
+// threshold up to the map's largest change (never less than the mode's own scale).
+const NEUTRAL = [39, 37, 36]
+const DARKEST = [19, 18, 17]
+const GREENEST = [84, 98, 79]
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t))
 
 export const zoneFill = (d, mode, span = MODES[mode].th + MODES[mode].scale) => {
@@ -40,7 +41,7 @@ export const zoneFill = (d, mode, span = MODES[mode].th + MODES[mode].scale) => 
   const a = Math.abs(d)
   if (d === null || a < th) return rgb(NEUTRAL)
   const t = Math.min(1, (a - th) / (span - th)) ** 0.8
-  return rgb(mix(NEUTRAL, d > 0 ? BETTER : DARKEST, t))
+  return rgb(mix(NEUTRAL, d > 0 ? GREENEST : DARKEST, t))
 }
 
 export function shotModel({ zones, league }, mode) {

@@ -86,7 +86,7 @@ describe('shot map', () => {
   test('small changes match the court background; the extremes are muted green and near-black', () => {
     expect(zoneFill(0.3, 'value')).toBe('rgb(39,37,36)')
     expect(zoneFill(0.5, 'freq')).toBe('rgb(39,37,36)')
-    expect(zoneFill(10, 'fg')).toBe('rgb(84,98,79)')
+    expect(zoneFill(10, 'fg')).toBe('rgb(80,106,76)')
     expect(zoneFill(-10, 'fg')).toBe('rgb(19,18,17)')
   })
   test('the largest change on the map gets the deepest color', () => {

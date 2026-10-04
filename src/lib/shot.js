@@ -33,7 +33,7 @@ const bandValue = (cell, total, points, league, mode) => {
 // threshold up to the map's largest change (never less than the mode's own scale).
 const NEUTRAL = [39, 37, 36]
 const DARKEST = [19, 18, 17]
-const GREENEST = [84, 98, 79]
+const GREENEST = [80, 106, 76]
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t))
 
 export const zoneFill = (d, mode, span = MODES[mode].th + MODES[mode].scale) => {

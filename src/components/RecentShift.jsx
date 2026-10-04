@@ -23,7 +23,7 @@ const spread = i => [((i * 37) % 11) - 5, ((i * 53) % 11) - 5]
 
 // On a hovered (darkened) zone: makes blue, misses orange. Dots are see-through
 // so overlapping shots build up and show density. Hover shows the last N games;
-// clicking adds the rest of the season underneath, fainter.
+// clicking switches to the rest of the season (fainter, as it has more shots).
 const MAKE = '#6f9be8'
 const MISS = '#fa962a'
 
@@ -41,30 +41,30 @@ function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) 
 function ShotMap({ shotShift }) {
   const [mode, setMode] = useState('value')
   const [hover, setHover] = useState(null)
-  const [expanded, setExpanded] = useState(false)
+  const [season, setSeason] = useState(false)
   const zones = shotModel(shotShift, mode)
   const band = zones.find(z => z.id === hover)
   const index = BANDS.findIndex(b => b.id === hover)
-  // Rest of season underneath, last N games on top; each set ripples out from the rim.
-  // Numbered before the recent filter so a shot keeps its key and offset when the rest is added.
+  // One set at a time, rippling out from the rim. Numbered before the set filter so
+  // the two sets never share keys and a switch animates the new set in.
   const shots = (hover === null ? [] : (shotShift.shots || []).filter(s => s[4] === index))
     .map((s, i) => ({ s, i, r: Math.hypot(s[0], s[1]) }))
-    .filter(x => expanded || x.s[3])
-    .sort((a, b) => a.s[3] - b.s[3] || a.r - b.r)
+    .filter(x => !x.s[3] === season)
+    .sort((a, b) => a.r - b.r)
   const far = Math.max(1, ...shots.map(x => x.r))
   const animate = !reduceMotion()
   const enter = id => {
     if (id === hover) return
     setHover(id)
-    setExpanded(false)
+    setSeason(false)
   }
   const leave = () => {
     setHover(null)
-    setExpanded(false)
+    setSeason(false)
   }
   const toggle = id => {
     setHover(id)
-    setExpanded(e => (id === hover ? !e : true))
+    setSeason(on => (id === hover ? !on : true))
   }
   return (
     <>
@@ -109,7 +109,7 @@ function ShotMap({ shotShift }) {
             </g>
           ))}
           <g key={hover} clipPath="url(#courtClip)" pointerEvents="none">
-            {shots.map(({ s, i, r }) => <Shot key={i} shot={s} offset={spread(i)} animate={animate} delay={Math.round((r / far) * 240 + (s[3] ? 80 : 0))} />)}
+            {shots.map(({ s, i, r }) => <Shot key={i} shot={s} offset={spread(i)} animate={animate} delay={Math.round((r / far) * 240)} />)}
           </g>
           {band && (
             <g pointerEvents="none">

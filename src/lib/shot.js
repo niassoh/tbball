@@ -8,9 +8,9 @@ export { BANDS }
 
 // Neutral thresholds and color scales per mode (README §2).
 export const MODES = {
-  value: { th: 0.4, scale: 4, label: 'VALUE', note: 'POINTS ABOVE LEAGUE PER 100 FGA' },
-  freq: { th: 0.5, scale: 4, label: 'FREQ', note: 'SHARE OF FGA' },
-  fg: { th: 1, scale: 6, label: 'FG%', note: 'FIELD GOAL %' }
+  value: { th: 0.4, scale: 4, label: 'VALUE' },
+  freq: { th: 0.5, scale: 4, label: 'FREQ' },
+  fg: { th: 1, scale: 6, label: 'FG%' }
 }
 
 // Better / worse on the Last 30 Days card: the site's green, and a dark grey-green.

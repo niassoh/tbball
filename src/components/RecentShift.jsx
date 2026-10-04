@@ -62,7 +62,8 @@ function ShotMap({ shotShift, games }) {
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 12px' }}>
-        <div style={{ height: 36, padding: '0 9px', background: '#1f1d1c', borderTop: band ? `2px solid ${band.small ? '#6b655f' : rgb(band.delta > 0 ? BETTER : WORSE)}` : '2px solid #3d3a37', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, fontFamily: MONO, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+        {/* Space stays reserved when idle so the chart doesn't jump on hover. */}
+        <div style={{ height: 36, padding: '0 9px', background: band ? '#1f1d1c' : 'transparent', borderTop: band ? `2px solid ${band.small ? '#6b655f' : rgb(band.delta > 0 ? BETTER : WORSE)}` : '2px solid transparent', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, fontFamily: MONO, whiteSpace: 'nowrap', overflow: 'hidden' }}>
           {band ? (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
@@ -74,9 +75,7 @@ function ShotMap({ shotShift, games }) {
                 <span style={{ display: 'flex', gap: 8, color: '#8a847e' }}><span><span style={{ color: rgb(BETTER) }}>●</span> MAKE</span><span><span style={{ color: '#ece8e3' }}>×</span> MISS</span></span>
               </div>
             </>
-          ) : (
-            <span style={{ fontSize: 9, letterSpacing: '.06em', color: '#8a847e' }}>Δ {MODES[mode].note} · {recentLabel} VS REST OF SEASON</span>
-          )}
+          ) : null}
         </div>
         <svg viewBox={`0 0 500 ${COURT_H}`} onMouseLeave={() => setHover(null)} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <style>{SHOT_KEYFRAMES}</style>

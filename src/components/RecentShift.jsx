@@ -11,7 +11,6 @@ const legendSwatch = (color, label, round = false, hollow = false) => (
 )
 const subhead = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#8a847e' }
 
-const pctLine = c => (c.fga ? `${c.fgm}/${c.fga} · ${((c.fgm / c.fga) * 100).toFixed(1)}%` : '0/0')
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 // A shot lands like a ball coming down: from just above, a slight overshoot,
@@ -22,8 +21,9 @@ const SHOT_KEYFRAMES = '@keyframes shotIn { 0% { opacity: 0; transform: translat
 // foot (a fixed offset per shot, so they don't move between hovers).
 const spread = i => [((i * 37) % 11) - 5, ((i * 53) % 11) - 5]
 
-// On a hovered (darkened) zone: makes blue, misses orange, last N games near-solid
-// over the faint rest of the season.
+// On a hovered (darkened) zone: makes blue, misses orange. Dots are see-through
+// so overlapping shots build up and show density; last N games stronger than the
+// rest of the season.
 const MAKE = '#6f9be8'
 const MISS = '#fa962a'
 
@@ -32,13 +32,13 @@ function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) 
   return (
     <g transform={`translate(${BASKET.x + x + dx} ${BASKET.y + Math.max(0, y + dy)})`}>
       <g style={motion}>
-        <circle r="4.2" fill={made ? MAKE : MISS} fillOpacity={recent ? 0.85 : 0.3} />
+        <circle r="4.2" fill={made ? MAKE : MISS} fillOpacity={recent ? 0.45 : 0.15} />
       </g>
     </g>
   )
 }
 
-function ShotMap({ shotShift, games }) {
+function ShotMap({ shotShift }) {
   const [mode, setMode] = useState('value')
   const [hover, setHover] = useState(null)
   const zones = shotModel(shotShift, mode)
@@ -50,7 +50,6 @@ function ShotMap({ shotShift, games }) {
     .sort((a, b) => a.s[3] - b.s[3] || a.r - b.r)
   const far = Math.max(1, ...shots.map(x => x.r))
   const animate = !reduceMotion()
-  const recentLabel = games === null ? 'LAST 30 DAYS' : `LAST ${games} G`
   return (
     <>
       <div style={{ padding: '10px 14px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -65,21 +64,6 @@ function ShotMap({ shotShift, games }) {
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 12px' }}>
-        {/* Space stays reserved when idle so the chart doesn't jump on hover. */}
-        <div style={{ height: 36, padding: '0 9px', background: band ? '#1f1d1c' : 'transparent', borderTop: band ? `2px solid ${band.small ? '#6b655f' : rgb(band.delta > 0 ? BETTER : WORSE)}` : '2px solid transparent', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, fontFamily: MONO, whiteSpace: 'nowrap', overflow: 'hidden' }}>
-          {band ? (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', color: '#ece8e3' }}>{band.name} <span style={{ fontWeight: 400, color: '#8a847e', fontSize: 9 }}>{band.range}</span></span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: band.small ? '#a8a29c' : rgb(band.delta > 0 ? BETTER : [147, 163, 152]) }}>{band.label} <span style={{ fontWeight: 400, fontSize: 9, color: '#8a847e' }}>{MODES[mode].label}</span></span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 9, color: '#a8a29c' }}>
-                <span><span style={{ color: '#ece8e3' }}>{recentLabel}</span> {pctLine(band.recent)}  <span style={{ color: '#6b655f' }}>·</span>  REST {pctLine(band.rest)}</span>
-                <span style={{ display: 'flex', gap: 8, color: '#8a847e' }}><span><span style={{ color: MAKE }}>●</span> MAKE</span><span><span style={{ color: MISS }}>●</span> MISS</span></span>
-              </div>
-            </>
-          ) : null}
-        </div>
         <svg viewBox={`0 0 500 ${COURT_H}`} onMouseLeave={() => setHover(null)} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <style>{SHOT_KEYFRAMES}</style>
           <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />
@@ -111,6 +95,12 @@ function ShotMap({ shotShift, games }) {
           <g key={hover} clipPath="url(#courtClip)" pointerEvents="none">
             {shots.map(({ s, i, r }) => <Shot key={i} shot={s} offset={spread(i)} animate={animate} delay={Math.round((r / far) * 240 + (s[3] ? 80 : 0))} />)}
           </g>
+          {band && (
+            <g pointerEvents="none">
+              <rect x="10" y="10" width={band.name.length * 10 + 18} height="28" fill="rgba(31,29,28,.85)" />
+              <text x="19" y="24" dominantBaseline="central" fontFamily={MONO} fontSize="15" fontWeight="700" letterSpacing="1" fill="#ece8e3">{band.name}</text>
+            </g>
+          )}
         </svg>
       </div>
     </>
@@ -184,7 +174,7 @@ export default function RecentShift({ profile: p }) {
         <span style={{ ...subhead, padding: '12px 14px' }}>NO GAMES IN THE RECENT WINDOW</span>
       ) : (
         <>
-          {p.shotShift ? <ShotMap shotShift={p.shotShift} games={games} /> : <span style={{ ...subhead, padding: '12px 14px' }}>NO SHOT DATA THIS SEASON</span>}
+          {p.shotShift ? <ShotMap shotShift={p.shotShift} /> : <span style={{ ...subhead, padding: '12px 14px' }}>NO SHOT DATA THIS SEASON</span>}
           {p.recentShift && <CoreStats profile={p} />}
         </>
       )}

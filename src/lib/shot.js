@@ -45,7 +45,7 @@ export function shotModel({ zones, league }, mode) {
     totals.rest += zones[id].rest.fga
     totals.recent += zones[id].recent.fga
   }
-  const bands = BANDS.map(({ id, d, clip, name, range, lx, ly, points }) => {
+  const bands = BANDS.map(({ id, d, clip, name, lx, ly, points }) => {
     const rest = bandValue(zones[id].rest, totals.rest, points, league[id], mode)
     const recent = bandValue(zones[id].recent, totals.recent, points, league[id], mode)
     const delta = rest === null || recent === null ? null : recent - rest
@@ -55,11 +55,8 @@ export function shotModel({ zones, league }, mode) {
       d,
       clip,
       name,
-      range,
       lx,
       ly,
-      rest: zones[id].rest,
-      recent: zones[id].recent,
       delta,
       small,
       label: delta === null ? '—' : (delta >= 0 ? '+' : '−') + Math.abs(delta).toFixed(1)

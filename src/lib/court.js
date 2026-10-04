@@ -31,10 +31,10 @@ const COURT = `M1 1 H499 V${COURT_H - 1} H1 Z`
 // Bands stop GAP short of each edge so neighbouring bands read as separate; the
 // 3pt line (drawn over the bands) separates long midrange from threes.
 export const BANDS = [
-  { id: 'rim', name: 'RIM', range: '0–6 FT', lx: 250, ly: 88, d: arch(RIM_R - GAP), clip: false, points: 2 },
-  { id: 'short_mid', name: 'SHORT MID', range: '6–14 FT', lx: 250, ly: 152, d: `${arch(SHORT_MID_R - GAP)} ${arch(RIM_R + GAP)}`, clip: false, points: 2 },
-  { id: 'long_mid', name: 'LONG MID', range: '14 FT – ARC', lx: 250, ly: 245, d: `${COURT} ${arch(SHORT_MID_R + GAP)}`, clip: true, points: 2 },
-  { id: 'three', name: '3PT', range: 'BEYOND THE ARC', lx: 250, ly: 322, d: `${COURT} ${INSIDE_THREE}`, clip: false, points: 3 }
+  { id: 'rim', name: 'RIM', lx: 250, ly: 88, d: arch(RIM_R - GAP), clip: false, points: 2 },
+  { id: 'short_mid', name: 'SHORT MID', lx: 250, ly: 152, d: `${arch(SHORT_MID_R - GAP)} ${arch(RIM_R + GAP)}`, clip: false, points: 2 },
+  { id: 'long_mid', name: 'LONG MID', lx: 250, ly: 245, d: `${COURT} ${arch(SHORT_MID_R + GAP)}`, clip: true, points: 2 },
+  { id: 'three', name: '3PT', lx: 250, ly: 322, d: `${COURT} ${INSIDE_THREE}`, clip: false, points: 3 }
 ]
 
 export const isThree = (X, Y) => (Y <= CORNER_Y ? X < CORNER_X || X > 500 - CORNER_X : Math.hypot(X - BASKET.x, Y - BASKET.y) > R3)

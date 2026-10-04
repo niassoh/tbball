@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
-import { BETTER, MODES, WORSE, rgb, shotModel } from '../lib/shot.js'
+import { BANDS, BETTER, MODES, WORSE, rgb, shotModel } from '../lib/shot.js'
 import { BASKET, COURT_H, INSIDE_THREE, THREE_LINE } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
@@ -11,9 +11,43 @@ const legendSwatch = (color, label, round = false, hollow = false) => (
 )
 const subhead = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#8a847e' }
 
-function ShotMap({ shotShift }) {
+const pctLine = c => (c.fga ? `${c.fgm}/${c.fga} · ${((c.fgm / c.fga) * 100).toFixed(1)}%` : '0/0')
+const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+// A shot lands like a ball coming down: from just above, a slight overshoot,
+// then it settles. Shots ripple outward from the rim, all within ~0.4s.
+const SHOT_KEYFRAMES = '@keyframes shotIn { 0% { opacity: 0; transform: translateY(-14px) scale(.5) } 60% { opacity: 1; transform: translateY(1.5px) scale(1.12) } 100% { opacity: 1; transform: none } }'
+
+// ESPN locates shots to the whole foot, so stacked shots are spread within that
+// foot (a fixed offset per shot, so they don't move between hovers).
+const spread = i => [((i * 37) % 11) - 5, ((i * 53) % 11) - 5]
+
+function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) {
+  const motion = animate ? { animation: `shotIn 320ms cubic-bezier(.3,.7,.4,1) ${delay}ms both`, transformBox: 'fill-box', transformOrigin: 'center' } : undefined
+  return (
+    <g transform={`translate(${BASKET.x + x + dx} ${BASKET.y + Math.max(0, y + dy)})`}>
+      <g style={motion}>
+        {made
+          ? <circle r="4.2" fill={recent ? rgb(BETTER) : 'rgba(151,193,151,.35)'} stroke="#1f1d1c" strokeWidth="1" />
+          : <path d="M-3.2 -3.2 L3.2 3.2 M-3.2 3.2 L3.2 -3.2" stroke={recent ? '#ece8e3' : 'rgba(236,232,227,.3)'} strokeWidth="1.6" strokeLinecap="round" />}
+      </g>
+    </g>
+  )
+}
+
+function ShotMap({ shotShift, games }) {
   const [mode, setMode] = useState('value')
+  const [hover, setHover] = useState(null)
   const zones = shotModel(shotShift, mode)
+  const band = zones.find(z => z.id === hover)
+  const index = BANDS.findIndex(b => b.id === hover)
+  // Rest of season underneath, last N games on top; each set ripples out from the rim.
+  const shots = (hover === null ? [] : (shotShift.shots || []).filter(s => s[4] === index))
+    .map((s, i) => ({ s, i, r: Math.hypot(s[0], s[1]) }))
+    .sort((a, b) => a.s[3] - b.s[3] || a.r - b.r)
+  const far = Math.max(1, ...shots.map(x => x.r))
+  const animate = !reduceMotion()
+  const recentLabel = games === null ? 'LAST 30 DAYS' : `LAST ${games} G`
   return (
     <>
       <div style={{ padding: '10px 14px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -27,33 +61,49 @@ function ShotMap({ shotShift }) {
           })}
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 12px', gap: 10 }}>
-        <div style={{ position: 'relative' }}>
-          <svg viewBox={`0 0 500 ${COURT_H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-            <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />
-            <defs>
-              <clipPath id="courtClip"><rect x="1" y="1" width="498" height={COURT_H - 2} /></clipPath>
-              <clipPath id="insideThree"><path d={INSIDE_THREE} /></clipPath>
-            </defs>
-            <g clipPath="url(#courtClip)">
-              {zones.map(z => <path key={z.id} d={z.d} fill={z.fill} fillRule="evenodd" clipPath={z.clip ? 'url(#insideThree)' : undefined} />)}
-            </g>
-            {/* Court markings over the bands, light and thin so they read the same on every color. */}
-            <g fill="none" stroke="rgba(236,232,227,.3)" strokeWidth="1.5">
-              <rect x="1" y="1" width="498" height={COURT_H - 2} />
-              <rect x="170" y="1" width="160" height="189" />
-              <path d={THREE_LINE} />
-              <line x1="220" y1="40" x2="280" y2="40" />
-              <circle cx={BASKET.x} cy={BASKET.y} r="7.5" />
-            </g>
-          </svg>
-          {zones.map(z => (
-            <div key={z.id} style={{ position: 'absolute', left: `${z.lx / 5}%`, top: `${(z.ly / COURT_H) * 100}%`, transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '3px 6px 4px', background: 'rgba(31,29,28,.72)', fontFamily: MONO, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#ece8e3', lineHeight: 1, opacity: z.small ? 0.7 : 1 }}>{z.label}</span>
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '.08em', color: '#d6d1cb', lineHeight: 1 }}>{z.name}</span>
-            </div>
-          ))}
+      <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 12px' }}>
+        <div style={{ height: 36, padding: '0 9px', background: '#1f1d1c', borderTop: band ? `2px solid ${band.small ? '#6b655f' : rgb(band.delta > 0 ? BETTER : WORSE)}` : '2px solid #3d3a37', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, fontFamily: MONO, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+          {band ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', color: '#ece8e3' }}>{band.name} <span style={{ fontWeight: 400, color: '#8a847e', fontSize: 9 }}>{band.range}</span></span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: band.small ? '#a8a29c' : rgb(band.delta > 0 ? BETTER : [147, 163, 152]) }}>{band.label} <span style={{ fontWeight: 400, fontSize: 9, color: '#8a847e' }}>{MODES[mode].label}</span></span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 9, color: '#a8a29c' }}>
+                <span><span style={{ color: '#ece8e3' }}>{recentLabel}</span> {pctLine(band.recent)}  <span style={{ color: '#6b655f' }}>·</span>  REST {pctLine(band.rest)}</span>
+                <span style={{ display: 'flex', gap: 8, color: '#8a847e' }}><span><span style={{ color: rgb(BETTER) }}>●</span> MAKE</span><span><span style={{ color: '#ece8e3' }}>×</span> MISS</span></span>
+              </div>
+            </>
+          ) : (
+            <span style={{ fontSize: 9, letterSpacing: '.08em', color: '#8a847e' }}>HOVER A ZONE TO SEE ITS SHOTS</span>
+          )}
         </div>
+        <svg viewBox={`0 0 500 ${COURT_H}`} onMouseLeave={() => setHover(null)} style={{ width: '100%', height: 'auto', display: 'block' }}>
+          <style>{SHOT_KEYFRAMES}</style>
+          <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />
+          <defs>
+            <clipPath id="courtClip"><rect x="1" y="1" width="498" height={COURT_H - 2} /></clipPath>
+            <clipPath id="insideThree"><path d={INSIDE_THREE} /></clipPath>
+          </defs>
+          <g clipPath="url(#courtClip)">
+            {zones.map(z => (
+              <path key={z.id} d={z.d} fill={z.fill} fillRule="evenodd" clipPath={z.clip ? 'url(#insideThree)' : undefined}
+                onMouseEnter={() => setHover(z.id)} onClick={() => setHover(h => (h === z.id ? null : z.id))}
+                style={{ cursor: 'pointer', opacity: hover && hover !== z.id ? 0.3 : 1, transition: 'opacity .15s' }} />
+            ))}
+          </g>
+          {/* Court markings over the bands, light and thin so they read the same on every color. */}
+          <g fill="none" stroke="rgba(236,232,227,.3)" strokeWidth="1.5" pointerEvents="none">
+            <rect x="1" y="1" width="498" height={COURT_H - 2} />
+            <rect x="170" y="1" width="160" height="189" />
+            <path d={THREE_LINE} />
+            <line x1="220" y1="40" x2="280" y2="40" />
+            <circle cx={BASKET.x} cy={BASKET.y} r="7.5" />
+          </g>
+          <g key={hover} clipPath="url(#courtClip)" pointerEvents="none">
+            {shots.map(({ s, i, r }) => <Shot key={i} shot={s} offset={spread(i)} animate={animate} delay={Math.round((r / far) * 240 + (s[3] ? 80 : 0))} />)}
+          </g>
+        </svg>
       </div>
     </>
   )
@@ -126,7 +176,7 @@ export default function RecentShift({ profile: p }) {
         <span style={{ ...subhead, padding: '12px 14px' }}>NO GAMES IN THE RECENT WINDOW</span>
       ) : (
         <>
-          {p.shotShift ? <ShotMap shotShift={p.shotShift} /> : <span style={{ ...subhead, padding: '12px 14px' }}>NO SHOT DATA THIS SEASON</span>}
+          {p.shotShift ? <ShotMap shotShift={p.shotShift} games={games} /> : <span style={{ ...subhead, padding: '12px 14px' }}>NO SHOT DATA THIS SEASON</span>}
           {p.recentShift && <CoreStats profile={p} />}
         </>
       )}

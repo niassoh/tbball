@@ -7,8 +7,8 @@ describe('court bands', () => {
     expect(SHORT_MID_R).toBe(140)
   })
 
-  test('each band label sits inside its own band', () => {
-    for (const b of BANDS) expect(classify(b.lx, b.ly, isThree(b.lx, b.ly) ? 3 : 2)).toBe(b.id)
+  test('bands are listed in thinking-bball ZONES order (the shot list indexes them)', () => {
+    expect(BANDS.map(b => b.id)).toEqual(['rim', 'short_mid', 'long_mid', 'three'])
   })
 
   test('bands follow distance from the basket', () => {
@@ -16,6 +16,8 @@ describe('court bands', () => {
     expect(classify(BASKET.x + 100, BASKET.y + 50, 2)).toBe('short_mid') // 11.2 ft
     expect(classify(BASKET.x - 150, BASKET.y + 60, 2)).toBe('long_mid') // 16.2 ft
     expect(classify(20, 40, 3)).toBe('three')
+    // behind the basket only the sideways distance counts, like a corner 3
+    expect(classify(BASKET.x - 55, BASKET.y - 40, 2)).toBe('rim')
   })
 
   test('the corners and beyond the arc are threes', () => {

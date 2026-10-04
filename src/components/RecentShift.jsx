@@ -138,8 +138,10 @@ function CoreStats({ profile: p }) {
           const stat = p.stats[r.stat]
           const p0 = r.season.pctl
           const p1 = r.recent.pctl
-          const neutral = Math.abs(p1 - p0) < 3
-          const good = r.delta > 0 !== stat.lowerBetter
+          // Percentiles already read higher-is-better, so lower-better stats need no flip.
+          const change = p1 - p0
+          const neutral = Math.abs(change) < 3
+          const good = change > 0
           const color = neutral ? '#8a847e' : good ? rgb(BETTER) : '#93a398'
           const bg = neutral ? '#6b655f' : rgb(good ? BETTER : WORSE)
           const lo = Math.min(p0, p1)
@@ -157,7 +159,7 @@ function CoreStats({ profile: p }) {
                 <div style={{ position: 'absolute', left: p0 + '%', top: 4, width: 8, height: 8, marginLeft: -5, border: '1.5px solid #8a847e', borderRadius: '50%', background: '#2c2a28', boxSizing: 'border-box' }} />
                 <div style={{ position: 'absolute', left: p1 + '%', top: 4, width: 10, height: 10, marginLeft: -5, borderRadius: '50%', background: '#ece8e3', border: '2px solid ' + (neutral ? '#8a847e' : bg), boxSizing: 'border-box' }} />
               </div>
-              <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color, whiteSpace: 'nowrap' }}>{(r.delta >= 0 ? '+' : '−') + Math.abs(r.delta).toFixed(stat.dec || 1)}</span>
+              <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color, whiteSpace: 'nowrap' }}>{(change >= 0 ? '+' : '−') + Math.abs(change)}</span>
             </div>
           )
         })}

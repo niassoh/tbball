@@ -8,9 +8,9 @@ export { BANDS }
 
 // Neutral thresholds and color scales per mode (README §2).
 export const MODES = {
-  value: { th: 0.4, scale: 4, label: 'VALUE' },
-  freq: { th: 0.5, scale: 4, label: 'FREQ' },
-  fg: { th: 1, scale: 6, label: 'FG%' }
+  value: { th: 0.4, scale: 4, label: 'VALUE', note: 'POINTS ABOVE LEAGUE PER 100 FGA' },
+  freq: { th: 0.5, scale: 4, label: 'FREQ', note: 'SHARE OF FGA' },
+  fg: { th: 1, scale: 6, label: 'FG%', note: 'FIELD GOAL %' }
 }
 
 // Better / worse on the Last 30 Days card: the site's green, and a dark grey-green.
@@ -45,7 +45,7 @@ export function shotModel({ zones, league }, mode) {
     totals.rest += zones[id].rest.fga
     totals.recent += zones[id].recent.fga
   }
-  const bands = BANDS.map(({ id, d, clip, name, range, points }) => {
+  const bands = BANDS.map(({ id, d, clip, name, range, lx, ly, points }) => {
     const rest = bandValue(zones[id].rest, totals.rest, points, league[id], mode)
     const recent = bandValue(zones[id].recent, totals.recent, points, league[id], mode)
     const delta = rest === null || recent === null ? null : recent - rest
@@ -56,6 +56,8 @@ export function shotModel({ zones, league }, mode) {
       clip,
       name,
       range,
+      lx,
+      ly,
       rest: zones[id].rest,
       recent: zones[id].recent,
       delta,

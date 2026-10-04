@@ -75,7 +75,7 @@ function ShotMap({ shotShift, games }) {
               </div>
             </>
           ) : (
-            <span style={{ fontSize: 9, letterSpacing: '.08em', color: '#8a847e' }}>HOVER A ZONE TO SEE ITS SHOTS</span>
+            <span style={{ fontSize: 9, letterSpacing: '.06em', color: '#8a847e' }}>Δ {MODES[mode].note} · {recentLabel} VS REST OF SEASON</span>
           )}
         </div>
         <svg viewBox={`0 0 500 ${COURT_H}`} onMouseLeave={() => setHover(null)} style={{ width: '100%', height: 'auto', display: 'block' }}>
@@ -100,6 +100,12 @@ function ShotMap({ shotShift, games }) {
             <line x1="220" y1="40" x2="280" y2="40" />
             <circle cx={BASKET.x} cy={BASKET.y} r="7.5" />
           </g>
+          {hover === null && zones.map(z => (
+            <g key={`label-${z.id}`} pointerEvents="none">
+              <rect x={z.lx - 27} y={z.ly - 13} width="54" height="26" fill="rgba(31,29,28,.72)" />
+              <text x={z.lx} y={z.ly} textAnchor="middle" dominantBaseline="central" fontFamily={MONO} fontSize="17" fontWeight="700" fill="#ece8e3" opacity={z.small ? 0.7 : 1}>{z.label}</text>
+            </g>
+          ))}
           <g key={hover} clipPath="url(#courtClip)" pointerEvents="none">
             {shots.map(({ s, i, r }) => <Shot key={i} shot={s} offset={spread(i)} animate={animate} delay={Math.round((r / far) * 240 + (s[3] ? 80 : 0))} />)}
           </g>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
 import { BANDS, BETTER, MODES, WORSE, rgb, shotModel } from '../lib/shot.js'
-import { BASKET, COURT_H, INSIDE_THREE, THREE_LINE } from '../lib/court.js'
+import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, THREE_LINE } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -79,10 +79,11 @@ function ShotMap({ shotShift }) {
             ))}
           </g>
           {/* Court markings over the bands, light and thin so they read the same on every color. */}
-          <g fill="none" stroke="rgba(236,232,227,.3)" strokeWidth="1.5" pointerEvents="none">
+          <g fill="none" stroke="rgba(236,232,227,.4)" strokeWidth="1.5" pointerEvents="none">
             <rect x="1" y="1" width="498" height={COURT_H - 2} />
             <rect x="170" y="1" width="160" height="189" />
             <path d={THREE_LINE} />
+            {BAND_EDGES.map(d => <path key={d} d={d} />)}
             <line x1="220" y1="40" x2="280" y2="40" />
             <circle cx={BASKET.x} cy={BASKET.y} r="7.5" />
           </g>

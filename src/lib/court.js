@@ -13,27 +13,29 @@ const CORNER_Y = 141.5
 export const RIM_R = 60
 export const SHORT_MID_R = 140
 export const COURT_H = 360
-const GAP = 1.25 // half the space left between neighbouring bands
 
 export const THREE_LINE = `M${CORNER_X} 1 L${CORNER_X} ${CORNER_Y} A${R3} ${R3} 0 0 0 ${500 - CORNER_X} ${CORNER_Y} L${500 - CORNER_X} 1`
 // Everything inside the 3pt line (used to clip long midrange and cut out threes).
 export const INSIDE_THREE = `${THREE_LINE} Z`
 
-// The area within r of the basket, 3pt-line style: straight sides from the
-// baseline to basket level, then a half circle in front of the basket.
-const arch = r => `M${BASKET.x - r} 1 L${BASKET.x - r} ${BASKET.y} A${r} ${r} 0 0 0 ${BASKET.x + r} ${BASKET.y} L${BASKET.x + r} 1 Z`
+// A band edge, 3pt-line style: straight sides from the baseline to basket level,
+// then a half circle in front of the basket. Closed, it is the area within r.
+const edge = r => `M${BASKET.x - r} 1 L${BASKET.x - r} ${BASKET.y} A${r} ${r} 0 0 0 ${BASKET.x + r} ${BASKET.y} L${BASKET.x + r} 1`
+const arch = r => `${edge(r)} Z`
+// Drawn over the bands with the 3pt line, so every band border looks the same.
+export const BAND_EDGES = [edge(RIM_R), edge(SHORT_MID_R)]
 
 const COURT = `M1 1 H499 V${COURT_H - 1} H1 Z`
 
 // Order matches thinking-bball/lib/zones.js ZONES, which the shot list's band index uses.
 // d is drawn with fill-rule evenodd; clip marks bands cut to inside the 3pt line.
 // lx/ly place each band's value on the centre line, where no court line runs.
-// Bands stop GAP short of each edge so neighbouring bands read as separate; the
-// 3pt line (drawn over the bands) separates long midrange from threes.
+// Neighbouring bands meet; the edge lines drawn over them (BAND_EDGES and the
+// 3pt line) separate them.
 export const BANDS = [
-  { id: 'rim', name: 'RIM', lx: 250, ly: 88, d: arch(RIM_R - GAP), clip: false, points: 2 },
-  { id: 'short_mid', name: 'SHORT MID', lx: 250, ly: 152, d: `${arch(SHORT_MID_R - GAP)} ${arch(RIM_R + GAP)}`, clip: false, points: 2 },
-  { id: 'long_mid', name: 'LONG MID', lx: 250, ly: 245, d: `${COURT} ${arch(SHORT_MID_R + GAP)}`, clip: true, points: 2 },
+  { id: 'rim', name: 'RIM', lx: 250, ly: 88, d: arch(RIM_R), clip: false, points: 2 },
+  { id: 'short_mid', name: 'SHORT MID', lx: 250, ly: 152, d: `${arch(SHORT_MID_R)} ${arch(RIM_R)}`, clip: false, points: 2 },
+  { id: 'long_mid', name: 'LONG MID', lx: 250, ly: 245, d: `${COURT} ${arch(SHORT_MID_R)}`, clip: true, points: 2 },
   { id: 'three', name: '3PT', lx: 250, ly: 322, d: `${COURT} ${INSIDE_THREE}`, clip: false, points: 3 }
 ]
 

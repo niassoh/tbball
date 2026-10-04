@@ -91,7 +91,15 @@ describe('shot map', () => {
   })
   test('zone fill thresholds', () => {
     expect(zoneFill(0.3, 'value')).toBe('rgba(236,232,227,.04)')
-    expect(zoneFill(0.5, 'freq')).toBe('rgba(89,126,193,0.12)')
+    expect(zoneFill(0.5, 'freq')).toBe('rgba(89,126,193,0.10)')
     expect(zoneFill(-10, 'fg')).toBe('rgba(250,150,42,0.60)')
+  })
+  test('the largest change on the map gets the deepest color', () => {
+    const cold = { rest: { fga: 10, fgm: 6 }, recent: { fga: 10, fgm: 2 } }
+    const cool = { rest: { fga: 10, fgm: 6 }, recent: { fga: 10, fgm: 4 } }
+    const m = shotModel({ zones: { ...zones, rim: cold, paint_l: cool }, league }, 'fg')
+    const alpha = id => Number(m.find(z => z.id === id).fill.match(/,([\d.]+)\)$/)[1])
+    expect(alpha('rim')).toBe(0.6)
+    expect(alpha('short_mid')).toBeLessThan(alpha('rim'))
   })
 })

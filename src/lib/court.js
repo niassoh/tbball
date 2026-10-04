@@ -85,13 +85,11 @@ const SHAPES = [
   ['top3', [[...arc(P, Pm), Qm, { x: 499, y: 319 }, { x: 1, y: 319 }, Q]], 250, 312, 'TOP 3', 3]
 ]
 
-// Lines between the map's groups not already drawn by the court outline: the
-// short/long midrange split at free-throw depth outside the paint.
+// Boundaries between the map's groups (drawn as gaps): the rim circle, the
+// short/long midrange split at free-throw depth, and the 3pt line.
 const seg = (a, b) => ({ x1: a.x, y1: a.y, x2: b.x, y2: b.y })
-export const DIVIDERS = [
-  seg(B, { x: PAINT_X, y: FT_Y }),
-  seg(mirror(B), { x: 330, y: FT_Y })
-]
+export const DIVIDERS = [seg(B, mirror(B))]
+export const THREE_LINE = `M${CORNER_X} 1 L${A.x} ${A.y} A${R3} ${R3} 0 0 0 ${500 - A.x} ${A.y} L${500 - CORNER_X} 1`
 
 const toPath = rings =>
   rings.map(ring => 'M' + ring.map(p => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' L') + ' Z').join(' ')

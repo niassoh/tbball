@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
 import { MODES, shotModel } from '../lib/shot.js'
-import { BASKET, DIVIDERS, RIM_R } from '../lib/court.js'
+import { BASKET, DIVIDERS, RIM_R, THREE_LINE } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -35,9 +35,10 @@ function ShotMap({ shotShift }) {
             <g clipPath="url(#courtClip)">
               {zones.map(z => <path key={z.id} d={z.d} fill={z.fill} fillRule="evenodd" />)}
             </g>
-            <g fill="none" stroke="#3d3a37" strokeWidth="1">
+            <g fill="none" stroke="#262422" strokeWidth="3">
               {DIVIDERS.map((l, i) => <line key={i} {...l} />)}
               <circle cx={BASKET.x} cy={BASKET.y} r={RIM_R} />
+              <path d={THREE_LINE} />
             </g>
             <g fill="none" stroke="#6b655f" strokeWidth="2">
               <rect x="1" y="1" width="498" height="318" />

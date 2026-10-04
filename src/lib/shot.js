@@ -22,11 +22,15 @@ const zoneValue = (cell, total, points, league, mode) => {
   return total ? ((points * (cell.fgm - cell.fga * (league.fgm / league.fga))) / total) * 100 : null
 }
 
-export const zoneFill = (d, mode) => {
-  const { th, scale } = MODES[mode]
+// Intensity runs from the neutral threshold up to the map's largest change
+// (never less than the mode's own scale), on a curve, so with only four groups
+// the biggest change stands out instead of every region saturating alike.
+export const zoneFill = (d, mode, span = MODES[mode].th + MODES[mode].scale) => {
+  const { th } = MODES[mode]
   const a = Math.abs(d)
   if (d === null || a < th) return 'rgba(236,232,227,.04)'
-  const alpha = Math.min(0.6, 0.12 + ((a - th) / scale) * 0.5).toFixed(2)
+  const t = Math.min(1, (a - th) / (span - th))
+  const alpha = (0.1 + 0.5 * t ** 1.5).toFixed(2)
   return d > 0 ? `rgba(89,126,193,${alpha})` : `rgba(250,150,42,${alpha})`
 }
 
@@ -38,7 +42,7 @@ export function shotModel({ zones, league }, mode) {
     totals.rest += zones[id].rest.fga
     totals.recent += zones[id].recent.fga
   }
-  return GROUPS.map(({ id, zones: ids, d, lx, ly, name, points }) => {
+  const groups = GROUPS.map(({ id, zones: ids, d, lx, ly, name, points }) => {
     const lg = sum(ids.map(z => league[z]))
     const rest = zoneValue(sum(ids.map(z => zones[z].rest)), totals.rest, points, lg, mode)
     const recent = zoneValue(sum(ids.map(z => zones[z].recent)), totals.recent, points, lg, mode)
@@ -52,8 +56,10 @@ export function shotModel({ zones, league }, mode) {
       name,
       delta,
       small,
-      fill: zoneFill(delta, mode),
       label: delta === null ? '—' : (delta >= 0 ? '+' : '−') + Math.abs(delta).toFixed(1)
     }
   })
+  const { th, scale } = MODES[mode]
+  const span = Math.max(th + scale, ...groups.map(g => Math.abs(g.delta || 0)))
+  return groups.map(g => ({ ...g, fill: zoneFill(g.delta, mode, span) }))
 }

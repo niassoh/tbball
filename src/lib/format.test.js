@@ -83,17 +83,18 @@ describe('shot map', () => {
     const hot = { ...zones, rim: { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 8 } } }
     expect(band(hot, 'value', 'rim').label).toBe('+15.0')
   })
-  test('increases are green, decreases dark grey-green, small changes neutral', () => {
-    expect(zoneFill(0.3, 'value')).toBe('rgba(236,232,227,.04)')
-    expect(zoneFill(0.5, 'freq')).toBe('rgba(151,193,151,0.35)')
-    expect(zoneFill(-10, 'fg')).toBe('rgba(70,80,74,0.90)')
+  test('small changes are neutral grey-green; the extremes are bright green and near-black', () => {
+    expect(zoneFill(0.3, 'value')).toBe('rgb(88,102,93)')
+    expect(zoneFill(0.5, 'freq')).toBe('rgb(88,102,93)')
+    expect(zoneFill(10, 'fg')).toBe('rgb(151,193,151)')
+    expect(zoneFill(-10, 'fg')).toBe('rgb(26,29,27)')
   })
   test('the largest change on the map gets the deepest color', () => {
     const cold = { rest: { fga: 10, fgm: 6 }, recent: { fga: 10, fgm: 2 } }
     const cool = { rest: { fga: 10, fgm: 6 }, recent: { fga: 10, fgm: 4 } }
     const m = shotModel({ zones: { ...zones, rim: cold, short_mid: cool }, league }, 'fg')
-    const alpha = id => Number(m.find(z => z.id === id).fill.match(/,([\d.]+)\)$/)[1])
-    expect(alpha('rim')).toBe(0.9)
-    expect(alpha('short_mid')).toBeLessThan(alpha('rim'))
+    const brightness = id => m.find(z => z.id === id).fill.match(/\d+/g).map(Number).reduce((a, b) => a + b)
+    expect(m.find(z => z.id === 'rim').fill).toBe('rgb(26,29,27)')
+    expect(brightness('short_mid')).toBeGreaterThan(brightness('rim'))
   })
 })

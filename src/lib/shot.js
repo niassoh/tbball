@@ -27,16 +27,20 @@ const bandValue = (cell, total, points, league, mode) => {
   return total ? ((points * (cell.fgm - cell.fga * (league.fgm / league.fga))) / total) * 100 : null
 }
 
-// Intensity runs from the neutral threshold up to the map's largest change
-// (never less than the mode's own scale), on a curve, so with only four bands
-// the biggest change stands out instead of every band saturating alike.
+// The map's scale reads by brightness: a neutral grey-green near zero, darkening
+// toward near-black as a change gets more negative and brightening to the site's
+// green as it gets more positive. It runs from the neutral threshold up to the
+// map's largest change (never less than the mode's own scale).
+const NEUTRAL = [88, 102, 93]
+const DARKEST = [26, 29, 27]
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t))
+
 export const zoneFill = (d, mode, span = MODES[mode].th + MODES[mode].scale) => {
   const { th } = MODES[mode]
   const a = Math.abs(d)
-  if (d === null || a < th) return 'rgba(236,232,227,.04)'
-  const t = Math.min(1, (a - th) / (span - th))
-  const alpha = (0.35 + 0.55 * t ** 1.5).toFixed(2)
-  return `rgba(${(d > 0 ? BETTER : WORSE).join(',')},${alpha})`
+  if (d === null || a < th) return rgb(NEUTRAL)
+  const t = Math.min(1, (a - th) / (span - th)) ** 0.8
+  return rgb(mix(NEUTRAL, d > 0 ? BETTER : DARKEST, t))
 }
 
 export function shotModel({ zones, league }, mode) {

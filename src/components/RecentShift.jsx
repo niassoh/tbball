@@ -22,14 +22,17 @@ const SHOT_KEYFRAMES = '@keyframes shotIn { 0% { opacity: 0; transform: translat
 // foot (a fixed offset per shot, so they don't move between hovers).
 const spread = i => [((i * 37) % 11) - 5, ((i * 53) % 11) - 5]
 
+// On a hovered (darkened) zone: makes blue, misses orange, last N games near-solid
+// over the faint rest of the season.
+const MAKE = '#6f9be8'
+const MISS = '#fa962a'
+
 function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) {
   const motion = animate ? { animation: `shotIn 320ms cubic-bezier(.3,.7,.4,1) ${delay}ms both`, transformBox: 'fill-box', transformOrigin: 'center' } : undefined
   return (
     <g transform={`translate(${BASKET.x + x + dx} ${BASKET.y + Math.max(0, y + dy)})`}>
       <g style={motion}>
-        {made
-          ? <circle r="4.2" fill={recent ? rgb(BETTER) : 'rgba(151,193,151,.35)'} stroke="#1f1d1c" strokeWidth="1" />
-          : <path d="M-3.2 -3.2 L3.2 3.2 M-3.2 3.2 L3.2 -3.2" stroke={recent ? '#ece8e3' : 'rgba(236,232,227,.3)'} strokeWidth="1.6" strokeLinecap="round" />}
+        <circle r="4.2" fill={made ? MAKE : MISS} fillOpacity={recent ? 0.85 : 0.3} />
       </g>
     </g>
   )
@@ -72,7 +75,7 @@ function ShotMap({ shotShift, games }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 9, color: '#a8a29c' }}>
                 <span><span style={{ color: '#ece8e3' }}>{recentLabel}</span> {pctLine(band.recent)}  <span style={{ color: '#6b655f' }}>·</span>  REST {pctLine(band.rest)}</span>
-                <span style={{ display: 'flex', gap: 8, color: '#8a847e' }}><span><span style={{ color: rgb(BETTER) }}>●</span> MAKE</span><span><span style={{ color: '#ece8e3' }}>×</span> MISS</span></span>
+                <span style={{ display: 'flex', gap: 8, color: '#8a847e' }}><span><span style={{ color: MAKE }}>●</span> MAKE</span><span><span style={{ color: MISS }}>●</span> MISS</span></span>
               </div>
             </>
           ) : null}
@@ -86,7 +89,7 @@ function ShotMap({ shotShift, games }) {
           </defs>
           <g clipPath="url(#courtClip)">
             {zones.map(z => (
-              <path key={z.id} d={z.d} fill={z.fill} fillRule="evenodd" clipPath={z.clip ? 'url(#insideThree)' : undefined}
+              <path key={z.id} d={z.d} fill={hover === z.id ? '#121110' : z.fill} fillRule="evenodd" clipPath={z.clip ? 'url(#insideThree)' : undefined}
                 onMouseEnter={() => setHover(z.id)} onClick={() => setHover(h => (h === z.id ? null : z.id))}
                 style={{ cursor: 'pointer', opacity: hover && hover !== z.id ? 0.3 : 1, transition: 'opacity .15s' }} />
             ))}

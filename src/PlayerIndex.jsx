@@ -10,7 +10,7 @@ const bpm = p => (p.recentBpm === null ? '' : `BPM ${p.recentBpm > 0 ? '+' : ''}
 
 // Portraits are transparent cutouts; behind them sits the charcoal (with a soft
 // vignette) the portraits used to be drawn on.
-const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #2f2d2b 0%, #242322 60%, #1c1b1a 100%)'
+const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 
 function Avatar({ player, size }) {
   const [failed, setFailed] = useState(false)

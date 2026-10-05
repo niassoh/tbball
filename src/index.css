@@ -21,7 +21,9 @@ html { scroll-behavior: smooth; }
 .hero:hover .hero-color { opacity: 1; }
 .hero .hero-bar { transform: scaleX(0); transform-origin: left; transition: transform .28s cubic-bezier(.2,.8,.2,1); }
 .hero:hover .hero-bar { transform: scaleX(1); }
-.hero .hero-face { transform-origin: 70% 100%; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+/* Kept on its own layer at rest (scale(1) + will-change): otherwise the browser drops the
+   layer when the zoom-out ends and re-renders the masked image, which shows as a jump. */
+.hero .hero-face { transform: scale(1); will-change: transform; backface-visibility: hidden; transform-origin: 70% 100%; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
 .hero:hover .hero-face { transform: scale(1.04); }
 .hero .hero-bokeh { transition: opacity .3s ease; }
 .hero:hover .hero-bokeh { opacity: .72 !important; }

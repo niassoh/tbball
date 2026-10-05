@@ -13,38 +13,50 @@ const shortDate = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`
 const rankColor = r => (r === null ? '#8a847e' : r <= 10 ? '#e6c27a' : r <= 20 ? '#d6d1cb' : '#8a847e')
 const tsColor = ts => (ts === null ? '#ece8e3' : ts >= 60 ? '#8fb0e6' : ts < 52 ? '#fa962a' : '#ece8e3')
 
+const HERO_H = 150
+// The portrait (or team-initials block) fills the banner's right side and dissolves
+// into the bokeh: portraits share the banner's charcoal background, so the mask
+// blends them in rather than cutting them out.
+const dissolve = 'linear-gradient(90deg, transparent 0%, #000 38%)'
+
 function Headshot({ slug, version, name, team }) {
   const [failed, setFailed] = useState(false)
   return (
-    <div style={{ width: 92, height: 92, margin: '-46px auto 0', position: 'relative', borderRadius: '50%', overflow: 'hidden', background: '#000', boxShadow: '0 0 0 3px #2c2a28,0 0 0 4px #6b655f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ position: 'absolute', right: 0, bottom: 0, width: HERO_H, height: HERO_H, WebkitMaskImage: dissolve, maskImage: dissolve }}>
       {failed ? (
-        <TeamInitials name={name} team={team} fontSize={28} />
+        <TeamInitials name={name} team={team} fontSize={40} />
       ) : (
-        <img src={headshotUrl(slug, 200, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
+        <img src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
       )}
     </div>
   )
 }
 
+// First name on one line, the rest below; long surnames get a smaller size so they
+// stop short of the portrait (~0.62em per character in this face).
+const nameLines = name => {
+  const [first, ...rest] = name.split(' ')
+  return rest.length ? [first, rest.join(' ')] : [name]
+}
+const nameSize = lines => Math.min(30, Math.floor(220 / (0.62 * Math.max(...lines.map(l => l.length)))))
+
 export default function BioCard({ profile: p }) {
-  const bio1 = [p.team, p.bio.position, p.bio.height].filter(Boolean).join(' · ')
-  const bio2 = p.bio.age !== null ? `AGE ${p.bio.age.toFixed(1)}` : ''
+  const stamp = [p.team, p.bio.position].filter(Boolean).join(' · ')
+  const bio = [p.bio.height, p.bio.age !== null ? `AGE ${p.bio.age.toFixed(1)}` : null].filter(Boolean).join(' · ')
+  const lines = nameLines(p.name)
   const games = (p.gameLog && p.gameLog.games) || []
 
   return (
     <div style={card}>
-      <div style={{ position: 'relative', height: 72, background: '#1f1d1c', borderBottom: '1px solid #544f4b', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid #ece8e3', overflow: 'hidden' }}>
         <img src="/banner-bokeh.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(31,29,28,.15) 0%,rgba(44,42,40,.85) 100%)' }} />
+        <Headshot slug={p.slug} version={p.headshotVersion} name={p.name} team={p.team} />
+        <span style={{ position: 'absolute', left: 14, top: 12, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: '#8a847e' }}>{stamp}</span>
+        <h1 style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
+          {lines.map(l => <span key={l} style={{ display: 'block', whiteSpace: 'nowrap' }}>{l}</span>)}
+        </h1>
       </div>
-      <Headshot slug={p.slug} version={p.headshotVersion} name={p.name} team={p.team} />
-      <div style={{ padding: '10px 14px 12px', margin: '0 14px', borderBottom: '2px solid #ece8e3', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
-        <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1, fontWeight: 600, letterSpacing: '-.005em', textWrap: 'balance' }}>{p.name}</h1>
-        <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', color: '#a8a29c', lineHeight: 1.5, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ whiteSpace: 'nowrap' }}>{bio1}</span>
-          <span style={{ whiteSpace: 'nowrap' }}>{bio2}</span>
-        </div>
-      </div>
+      {bio && <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', color: '#a8a29c', padding: '8px 14px 0' }}>{bio}</div>}
 
       {games.length > 0 && (
         <div style={{ padding: '12px 14px 4px', display: 'flex', flexDirection: 'column' }}>

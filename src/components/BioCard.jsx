@@ -39,8 +39,11 @@ function Headshot({ slug, version, name, team }) {
     )
   }
   return (
-    <div style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, WebkitMaskComposite: 'source-in', maskImage: fadeIn, maskComposite: 'intersect' }}>
-      <img className="hero-face" src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
+    // The hover zoom scales this whole box (mask included), not the image inside it:
+    // transparent portraits run to the top of the frame, so a zoom inside the box
+    // would clip the hair flat.
+    <div className="hero-face" style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, WebkitMaskComposite: 'source-in', maskImage: fadeIn, maskComposite: 'intersect' }}>
+      <img src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
     </div>
   )
 }

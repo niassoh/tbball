@@ -19,12 +19,15 @@ const PORTRAIT = 116
 // The portrait (or team-initials block) sits in the banner's bottom-right corner,
 // standing on the rule like a thumbnail subject, and fades into the bokeh on its
 // left and top edges; portraits share the banner's charcoal, so no edge shows.
-const fadeIn = 'linear-gradient(90deg, transparent 0%, #000 18%), linear-gradient(180deg, transparent 0%, #000 14%)'
+// An ellipse centred right of the face: the face and right side stay solid while the
+// left edge and lower-left corner fall off in an arc, so shoulders taper instead of
+// being cut by a straight line.
+const fadeIn = 'radial-gradient(ellipse 80% 115% at 76% 72%, #000 58%, transparent 100%)'
 
 function Headshot({ slug, version, name, team }) {
   const [failed, setFailed] = useState(false)
   return (
-    <div style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, WebkitMaskComposite: 'source-in', maskImage: fadeIn, maskComposite: 'intersect' }}>
+    <div style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, maskImage: fadeIn }}>
       {failed ? (
         <TeamInitials name={name} team={team} fontSize={32} />
       ) : (

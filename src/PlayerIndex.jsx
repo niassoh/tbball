@@ -8,11 +8,15 @@ const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 const span = p => (p.seasons[0] === p.seasons[1] ? p.seasons[0] : `${p.seasons[0]} – ${p.seasons[1]}`)
 const bpm = p => (p.recentBpm === null ? '' : `BPM ${p.recentBpm > 0 ? '+' : ''}${p.recentBpm.toFixed(1).replace('-', '−')}`)
 
+// Portraits are transparent cutouts; behind them sits the charcoal (with a soft
+// vignette) the portraits used to be drawn on.
+const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #2f2d2b 0%, #242322 60%, #1c1b1a 100%)'
+
 function Avatar({ player, size }) {
   const [failed, setFailed] = useState(false)
   const showImage = player.headshot && !failed
   return (
-    <div style={{ width: size, height: size, flex: 'none', borderRadius: '50%', overflow: 'hidden', background: showImage ? '#000' : '#34312e', boxShadow: '0 0 0 1px #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ width: size, height: size, flex: 'none', borderRadius: '50%', overflow: 'hidden', background: showImage ? PORTRAIT_BG : '#34312e', boxShadow: '0 0 0 1px #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {showImage ? (
         <img src={headshotUrl(player.slug, 100, player.headshotVersion)} alt="" loading="lazy" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%' }} />
       ) : (

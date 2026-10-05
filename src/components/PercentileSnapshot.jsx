@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MONO, col, fmt } from '../lib/format.js'
 
 // [group name, tab it links to, stat labels] as in the design's SNAPG.
@@ -12,12 +12,32 @@ const rowGrid = { display: 'grid', gridTemplateColumns: '100px minmax(0,1fr) 38p
 // they persist across seasons); skipped when the viewer asks for reduced motion.
 const EASE = '.45s cubic-bezier(.2,.8,.2,1)'
 const slide = props => (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'none' : props.map(x => `${x} ${EASE}`).join(', '))
+// Play steps through the career one season at a time; each step leaves time for
+// the slide to finish before the next.
+const STEP_MS = 900
 
 export default function PercentileSnapshot({ profile: p, onPickGroup }) {
   const L = p.seasons.length - 1
   const [season, setSeason] = useState(L)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [playing, setPlaying] = useState(false)
   const kp = Math.min(season, L)
+
+  useEffect(() => {
+    if (!playing) return
+    const t = setTimeout(() => {
+      setSeason(season + 1)
+      if (season + 1 >= L) setPlaying(false)
+    }, STEP_MS)
+    return () => clearTimeout(t)
+  }, [playing, season, L])
+
+  const togglePlay = () => {
+    if (playing) return setPlaying(false)
+    if (season >= L) setSeason(0)
+    setMenuOpen(false)
+    setPlaying(true)
+  }
 
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -30,13 +50,18 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
           {menuOpen && (
             <div style={{ position: 'absolute', left: -4, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', minWidth: 96, maxHeight: 320, overflowY: 'auto' }}>
               {p.seasons.map((s, i) => i).reverse().map(i => (
-                <button key={i} onClick={() => { setSeason(i); setMenuOpen(false) }} style={{ textAlign: 'left', background: i === kp ? '#3d3a37' : 'transparent', border: 'none', borderBottom: '1px solid #3d3a37', color: i === kp ? '#ece8e3' : '#b8b2ab', fontFamily: MONO, fontSize: 12, fontWeight: i === kp ? 600 : 400, padding: '7px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <button key={i} onClick={() => { setSeason(i); setMenuOpen(false); setPlaying(false) }} style={{ textAlign: 'left', background: i === kp ? '#3d3a37' : 'transparent', border: 'none', borderBottom: '1px solid #3d3a37', color: i === kp ? '#ece8e3' : '#b8b2ab', fontFamily: MONO, fontSize: 12, fontWeight: i === kp ? 600 : 400, padding: '7px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   {p.seasons[i].label}
                 </button>
               ))}
             </div>
           )}
         </span>
+        {L > 0 && (
+          <button onClick={togglePlay} aria-label={playing ? 'Pause career playback' : 'Play career season by season'} style={{ background: 'transparent', border: '1px solid #544f4b', color: playing ? '#ece8e3' : '#8a847e', fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', padding: '2px 7px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            {playing ? '❚❚ PAUSE' : '\u25B6\uFE0E PLAY'}
+          </button>
+        )}
       </div>
       <div style={{ padding: '8px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ ...rowGrid, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em' }}>

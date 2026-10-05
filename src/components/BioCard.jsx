@@ -22,7 +22,9 @@ const PORTRAIT = 116
 // An ellipse centred right of the face: the face and right side stay solid while the
 // left edge and lower-left corner fall off in an arc, so shoulders taper instead of
 // being cut by a straight line.
-const fadeIn = 'radial-gradient(ellipse 80% 115% at 76% 72%, #000 58%, transparent 100%)'
+// A second, small arc centred on the bottom-left corner tapers an arm or shoulder that
+// the source crop cut off at the box's left edge, so it doesn't end in a straight line.
+const fadeIn = `radial-gradient(ellipse 80% 115% at 76% 72%, #000 58%, transparent 100%), radial-gradient(circle ${PORTRAIT}px at 0% 100%, transparent 16%, #000 52%)`
 // Without a portrait, the team-initials panel runs the banner's full height and
 // fades in from the left, dimmed so it reads as a backdrop rather than a box.
 const panelFade = 'linear-gradient(90deg, transparent 0%, #000 55%)'
@@ -37,7 +39,7 @@ function Headshot({ slug, version, name, team }) {
     )
   }
   return (
-    <div style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, maskImage: fadeIn }}>
+    <div style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, WebkitMaskComposite: 'source-in', maskImage: fadeIn, maskComposite: 'intersect' }}>
       <img className="hero-face" src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
     </div>
   )

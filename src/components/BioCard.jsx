@@ -54,7 +54,12 @@ export default function BioCard({ profile: p }) {
         <img src="/banner-bokeh.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
         <Headshot slug={p.slug} version={p.headshotVersion} name={p.name} team={p.team} />
         <div style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
-          {TEAM_COLORS[p.team] && <img src={`/logos/${p.team}.png`} alt={p.team} title={p.team} style={{ width: 44, height: 44, margin: '-5px 0', objectFit: 'contain', paddingRight: 10, marginRight: 10, borderRight: '1px solid #6b655f' }} />}
+          {TEAM_COLORS[p.team] && (
+            // The white logo's shape filled with a light team tint: mostly monochrome, a hint of colour.
+            <div style={{ paddingRight: 10, marginRight: 10, borderRight: '1px solid #6b655f', margin: '-5px 10px -5px 0' }}>
+              <div role="img" aria-label={p.team} title={p.team} style={{ width: 44, height: 44, background: `color-mix(in srgb, ${TEAM_COLORS[p.team]} 35%, #ece8e3)`, WebkitMaskImage: `url(/logos/${p.team}.png)`, maskImage: `url(/logos/${p.team}.png)`, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
+            </div>
+          )}
           {specs.map(([label, value], i) => (
             <div key={label} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 3, padding: '0 10px', paddingLeft: i === 0 && !TEAM_COLORS[p.team] ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #6b655f' : 'none' }}>
               <span style={{ fontSize: 8, letterSpacing: '.14em', color: '#8a847e' }}>{label}</span>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
-import { BANDS, BETTER, MODES, rgb, shotModel } from '../lib/shot.js'
+import { BANDS, BETTER, MODES, mix, rgb, shotModel } from '../lib/shot.js'
 import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, THREE_LINE } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
@@ -130,6 +130,12 @@ function ShotMap({ shotShift, divided }) {
 // either side: between the 90th (1.3) and 95th (1.6) percentile change across
 // players and stats in 2025-26; bigger swings pin to the end.
 const RANGE = 1.5
+// Slider colour runs green -> muted grey-green -> near-black with the size of the
+// move (like the shot map): small changes sit near the middle tone, the biggest
+// rises reach the site green and the biggest drops near-black.
+const SLIDER_MID = [110, 122, 111]
+const SLIDER_LOW = [19, 18, 17]
+const sliderColor = t => rgb(t >= 0 ? mix(SLIDER_MID, BETTER, t) : mix(SLIDER_MID, SLIDER_LOW, -t))
 
 function CoreStats({ profile: p }) {
   const rows = p.recentShift.stats.filter(r => p.stats[r.stat])
@@ -147,13 +153,15 @@ function CoreStats({ profile: p }) {
           const change = r.recent.value - r.season.value
           // Right is better, so a lower-better stat moves right when it falls.
           const move = (stat.lowerBetter ? -change : change) / r.spread
+          const t = Math.max(-1, Math.min(1, move / RANGE))
           const p0 = 50
-          const p1 = 50 + Math.max(-1, Math.min(1, move / RANGE)) * 50
+          const p1 = 50 + t * 50
           const neutral = Math.abs(move) < 0.1
           const good = move > 0
           const color = neutral ? '#8a847e' : good ? rgb(BETTER) : '#d6d1cb'
-          // A drop is drawn near-black (the shot map's darkest tone), thicker than the track.
-          const bg = neutral ? '#6b655f' : good ? rgb(BETTER) : '#121110'
+          const end = neutral ? '#8a847e' : sliderColor(t)
+          // The bar shades from the middle tone at the season dot to the move's colour at the recent dot.
+          const bar = neutral ? '#6b655f' : `linear-gradient(to ${good ? 'right' : 'left'}, ${rgb(SLIDER_MID)}, ${end})`
           const lo = Math.min(p0, p1)
           const hi = Math.max(p0, p1)
           return (
@@ -165,9 +173,9 @@ function CoreStats({ profile: p }) {
               <div style={{ position: 'relative', height: 18 }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: '#3d3a37' }} />
                 <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#6b655f' }} />
-                <div style={{ position: 'absolute', left: lo + '%', width: hi - lo + '%', top: 7, height: 4, background: bg, opacity: 0.85 }} />
+                <div style={{ position: 'absolute', left: lo + '%', width: hi - lo + '%', top: 7, height: 4, background: bar }} />
                 <div style={{ position: 'absolute', left: p0 + '%', top: 4, width: 8, height: 8, marginLeft: -5, border: '1.5px solid #8a847e', borderRadius: '50%', background: '#2c2a28', boxSizing: 'border-box' }} />
-                <div style={{ position: 'absolute', left: p1 + '%', top: 4, width: 10, height: 10, marginLeft: -5, borderRadius: '50%', background: '#ece8e3', border: '2px solid ' + (neutral ? '#8a847e' : bg), boxSizing: 'border-box' }} />
+                <div style={{ position: 'absolute', left: p1 + '%', top: 4, width: 10, height: 10, marginLeft: -5, borderRadius: '50%', background: '#ece8e3', border: '2px solid ' + end, boxSizing: 'border-box' }} />
               </div>
               <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color, whiteSpace: 'nowrap' }}>{(change >= 0 ? '+' : '−') + Math.abs(change).toFixed(stat.dec || 1)}</span>
             </div>

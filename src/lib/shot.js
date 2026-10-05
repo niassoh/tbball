@@ -33,7 +33,7 @@ const bandValue = (cell, total, points, league, mode) => {
 const NEUTRAL = [39, 37, 36]
 const DARKEST = [19, 18, 17]
 const GREENEST = [97, 113, 91]
-const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t))
+export const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t))
 
 export const zoneFill = (d, mode, span = MODES[mode].th + MODES[mode].scale) => {
   const { th } = MODES[mode]

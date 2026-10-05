@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
+import { TEAM_COLORS } from '../lib/teams.js'
 
 const card = { border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }
 const logGrid = { display: 'grid', gridTemplateColumns: '28px 58px 12px repeat(3,minmax(0,1fr)) 30px', columnGap: 3, fontFamily: MONO }
@@ -42,8 +43,8 @@ const nameLines = name => {
 const nameSize = lines => Math.min(30, Math.floor(240 / (0.62 * Math.max(...lines.map(l => l.length)))))
 
 export default function BioCard({ profile: p }) {
-  const stamp = [p.team, p.bio.position].filter(Boolean).join(' · ')
-  const bio = [p.bio.height, p.bio.age !== null ? `AGE ${p.bio.age.toFixed(1)}` : null].filter(Boolean).join(' · ')
+  // Spec strip: team logo, then labelled cells split by hard rules.
+  const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', p.bio.age !== null ? p.bio.age.toFixed(1) : null]].filter(([, v]) => v)
   const lines = nameLines(p.name)
   const games = (p.gameLog && p.gameLog.games) || []
 
@@ -52,12 +53,19 @@ export default function BioCard({ profile: p }) {
       <div style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid #ece8e3', overflow: 'hidden' }}>
         <img src="/banner-bokeh.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
         <Headshot slug={p.slug} version={p.headshotVersion} name={p.name} team={p.team} />
-        <span style={{ position: 'absolute', left: 14, top: 12, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: '#8a847e' }}>{stamp}</span>
+        <div style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
+          {TEAM_COLORS[p.team] && <img src={`/logos/${p.team}.png`} alt={p.team} title={p.team} style={{ width: 44, height: 44, margin: '-5px 0', objectFit: 'contain', paddingRight: 10, marginRight: 10, borderRight: '1px solid #6b655f' }} />}
+          {specs.map(([label, value], i) => (
+            <div key={label} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 3, padding: '0 10px', paddingLeft: i === 0 && !TEAM_COLORS[p.team] ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #6b655f' : 'none' }}>
+              <span style={{ fontSize: 8, letterSpacing: '.14em', color: '#8a847e' }}>{label}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#ece8e3', lineHeight: 1 }}>{value}</span>
+            </div>
+          ))}
+        </div>
         <h1 style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
           {lines.map(l => <span key={l} style={{ display: 'block', whiteSpace: 'nowrap' }}>{l}</span>)}
         </h1>
       </div>
-      {bio && <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', color: '#a8a29c', padding: '8px 14px 0' }}>{bio}</div>}
 
       {games.length > 0 && (
         <div style={{ padding: '12px 14px 4px', display: 'flex', flexDirection: 'column' }}>

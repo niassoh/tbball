@@ -198,7 +198,7 @@ export default function RecentShift({ profile: p }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Last 30 Days</span>
           <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
-            DIFFERENCE BETWEEN {windowLabel(games)} AND REST OF SEASON
+            DIFFERENCE BETWEEN <span style={{ color: '#ece8e3', fontWeight: 700 }}>{windowLabel(games)}</span> AND REST OF SEASON
           </span>
         </div>
       </div>

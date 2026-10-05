@@ -13,9 +13,8 @@ export const MODES = {
   fg: { th: 1, scale: 6, label: 'FG%' }
 }
 
-// Better / worse on the Last 30 Days card: the site's green, and a dark grey-green.
+// "Better" on the Last 30 Days card: the site's green.
 export const BETTER = [151, 193, 151]
-export const WORSE = [70, 80, 74]
 export const rgb = ([r, g, b]) => `rgb(${r},${g},${b})`
 
 // Value is points above what the league scores on the same shots, per 100 of

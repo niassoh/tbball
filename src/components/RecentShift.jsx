@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
-import { BANDS, BETTER, MODES, WORSE, rgb, shotModel } from '../lib/shot.js'
+import { BANDS, BETTER, MODES, rgb, shotModel } from '../lib/shot.js'
 import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, THREE_LINE } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
@@ -152,7 +152,7 @@ function CoreStats({ profile: p }) {
           const neutral = Math.abs(move) < 0.1
           const good = move > 0
           const color = neutral ? '#8a847e' : good ? rgb(BETTER) : '#93a398'
-          // A drop is drawn light grey-green: the darker WORSE tone disappears into the track.
+          // A drop is drawn light grey-green so it stands out from the dark track.
           const bg = neutral ? '#6b655f' : good ? rgb(BETTER) : '#93a398'
           const lo = Math.min(p0, p1)
           const hi = Math.max(p0, p1)
@@ -192,10 +192,6 @@ export default function RecentShift({ profile: p }) {
           <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
             DIFFERENCE BETWEEN {windowLabel(games)} AND REST OF SEASON
           </span>
-        </div>
-        <div style={{ display: 'flex', gap: '6px 10px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', fontFamily: MONO, fontSize: 9, color: '#a8a29c' }}>
-          {legendSwatch(rgb(BETTER), 'BETTER')}
-          {legendSwatch(rgb(WORSE), 'WORSE')}
         </div>
       </div>
       {games === 0 ? (

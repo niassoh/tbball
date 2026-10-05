@@ -31,7 +31,7 @@ function Headshot({ slug, version, name, team }) {
       {failed ? (
         <TeamInitials name={name} team={team} fontSize={32} />
       ) : (
-        <img src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
+        <img className="hero-face" src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
       )}
     </div>
   )
@@ -50,17 +50,28 @@ export default function BioCard({ profile: p }) {
   const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', p.bio.age !== null ? p.bio.age.toFixed(1) : null]].filter(([, v]) => v)
   const lines = nameLines(p.name)
   const games = (p.gameLog && p.gameLog.games) || []
+  const color = TEAM_COLORS[p.team]
+  // Black (BKN, SAS) would vanish on the dark banner, so those teams' bar is silver.
+  const accent = color === '#000000' ? '#c4ced4' : color
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 'S'}`
+  const career = p.bio.seasonsPlayed
+    ? [plural(p.bio.seasonsPlayed, 'YR'), plural(p.bio.teamsPlayed, 'TEAM'), `SINCE ${p.bio.debut.slice(0, 4)}`].join(' · ')
+    : null
 
   return (
     <div style={card}>
-      <div style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid #ece8e3', overflow: 'hidden' }}>
-        <img src="/banner-bokeh.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
+      <div className="hero" style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid #ece8e3', overflow: 'hidden' }}>
+        <img className="hero-bokeh" src="/banner-bokeh.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
         <Headshot slug={p.slug} version={p.headshotVersion} name={p.name} team={p.team} />
+        {/* A soft overhead light along the top-right hides the seam where the headshot box begins. */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 42% 60% at 84% -8%, rgba(236,232,227,.16), rgba(236,232,227,.06) 45%, transparent 75%)' }} />
         <div style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
-          {TEAM_COLORS[p.team] && (
-            // The white logo's shape filled with a light team tint: mostly monochrome, a hint of colour.
-            <div style={{ paddingRight: 10, marginRight: 10, borderRight: '1px solid #6b655f', margin: '-5px 10px -5px 0' }}>
-              <div role="img" aria-label={p.team} title={p.team} style={{ width: 44, height: 44, background: `color-mix(in srgb, ${TEAM_COLORS[p.team]} 35%, #ece8e3)`, WebkitMaskImage: `url(/logos/${p.team}.png)`, maskImage: `url(/logos/${p.team}.png)`, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
+          {color && (
+            // The white logo's shape filled with a light team tint (mostly monochrome, a hint of
+            // colour); on hover it crossfades to the full-colour logo.
+            <div style={{ position: 'relative', paddingRight: 10, borderRight: '1px solid #6b655f', margin: '-5px 10px -5px 0' }}>
+              <div className="hero-tint" role="img" aria-label={p.team} title={p.team} style={{ width: 44, height: 44, background: `color-mix(in srgb, ${color} 35%, #ece8e3)`, WebkitMaskImage: `url(/logos/${p.team}.png)`, maskImage: `url(/logos/${p.team}.png)`, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
+              <img className="hero-color" src={`/logos/color/${p.team}.png`} alt="" style={{ position: 'absolute', left: 0, top: 0, width: 44, height: 44, objectFit: 'contain' }} />
             </div>
           )}
           {specs.map(([label, value], i) => (
@@ -69,6 +80,10 @@ export default function BioCard({ profile: p }) {
             </span>
           ))}
         </div>
+        {career && (
+          <span className="hero-more" style={{ position: 'absolute', left: color ? 89 : 14, top: 43, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a8a29c', whiteSpace: 'nowrap' }}>{career}</span>
+        )}
+        {accent && <div className="hero-bar" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: accent }} />}
         <h1 style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
           {lines.map(l => <span key={l} style={{ display: 'block', whiteSpace: 'nowrap' }}>{l}</span>)}
         </h1>

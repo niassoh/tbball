@@ -12,3 +12,21 @@ html { scroll-behavior: smooth; }
 
 .tab-btn:hover { color: #ece8e3 !important; background: #2f2c2a !important; }
 .depth-link:hover { color: #ece8e3 !important; background: #2f2c2a !important; }
+
+/* Profile header hover: full-colour logo, a team-colour bar across the rule, a slight
+   push-in on the headshot and brighter bokeh, and the career line easing in. */
+.hero .hero-tint, .hero .hero-color { transition: opacity .18s ease; }
+.hero .hero-color { opacity: 0; }
+.hero:hover .hero-tint { opacity: 0; }
+.hero:hover .hero-color { opacity: 1; }
+.hero .hero-bar { transform: scaleX(0); transform-origin: left; transition: transform .28s cubic-bezier(.2,.8,.2,1); }
+.hero:hover .hero-bar { transform: scaleX(1); }
+.hero .hero-face { transform-origin: 70% 100%; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+.hero:hover .hero-face { transform: scale(1.04); }
+.hero .hero-bokeh { transition: opacity .3s ease; }
+.hero:hover .hero-bokeh { opacity: .72 !important; }
+.hero .hero-more { opacity: 0; transform: translateY(3px); transition: opacity .2s ease .06s, transform .2s ease .06s; }
+.hero:hover .hero-more { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .hero .hero-tint, .hero .hero-color, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more { transition: none; }
+}

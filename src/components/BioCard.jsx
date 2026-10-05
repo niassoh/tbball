@@ -18,7 +18,7 @@ const PORTRAIT = 116
 // The portrait (or team-initials block) sits in the banner's bottom-right corner,
 // standing on the rule like a thumbnail subject, and fades into the bokeh on its
 // left and top edges; portraits share the banner's charcoal, so no edge shows.
-const fadeIn = 'linear-gradient(90deg, transparent 0%, #000 42%), linear-gradient(180deg, transparent 0%, #000 34%)'
+const fadeIn = 'linear-gradient(90deg, transparent 0%, #000 18%), linear-gradient(180deg, transparent 0%, #000 14%)'
 
 function Headshot({ slug, version, name, team }) {
   const [failed, setFailed] = useState(false)

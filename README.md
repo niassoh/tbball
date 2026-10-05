@@ -5,7 +5,8 @@ from the thinking-bball repo. All data comes from that repo's API:
 
 - `GET /api/profiles` — player index (search page)
 - `GET /api/profile/:slug` — one player's profile document
-- `/assets/players/webp/<slug>-<size>.webp` — generated portraits
+- `/assets/players/webp/<slug>-<size>.webp?v=<headshotVersion>` — generated portraits (the
+  version comes with each player from the API and changes when a portrait is replaced)
 
 Players without a portrait show their initials over a muted team-color disc with a faint
 team logo (`public/logos/<ABBR>.png`, ESPN's white primary logos at 184px; colors in

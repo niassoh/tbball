@@ -13,14 +13,14 @@ const shortDate = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`
 const rankColor = r => (r === null ? '#8a847e' : r <= 10 ? '#e6c27a' : r <= 20 ? '#d6d1cb' : '#8a847e')
 const tsColor = ts => (ts === null ? '#ece8e3' : ts >= 60 ? '#8fb0e6' : ts < 52 ? '#fa962a' : '#ece8e3')
 
-function Headshot({ slug, name, team }) {
+function Headshot({ slug, version, name, team }) {
   const [failed, setFailed] = useState(false)
   return (
     <div style={{ width: 92, height: 92, margin: '-46px auto 0', position: 'relative', borderRadius: '50%', overflow: 'hidden', background: '#000', boxShadow: '0 0 0 3px #2c2a28,0 0 0 4px #6b655f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {failed ? (
         <TeamInitials name={name} team={team} fontSize={28} />
       ) : (
-        <img src={headshotUrl(slug)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
+        <img src={headshotUrl(slug, 200, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
       )}
     </div>
   )
@@ -37,7 +37,7 @@ export default function BioCard({ profile: p }) {
         <img src="/banner-bokeh.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(31,29,28,.15) 0%,rgba(44,42,40,.85) 100%)' }} />
       </div>
-      <Headshot slug={p.slug} name={p.name} team={p.team} />
+      <Headshot slug={p.slug} version={p.headshotVersion} name={p.name} team={p.team} />
       <div style={{ padding: '10px 14px 12px', margin: '0 14px', borderBottom: '2px solid #ece8e3', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
         <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1, fontWeight: 600, letterSpacing: '-.005em', textWrap: 'balance' }}>{p.name}</h1>
         <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', color: '#a8a29c', lineHeight: 1.5, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

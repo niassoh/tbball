@@ -10,4 +10,5 @@ const getJson = async url => {
 
 export const fetchProfile = slug => getJson(`${API_BASE}/api/profile/${encodeURIComponent(slug)}`)
 export const fetchPlayers = () => getJson(`${API_BASE}/api/profiles`)
-export const headshotUrl = (slug, size = 200) => `${API_BASE}/assets/players/webp/${slug}-${size}.webp`
+// version (from the API) changes when a portrait is replaced, so the browser fetches the new one.
+export const headshotUrl = (slug, size = 200, version = null) => `${API_BASE}/assets/players/webp/${slug}-${size}.webp${version ? `?v=${version}` : ''}`

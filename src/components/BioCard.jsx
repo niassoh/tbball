@@ -13,7 +13,7 @@ const shortDate = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`
 const rankColor = r => (r === null ? '#8a847e' : r <= 10 ? '#e6c27a' : r <= 20 ? '#d6d1cb' : '#8a847e')
 const tsColor = ts => (ts === null ? '#ece8e3' : ts >= 60 ? '#8fb0e6' : ts < 52 ? '#fa962a' : '#ece8e3')
 
-const HERO_H = 150
+const HERO_H = 118
 // The portrait (or team-initials block) fills the banner's right side and dissolves
 // into the bokeh: portraits share the banner's charcoal background, so the mask
 // blends them in rather than cutting them out.

@@ -24,7 +24,7 @@ const PORTRAIT = 116
 // being cut by a straight line.
 // A second, small arc centred on the bottom-left corner tapers an arm or shoulder that
 // the source crop cut off at the box's left edge, so it doesn't end in a straight line.
-const fadeIn = `radial-gradient(ellipse 80% 115% at 76% 72%, #000 58%, transparent 100%), radial-gradient(circle ${PORTRAIT}px at 0% 100%, transparent 16%, #000 52%)`
+const fadeIn = `radial-gradient(ellipse 80% 115% at 76% 72%, #000 70%, transparent 100%), radial-gradient(circle ${PORTRAIT}px at 0% 100%, transparent 8%, #000 38%)`
 // Without a portrait, the team-initials panel runs the banner's full height and
 // fades in from the left, dimmed so it reads as a backdrop rather than a box.
 const panelFade = 'linear-gradient(90deg, transparent 0%, #000 55%)'

@@ -15,7 +15,7 @@ const rankColor = r => (r === null ? '#8a847e' : r <= 10 ? '#e6c27a' : r <= 20 ?
 const tsColor = ts => (ts === null ? '#ece8e3' : ts >= 60 ? '#8fb0e6' : ts < 52 ? '#fa962a' : '#ece8e3')
 
 const HERO_H = 150
-const PORTRAIT = 102
+const PORTRAIT = 109
 // The portrait (or team-initials block) sits in the banner's bottom-right corner,
 // standing on the rule like a thumbnail subject, and fades into the bokeh on its
 // left and top edges; portraits share the banner's charcoal, so no edge shows.

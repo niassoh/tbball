@@ -151,9 +151,9 @@ function CoreStats({ profile: p }) {
           const p1 = 50 + Math.max(-1, Math.min(1, move / RANGE)) * 50
           const neutral = Math.abs(move) < 0.1
           const good = move > 0
-          const color = neutral ? '#8a847e' : good ? rgb(BETTER) : '#93a398'
-          // A drop is drawn light grey-green so it stands out from the dark track.
-          const bg = neutral ? '#6b655f' : good ? rgb(BETTER) : '#93a398'
+          const color = neutral ? '#8a847e' : good ? rgb(BETTER) : '#d6d1cb'
+          // A drop is drawn near-black (the shot map's darkest tone), thicker than the track.
+          const bg = neutral ? '#6b655f' : good ? rgb(BETTER) : '#121110'
           const lo = Math.min(p0, p1)
           const hi = Math.max(p0, p1)
           return (

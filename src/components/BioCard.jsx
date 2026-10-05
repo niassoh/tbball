@@ -14,7 +14,7 @@ const shortDate = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`
 const rankColor = r => (r === null ? '#8a847e' : r <= 10 ? '#e6c27a' : r <= 20 ? '#d6d1cb' : '#8a847e')
 const tsColor = ts => (ts === null ? '#ece8e3' : ts >= 60 ? '#8fb0e6' : ts < 52 ? '#fa962a' : '#ece8e3')
 
-const HERO_H = 150
+const HERO_H = 128
 const PORTRAIT = 116
 // The portrait (or team-initials block) sits in the banner's bottom-right corner,
 // standing on the rule like a thumbnail subject, and fades into the bokeh on its
@@ -46,7 +46,7 @@ const nameLines = name => {
 const nameSize = lines => Math.min(30, Math.floor(240 / (0.62 * Math.max(...lines.map(l => l.length)))))
 
 export default function BioCard({ profile: p }) {
-  // Spec strip: team logo, then labelled cells split by hard rules.
+  // Spec strip: team logo, then position / height / age split by hard rules (labels as tooltips).
   const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', p.bio.age !== null ? p.bio.age.toFixed(1) : null]].filter(([, v]) => v)
   const lines = nameLines(p.name)
   const games = (p.gameLog && p.gameLog.games) || []
@@ -64,10 +64,9 @@ export default function BioCard({ profile: p }) {
             </div>
           )}
           {specs.map(([label, value], i) => (
-            <div key={label} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 3, padding: '0 10px', paddingLeft: i === 0 && !TEAM_COLORS[p.team] ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #6b655f' : 'none' }}>
-              <span style={{ fontSize: 8, letterSpacing: '.14em', color: '#8a847e' }}>{label}</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#ece8e3', lineHeight: 1 }}>{value}</span>
-            </div>
+            <span key={label} title={label} style={{ display: 'flex', alignItems: 'center', padding: '0 10px', paddingLeft: i === 0 && !TEAM_COLORS[p.team] ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #6b655f' : 'none', fontSize: 13, fontWeight: 600, color: '#ece8e3' }}>
+              {value}
+            </span>
           ))}
         </div>
         <h1 style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>

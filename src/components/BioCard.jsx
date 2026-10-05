@@ -23,16 +23,22 @@ const PORTRAIT = 116
 // left edge and lower-left corner fall off in an arc, so shoulders taper instead of
 // being cut by a straight line.
 const fadeIn = 'radial-gradient(ellipse 80% 115% at 76% 72%, #000 58%, transparent 100%)'
+// Without a portrait, the team-initials panel runs the banner's full height and
+// fades in from the left, dimmed so it reads as a backdrop rather than a box.
+const panelFade = 'linear-gradient(90deg, transparent 0%, #000 55%)'
 
 function Headshot({ slug, version, name, team }) {
   const [failed, setFailed] = useState(false)
+  if (failed) {
+    return (
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: PORTRAIT + 24, opacity: 0.55, WebkitMaskImage: panelFade, maskImage: panelFade }}>
+        <TeamInitials name={name} team={team} fontSize={32} />
+      </div>
+    )
+  }
   return (
     <div style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, maskImage: fadeIn }}>
-      {failed ? (
-        <TeamInitials name={name} team={team} fontSize={32} />
-      ) : (
-        <img className="hero-face" src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
-      )}
+      <img className="hero-face" src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
     </div>
   )
 }

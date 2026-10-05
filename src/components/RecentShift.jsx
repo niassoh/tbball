@@ -38,7 +38,7 @@ function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) 
   )
 }
 
-function ShotMap({ shotShift }) {
+function ShotMap({ shotShift, divided }) {
   const [mode, setMode] = useState('value')
   const [hover, setHover] = useState(null)
   const [season, setSeason] = useState(false)
@@ -68,7 +68,7 @@ function ShotMap({ shotShift }) {
   }
   return (
     <>
-      <div style={{ padding: '10px 14px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ padding: '10px 0 0', margin: '0 14px', borderTop: divided ? '1px solid #544f4b' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={subhead}>SHOT PROFILE</span>
         <div style={{ display: 'flex', border: '1px solid #544f4b' }}>
           {Object.entries(MODES).map(([id, m]) => {
@@ -135,7 +135,7 @@ function CoreStats({ profile: p }) {
   const rows = p.recentShift.stats.filter(r => p.stats[r.stat])
   return (
     <>
-      <div style={{ padding: '10px 0 0', borderTop: '1px solid #544f4b', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px' }}>
+      <div style={{ padding: '10px 0 0', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px' }}>
         <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#8a847e', whiteSpace: 'nowrap' }}>
           {legendSwatch('#8a847e', 'SEASON', true, true)}
           {legendSwatch('#ece8e3', 'RECENT', true)}
@@ -202,8 +202,8 @@ export default function RecentShift({ profile: p }) {
         <span style={{ ...subhead, padding: '12px 14px' }}>NO GAMES IN THE RECENT WINDOW</span>
       ) : (
         <>
-          {p.shotShift ? <ShotMap shotShift={p.shotShift} /> : <span style={{ ...subhead, padding: '12px 14px' }}>NO SHOT DATA THIS SEASON</span>}
           {p.recentShift && <CoreStats profile={p} />}
+          {p.shotShift ? <ShotMap shotShift={p.shotShift} divided={!!p.recentShift} /> : <span style={{ ...subhead, padding: '12px 14px' }}>NO SHOT DATA THIS SEASON</span>}
         </>
       )}
     </div>

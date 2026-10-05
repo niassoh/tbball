@@ -13,18 +13,19 @@ const shortDate = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`
 const rankColor = r => (r === null ? '#8a847e' : r <= 10 ? '#e6c27a' : r <= 20 ? '#d6d1cb' : '#8a847e')
 const tsColor = ts => (ts === null ? '#ece8e3' : ts >= 60 ? '#8fb0e6' : ts < 52 ? '#fa962a' : '#ece8e3')
 
-const HERO_H = 118
-// The portrait (or team-initials block) fills the banner's right side and dissolves
-// into the bokeh: portraits share the banner's charcoal background, so the mask
-// blends them in rather than cutting them out.
-const dissolve = 'linear-gradient(90deg, transparent 0%, #000 38%)'
+const HERO_H = 150
+const PORTRAIT = 116
+// The portrait (or team-initials block) sits in the banner's bottom-right corner,
+// standing on the rule like a thumbnail subject, and fades into the bokeh on its
+// left and top edges; portraits share the banner's charcoal, so no edge shows.
+const fadeIn = 'linear-gradient(90deg, transparent 0%, #000 42%), linear-gradient(180deg, transparent 0%, #000 34%)'
 
 function Headshot({ slug, version, name, team }) {
   const [failed, setFailed] = useState(false)
   return (
-    <div style={{ position: 'absolute', right: 0, bottom: 0, width: HERO_H, height: HERO_H, WebkitMaskImage: dissolve, maskImage: dissolve }}>
+    <div style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, WebkitMaskComposite: 'source-in', maskImage: fadeIn, maskComposite: 'intersect' }}>
       {failed ? (
-        <TeamInitials name={name} team={team} fontSize={40} />
+        <TeamInitials name={name} team={team} fontSize={32} />
       ) : (
         <img src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
       )}
@@ -38,7 +39,7 @@ const nameLines = name => {
   const [first, ...rest] = name.split(' ')
   return rest.length ? [first, rest.join(' ')] : [name]
 }
-const nameSize = lines => Math.min(30, Math.floor(220 / (0.62 * Math.max(...lines.map(l => l.length)))))
+const nameSize = lines => Math.min(30, Math.floor(240 / (0.62 * Math.max(...lines.map(l => l.length)))))
 
 export default function BioCard({ profile: p }) {
   const stamp = [p.team, p.bio.position].filter(Boolean).join(' · ')

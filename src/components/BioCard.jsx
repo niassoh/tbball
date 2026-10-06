@@ -79,11 +79,9 @@ export default function BioCard({ profile: p, loading = false }) {
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 42% 60% at 84% -8%, rgba(236,232,227,.16), rgba(236,232,227,.06) 45%, transparent 75%)' }} />
         <div key={`specs-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
           {color && (
-            // The white logo's shape filled with a light team tint (mostly monochrome, a hint of
-            // colour); on hover it crossfades to the full-colour logo.
-            <div style={{ position: 'relative', paddingRight: 10, borderRight: '1px solid #6b655f', margin: '-5px 10px -5px 0' }}>
-              <div className="hero-tint" role="img" aria-label={p.team} title={p.team} style={{ width: 44, height: 44, background: `color-mix(in srgb, ${color} 35%, #ece8e3)`, WebkitMaskImage: `url(/logos/${p.team}.png)`, maskImage: `url(/logos/${p.team}.png)`, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
-              <img className="hero-color" src={`/logos/color/${p.team}.png`} alt="" style={{ position: 'absolute', left: 0, top: 0, width: 44, height: 44, objectFit: 'contain' }} />
+            // The real logo, muted at rest (index.css); full colour on hover.
+            <div style={{ paddingRight: 10, borderRight: '1px solid #6b655f', margin: '-5px 10px -5px 0' }}>
+              <img className="hero-logo" src={`/logos/color/${p.team}.png`} alt={p.team} title={p.team} style={{ display: 'block', width: 44, height: 44, objectFit: 'contain' }} />
             </div>
           )}
           {specs.map(([label, value], i) => (

@@ -18,10 +18,8 @@ html { scroll-behavior: smooth; }
 
 /* Profile header hover: full-colour logo, a team-colour bar across the rule, a slight
    push-in on the headshot and brighter bokeh, and the draft line easing in. */
-.hero .hero-tint, .hero .hero-color { transition: opacity .18s ease; }
-.hero .hero-color { opacity: 0; }
-.hero:hover .hero-tint { opacity: 0; }
-.hero:hover .hero-color { opacity: 1; }
+.hero .hero-logo { filter: saturate(.6) brightness(.9); transition: filter .18s ease; }
+.hero:hover .hero-logo { filter: none; }
 .hero .hero-bar { transform: scaleX(0); transform-origin: left; transition: transform .28s cubic-bezier(.2,.8,.2,1); }
 .hero:hover .hero-bar { transform: scaleX(1); }
 /* Kept on its own layer at rest (scale(1) + will-change): otherwise the browser drops the
@@ -34,8 +32,7 @@ html { scroll-behavior: smooth; }
 .hero:hover .hero-more { opacity: 1; transform: none; }
 /* While the next player loads, the header holds its hover state and the team bar sweeps
    across the rule. */
-.hero.loading .hero-tint { opacity: 0; }
-.hero.loading .hero-color { opacity: 1; }
+.hero.loading .hero-logo { filter: none; }
 .hero.loading .hero-face { transform: scale(1.04); }
 .hero.loading .hero-bokeh { opacity: .72 !important; }
 .hero.loading .hero-more { opacity: 1; transform: none; }
@@ -54,6 +51,6 @@ html { scroll-behavior: smooth; }
 .fold-loading { opacity: .55; transition: opacity .2s ease; }
 .fold-ready { opacity: 1; transition: opacity .25s ease; }
 @media (prefers-reduced-motion: reduce) {
-  .hero .hero-tint, .hero .hero-color, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more { transition: none; }
+  .hero .hero-logo, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more { transition: none; }
   .hero.loading .hero-bar, .swap-in, .fade-in { animation: none; }
 }

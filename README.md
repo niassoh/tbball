@@ -7,8 +7,11 @@ from the thinking-bball repo. All data comes from that repo's API:
 - `GET /api/profile/:slug` — one player's profile document
 - `/assets/players/webp/<slug>-<size>.webp?v=<headshotVersion>` — generated portraits (the
   version comes with each player from the API and changes when a portrait is replaced)
+- `/assets/players/nba/<slug>-<size>.webp?v=<headshotVersion>` — for players without a
+  portrait, NBA.com's headshot styled toward the portraits; the API's `headshot` says which
+  (`'portrait'`, `'nba'` or `null`)
 
-Players without a portrait show their initials over a muted team-color disc with a faint
+Players with neither show their initials over a muted team-color disc with a faint
 team logo (`public/logos/<ABBR>.png`, ESPN's white primary logos at 184px; colors in
 `src/lib/teams.js`). Defunct franchises have no logo and get a plain disc.
 

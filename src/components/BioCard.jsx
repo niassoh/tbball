@@ -29,7 +29,7 @@ const fadeIn = `radial-gradient(ellipse 80% 115% at 76% 72%, #000 70%, transpare
 // fades in from the left, dimmed so it reads as a backdrop rather than a box.
 const panelFade = 'linear-gradient(90deg, transparent 0%, #000 55%)'
 
-function Headshot({ slug, version, name, team }) {
+function Headshot({ slug, version, source, name, team }) {
   const [failed, setFailed] = useState(false)
   if (failed) {
     return (
@@ -43,7 +43,7 @@ function Headshot({ slug, version, name, team }) {
     // transparent portraits run to the top of the frame, so a zoom inside the box
     // would clip the hair flat.
     <div className="hero-face fade-in" style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, WebkitMaskComposite: 'source-in', maskImage: fadeIn, maskComposite: 'intersect' }}>
-      <img src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
+      <img src={headshotUrl(slug, 400, version, source)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
     </div>
   )
 }
@@ -74,7 +74,7 @@ export default function BioCard({ profile: p, loading = false }) {
     <div style={card}>
       <div className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid #ece8e3', overflow: 'hidden' }}>
         <img className="hero-bokeh" src="/banner-bokeh.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
-        <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} name={p.name} team={p.team} />
+        <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={p.team} />
         {/* A soft overhead light along the top-right hides the seam where the headshot box begins. */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 42% 60% at 84% -8%, rgba(236,232,227,.16), rgba(236,232,227,.06) 45%, transparent 75%)' }} />
         <div key={`specs-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>

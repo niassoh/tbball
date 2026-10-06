@@ -24,7 +24,7 @@ function Thumb({ player }) {
   return (
     <span style={{ width: 26, height: 26, flex: 'none', overflow: 'hidden', background: PORTRAIT_BG, display: 'flex' }}>
       {player.headshot && !failed
-        ? <img src={headshotUrl(player.slug, 100, player.headshotVersion)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%' }} />
+        ? <img src={headshotUrl(player.slug, 100, player.headshotVersion, player.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%' }} />
         : <TeamInitials name={player.name} team={player.team} fontSize={9} />}
     </span>
   )

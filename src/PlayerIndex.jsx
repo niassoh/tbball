@@ -18,7 +18,7 @@ function Avatar({ player, size }) {
   return (
     <div style={{ width: size, height: size, flex: 'none', borderRadius: '50%', overflow: 'hidden', background: showImage ? PORTRAIT_BG : '#34312e', boxShadow: '0 0 0 1px #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {showImage ? (
-        <img src={headshotUrl(player.slug, 100, player.headshotVersion)} alt="" loading="lazy" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%' }} />
+        <img src={headshotUrl(player.slug, 100, player.headshotVersion, player.headshot)} alt="" loading="lazy" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%' }} />
       ) : (
         <TeamInitials name={player.name} team={player.team} fontSize={size * 0.36} />
       )}

@@ -4,7 +4,8 @@ import { MONO, col, fmt } from '../lib/format.js'
 // [group name, tab it links to, stat labels] as in the design's SNAPG.
 const GROUPS = [
   ['Impact', 'impact', ['BPM', 'AuPM', 'AuPM / g', 'Net On', 'Net On/Off']],
-  ['Offense', 'offense', ['Load', 'Box Creation', 'Passer Rating', 'Time of Poss %', 'Pts / 75', 'rTS%', 'OBPM', 'ScoreVal', 'PlayVal', 'cTOV%']],
+  // Offense-tab stats first, then Load & Creation's, each in its tab's order.
+  ['Offense', 'offense', ['Pts / 75', 'rTS%', 'OBPM', 'ScoreVal', 'PlayVal', 'Load', 'Box Creation', 'Passer Rating', 'Time of Poss %', 'cTOV%']],
   ['Defense', 'defense', ['Def FGA <6ft /36', 'Def FGA Diff%', 'Forced TOV', 'DRTG On', 'Team Def']]
 ]
 const rowGrid = { display: 'grid', gridTemplateColumns: '100px minmax(0,1fr) 38px', gap: 8 }

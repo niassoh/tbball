@@ -10,6 +10,7 @@ a:hover { color: #ece8e3; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
+.player-search::placeholder { color: #6b655f; }
 .tab-btn:hover { color: #ece8e3 !important; background: #2f2c2a !important; }
 .depth-link { transition: color .15s, background .15s, border-color .15s; }
 /* Team-colour underline on a hovered teammate, lightened (like the logo tint) so dark navies still show. */

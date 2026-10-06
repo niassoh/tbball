@@ -59,38 +59,7 @@ const nameSize = lines => Math.min(30, Math.floor(240 / (0.62 * Math.max(...line
 // "2017 DRAFT · R1 #30 · UTA", or UNDRAFTED.
 const draftLine = d => (!d ? null : d.undrafted ? 'UNDRAFTED' : `${d.year} DRAFT · R${d.round} #${d.overall} · ${d.team}`)
 
-// Hovering a teammate in the depth chart: their portrait (on the portraits' charcoal),
-// name and draft pick, above the name.
-function PeekCard({ peek, accent }) {
-  const { pl, left, top } = peek
-  const [failed, setFailed] = useState(false)
-  return (
-    <div className="peek-in" style={{ position: 'absolute', left, top, transform: 'translate(-50%, calc(-100% - 6px))', zIndex: 5, pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: 6, background: '#1f1d1c', border: '1px solid #6b655f', borderBottom: `2px solid ${accent || '#ece8e3'}`, boxShadow: '0 8px 20px rgba(0,0,0,.45)', whiteSpace: 'nowrap' }}>
-      {pl.headshotVersion && !failed && (
-        <img src={headshotUrl(pl.slug, 100, pl.headshotVersion)} alt="" onError={() => setFailed(true)} style={{ width: 40, height: 40, objectFit: 'cover', objectPosition: '50% 30%', background: 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)', display: 'block' }} />
-      )}
-      <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#ece8e3' }}>{pl.name}</span>
-        {pl.draft && <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a8a29c' }}>{draftLine(pl.draft)}</span>}
-      </span>
-    </div>
-  )
-}
-
 export default function BioCard({ profile: p, loading = false }) {
-  const [peek, setPeek] = useState(null)
-  // A new player clears any hover card left from the previous one.
-  const [peekFor, setPeekFor] = useState(p.slug)
-  if (peekFor !== p.slug) {
-    setPeekFor(p.slug)
-    setPeek(null)
-  }
-  const showPeek = (pl, e) => {
-    const box = e.currentTarget.closest('[data-depth]').getBoundingClientRect()
-    const cell = e.currentTarget.getBoundingClientRect()
-    const left = Math.min(Math.max(cell.left + cell.width / 2 - box.left, 90), box.width - 90)
-    setPeek({ pl, left, top: cell.top - box.top })
-  }
   // Spec strip: team logo, then position / height / age split by hard rules (labels as tooltips).
   const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', p.bio.age !== null ? p.bio.age.toFixed(1) : null]].filter(([, v]) => v)
   const lines = nameLines(p.name)
@@ -158,8 +127,7 @@ export default function BioCard({ profile: p, loading = false }) {
       )}
 
       {p.depth && (
-        <div data-depth onMouseLeave={() => setPeek(null)} style={{ position: 'relative', padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
-          {peek && <PeekCard key={peek.pl.espnId} peek={peek} accent={accent} />}
+        <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #544f4b', paddingBottom: 5 }}>
             <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>{(p.teamName || p.team).toUpperCase()}</span>
             <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#8a847e', display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -177,7 +145,7 @@ export default function BioCard({ profile: p, loading = false }) {
                   const me = pl.slug === p.slug
                   const Name = pl.hasProfile && !me ? Link : 'span'
                   return (
-                    <Name key={pl.espnId} {...(Name === Link && { to: `/player/${pl.slug}`, className: 'depth-link', onMouseEnter: e => showPeek(pl, e), onClick: () => setPeek(null) }) || { title: pl.name }} style={{ fontSize: 10.5, lineHeight: 1.3, fontWeight: me ? 700 : 500, color: me ? '#ece8e3' : pl.status ? '#8a847e' : i > 2 ? '#8a847e' : '#d6d1cb', textAlign: 'center', padding: '3px 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: me ? '2px solid #97c197' : '2px solid transparent', background: me ? 'rgba(151,193,151,.12)' : 'transparent' }}>
+                    <Name key={pl.espnId} {...(Name === Link && { to: `/player/${pl.slug}`, className: 'depth-link' })} title={pl.name} style={{ fontSize: 10.5, lineHeight: 1.3, fontWeight: me ? 700 : 500, color: me ? '#ece8e3' : pl.status ? '#8a847e' : i > 2 ? '#8a847e' : '#d6d1cb', textAlign: 'center', padding: '3px 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: me ? '2px solid #97c197' : '2px solid transparent', background: me ? 'rgba(151,193,151,.12)' : 'transparent' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         {lastName(pl.name)}
                         {pl.status && <span title={pl.status} style={{ width: 5, height: 5, background: INJURY[pl.status], flex: 'none' }} />}

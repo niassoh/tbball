@@ -186,6 +186,62 @@ function CoreStats({ profile: p }) {
   )
 }
 
+// Empty states keep each module's shape (stat rows, court) at low contrast, with the
+// reason stamped in the middle, so the card reads as "no data" rather than broken.
+const EMPTY_STATS = ['BPM', 'AuPM / g', 'Load', 'Net On', 'ORTG On']
+const stamp = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#a8a29c', background: '#2c2a28', border: '1px solid #544f4b', padding: '4px 8px', whiteSpace: 'nowrap' }
+
+function EmptyStats({ reason }) {
+  return (
+    <div style={{ position: 'relative', padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {EMPTY_STATS.map(s => (
+        <div key={s} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr) 54px', gap: 10, alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #3d3a37', opacity: 0.45 }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: '#8a847e' }}>{s}</span>
+            <span style={{ fontFamily: MONO, fontSize: 9, color: '#6b655f' }}>— → —</span>
+          </div>
+          <div style={{ position: 'relative', height: 18 }}>
+            <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: '#3d3a37' }} />
+            <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#6b655f' }} />
+          </div>
+          <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color: '#6b655f' }}>—</span>
+        </div>
+      ))}
+      <span style={{ ...stamp, position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)' }}>{reason}</span>
+    </div>
+  )
+}
+
+function EmptyShotMap({ reason, divided }) {
+  return (
+    <>
+      <div style={{ padding: '10px 0 0', margin: '0 14px', borderTop: divided ? '1px solid #544f4b' : 'none' }}>
+        <span style={subhead}>SHOT PROFILE</span>
+      </div>
+      <div style={{ position: 'relative', padding: '8px 14px 12px' }}>
+        <svg viewBox={`0 0 500 ${COURT_H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+          <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />
+          <defs>
+            <clipPath id="emptyCourtClip"><rect x="1" y="1" width="498" height={COURT_H - 2} /></clipPath>
+            <clipPath id="emptyInsideThree"><path d={INSIDE_THREE} /></clipPath>
+          </defs>
+          <g clipPath="url(#emptyCourtClip)">
+            {BANDS.map((b, i) => <path key={b.id} d={b.d} fill={i % 2 ? '#292725' : '#2e2c2a'} fillRule="evenodd" clipPath={b.clip ? 'url(#emptyInsideThree)' : undefined} />)}
+          </g>
+          <g fill="none" stroke="rgba(236,232,227,.18)" strokeWidth="1.5">
+            <rect x="1" y="1" width="498" height={COURT_H - 2} />
+            <path d={THREE_LINE} />
+            {BAND_EDGES.map(d => <path key={d} d={d} />)}
+            <line x1="220" y1="40" x2="280" y2="40" />
+            <circle cx={BASKET.x} cy={BASKET.y} r="7.5" />
+          </g>
+        </svg>
+        <span style={{ ...stamp, position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)' }}>{reason}</span>
+      </div>
+    </>
+  )
+}
+
 // The shared 30-day window, counted in this player's games when known.
 const windowLabel = games =>
   games === null ? 'THE LAST 30 DAYS' : `LAST ${games} GAME${games === 1 ? '' : 'S'}`
@@ -202,14 +258,12 @@ export default function RecentShift({ profile: p }) {
           </span>
         </div>
       </div>
-      {games === 0 ? (
-        <span style={{ ...subhead, padding: '12px 14px' }}>NO GAMES IN THE RECENT WINDOW</span>
-      ) : (
-        <>
-          {p.recentShift && <CoreStats profile={p} />}
-          {p.shotShift ? <ShotMap shotShift={p.shotShift} divided={!!p.recentShift} /> : <span style={{ ...subhead, padding: '12px 14px' }}>NO SHOT DATA THIS SEASON</span>}
-        </>
-      )}
+      {games === 0 || !p.recentShift
+        ? <EmptyStats reason={games === 0 ? 'NO GAMES IN THE LAST 30 DAYS' : 'NO RECENT STATS'} />
+        : <CoreStats profile={p} />}
+      {games !== 0 && p.shotShift
+        ? <ShotMap shotShift={p.shotShift} divided />
+        : <EmptyShotMap reason={games === 0 ? 'NO RECENT SHOTS' : 'NO SHOT DATA THIS SEASON'} divided />}
     </div>
   )
 }

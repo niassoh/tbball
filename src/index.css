@@ -11,7 +11,11 @@ a:hover { color: #ece8e3; }
 html { scroll-behavior: smooth; }
 
 .tab-btn:hover { color: #ece8e3 !important; background: #2f2c2a !important; }
-.depth-link:hover { color: #ece8e3 !important; background: #2f2c2a !important; }
+.depth-link { transition: color .15s, background .15s, border-color .15s; }
+/* Team-colour underline on a hovered teammate; their hover card shows above (BioCard PeekCard). */
+.depth-link:hover { color: #ece8e3 !important; background: #2f2c2a !important; border-bottom-color: var(--team) !important; }
+.peek-in { animation: peekIn .14s ease-out both; }
+@keyframes peekIn { from { opacity: 0; margin-top: 4px } to { opacity: 1; margin-top: 0 } }
 
 /* Profile header hover: full-colour logo, a team-colour bar across the rule, a slight
    push-in on the headshot and brighter bokeh, and the draft line easing in. */
@@ -29,6 +33,28 @@ html { scroll-behavior: smooth; }
 .hero:hover .hero-bokeh { opacity: .72 !important; }
 .hero .hero-more { opacity: 0; transform: translateY(3px); transition: opacity .2s ease .06s, transform .2s ease .06s; }
 .hero:hover .hero-more { opacity: 1; transform: none; }
+/* While the next player loads, the header holds its hover state and the team bar sweeps
+   across the rule. */
+.hero.loading .hero-tint { opacity: 0; }
+.hero.loading .hero-color { opacity: 1; }
+.hero.loading .hero-face { transform: scale(1.04); }
+.hero.loading .hero-bokeh { opacity: .72 !important; }
+.hero.loading .hero-more { opacity: 1; transform: none; }
+.hero.loading .hero-bar { animation: heroLoad .9s cubic-bezier(.4,0,.2,1) infinite; }
+@keyframes heroLoad {
+  0% { transform: scaleX(0); transform-origin: left }
+  50% { transform: scaleX(1); transform-origin: left }
+  50.01% { transform: scaleX(1); transform-origin: right }
+  100% { transform: scaleX(0); transform-origin: right }
+}
+/* A new player's header content eases in; the cards around it stay put. */
+.swap-in { animation: swapIn .35s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes swapIn { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+.fade-in { animation: fadeIn .35s ease both; }
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+.fold-loading { opacity: .55; transition: opacity .2s ease; }
+.fold-ready { opacity: 1; transition: opacity .25s ease; }
 @media (prefers-reduced-motion: reduce) {
   .hero .hero-tint, .hero .hero-color, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more { transition: none; }
+  .hero.loading .hero-bar, .swap-in, .fade-in, .peek-in { animation: none; }
 }

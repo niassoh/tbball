@@ -21,6 +21,15 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
   const [season, setSeason] = useState(L)
   const [menuOpen, setMenuOpen] = useState(false)
   const [playing, setPlaying] = useState(false)
+  // A different player (the page isn't remounted): jump to their latest season, so the
+  // bars slide from the old player's percentiles to the new one's.
+  const [shown, setShown] = useState(p.slug)
+  if (shown !== p.slug) {
+    setShown(p.slug)
+    setSeason(L)
+    setPlaying(false)
+    setMenuOpen(false)
+  }
   const kp = Math.min(season, L)
 
   useEffect(() => {

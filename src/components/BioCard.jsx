@@ -42,7 +42,7 @@ function Headshot({ slug, version, name, team }) {
     // The hover zoom scales this whole box (mask included), not the image inside it:
     // transparent portraits run to the top of the frame, so a zoom inside the box
     // would clip the hair flat.
-    <div className="hero-face" style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, WebkitMaskComposite: 'source-in', maskImage: fadeIn, maskComposite: 'intersect' }}>
+    <div className="hero-face fade-in" style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, WebkitMaskComposite: 'source-in', maskImage: fadeIn, maskComposite: 'intersect' }}>
       <img src={headshotUrl(slug, 400, version)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
     </div>
   )
@@ -56,7 +56,41 @@ const nameLines = name => {
 }
 const nameSize = lines => Math.min(30, Math.floor(240 / (0.62 * Math.max(...lines.map(l => l.length)))))
 
-export default function BioCard({ profile: p }) {
+// "2017 DRAFT · R1 #30 · UTA", or UNDRAFTED.
+const draftLine = d => (!d ? null : d.undrafted ? 'UNDRAFTED' : `${d.year} DRAFT · R${d.round} #${d.overall} · ${d.team}`)
+
+// Hovering a teammate in the depth chart: their portrait (on the portraits' charcoal),
+// name and draft pick, above the name.
+function PeekCard({ peek, accent }) {
+  const { pl, left, top } = peek
+  const [failed, setFailed] = useState(false)
+  return (
+    <div className="peek-in" style={{ position: 'absolute', left, top, transform: 'translate(-50%, calc(-100% - 6px))', zIndex: 5, pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: 6, background: '#1f1d1c', border: '1px solid #6b655f', borderBottom: `2px solid ${accent || '#ece8e3'}`, boxShadow: '0 8px 20px rgba(0,0,0,.45)', whiteSpace: 'nowrap' }}>
+      {pl.headshotVersion && !failed && (
+        <img src={headshotUrl(pl.slug, 100, pl.headshotVersion)} alt="" onError={() => setFailed(true)} style={{ width: 40, height: 40, objectFit: 'cover', objectPosition: '50% 30%', background: 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)', display: 'block' }} />
+      )}
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#ece8e3' }}>{pl.name}</span>
+        {pl.draft && <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a8a29c' }}>{draftLine(pl.draft)}</span>}
+      </span>
+    </div>
+  )
+}
+
+export default function BioCard({ profile: p, loading = false }) {
+  const [peek, setPeek] = useState(null)
+  // A new player clears any hover card left from the previous one.
+  const [peekFor, setPeekFor] = useState(p.slug)
+  if (peekFor !== p.slug) {
+    setPeekFor(p.slug)
+    setPeek(null)
+  }
+  const showPeek = (pl, e) => {
+    const box = e.currentTarget.closest('[data-depth]').getBoundingClientRect()
+    const cell = e.currentTarget.getBoundingClientRect()
+    const left = Math.min(Math.max(cell.left + cell.width / 2 - box.left, 90), box.width - 90)
+    setPeek({ pl, left, top: cell.top - box.top })
+  }
   // Spec strip: team logo, then position / height / age split by hard rules (labels as tooltips).
   const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', p.bio.age !== null ? p.bio.age.toFixed(1) : null]].filter(([, v]) => v)
   const lines = nameLines(p.name)
@@ -65,17 +99,16 @@ export default function BioCard({ profile: p }) {
   // Black (BKN, SAS) would vanish on the dark banner, so those teams' bar is silver.
   const accent = color === '#000000' ? '#c4ced4' : color
   // Hover line: the draft pick, e.g. "2017 DRAFT · R1 #30 · UTA".
-  const d = p.bio.draft
-  const draft = !d ? null : d.undrafted ? 'UNDRAFTED' : `${d.year} DRAFT · R${d.round} #${d.overall} · ${d.team}`
+  const draft = draftLine(p.bio.draft)
 
   return (
     <div style={card}>
-      <div className="hero" style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid #ece8e3', overflow: 'hidden' }}>
+      <div className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid #ece8e3', overflow: 'hidden' }}>
         <img className="hero-bokeh" src="/banner-bokeh.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
-        <Headshot slug={p.slug} version={p.headshotVersion} name={p.name} team={p.team} />
+        <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} name={p.name} team={p.team} />
         {/* A soft overhead light along the top-right hides the seam where the headshot box begins. */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 42% 60% at 84% -8%, rgba(236,232,227,.16), rgba(236,232,227,.06) 45%, transparent 75%)' }} />
-        <div style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
+        <div key={`specs-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
           {color && (
             // The white logo's shape filled with a light team tint (mostly monochrome, a hint of
             // colour); on hover it crossfades to the full-colour logo.
@@ -91,16 +124,16 @@ export default function BioCard({ profile: p }) {
           ))}
         </div>
         {draft && (
-          <span className="hero-more" style={{ position: 'absolute', left: color ? 89 : 14, top: 43, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a8a29c', whiteSpace: 'nowrap' }}>{draft}</span>
+          <span key={`draft-${p.slug}`} className="hero-more" style={{ position: 'absolute', left: color ? 89 : 14, top: 43, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a8a29c', whiteSpace: 'nowrap' }}>{draft}</span>
         )}
         {accent && <div className="hero-bar" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: accent }} />}
-        <h1 style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
+        <h1 key={`name-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
           {lines.map(l => <span key={l} style={{ display: 'block', whiteSpace: 'nowrap' }}>{l}</span>)}
         </h1>
       </div>
 
       {games.length > 0 && (
-        <div style={{ padding: '12px 14px 4px', display: 'flex', flexDirection: 'column' }}>
+        <div key={`games-${p.slug}`} className="swap-in" style={{ padding: '12px 14px 4px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', paddingBottom: 5 }}>
             <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', whiteSpace: 'nowrap' }}>LAST 5 GAMES</span>
             <span style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
@@ -125,7 +158,8 @@ export default function BioCard({ profile: p }) {
       )}
 
       {p.depth && (
-        <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div data-depth onMouseLeave={() => setPeek(null)} style={{ position: 'relative', padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
+          {peek && <PeekCard key={peek.pl.espnId} peek={peek} accent={accent} />}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #544f4b', paddingBottom: 5 }}>
             <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>{(p.teamName || p.team).toUpperCase()}</span>
             <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#8a847e', display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -143,7 +177,7 @@ export default function BioCard({ profile: p }) {
                   const me = pl.slug === p.slug
                   const Name = pl.hasProfile && !me ? Link : 'span'
                   return (
-                    <Name key={pl.espnId} {...(Name === Link && { to: `/player/${pl.slug}`, className: 'depth-link' })} title={pl.name} style={{ fontSize: 10.5, lineHeight: 1.3, fontWeight: me ? 700 : 500, color: me ? '#ece8e3' : pl.status ? '#8a847e' : i > 2 ? '#8a847e' : '#d6d1cb', textAlign: 'center', padding: '3px 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: me ? '2px solid #97c197' : '2px solid transparent', background: me ? 'rgba(151,193,151,.12)' : 'transparent' }}>
+                    <Name key={pl.espnId} {...(Name === Link && { to: `/player/${pl.slug}`, className: 'depth-link', onMouseEnter: e => showPeek(pl, e), onClick: () => setPeek(null) }) || { title: pl.name }} style={{ fontSize: 10.5, lineHeight: 1.3, fontWeight: me ? 700 : 500, color: me ? '#ece8e3' : pl.status ? '#8a847e' : i > 2 ? '#8a847e' : '#d6d1cb', textAlign: 'center', padding: '3px 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: me ? '2px solid #97c197' : '2px solid transparent', background: me ? 'rgba(151,193,151,.12)' : 'transparent' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         {lastName(pl.name)}
                         {pl.status && <span title={pl.status} style={{ width: 5, height: 5, background: INJURY[pl.status], flex: 'none' }} />}

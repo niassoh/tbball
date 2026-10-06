@@ -91,7 +91,7 @@ function ShotMap({ shotShift, divided }) {
             {zones.map(z => (
               <path key={z.id} d={z.d} fill={hover === z.id ? '#121110' : z.fill} fillRule="evenodd" clipPath={z.clip ? 'url(#insideThree)' : undefined}
                 onMouseEnter={() => enter(z.id)} onClick={() => toggle(z.id)}
-                style={{ cursor: 'pointer', opacity: hover && hover !== z.id ? 0.3 : 1, transition: 'opacity .15s' }} />
+                style={{ cursor: 'pointer', opacity: hover && hover !== z.id ? 0.3 : 1, transition: 'opacity .15s, fill .45s' }} />
             ))}
           </g>
           {/* Court markings over the bands, light and thin so they read the same on every color. */}
@@ -130,6 +130,8 @@ function ShotMap({ shotShift, divided }) {
 // either side: between the 90th (1.3) and 95th (1.6) percentile change across
 // players and stats in 2025-26; bigger swings pin to the end.
 const RANGE = 1.5
+// Moving to another player keeps these rows mounted, so the dots and bars slide over.
+const SLIDE = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'none' : 'left .45s cubic-bezier(.2,.8,.2,1), width .45s cubic-bezier(.2,.8,.2,1), border-color .45s'
 // Slider colour runs green -> muted grey-green -> near-black with the size of the
 // move (like the shot map): small changes sit near the middle tone, the biggest
 // rises reach the site green and the biggest drops near-black.
@@ -173,9 +175,9 @@ function CoreStats({ profile: p }) {
               <div style={{ position: 'relative', height: 18 }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: '#3d3a37' }} />
                 <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#6b655f' }} />
-                <div style={{ position: 'absolute', left: lo + '%', width: hi - lo + '%', top: 7, height: 4, background: bar }} />
+                <div style={{ position: 'absolute', left: lo + '%', width: hi - lo + '%', top: 7, height: 4, background: bar, transition: SLIDE }} />
                 <div style={{ position: 'absolute', left: p0 + '%', top: 4, width: 8, height: 8, marginLeft: -5, border: '1.5px solid #8a847e', borderRadius: '50%', background: '#2c2a28', boxSizing: 'border-box' }} />
-                <div style={{ position: 'absolute', left: p1 + '%', top: 4, width: 10, height: 10, marginLeft: -5, borderRadius: '50%', background: '#ece8e3', border: '2px solid ' + end, boxSizing: 'border-box' }} />
+                <div style={{ position: 'absolute', left: p1 + '%', top: 4, width: 10, height: 10, marginLeft: -5, borderRadius: '50%', background: '#ece8e3', border: '2px solid ' + end, boxSizing: 'border-box', transition: SLIDE }} />
               </div>
               <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color, whiteSpace: 'nowrap' }}>{(change >= 0 ? '+' : '−') + Math.abs(change).toFixed(stat.dec || 1)}</span>
             </div>

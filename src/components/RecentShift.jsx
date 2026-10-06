@@ -273,17 +273,20 @@ const windowLabel = games =>
 
 export default function RecentShift({ profile: p }) {
   const games = p.gameLog && p.gameLog.recent ? p.gameLog.recent.games : null
-  // Played in the window but not in the pull, which keeps only players over the
-  // sheet's minutes floor (scaled to each window) in both the last 30 days and the
-  // rest of the season: the window label is flagged.
+  // Not in the pull, which keeps only players over the sheet's minutes floor: for the
+  // season (no game log, so no shot data either), or, scaled to each window, in both
+  // the last 30 days and the rest of the season. The window label is flagged.
   const unqualified = games !== 0 && !p.recentShift
+  const whyUnqualified = games === null
+    ? 'Too few minutes this season to qualify'
+    : 'Too few minutes in the last 30 days or the rest of the season to qualify'
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Last 30 Days</span>
           <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
-            DIFFERENCE BETWEEN <span title={unqualified ? 'Too few minutes in the last 30 days or the rest of the season to qualify' : undefined} style={{ color: unqualified ? '#fa962a' : '#ece8e3', fontWeight: 700, textDecoration: unqualified ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}>{windowLabel(games)}</span> AND REST OF SEASON
+            DIFFERENCE BETWEEN <span title={unqualified ? whyUnqualified : undefined} style={{ color: unqualified ? '#fa962a' : '#ece8e3', fontWeight: 700, textDecoration: unqualified ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}>{windowLabel(games)}</span> AND REST OF SEASON
           </span>
         </div>
       </div>
@@ -292,7 +295,7 @@ export default function RecentShift({ profile: p }) {
         : <CoreStats profile={p} />}
       {games !== 0 && p.shotShift
         ? <ShotMap shotShift={p.shotShift} divided />
-        : <EmptyShotMap reason={games === 0 ? 'NO RECENT SHOTS' : 'NO SHOT DATA THIS SEASON'} divided />}
+        : <EmptyShotMap reason={games === 0 ? 'NO RECENT SHOTS' : 'NOT QUALIFIED'} divided />}
     </div>
   )
 }

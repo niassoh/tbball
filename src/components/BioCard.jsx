@@ -16,6 +16,9 @@ const tsColor = ts => (ts === null ? '#ece8e3' : ts >= 60 ? '#8fb0e6' : ts < 52 
 
 const HERO_H = 128
 const PORTRAIT = 116
+// Our illustrated portraits fill their frame more than the NBA.com fallbacks, so they
+// sit a touch smaller (the hover zoom scales from this).
+const GENERATED_PORTRAIT = 108
 // The portrait (or team-initials block) sits in the banner's bottom-right corner,
 // standing on the rule like a thumbnail subject, and fades into the bokeh on its
 // left and top edges; portraits share the banner's charcoal, so no edge shows.
@@ -24,7 +27,7 @@ const PORTRAIT = 116
 // being cut by a straight line.
 // A second, small arc centred on the bottom-left corner tapers an arm or shoulder that
 // the source crop cut off at the box's left edge, so it doesn't end in a straight line.
-const fadeIn = `radial-gradient(ellipse 80% 115% at 76% 72%, #000 70%, transparent 100%), radial-gradient(circle ${PORTRAIT}px at 0% 100%, transparent 8%, #000 38%)`
+const fadeIn = size => `radial-gradient(ellipse 80% 115% at 76% 72%, #000 70%, transparent 100%), radial-gradient(circle ${size}px at 0% 100%, transparent 8%, #000 38%)`
 // Without a portrait, the team-initials panel runs the banner's full height and
 // fades in from the left, dimmed so it reads as a backdrop rather than a box.
 const panelFade = 'linear-gradient(90deg, transparent 0%, #000 55%)'
@@ -38,11 +41,13 @@ function Headshot({ slug, version, source, name, team }) {
       </div>
     )
   }
+  const size = source === 'portrait' ? GENERATED_PORTRAIT : PORTRAIT
+  const mask = fadeIn(size)
   return (
     // The hover zoom scales this whole box (mask included), not the image inside it:
     // transparent portraits run to the top of the frame, so a zoom inside the box
     // would clip the hair flat.
-    <div className="hero-face fade-in" style={{ position: 'absolute', right: 0, bottom: 0, width: PORTRAIT, height: PORTRAIT, WebkitMaskImage: fadeIn, WebkitMaskComposite: 'source-in', maskImage: fadeIn, maskComposite: 'intersect' }}>
+    <div className="hero-face fade-in" style={{ position: 'absolute', right: 0, bottom: 0, width: size, height: size, WebkitMaskImage: mask, WebkitMaskComposite: 'source-in', maskImage: mask, maskComposite: 'intersect' }}>
       <img src={headshotUrl(slug, 400, version, source)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
     </div>
   )

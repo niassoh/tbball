@@ -74,11 +74,6 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
         )}
       </div>
       <div style={{ padding: '8px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ ...rowGrid, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em' }}>
-          <span />
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#fa962a' }}>POOR</span><span style={{ color: '#8a847e' }}>AVG</span><span style={{ color: '#8fb0e6' }}>GREAT</span></div>
-          <span />
-        </div>
         {GROUPS.map(([name, tab, labels]) => {
           const rows = labels.map(l => [l, p.stats[l]]).filter(([, s]) => s && s.vals[kp])
           return (

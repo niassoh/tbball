@@ -38,6 +38,43 @@ function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) 
   )
 }
 
+// The empty state renders the same header and legend rows, hidden, so the card's
+// sections sit at the same heights whether or not there is data.
+function ShotHeader({ divided, children }) {
+  return (
+    <div style={{ padding: '10px 0 0', margin: '0 14px', borderTop: divided ? '1px solid #544f4b' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <span style={subhead}>SHOT PROFILE</span>
+      {children}
+    </div>
+  )
+}
+
+function ModeToggle({ mode, onPick, hidden }) {
+  return (
+    <div aria-hidden={hidden || undefined} style={{ display: 'flex', border: '1px solid #544f4b', visibility: hidden ? 'hidden' : 'visible' }}>
+      {Object.entries(MODES).map(([id, m]) => {
+        const on = id === mode
+        return (
+          <button key={id} onClick={() => onPick(id)} style={{ background: on ? '#ece8e3' : 'transparent', color: on ? '#1f1d1c' : '#a8a29c', border: 'none', padding: '3px 7px', fontFamily: MONO, fontSize: 9, letterSpacing: '.06em', fontWeight: on ? 700 : 400, cursor: 'pointer' }}>{m.label}</button>
+        )
+      })}
+    </div>
+  )
+}
+
+function Legend({ hidden }) {
+  return (
+    <div aria-hidden={hidden || undefined} style={{ padding: '10px 0 0', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px', visibility: hidden ? 'hidden' : 'visible' }}>
+      <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#8a847e', whiteSpace: 'nowrap' }}>
+        {legendSwatch('#8a847e', 'SEASON', true, true)}
+        {legendSwatch('#ece8e3', 'RECENT', true)}
+      </span>
+    </div>
+  )
+}
+
+const statRows = { display: 'flex', flexDirection: 'column', padding: '4px 14px 12px', gap: 2 }
+
 function ShotMap({ shotShift, divided }) {
   const [mode, setMode] = useState('value')
   const [hover, setHover] = useState(null)
@@ -68,17 +105,7 @@ function ShotMap({ shotShift, divided }) {
   }
   return (
     <>
-      <div style={{ padding: '10px 0 0', margin: '0 14px', borderTop: divided ? '1px solid #544f4b' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <span style={subhead}>SHOT PROFILE</span>
-        <div style={{ display: 'flex', border: '1px solid #544f4b' }}>
-          {Object.entries(MODES).map(([id, m]) => {
-            const on = id === mode
-            return (
-              <button key={id} onClick={() => setMode(id)} style={{ background: on ? '#ece8e3' : 'transparent', color: on ? '#1f1d1c' : '#a8a29c', border: 'none', padding: '3px 7px', fontFamily: MONO, fontSize: 9, letterSpacing: '.06em', fontWeight: on ? 700 : 400, cursor: 'pointer' }}>{m.label}</button>
-            )
-          })}
-        </div>
-      </div>
+      <ShotHeader divided={divided}><ModeToggle mode={mode} onPick={setMode} /></ShotHeader>
       <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 12px' }}>
         <svg viewBox={`0 0 500 ${COURT_H}`} onMouseLeave={leave} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <style>{SHOT_KEYFRAMES}</style>
@@ -143,13 +170,8 @@ function CoreStats({ profile: p }) {
   const rows = p.recentShift.stats.filter(r => p.stats[r.stat])
   return (
     <>
-      <div style={{ padding: '10px 0 0', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px' }}>
-        <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#8a847e', whiteSpace: 'nowrap' }}>
-          {legendSwatch('#8a847e', 'SEASON', true, true)}
-          {legendSwatch('#ece8e3', 'RECENT', true)}
-        </span>
-      </div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: '4px 14px 12px', gap: 2 }}>
+      <Legend />
+      <div style={statRows}>
         {rows.map(r => {
           const stat = p.stats[r.stat]
           const change = r.recent.value - r.season.value
@@ -195,31 +217,32 @@ const stamp = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#a
 
 function EmptyStats({ reason }) {
   return (
-    <div style={{ position: 'relative', padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {EMPTY_STATS.map(s => (
-        <div key={s} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr) 54px', gap: 10, alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #3d3a37', opacity: 0.45 }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: '#8a847e' }}>{s}</span>
-            <span style={{ fontFamily: MONO, fontSize: 9, color: '#6b655f' }}>— → —</span>
+    <>
+      <Legend hidden />
+      <div style={{ ...statRows, position: 'relative' }}>
+        {EMPTY_STATS.map(s => (
+          <div key={s} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr) 54px', gap: 10, alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #3d3a37', opacity: 0.45 }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: '#8a847e' }}>{s}</span>
+              <span style={{ fontFamily: MONO, fontSize: 9, color: '#6b655f' }}>— → —</span>
+            </div>
+            <div style={{ position: 'relative', height: 18 }}>
+              <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: '#3d3a37' }} />
+              <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#6b655f' }} />
+            </div>
+            <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color: '#6b655f' }}>—</span>
           </div>
-          <div style={{ position: 'relative', height: 18 }}>
-            <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: '#3d3a37' }} />
-            <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#6b655f' }} />
-          </div>
-          <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color: '#6b655f' }}>—</span>
-        </div>
-      ))}
-      <span style={{ ...stamp, position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)' }}>{reason}</span>
-    </div>
+        ))}
+        <span style={{ ...stamp, position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)' }}>{reason}</span>
+      </div>
+    </>
   )
 }
 
 function EmptyShotMap({ reason, divided }) {
   return (
     <>
-      <div style={{ padding: '10px 0 0', margin: '0 14px', borderTop: divided ? '1px solid #544f4b' : 'none' }}>
-        <span style={subhead}>SHOT PROFILE</span>
-      </div>
+      <ShotHeader divided={divided}><ModeToggle mode="value" onPick={() => {}} hidden /></ShotHeader>
       <div style={{ position: 'relative', padding: '8px 14px 12px' }}>
         <svg viewBox={`0 0 500 ${COURT_H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />

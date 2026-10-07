@@ -207,13 +207,13 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
                 </div>
                 )
               })}
-              {spanOn && (
-                <div onClick={() => setSel(null)} title={`Average of ${p.seasons[from].label} to ${p.seasons[to].label} · click to clear`} style={{ display: 'grid', gridTemplateColumns: grid, borderTop: '1px solid #6b655f', borderBottom: '1px solid #6b655f', background: '#141312', fontFamily: MONO, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                  <span style={{ padding: '5px 10px', color: '#ece8e3' }}>{spanLabel(p.seasons, from, to)}</span>
-                  <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{spanTeams(p.seasons, from, to)}</span>
-                  {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{fmt(p.stats[l], spanMean(p, l, from, to))}</span>)}
-                </div>
-              )}
+              {/* Always in the table (a faint placeholder until a span is picked), so picking one
+                  never changes the table's height, or the chart's beside it. */}
+              <div onClick={spanOn ? () => setSel(null) : undefined} title={spanOn ? `Average of ${p.seasons[from].label} to ${p.seasons[to].label} · click to clear` : undefined} style={{ display: 'grid', gridTemplateColumns: grid, borderTop: `1px solid ${spanOn ? '#6b655f' : '#3d3a37'}`, borderBottom: `1px solid ${spanOn ? '#6b655f' : '#3d3a37'}`, background: spanOn ? '#141312' : 'transparent', fontFamily: MONO, fontSize: 13, fontWeight: 600, cursor: spanOn ? 'pointer' : 'default', transition: 'background-color .15s, border-color .15s' }}>
+                <span style={{ padding: '5px 10px', color: spanOn ? '#ece8e3' : '#544f4b' }}>{spanOn ? spanLabel(p.seasons, from, to) : 'SPAN'}</span>
+                <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{spanOn ? spanTeams(p.seasons, from, to) : ''}</span>
+                {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: spanOn ? '#ece8e3' : '#3d3a37' }}>{spanOn ? fmt(p.stats[l], spanMean(p, l, from, to)) : '—'}</span>)}
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '2px solid #ece8e3', background: '#34312e', fontFamily: MONO, fontSize: 13, fontWeight: 600 }}>
                 <span style={{ padding: '5px 10px' }}>CAREER</span>
                 <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{p.careerTm}</span>

@@ -23,6 +23,13 @@ describe('swarm', () => {
     expect(x(0)).toBeCloseTo(100)
   })
 
+  it('reads a net back from an x position (the hover readout)', () => {
+    const { x, value, lo, hi } = swarm(values, { width: 200, height: 40, r: 2 })
+    for (const v of [-7.5, 0, 3.2, 12]) expect(value(x(v))).toBeCloseTo(v)
+    expect(value(-50)).toBe(lo)
+    expect(value(500)).toBe(hi)
+  })
+
   it('stacks equal values out from the middle', () => {
     const { dots } = swarm([0, 0, 0], { width: 100, height: 40, r: 2 })
     expect(dots.map(d => d.y).sort((a, b) => a - b)).toEqual([15.7, 20, 24.3])

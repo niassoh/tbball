@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { headshotUrl, loadLineupLeague } from '../api.js'
 import { MONO, ord, signed } from '../lib/format.js'
@@ -30,9 +30,9 @@ function Mate({ mate }) {
     : <span style={{ color: DIM }}>{name}</span>
 }
 
-// A square headshot tile with the last name under it, or in a five's small tiles the
-// initials (the full name is on hover). His own tile carries a team-colour bar;
-// teammates' tiles link to their pages.
+// A round headshot with the last name under it, or in a five's small tiles the
+// initials (the full name is on hover). A ring in the team colour frames each; his own
+// is stronger. Teammates' tiles link to their pages.
 function Tile({ player, team, accent, self, small }) {
   const [failed, setFailed] = useState(false)
   const size = small ? SMALL : TILE
@@ -41,9 +41,8 @@ function Tile({ player, team, accent, self, small }) {
     ? <img src={headshotUrl(player.slug, 100, player.headshotVersion, player.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%', display: 'block' }} />
     : <TeamInitials name={player.name || '?'} team={team} fontSize={small ? 9 : 15} />
   const box = (
-    <span className="lineup-tile" style={{ position: 'relative', display: 'block', width: size, height: size, border: EDGE, background: '#34312e', overflow: 'hidden' }}>
+    <span className="lineup-tile" style={{ position: 'relative', display: 'block', width: size, height: size, borderRadius: '50%', border: self ? `2px solid color-mix(in srgb, ${accent || INK} 70%, ${INK})` : `1.5px solid color-mix(in srgb, ${accent || INK} 40%, #544f4b)`, background: '#34312e', overflow: 'hidden' }}>
       {face}
-      {self && <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: small ? 2 : 3, background: accent || INK }} />}
     </span>
   )
   return (
@@ -81,7 +80,7 @@ function SizePicker({ size, setSize }) {
 function Net({ unit, onTip }) {
   return (
     <span tabIndex={0} onMouseEnter={() => onTip(true)} onMouseLeave={() => onTip(false)} onFocus={() => onTip(true)} onBlur={() => onTip(false)}
-      style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: verdict(unit.net), cursor: 'help', borderBottom: `1px dotted ${FAINT}`, paddingBottom: 1, outline: 'none' }}>
+      style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: verdict(unit.net), cursor: 'default', borderBottom: `1px dotted ${FAINT}`, paddingBottom: 1, outline: 'none' }}>
       {net(unit.net)}
     </span>
   )
@@ -92,9 +91,12 @@ const SH = 64
 
 // The rank tooltip: the unit, its league rank among units of its size over the minutes
 // floor (coloured blue to orange by where it falls), and a swarm of every such unit's
-// net with this one marked. The league pool is fetched on the first hover.
-function RankTip({ unit, kind, size, floor, self }) {
+// net with this one marked. It stays open while the pointer is over it, and hovering
+// the swarm reads out the net and league rank under the pointer. The league pool is
+// fetched on the first hover.
+function RankTip({ unit, kind, size, floor, self, onHover }) {
   const [league, setLeague] = useState(null)
+  const [probe, setProbe] = useState(null)
   useEffect(() => {
     let live = true
     loadLineupLeague().then(d => live && setLeague(d)).catch(() => {})
@@ -107,7 +109,7 @@ function RankTip({ unit, kind, size, floor, self }) {
   const names = [self, ...unit.mates].map(m => (m.name ? lastName(m.name) : '?')).join(' · ')
   const median = nets ? nets[Math.floor(nets.length / 2)] : null
   return (
-    <div role="tooltip" style={{ position: 'absolute', left: 0, right: 0, bottom: 'calc(100% + 6px)', zIndex: 20, pointerEvents: 'none', background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', left: 0, right: 0, bottom: 'calc(100% + 6px)', zIndex: 20, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, ...label }}>
         <span>{kind} {size}-MAN</span>
         <span>{floor}+ MIN · NET / 100</span>
@@ -129,11 +131,19 @@ function RankTip({ unit, kind, size, floor, self }) {
       </div>
       {sw ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <svg viewBox={`0 -6 ${SW} ${SH + 12}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
+          <svg viewBox={`0 -6 ${SW} ${SH + 12}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible', cursor: 'crosshair' }}
+            onMouseMove={e => {
+              const box = e.currentTarget.getBoundingClientRect()
+              const v = sw.value(((e.clientX - box.left) / box.width) * SW)
+              setProbe({ v, rank: nets.filter(n => n > v).length + 1 })
+            }}
+            onMouseLeave={() => setProbe(null)}>
+            <rect x={0} y={-6} width={SW} height={SH + 12} fill="transparent" />
             <line x1={sw.x(0)} x2={sw.x(0)} y1={-4} y2={SH + 4} stroke={FAINT} strokeDasharray="2 3" />
             {sw.dots.map((d, i) => <circle key={i} cx={d.x} cy={d.y} r={1.6} fill={rankColor(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.6} />)}
             <line x1={sw.x(unit.net)} x2={sw.x(unit.net)} y1={-6} y2={SH + 6} stroke={INK} strokeWidth={1.5} />
             <circle cx={sw.x(unit.net)} cy={SH / 2} r={4.5} fill={tone} stroke={INK} strokeWidth={1.5} />
+            {probe && <line x1={sw.x(probe.v)} x2={sw.x(probe.v)} y1={-6} y2={SH + 6} stroke={DIM} strokeDasharray="1 2" pointerEvents="none" />}
           </svg>
           <div style={{ position: 'relative', height: 10, ...label, fontSize: 8 }}>
             <span style={{ position: 'absolute', left: 0 }}>{signed(sw.lo, 0)}</span>
@@ -146,7 +156,9 @@ function RankTip({ unit, kind, size, floor, self }) {
       )}
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, ...label, fontSize: 8.5 }}>
         <span><span style={{ color: verdict(unit.net), fontWeight: 700 }}>{net(unit.net)}</span> NET · {mins(unit.minutes)} MIN</span>
-        {median !== null && <span>LEAGUE MEDIAN {signed(median)}</span>}
+        {probe
+          ? <span>AT <span style={{ color: INK, fontWeight: 700 }}>{signed(probe.v)}</span> · <span style={{ color: rankColor(rankPct(probe.rank, nets.length)), fontWeight: 700 }}>{ord(probe.rank).toUpperCase()}</span> OF {nets.length.toLocaleString()}</span>
+          : median !== null && <span>LEAGUE MEDIAN {signed(median)}</span>}
       </div>
     </div>
   )
@@ -164,7 +176,7 @@ function Unit({ title, unit, size, self, team, accent, empty, style, onTip }) {
         <div style={{ display: 'flex', gap: small ? 2 : 3, flex: 1, minWidth: 0 }}>
           {unit
             ? [self, ...unit.mates].map((pl, i) => <Tile key={i} player={pl} team={team} accent={accent} self={i === 0} small={small} />)
-            : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, flex: 'none', border: '1px dashed #3d3a37' }} />)}
+            : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, flex: 'none', borderRadius: '50%', border: '1px dashed #4a4643' }} />)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
           {unit ? <Net unit={unit} onTip={onTip} /> : <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: FAINT }}>—</span>}
@@ -189,6 +201,13 @@ export default function LineupPanel({ profile: p, accent }) {
   const [size, setSize] = useState(3)
   const [best, used, floor] = !L ? [] : size === 5 ? [L.bestFive, L.mostUsed, L.floors.five] : [L.bestTrio, L.mostUsedTrio, L.floors.trio]
   const [tip, setTip] = useState(null)
+  const closing = useRef(null)
+  const hover = which => on => {
+    clearTimeout(closing.current)
+    if (on) setTip(which)
+    else closing.current = setTimeout(() => setTip(null), 180)
+  }
+  useEffect(() => () => clearTimeout(closing.current), [])
   const unitProps = { size, self: L && L.self, team: L && L.team, accent }
   const tipUnit = tip === 'best' ? best : tip === 'used' ? used : null
 
@@ -226,9 +245,9 @@ export default function LineupPanel({ profile: p, accent }) {
           </div>
 
           <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+</>} unit={best} empty={`NONE ${floor}+ MIN`} onTip={on => setTip(on ? 'best' : null)} style={{ padding: '5px 10px 5px 0', borderRight: RULE }} />
-            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={on => setTip(on ? 'used' : null)} style={{ padding: '5px 0 5px 10px' }} />
-            {tipUnit && <RankTip unit={tipUnit} kind={tip === 'best' ? 'BEST' : 'MOST USED'} size={size} floor={floor} self={L.self} />}
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+</>} unit={best} empty={`NONE ${floor}+ MIN`} onTip={hover('best')} style={{ padding: '5px 10px 5px 0', borderRight: RULE }} />
+            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} style={{ padding: '5px 0 5px 10px' }} />
+            {tipUnit && <RankTip unit={tipUnit} kind={tip === 'best' ? 'BEST' : 'MOST USED'} size={size} floor={floor} self={L.self} onHover={hover(tip)} />}
           </div>
         </>
       )}

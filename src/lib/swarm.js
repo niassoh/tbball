@@ -30,7 +30,9 @@ export const swarm = (values, { width, height, r = 1.6 }) => {
       dots.push({ v, x: r + (c / Math.max(1, cols - 1)) * (width - 2 * r), y: mid + k * step })
     })
   }
-  return { lo, hi, x, dots }
+  // The net at an x position (the swarm's hover readout).
+  const value = px => lo + ((Math.max(r, Math.min(width - r, px)) - r) / (width - 2 * r)) * (hi - lo)
+  return { lo, hi, x, value, dots }
 }
 
 // Where a rank sits, as a share of the pool at or below it (1 = the best unit).

@@ -180,7 +180,7 @@ function Unit({ title, unit, size, self, team, accent, empty, style, onTip }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
           {unit ? <Net unit={unit} onTip={onTip} /> : <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: FAINT }}>—</span>}
-          <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>{unit ? `${mins(unit.minutes)} MIN` : empty}</span>
+          <span style={{ ...label, fontSize: 8, whiteSpace: unit ? 'nowrap' : 'pre-line', textAlign: 'right', lineHeight: 1.4 }}>{unit ? `${mins(unit.minutes)} MIN` : empty}</span>
           {unit && unit.share !== undefined && <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>{unit.share}% OF MIN</span>}
         </div>
       </div>
@@ -246,7 +246,7 @@ export default function LineupPanel({ profile: p, accent }) {
           </div>
 
           <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+</>} unit={best} empty={`NONE ${floor}+ MIN`} onTip={hover('best')} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
             <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} style={{ padding: '8px 0 9px 12px' }} />
             {tipUnit && <RankTip unit={tipUnit} kind={tip === 'best' ? 'BEST' : 'MOST USED'} size={size} floor={floor} self={L.self} onHover={hover(tip)} />}
           </div>

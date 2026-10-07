@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MONO, fmt, heat } from '../lib/format.js'
 import { chartModel } from '../lib/chart.js'
+import { spanMean, spanLabel, spanTeams } from '../lib/span.js'
 import { TEAM_COLORS, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
 
@@ -44,11 +45,14 @@ function PointTip({ p, season }) {
   )
 }
 
-function SeasonChart({ stat, label, seasons }) {
+function SeasonChart({ stat, label, seasons, span }) {
   const m = chartModel(stat, seasons)
   const [hover, setHover] = useState(null)
   const L = seasons.length - 1
   const slot = L ? 282 / L : 60
+  // A dragged span in the table shades its seasons here, with its average as a line.
+  const band = span && { x0: Math.max(0, m.pts[span.from].x - slot / 2), x1: Math.min(330, m.pts[span.to].x + slot / 2) }
+  const bandY = span && span.mean !== null ? m.Y(span.mean) : null
   return (
     <div style={{ flex: '0 1 330px', minWidth: 260, display: 'flex', flexDirection: 'column', gap: 10, background: '#2c2a28', border: '1px solid #544f4b', padding: 16, alignSelf: 'stretch' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
@@ -60,11 +64,14 @@ function SeasonChart({ stat, label, seasons }) {
       </div>
       <div onMouseLeave={() => setHover(null)} style={{ position: 'relative', flex: 1, minHeight: 200, display: 'flex' }}>
         <svg viewBox="0 0 330 150" preserveAspectRatio="none" style={{ width: '100%', height: '100%', minHeight: 200, display: 'block', overflow: 'visible', position: 'absolute', inset: 0 }}>
+          {band && <rect x={band.x0} y="0" width={band.x1 - band.x0} height="134" fill="rgba(250,150,42,.09)" />}
           {m.bands.map((b, i) => <path key={i} d={b.d} fill={b.fill} />)}
           <line x1="0" x2="330" y1="134" y2="134" stroke="#6b655f" vectorEffect="non-scaling-stroke" />
           {m.leagueLines.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke="#8a847e" strokeWidth="1.5" strokeDasharray="4 3" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
           {m.playerLines.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke="#ece8e3" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
+          {bandY !== null && <line x1={band.x0} x2={band.x1} y1={bandY} y2={bandY} stroke="#fa962a" strokeWidth="2" strokeDasharray="5 3" vectorEffect="non-scaling-stroke" />}
         </svg>
+        {bandY !== null && <span style={{ position: 'absolute', left: pct(band.x1, 330), top: pct(bandY, 150), transform: band.x1 > 290 ? 'translate(calc(-100% - 4px), -130%)' : 'translate(4px, -50%)', fontFamily: MONO, fontSize: 10, fontWeight: 700, color: '#fa962a', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{fmt(stat, span.mean)}</span>}
         {m.pts.map(p => (
           <span key={`dots-${p.i}`}>
             {p.ly !== null && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.ly, 150), width: 5, height: 5, marginLeft: -2.5, marginTop: -2.5, borderRadius: '50%', background: '#8a847e', pointerEvents: 'none' }} />}
@@ -98,16 +105,69 @@ export default function StatSection({ profile: p, tab, num }) {
   const shown = tab.stats.filter(l => p.stats[l].available)
   const [charted, setCharted] = useState(shown[0])
   const k = p.seasons.length - 1
+  // Drag across season rows (or click one, then another) to average that span.
+  // sel holds the anchor row and the row the drag is on; drag tracks a press in progress.
+  const [sel, setSel] = useState(null)
+  const drag = useRef(null)
+  const from = sel && Math.min(sel.a, sel.b)
+  const to = sel && Math.max(sel.a, sel.b)
+  const spanOn = sel !== null && to > from
+
+  useEffect(() => {
+    // A press without movement is a click: a second click on another row finishes a
+    // span from the first (taps on touch screens, which don't drag); a click inside
+    // the current selection clears it; anywhere else starts a new anchor.
+    const up = () => {
+      const d = drag.current
+      if (!d) return
+      drag.current = null
+      if (d.moved) return
+      const prev = d.prev
+      if (prev && prev.a === prev.b && prev.a !== d.start) setSel({ a: prev.a, b: d.start })
+      else if (prev && d.start >= Math.min(prev.a, prev.b) && d.start <= Math.max(prev.a, prev.b)) setSel(null)
+      else setSel({ a: d.start, b: d.start })
+    }
+    // The browser took the gesture (e.g. a touch scroll): put the old selection back.
+    const cancel = () => {
+      if (drag.current) setSel(drag.current.prev)
+      drag.current = null
+    }
+    const key = e => { if (e.key === 'Escape') setSel(null) }
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    window.addEventListener('keydown', key)
+    return () => {
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+      window.removeEventListener('keydown', key)
+    }
+  }, [])
+
+  const press = (e, i) => {
+    if (e.button !== 0) return
+    drag.current = { start: i, moved: false, prev: sel }
+    setSel({ a: i, b: i })
+  }
+  const enter = i => {
+    const d = drag.current
+    if (!d || i === d.start && !d.moved) return
+    d.moved = true
+    setSel({ a: d.start, b: i })
+  }
   const grid = `84px 48px repeat(${shown.length},minmax(84px,1fr))`
   const minW = 132 + shown.length * 84 + 'px'
 
   return (
     <section id={`sec-${tab.id}`} style={{ scrollMarginTop: 48, display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
       <SectionHeader num={num} title={tab.name}>
-        <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', letterSpacing: '.06em' }}>CLICK A COLUMN TO CHART IT</span>
+        <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', letterSpacing: '.06em' }}>
+          {spanOn
+            ? <><span style={{ color: '#fa962a' }}>{to - from + 1}-SEASON AVERAGE</span> · CLICK IT OR ESC TO CLEAR</>
+            : 'DRAG ACROSS SEASONS TO AVERAGE · CLICK A COLUMN TO CHART IT'}
+        </span>
       </SectionHeader>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
-        <SeasonChart stat={p.stats[charted]} label={charted} seasons={p.seasons} />
+        <SeasonChart stat={p.stats[charted]} label={charted} seasons={p.seasons} span={spanOn ? { from, to, mean: spanMean(p, charted, from, to) } : null} />
         <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: minW, display: 'flex', flexDirection: 'column' }}>
@@ -123,9 +183,11 @@ export default function StatSection({ profile: p, tab, num }) {
                   )
                 })}
               </div>
-              {p.seasons.map((s, i) => (
-                <div key={s.season} style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '1px solid #3d3a37', fontFamily: MONO, fontSize: 13, boxShadow: i === k ? 'inset 3px 0 0 #97c197' : 'none' }}>
-                  <span style={{ padding: '5px 10px', fontWeight: 600, color: i === k ? '#ece8e3' : '#a8a29c' }}>{s.label}</span>
+              {p.seasons.map((s, i) => {
+                const picked = sel !== null && i >= from && i <= to
+                return (
+                <div key={s.season} onPointerDown={e => press(e, i)} onPointerEnter={() => enter(i)} style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '1px solid #3d3a37', fontFamily: MONO, fontSize: 13, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', background: picked ? 'rgba(250,150,42,.08)' : 'transparent', boxShadow: picked ? 'inset 3px 0 0 #fa962a' : i === k ? 'inset 3px 0 0 #97c197' : 'none' }}>
+                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked ? '#fa962a' : i === k ? '#ece8e3' : '#a8a29c' }}>{s.label}</span>
                   <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{s.tm}</span>
                   {shown.map(l => {
                     const st = p.stats[l]
@@ -137,11 +199,19 @@ export default function StatSection({ profile: p, tab, num }) {
                     )
                   })}
                 </div>
-              ))}
+                )
+              })}
+              {spanOn && (
+                <div onClick={() => setSel(null)} title={`Average of ${p.seasons[from].label} to ${p.seasons[to].label} · click to clear`} style={{ display: 'grid', gridTemplateColumns: grid, borderTop: '1px solid #fa962a', borderBottom: '1px solid #fa962a', background: 'rgba(250,150,42,.14)', fontFamily: MONO, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  <span style={{ padding: '5px 10px', color: '#fa962a' }}>{spanLabel(p.seasons, from, to)}</span>
+                  <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{spanTeams(p.seasons, from, to)}</span>
+                  {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{fmt(p.stats[l], spanMean(p, l, from, to))}</span>)}
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '2px solid #ece8e3', background: '#34312e', fontFamily: MONO, fontSize: 13, fontWeight: 600 }}>
                 <span style={{ padding: '5px 10px' }}>CAREER</span>
                 <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{p.careerTm}</span>
-                {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{fmt(p.stats[l], p.stats[l].career)}</span>)}
+                {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{fmt(p.stats[l], spanMean(p, l, 0, k))}</span>)}
               </div>
             </div>
           </div>

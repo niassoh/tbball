@@ -28,7 +28,7 @@ npm run build
 
 ## Layout
 
-- `src/lib/` — pure logic ported from the design (percentile colors, chart geometry, shot-zone map); unit tested.
+- `src/lib/` — pure logic ported from the design (percentile colors, chart geometry, shot-zone map) and season-span averages (`span.js`: minutes-weighted, shooting % attempts-weighted; used by the stat tables' drag-to-average and career rows); unit tested.
 - `src/components/` — one component per design section.
 - Routes: `/` player search, `/player/:slug` profile.
 

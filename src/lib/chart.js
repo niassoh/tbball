@@ -75,5 +75,5 @@ export function chartModel(stat, seasons) {
       fill: playerAbove !== lb ? BETTER : WORSE
     })
   }
-  return { pts, playerLines, leagueLines, bands, legend: stat.relative ? 'LG AVG = 0' : 'LG AVG' }
+  return { pts, playerLines, leagueLines, bands, Y, legend: stat.relative ? 'LG AVG = 0' : 'LG AVG' }
 }

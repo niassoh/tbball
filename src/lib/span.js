@@ -40,6 +40,39 @@ export const spanMean = (profile, label, from, to) => {
 // "2016–19" for 2016–17 through 2018–19.
 export const spanLabel = (seasons, from, to) => `${seasons[from].label.slice(0, 4)}–${seasons[to].label.slice(-2)}`
 
+// The stat as an n-season rolling average, for the chart: each season averages itself
+// and the n-1 before it with spanMean (so shooting stays attempts-weighted), the league
+// line likewise, and the dot colour is the window's minutes-weighted percentile.
+export const rollingStat = (profile, label, n) => {
+  const st = profile.stats[label]
+  const seasons = profile.seasons
+  return {
+    ...st,
+    // No league distribution of a rolling average, so the hover card skips its histogram.
+    derived: true,
+    vals: seasons.map((_, i) => {
+      if (i < n - 1) return null
+      const value = spanMean(profile, label, i - n + 1, i)
+      if (value === null) return null
+      let sum = 0
+      let weight = 0
+      for (let j = i - n + 1; j <= i; j++) {
+        const v = st.vals[j]
+        if (v && v.p !== null && seasons[j].mp) {
+          sum += v.p * seasons[j].mp
+          weight += seasons[j].mp
+        }
+      }
+      return { n: value, p: weight ? Math.round(sum / weight) : 50, detail: `${n}-YR AVG · ${spanLabel(seasons, i - n + 1, i)}` }
+    }),
+    lg: seasons.map((_, i) => {
+      if (i < n - 1) return null
+      const xs = st.lg.slice(i - n + 1, i + 1).filter(x => x !== null && x !== undefined)
+      return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null
+    })
+  }
+}
+
 // The span's team, or "N TM" when it covers more than one (like the career row).
 export const spanTeams = (seasons, from, to) => {
   const teams = new Set(seasons.slice(from, to + 1).flatMap(s => (s.teams && s.teams.length ? s.teams : [s.tm])))

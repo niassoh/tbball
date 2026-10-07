@@ -3,7 +3,7 @@ import { MONO, col, fmt, heat, ord } from '../lib/format.js'
 import { chartModel } from '../lib/chart.js'
 import { histogram } from '../lib/dist.js'
 import { loadDistribution } from '../api.js'
-import { spanMean, spanLabel, spanTeams } from '../lib/span.js'
+import { rollingStat, spanMean, spanLabel, spanTeams } from '../lib/span.js'
 import { TEAM_COLORS, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
 
@@ -92,7 +92,7 @@ function PointTip({ p, season, stat, dist }) {
   )
 }
 
-function SeasonChart({ stat, label, seasons, span }) {
+function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span }) {
   const m = chartModel(stat, seasons)
   const [hover, setHover] = useState(null)
   // The charted stat's league spread per season, for the hover card (not for Year to
@@ -104,7 +104,8 @@ function SeasonChart({ stat, label, seasons, span }) {
     loadDistribution(label).then(d => live && setDist({ label, seasons: (d && d.seasons) || {} })).catch(() => {})
     return () => { live = false }
   }, [label, stat.derived])
-  const seasonDist = hover !== null && dist && dist.label === label ? dist.seasons[seasons[hover].season] : null
+  // (Also off for a rolling average of a real stat, whose distribution may already be loaded.)
+  const seasonDist = hover !== null && !stat.derived && dist && dist.label === label ? dist.seasons[seasons[hover].season] : null
   const L = seasons.length - 1
   const slot = L ? 282 / L : 60
   // A dragged span in the table shades its seasons here, with its average as a line.
@@ -115,7 +116,7 @@ function SeasonChart({ stat, label, seasons, span }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: '.03em' }}>{label}</span>
         <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#8a847e' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 2, background: '#ece8e3' }} />PLAYER</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 2, background: '#ece8e3' }} />{lineLabel}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 0, borderTop: '2px dashed #8a847e' }} />{m.legend}</span>
         </span>
       </div>
@@ -171,6 +172,10 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
   const from = sel && Math.min(sel.a, sel.b)
   const to = sel && Math.max(sel.a, sel.b)
   const spanOn = sel !== null && to > from
+  // With a span picked, the chart can show the stat as a rolling average over the span's
+  // length (sel.rolling travels with the span across tabs; a new span starts it off).
+  const spanLen = spanOn ? to - from + 1 : 0
+  const rollingOn = spanOn && !!sel.rolling
 
   useEffect(() => {
     // A press without movement is a click: a second click on another row finishes a
@@ -234,14 +239,19 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
       <SectionHeader num={num} title={tab.name}>
         <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', letterSpacing: '.06em' }}>
           {spanOn
-            ? <><span style={{ color: '#ece8e3' }}>{to - from + 1}-SEASON AVERAGE</span> · CLICK IT OR ESC TO CLEAR</>
+            ? <>
+                <span style={{ color: '#ece8e3' }}>{spanLen}-SEASON AVERAGE</span>{' · '}
+                {/* Chart the stat as a rolling average over the span's length. */}
+                <button type="button" onClick={() => setSel({ ...sel, rolling: !sel.rolling })} aria-pressed={rollingOn} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', lineHeight: 'inherit', padding: '0 5px', border: '1px solid #6b655f', background: rollingOn ? '#ece8e3' : 'transparent', color: rollingOn ? '#1f1d1c' : '#ece8e3', cursor: 'pointer' }}>ROLLING {spanLen}-YR</button>
+                {' · CLICK IT OR ESC TO CLEAR'}
+              </>
             : sel
               ? 'CLICK ANOTHER SEASON TO AVERAGE THE SPAN · ESC TO CANCEL'
               : 'DRAG ACROSS SEASONS TO AVERAGE · CLICK A COLUMN TO CHART IT'}
         </span>
       </SectionHeader>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
-        <SeasonChart stat={p.stats[charted]} label={charted} seasons={p.seasons} span={spanOn ? { from, to, mean: spanMean(p, charted, from, to) } : null} />
+        <SeasonChart stat={rollingOn ? rollingStat(p, charted, spanLen) : p.stats[charted]} label={charted} lineLabel={rollingOn ? `${spanLen}-YR AVG` : 'PLAYER'} seasons={p.seasons} span={spanOn ? { from, to, mean: spanMean(p, charted, from, to) } : null} />
         <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ position: 'relative' }}>
           <div ref={scroller} className="stat-scroll" onScroll={measure} style={{ overflowX: 'auto' }}>

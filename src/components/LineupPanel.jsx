@@ -120,7 +120,7 @@ function RankTip({ unit, kind, size, floor, self, onHover }) {
           <>
             <span style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, lineHeight: 1, color: tone }}>{ord(r.rank).toUpperCase()}</span>
             <span style={{ ...label, fontSize: 10 }}>OF {r.of.toLocaleString()} {size}-MAN UNITS</span>
-            <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#1f1d1c', background: tone, padding: '2px 6px' }}>{rankLabel(r.rank, r.of)}</span>
+            <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', color: `color-mix(in srgb, ${tone} 55%, ${INK})`, background: `color-mix(in srgb, ${tone} 18%, transparent)`, border: `1px solid color-mix(in srgb, ${tone} 60%, transparent)`, padding: '3px 7px' }}>{rankLabel(r.rank, r.of)}</span>
           </>
         ) : (
           <>

@@ -173,7 +173,7 @@ function RankTip({ unit, kind, size, floor, self, onHover }) {
 function Unit({ title, unit, size, self, team, accent, empty, style, onTip }) {
   const small = size === 5
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0, ...style }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 11, minWidth: 0, ...style }}>
       <span style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>{title}</span>
       <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>

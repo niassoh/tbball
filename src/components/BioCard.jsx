@@ -109,7 +109,7 @@ export default function BioCard({ profile: p, loading = false }) {
         </h1>
       </div>
 
-      <LineupPanel profile={p} />
+      <LineupPanel profile={p} accent={accent} />
 
       {p.depth && (
         <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>

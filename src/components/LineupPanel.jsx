@@ -249,7 +249,7 @@ export default function LineupPanel({ profile: p, accent }) {
           </div>
 
           <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+ MINUTES</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
             <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} style={{ padding: '8px 0 9px 12px' }} />
             {tipUnit && <RankTip unit={tipUnit} kind={tip === 'best' ? 'BEST' : 'MOST USED'} size={size} floor={floor} self={L.self} onHover={hover(tip)} />}
           </div>

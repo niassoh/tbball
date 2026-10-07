@@ -6,8 +6,8 @@ from the thinking-bball repo. All data comes from that repo's API:
 - `GET /api/profiles` — player index (search page)
 - `GET /api/profile/:slug` — one player's profile document
 - `GET /api/teams` — every team with nickname and depth chart, for the team switcher (header
-  logo / depth-chart team name), which opens the player in the viewed player's depth slot
-  on the picked team (`src/lib/depth.js`)
+  logo / depth-chart team name) and team results in the top-bar search, which open the
+  player in the viewed player's depth slot on the picked team (`src/lib/depth.js`)
 - `/assets/players/webp/<slug>-<size>.webp?v=<headshotVersion>` — generated portraits (the
   version comes with each player from the API and changes when a portrait is replaced)
 - `/assets/players/nba/<slug>-<size>.webp?v=<headshotVersion>` — for players without a

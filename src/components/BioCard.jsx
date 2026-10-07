@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { headshotUrl, loadTeams } from '../api.js'
 import { MONO } from '../lib/format.js'
+import { recentLine } from '../lib/gamelog.js'
 import TeamInitials from './TeamInitials.jsx'
 import TeamPicker from './TeamPicker.jsx'
 import { TEAM_COLORS } from '../lib/teams.js'
@@ -63,6 +64,21 @@ const nameLines = name => {
 }
 const nameSize = lines => Math.min(30, Math.floor(240 / (0.62 * Math.max(...lines.map(l => l.length)))))
 
+// A game-log summary row (last-N average or season line), set off like the stat tables'
+// span and career rows; dashes when there's no line.
+const avg = n => (n === null || n === undefined ? '—' : n.toFixed(1))
+function SummaryRow({ label, line, first = false }) {
+  return (
+    <div style={{ ...logGrid, fontSize: 10.5, padding: '5px 2px', alignItems: 'center', fontWeight: 700, background: '#262422', borderTop: first ? '1px solid #6b655f' : 'none', borderBottom: '1px solid #3d3a37', color: line ? '#ece8e3' : '#3d3a37' }}>
+      <span style={{ gridColumn: '1 / 4', fontSize: 9, fontWeight: 600, letterSpacing: '.08em', color: '#a8a29c', whiteSpace: 'nowrap' }}>{label}</span>
+      <span style={{ textAlign: 'right' }}>{avg(line && line.pts)}</span>
+      <span style={{ textAlign: 'right' }}>{avg(line && line.reb)}</span>
+      <span style={{ textAlign: 'right' }}>{avg(line && line.ast)}</span>
+      <span style={{ textAlign: 'right', color: line && line.ts !== null ? tsColor(line.ts) : undefined }}>{avg(line && line.ts)}</span>
+    </div>
+  )
+}
+
 // "2017 DRAFT · R1 #30 · UTA", or UNDRAFTED.
 const draftLine = d => (!d ? null : d.undrafted ? 'UNDRAFTED' : `${d.year} DRAFT · R${d.round} #${d.overall} · ${d.team}`)
 
@@ -71,6 +87,7 @@ export default function BioCard({ profile: p, loading = false }) {
   const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', p.bio.age !== null ? p.bio.age.toFixed(1) : null]].filter(([, v]) => v)
   const lines = nameLines(p.name)
   const games = (p.gameLog && p.gameLog.games) || []
+  const season = (p.gameLog && p.gameLog.seasonLine) || null
   const color = TEAM_COLORS[p.team]
   // Black (BKN, SAS) would vanish on the dark banner, so those teams' bar is silver.
   const accent = color === '#000000' ? '#c4ced4' : color
@@ -115,8 +132,10 @@ export default function BioCard({ profile: p, loading = false }) {
       </div>
 
       {/* Always LAST_GAMES rows (dash rows fill in when there are fewer, with a stamp when
-          there are none), so the card is the same height for every player. */}
-      <div key={`games-${p.slug}`} className="swap-in" style={{ padding: '12px 14px 4px', display: 'flex', flexDirection: 'column' }}>
+          there are none), then his average over them and his season line. The block takes
+          the card's spare height (the cards in a row match the tallest), sharing it
+          evenly across its rows, so the card has no empty space at the bottom. */}
+      <div key={`games-${p.slug}`} className="swap-in" style={{ flex: '1 0 auto', padding: '12px 14px 4px', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', paddingBottom: 5 }}>
           <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', whiteSpace: 'nowrap' }}>LAST {LAST_GAMES} GAMES</span>
           <span style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
@@ -126,7 +145,7 @@ export default function BioCard({ profile: p, loading = false }) {
         <div style={{ ...logGrid, fontSize: 9, letterSpacing: '.06em', color: '#8a847e', borderBottom: '1px solid #6b655f', padding: '4px 2px' }}>
           <span>DATE</span><span>OPP</span><span /><span style={{ textAlign: 'right' }}>PTS</span><span style={{ textAlign: 'right' }}>REB</span><span style={{ textAlign: 'right' }}>AST</span><span style={{ textAlign: 'right' }}>TS%</span>
         </div>
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', flex: 1, display: 'grid', gridAutoRows: '1fr' }}>
           {Array.from({ length: LAST_GAMES }, (_, i) => games[i]).map((g, i) => g ? (
             <div key={g.gameId} style={{ ...logGrid, fontSize: 10.5, padding: '5px 2px', borderBottom: '1px solid #3d3a37', alignItems: 'center' }}>
               <span style={{ color: '#a8a29c' }}>{shortDate(g.date)}</span>
@@ -142,6 +161,8 @@ export default function BioCard({ profile: p, loading = false }) {
               <span>—</span><span>—</span><span /><span style={{ textAlign: 'right' }}>—</span><span style={{ textAlign: 'right' }}>—</span><span style={{ textAlign: 'right' }}>—</span><span style={{ textAlign: 'right' }}>—</span>
             </div>
           ))}
+          <SummaryRow first label={`LAST ${games.length || LAST_GAMES} AVG`} line={recentLine(games)} />
+          <SummaryRow label={season ? `SEASON · ${season.gp} GP` : 'SEASON'} line={season} />
           {games.length === 0 && (
             <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#a8a29c', background: '#2c2a28', border: '1px solid #544f4b', padding: '4px 8px', whiteSpace: 'nowrap' }}>NO GAMES THIS SEASON</span>
           )}

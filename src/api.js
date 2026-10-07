@@ -10,6 +10,16 @@ const getJson = async url => {
 
 export const fetchProfile = slug => getJson(`${API_BASE}/api/profile/${encodeURIComponent(slug)}`)
 export const fetchPlayers = () => getJson(`${API_BASE}/api/profiles`)
+// Every team with its nickname and depth chart (the team switcher). Fetched once per
+// page load; the switcher's triggers start it on hover so the grid is ready on click.
+let teamsRequest = null
+export const loadTeams = () => {
+  teamsRequest = teamsRequest || getJson(`${API_BASE}/api/teams`).catch(err => {
+    teamsRequest = null
+    throw err
+  })
+  return teamsRequest
+}
 // source (from the API's `headshot`) is 'portrait' or 'nba' (the styled NBA.com fallback);
 // version changes when the image is replaced, so the browser fetches the new one.
 export const headshotUrl = (slug, size = 200, version = null, source = 'portrait') => `${API_BASE}/assets/players/${source === 'nba' ? 'nba' : 'webp'}/${slug}-${size}.webp${version ? `?v=${version}` : ''}`

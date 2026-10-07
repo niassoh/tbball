@@ -8,7 +8,8 @@ body {
 a { color: #8fb0e6; text-decoration: none; }
 a:hover { color: #ece8e3; }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+/* The gutter stays reserved so locking scroll (the team switcher) doesn't shift the page. */
+html { scroll-behavior: smooth; scrollbar-gutter: stable; }
 
 .player-search::placeholder { color: #6b655f; }
 .tab-btn:hover { color: #ece8e3 !important; background: #2f2c2a !important; }
@@ -50,7 +51,18 @@ html { scroll-behavior: smooth; }
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 .fold-loading { opacity: .55; transition: opacity .2s ease; }
 .fold-ready { opacity: 1; transition: opacity .25s ease; }
+/* Team switcher: logos muted at rest like the header's, full colour on hover. */
+.team-switch:focus-visible { outline: 2px solid #ece8e3; outline-offset: 2px; }
+.team-cell { transition: background-color .15s; }
+.team-cell:not(:disabled):hover, .team-cell:focus-visible { background: #2a2826 !important; }
+.team-cell:focus-visible { outline: 2px solid #ece8e3; outline-offset: -2px; }
+.team-cell .team-cell-logo { filter: saturate(.6) brightness(.9); transition: filter .15s ease, transform .15s ease; }
+.team-cell:not(:disabled):hover .team-cell-logo, .team-cell:focus-visible .team-cell-logo, .team-cell:disabled .team-cell-logo { filter: none; }
+.team-cell:not(:disabled):hover .team-cell-logo { transform: scale(1.06); }
+.picker-in { animation: pickerIn .16s ease-out both; }
+@keyframes pickerIn { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: reduce) {
   .hero .hero-logo, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more { transition: none; }
-  .hero.loading .hero-bar, .swap-in, .fade-in { animation: none; }
+  .hero.loading .hero-bar, .swap-in, .fade-in, .picker-in { animation: none; }
+  .team-cell .team-cell-logo { transition: none; }
 }

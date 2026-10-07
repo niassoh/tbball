@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { headshotUrl } from '../api.js'
+import { headshotUrl, loadTeams } from '../api.js'
 import { MONO } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
+import TeamPicker from './TeamPicker.jsx'
 import { TEAM_COLORS } from '../lib/teams.js'
 
 const card = { border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }
@@ -74,6 +75,10 @@ export default function BioCard({ profile: p, loading = false }) {
   const accent = color === '#000000' ? '#c4ced4' : color
   // Hover line: the draft pick, e.g. "2017 DRAFT · R1 #30 · UTA".
   const draft = draftLine(p.bio.draft)
+  // The header logo and the depth chart's team name open the team switcher.
+  const [picking, setPicking] = useState(false)
+  const closePicker = useCallback(() => setPicking(false), [])
+  const switcher = { onClick: () => setPicking(true), onPointerEnter: () => { loadTeams().catch(() => {}) }, title: 'Switch team' }
 
   return (
     <div style={card}>
@@ -86,7 +91,9 @@ export default function BioCard({ profile: p, loading = false }) {
           {color && (
             // The real logo, muted at rest (index.css); full colour on hover.
             <div style={{ paddingRight: 10, borderRight: '1px solid #6b655f', margin: '-5px 10px -5px 0' }}>
-              <img className="hero-logo" src={`/logos/color/${p.team}.png`} alt={p.team} title={p.team} style={{ display: 'block', width: 44, height: 44, objectFit: 'contain' }} />
+              <button type="button" className="team-switch" aria-label={`${p.teamName || p.team}: switch team`} {...switcher} style={{ display: 'block', padding: 0, margin: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
+                <img className="hero-logo" src={`/logos/color/${p.team}.png`} alt={p.team} style={{ display: 'block', width: 44, height: 44, objectFit: 'contain' }} />
+              </button>
             </div>
           )}
           {specs.map(([label, value], i) => (
@@ -132,7 +139,10 @@ export default function BioCard({ profile: p, loading = false }) {
       {p.depth && (
         <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #544f4b', paddingBottom: 5 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>{(p.teamName || p.team).toUpperCase()}</span>
+            <button type="button" className="team-switch" {...switcher} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0, background: 'none', border: 'none', color: '#ece8e3', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>
+              {(p.teamName || p.team).toUpperCase()}
+              <span aria-hidden="true" style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e' }}>▾</span>
+            </button>
             <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#8a847e', display: 'flex', gap: 8, alignItems: 'center' }}>
               <span>DEPTH</span>
               {Object.entries(INJURY).map(([k, c]) => (
@@ -161,6 +171,7 @@ export default function BioCard({ profile: p, loading = false }) {
           </div>
         </div>
       )}
+      {picking && <TeamPicker profile={p} onClose={closePicker} />}
     </div>
   )
 }

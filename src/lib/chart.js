@@ -37,7 +37,8 @@ export function chartModel(stat, seasons) {
       ly,
       r,
       color: v ? col(v.p) : null,
-      pctl: v ? ord(v.p) : null,
+      // Tooltip line under the value: the percentile, unless the stat brings its own.
+      detail: v ? v.detail || `${ord(v.p)} PCT` : null,
       showValue: !!v && (L <= 6 || i === 0 || i === k || i === Math.round(L / 2)),
       value: v ? fmt(stat, v.n) : '',
       valueY: y === null ? null : above ? y - 11 : y + 12,
@@ -77,5 +78,5 @@ export function chartModel(stat, seasons) {
   }
   // The value at the x-axis line (y = 134), where the y scale starts.
   const axisMin = lo - ((134 - 124) / 100) * (hi - lo)
-  return { pts, playerLines, leagueLines, bands, Y, axisMin, axisLabel: fmt(stat, axisMin), legend: stat.relative ? 'LG AVG = 0' : 'LG AVG' }
+  return { pts, playerLines, leagueLines, bands, Y, axisMin, axisLabel: fmt(stat, axisMin), legend: stat.legend || (stat.relative ? 'LG AVG = 0' : 'LG AVG') }
 }

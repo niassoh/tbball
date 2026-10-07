@@ -89,7 +89,7 @@ function ProfilePage({ slug }) {
 
         <div className={loading ? 'fold-loading' : 'fold-ready'}>
           {statTab && <StatSection key={`${p.slug}-${activeTab}`} profile={p} tab={statTab} num={tabIndex + 1} sel={span && span.slug === p.slug ? span : null} setSel={s => setSpan(s && { ...s, slug: p.slug })} />}
-          {activeTab === 'yoy' && <YearToYear key={p.slug} profile={p} num={tabIndex + 1} />}
+          {activeTab === 'yoy' && <YearToYear key={p.slug} profile={p} num={tabIndex + 1} sel={span && span.slug === p.slug ? span : null} setSel={s => setSpan(s && { ...s, slug: p.slug })} />}
           {activeTab === 'career' && <Career key={p.slug} profile={p} num={tabIndex + 1} />}
         </div>
 

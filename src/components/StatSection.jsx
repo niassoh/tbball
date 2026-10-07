@@ -47,7 +47,7 @@ function PointTip({ p, season }) {
     <div style={{ position: 'absolute', left: pct(p.x, 330), top: pct(anchor, 150), transform: flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)', zIndex: 2, pointerEvents: 'none', background: '#1f1d1c', border: '1px solid #6b655f', borderTop: '2px solid #fa962a', padding: '6px 9px 7px', fontFamily: MONO, whiteSpace: 'nowrap', display: 'flex', flexDirection: 'column', gap: 3 }}>
       <span style={{ fontSize: 9, letterSpacing: '.06em', color: '#8a847e' }}>{season.label} · {teams}</span>
       <span style={{ fontSize: 15, fontWeight: 700, color: p.has ? '#ece8e3' : '#6b655f', lineHeight: 1.1 }}>{p.has ? p.value : '—'}</span>
-      {p.has && <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.04em', color: p.color }}>{p.pctl} PCT</span>}
+      {p.has && <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.04em', color: p.color }}>{p.detail}</span>}
       {p.showLg && <span style={{ fontSize: 9, letterSpacing: '.04em', color: '#8a847e' }}>LG {p.lgValue}</span>}
     </div>
   )

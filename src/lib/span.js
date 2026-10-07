@@ -17,10 +17,11 @@ export const SHOT_VOLUME = {
 }
 
 // Mean of `label` over seasons from..to (inclusive), or null when no season in the
-// span has both a value and a weight.
+// span has both a value and a weight. A stat marked minutesOnly (Year to Year's
+// percentile changes) is weighted by minutes even if it's a shooting stat.
 export const spanMean = (profile, label, from, to) => {
   const stat = profile.stats[label]
-  const volume = SHOT_VOLUME[label] && profile.stats[SHOT_VOLUME[label]]
+  const volume = !stat.minutesOnly && SHOT_VOLUME[label] && profile.stats[SHOT_VOLUME[label]]
   let sum = 0
   let weight = 0
   for (let i = from; i <= to; i++) {

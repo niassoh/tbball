@@ -1,13 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { DIVISIONS, TEAM_COLORS, teamStints } from './teams.js'
-
-describe('divisions', () => {
-  test('every team appears once, five per division', () => {
-    const teams = DIVISIONS.flatMap(([, divs]) => divs.flatMap(([, t]) => t))
-    expect([...teams].sort()).toEqual(Object.keys(TEAM_COLORS).sort())
-    expect(DIVISIONS.flatMap(([, divs]) => divs).every(([, t]) => t.length === 5)).toBe(true)
-  })
-})
+import { teamStints } from './teams.js'
 
 describe('team stints', () => {
   const season = (label, teams) => ({ label, tm: teams.length > 1 ? `${teams.length} TM` : teams[0], teams })

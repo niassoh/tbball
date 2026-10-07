@@ -13,6 +13,8 @@ const changeStat = (st, seasons) => ({
   lowerBetter: false,
   // Span and career averages of a change weight by minutes only, never by attempts.
   minutesOnly: true,
+  // No league distribution of changes, so the chart's hover card skips its histogram.
+  derived: true,
   legend: 'NO CHANGE = 0',
   lg: seasons.map((_, i) => (i === 0 ? null : 0)),
   vals: st.vals.map((v, i) => {

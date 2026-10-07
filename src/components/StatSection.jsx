@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { MONO, fmt, heat } from '../lib/format.js'
+import { MONO, col, fmt, heat, ord } from '../lib/format.js'
 import { chartModel } from '../lib/chart.js'
+import { histogram } from '../lib/dist.js'
+import { loadDistribution } from '../api.js'
 import { spanMean, spanLabel, spanTeams } from '../lib/span.js'
 import { TEAM_COLORS, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
@@ -45,8 +47,37 @@ function TeamTimeline({ seasons }) {
   )
 }
 
+// Where he sat in that season's league: the qualified pool as a histogram, better to the
+// right. Bars up to his are filled in percentile colour (orange low, blue high), so the
+// filled area is the share of the league he's ahead of; bars past him stay flat grey.
+// His bar is white, a marker at his exact value carries his percentile, and a dashed
+// tick marks the league average. The bars ease between seasons as the pointer moves.
+const DIST_W = 216
+function DistStrip({ values, stat, value, pctl, lg }) {
+  const h = histogram(values, !!stat.lowerBetter)
+  const mine = h.bin(value)
+  const at = h.pos(value) * 100
+  return (
+    <div style={{ width: DIST_W, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ position: 'relative', height: 62, paddingTop: 14, display: 'flex', alignItems: 'flex-end', gap: 1, borderBottom: '1px solid #6b655f' }}>
+        {h.bars.map((b, i) => (
+          <div key={i} className="dist-bar" style={{ flex: 1, height: `${b.count ? Math.max(5, b.height * 100) : 0}%`, background: i === mine ? '#ece8e3' : i < mine ? col(b.pct) : '#3d3a37' }} />
+        ))}
+        {lg !== null && lg !== undefined && <div className="dist-mark" style={{ position: 'absolute', left: `${h.pos(lg) * 100}%`, top: 14, bottom: 0, borderLeft: '1px dashed #a8a29c' }} />}
+        <div className="dist-mark" style={{ position: 'absolute', left: `${at}%`, top: 11, bottom: -4, width: 1, marginLeft: -0.5, background: '#ece8e3' }} />
+        {pctl !== null && pctl !== undefined && <span className="dist-mark" style={{ position: 'absolute', left: `${at}%`, top: 0, transform: at < 12 ? 'none' : at > 88 ? 'translateX(-100%)' : 'translateX(-50%)', fontSize: 9, fontWeight: 700, letterSpacing: '.06em', color: '#ece8e3', lineHeight: 1 }}>{ord(pctl).toUpperCase()}</span>}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8.5, letterSpacing: '.04em', color: '#8a847e' }}>
+        <span>{fmt(stat, h.worst)}</span>
+        <span>{values.length} QUALIFIED</span>
+        <span>{fmt(stat, h.best)}</span>
+      </div>
+    </div>
+  )
+}
+
 // Hover card for one season point: square, flat, mono, the site's orange rule.
-function PointTip({ p, season }) {
+function PointTip({ p, season, stat, dist }) {
   const teams = season.teams && season.teams.length ? season.teams.join('/') : season.tm
   const flip = p.x > 200
   const anchor = Math.min(110, Math.max(20, p.has ? p.y : p.ly ?? 75))
@@ -56,6 +87,7 @@ function PointTip({ p, season }) {
       <span style={{ fontSize: 15, fontWeight: 700, color: p.has ? '#ece8e3' : '#6b655f', lineHeight: 1.1 }}>{p.has ? p.value : '—'}</span>
       {p.has && <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.04em', color: p.color }}>{p.detail}</span>}
       {p.showLg && <span style={{ fontSize: 9, letterSpacing: '.04em', color: '#8a847e' }}>LG {p.lgValue}</span>}
+      {p.has && dist && dist.length > 1 && <DistStrip values={dist} stat={stat} value={stat.vals[p.i].n} pctl={stat.vals[p.i].p} lg={stat.lg[p.i]} />}
     </div>
   )
 }
@@ -63,6 +95,16 @@ function PointTip({ p, season }) {
 function SeasonChart({ stat, label, seasons, span }) {
   const m = chartModel(stat, seasons)
   const [hover, setHover] = useState(null)
+  // The charted stat's league spread per season, for the hover card (not for Year to
+  // Year's derived changes, which have none).
+  const [dist, setDist] = useState(null)
+  useEffect(() => {
+    if (stat.derived) return
+    let live = true
+    loadDistribution(label).then(d => live && setDist({ label, seasons: (d && d.seasons) || {} })).catch(() => {})
+    return () => { live = false }
+  }, [label, stat.derived])
+  const seasonDist = hover !== null && dist && dist.label === label ? dist.seasons[seasons[hover].season] : null
   const L = seasons.length - 1
   const slot = L ? 282 / L : 60
   // A dragged span in the table shades its seasons here, with its average as a line.
@@ -111,7 +153,7 @@ function SeasonChart({ stat, label, seasons, span }) {
           const to = Math.min(330, p.x + slot / 2)
           return <span key={`hit-${p.i}`} onMouseEnter={() => setHover(p.i)} style={{ position: 'absolute', top: 0, bottom: 0, left: pct(from, 330), width: pct(to - from, 330) }} />
         })}
-        {hover !== null && <PointTip p={m.pts[hover]} season={seasons[hover]} />}
+        {hover !== null && <PointTip p={m.pts[hover]} season={seasons[hover]} stat={stat} dist={seasonDist} />}
       </div>
       <TeamTimeline seasons={seasons} />
     </div>

@@ -50,6 +50,10 @@ html { scroll-behavior: smooth; }
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 .fold-loading { opacity: .55; transition: opacity .2s ease; }
 .fold-ready { opacity: 1; transition: opacity .25s ease; }
+/* Season chart hover histogram: bars and markers ease between seasons. */
+.dist-bar { transition: height .28s cubic-bezier(.2,.8,.2,1), background-color .28s; }
+.dist-mark { transition: left .28s cubic-bezier(.2,.8,.2,1); }
+
 /* Stat tables' horizontal scroll: a thin square bar in the site's greys. */
 .stat-scroll { scrollbar-width: thin; scrollbar-color: #6b655f #2c2a28; padding-bottom: 8px; }
 .stat-scroll::-webkit-scrollbar { height: 6px; }
@@ -71,5 +75,6 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   .hero .hero-logo, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more { transition: none; }
   .hero.loading .hero-bar, .swap-in, .fade-in, .picker-in { animation: none; }
+  .dist-bar, .dist-mark { transition: none; }
   .team-cell .team-cell-logo { transition: none; }
 }

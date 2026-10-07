@@ -101,13 +101,13 @@ function SeasonChart({ stat, label, seasons, span }) {
   )
 }
 
-export default function StatSection({ profile: p, tab, num }) {
+export default function StatSection({ profile: p, tab, num, sel, setSel }) {
   const shown = tab.stats.filter(l => p.stats[l].available)
   const [charted, setCharted] = useState(shown[0])
   const k = p.seasons.length - 1
   // Drag across season rows (or click one, then another) to average that span.
-  // sel holds the anchor row and the row the drag is on; drag tracks a press in progress.
-  const [sel, setSel] = useState(null)
+  // sel (owned by the page, so it survives tab switches) holds the anchor row and the
+  // row the drag is on; drag tracks a press in progress.
   const drag = useRef(null)
   const from = sel && Math.min(sel.a, sel.b)
   const to = sel && Math.max(sel.a, sel.b)
@@ -141,7 +141,7 @@ export default function StatSection({ profile: p, tab, num }) {
       window.removeEventListener('pointercancel', cancel)
       window.removeEventListener('keydown', key)
     }
-  }, [])
+  }, [setSel])
 
   const press = (e, i) => {
     if (e.button !== 0) return

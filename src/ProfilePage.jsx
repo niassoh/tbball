@@ -25,6 +25,9 @@ function ProfilePage({ slug }) {
   // `slug` here is the one the state was loaded for; it lags the URL while loading.
   const [state, setState] = useState({ status: 'loading', profile: null, slug: null })
   const [tab, setTab] = useState('impact')
+  // The stat tables' dragged season span, kept here so it carries across tabs; tagged
+  // with the player it was made on, so another player starts without one.
+  const [span, setSpan] = useState(null)
   const loading = state.slug !== slug
 
   useEffect(() => {
@@ -85,7 +88,7 @@ function ProfilePage({ slug }) {
         <TabNav tabs={tabs} active={activeTab} onPick={setTab} />
 
         <div className={loading ? 'fold-loading' : 'fold-ready'}>
-          {statTab && <StatSection key={`${p.slug}-${activeTab}`} profile={p} tab={statTab} num={tabIndex + 1} />}
+          {statTab && <StatSection key={`${p.slug}-${activeTab}`} profile={p} tab={statTab} num={tabIndex + 1} sel={span && span.slug === p.slug ? span : null} setSel={s => setSpan(s && { ...s, slug: p.slug })} />}
           {activeTab === 'yoy' && <YearToYear key={p.slug} profile={p} num={tabIndex + 1} />}
           {activeTab === 'career' && <Career key={p.slug} profile={p} num={tabIndex + 1} />}
         </div>

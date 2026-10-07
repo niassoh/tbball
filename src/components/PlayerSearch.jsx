@@ -73,8 +73,12 @@ export default function PlayerSearch({ profile }) {
   }
 
   return (
-    <div style={{ position: 'relative', width: 'min(260px, 100%)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #544f4b', background: '#262422' }}>
+    <div style={{ position: 'relative', width: 'min(300px, 100%)' }}>
+      <div className="search-box" style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid #8a847e', background: '#2c2a28', paddingLeft: 9 }}>
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={{ flex: 'none' }}>
+          <circle cx="5" cy="5" r="3.75" fill="none" stroke="#b8b2ab" strokeWidth="1.5" />
+          <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="#b8b2ab" strokeWidth="1.5" strokeLinecap="square" />
+        </svg>
         <input
           ref={input}
           value={query}
@@ -85,9 +89,9 @@ export default function PlayerSearch({ profile }) {
           placeholder="SEARCH PLAYERS OR TEAMS"
           aria-label="Search players or teams"
           className="player-search"
-          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#ece8e3', fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', padding: '6px 8px' }}
+          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#ece8e3', fontFamily: MONO, fontSize: 11, letterSpacing: '.08em', padding: '8px 8px' }}
         />
-        <span style={{ fontFamily: MONO, fontSize: 9, color: '#6b655f', border: '1px solid #3d3a37', padding: '0 4px', marginRight: 6 }}>/</span>
+        <span title="Press / to search" style={{ fontFamily: MONO, fontSize: 10, color: '#b8b2ab', border: '1px solid #6b655f', padding: '0 5px', marginRight: 7 }}>/</span>
       </div>
       {open && results.length > 0 && (
         <div role="listbox" style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', width: '100%', zIndex: 20, background: '#1f1d1c', border: '1px solid #6b655f', borderTop: '2px solid #ece8e3', boxShadow: '0 10px 28px rgba(0,0,0,.5)' }}>

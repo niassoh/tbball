@@ -8,8 +8,7 @@ body {
 a { color: #8fb0e6; text-decoration: none; }
 a:hover { color: #ece8e3; }
 * { box-sizing: border-box; }
-/* The gutter stays reserved so locking scroll (the team switcher) doesn't shift the page. */
-html { scroll-behavior: smooth; scrollbar-gutter: stable; }
+html { scroll-behavior: smooth; }
 
 .player-search::placeholder { color: #6b655f; }
 .tab-btn:hover { color: #ece8e3 !important; background: #2f2c2a !important; }
@@ -54,11 +53,11 @@ html { scroll-behavior: smooth; scrollbar-gutter: stable; }
 /* Team switcher: logos muted at rest like the header's, full colour on hover. */
 .team-switch:focus-visible { outline: 2px solid #ece8e3; outline-offset: 2px; }
 .team-cell { transition: background-color .15s; }
-.team-cell:not(:disabled):hover, .team-cell:focus-visible { background: #2a2826 !important; }
+.team-cell:not(:disabled):hover, .team-cell:focus-visible { background: #2f2c2a !important; }
 .team-cell:focus-visible { outline: 2px solid #ece8e3; outline-offset: -2px; }
 .team-cell .team-cell-logo { filter: saturate(.6) brightness(.9); transition: filter .15s ease, transform .15s ease; }
 .team-cell:not(:disabled):hover .team-cell-logo, .team-cell:focus-visible .team-cell-logo, .team-cell:disabled .team-cell-logo { filter: none; }
-.team-cell:not(:disabled):hover .team-cell-logo { transform: scale(1.06); }
+.team-cell:not(:disabled):hover .team-cell-logo { transform: scale(1.1); }
 .picker-in { animation: pickerIn .16s ease-out both; }
 @keyframes pickerIn { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: reduce) {

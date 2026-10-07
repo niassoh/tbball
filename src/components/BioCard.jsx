@@ -75,10 +75,15 @@ export default function BioCard({ profile: p, loading = false }) {
   const accent = color === '#000000' ? '#c4ced4' : color
   // Hover line: the draft pick, e.g. "2017 DRAFT · R1 #30 · UTA".
   const draft = draftLine(p.bio.draft)
-  // The header logo and the depth chart's team name open the team switcher.
-  const [picking, setPicking] = useState(false)
-  const closePicker = useCallback(() => setPicking(false), [])
-  const switcher = { onClick: () => setPicking(true), onPointerEnter: () => { loadTeams().catch(() => {}) }, title: 'Switch team' }
+  // The header logo and the depth chart's team name toggle the team switcher, which
+  // opens just below whichever was clicked (page coordinates, so it scrolls with it).
+  const [picking, setPicking] = useState(null)
+  const closePicker = useCallback(() => setPicking(null), [])
+  const open = e => {
+    const r = e.currentTarget.getBoundingClientRect()
+    setPicking(picking ? null : { top: r.bottom + window.scrollY + 6, left: r.left + window.scrollX })
+  }
+  const switcher = { onClick: open, onPointerEnter: () => { loadTeams().catch(() => {}) }, title: 'Switch team' }
 
   return (
     <div style={card}>
@@ -171,7 +176,7 @@ export default function BioCard({ profile: p, loading = false }) {
           </div>
         </div>
       )}
-      {picking && <TeamPicker profile={p} onClose={closePicker} />}
+      {picking && <TeamPicker profile={p} anchor={picking} onClose={closePicker} />}
     </div>
   )
 }

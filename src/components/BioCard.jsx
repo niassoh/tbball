@@ -4,16 +4,13 @@ import { headshotUrl, loadTeams } from '../api.js'
 import { MONO } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
 import TeamPicker from './TeamPicker.jsx'
+import WowyPanel from './WowyPanel.jsx'
 import { TEAM_COLORS } from '../lib/teams.js'
 
 const card = { border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }
-const logGrid = { display: 'grid', gridTemplateColumns: '28px 58px 12px repeat(3,minmax(0,1fr)) 30px', columnGap: 3, fontFamily: MONO }
 const INJURY = { OUT: '#fa962a', DTD: '#e6c27a' }
 
 const lastName = name => name.split(' ').slice(1).join(' ') || name
-const shortDate = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`
-const rankColor = r => (r === null ? '#8a847e' : r <= 10 ? '#e6c27a' : r <= 20 ? '#d6d1cb' : '#8a847e')
-const tsColor = ts => (ts === null ? '#ece8e3' : ts >= 60 ? '#8fb0e6' : ts < 52 ? '#fa962a' : '#ece8e3')
 
 const HERO_H = 128
 const PORTRAIT = 116
@@ -69,7 +66,6 @@ export default function BioCard({ profile: p, loading = false }) {
   // Spec strip: team logo, then position / height / age split by hard rules (labels as tooltips).
   const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', p.bio.age !== null ? p.bio.age.toFixed(1) : null]].filter(([, v]) => v)
   const lines = nameLines(p.name)
-  const games = (p.gameLog && p.gameLog.games) || []
   const color = TEAM_COLORS[p.team]
   // Black (BKN, SAS) would vanish on the dark banner, so those teams' bar is silver.
   const accent = color === '#000000' ? '#c4ced4' : color
@@ -113,30 +109,7 @@ export default function BioCard({ profile: p, loading = false }) {
         </h1>
       </div>
 
-      {games.length > 0 && (
-        <div key={`games-${p.slug}`} className="swap-in" style={{ padding: '12px 14px 4px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', paddingBottom: 5 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', whiteSpace: 'nowrap' }}>LAST 5 GAMES</span>
-            <span style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#e6c27a' }}>TOP-10</span><span style={{ color: '#d6d1cb' }}>MID</span><span>BOTTOM-10</span>
-            </span>
-          </div>
-          <div style={{ ...logGrid, fontSize: 9, letterSpacing: '.06em', color: '#8a847e', borderBottom: '1px solid #6b655f', padding: '4px 2px' }}>
-            <span>DATE</span><span>OPP</span><span /><span style={{ textAlign: 'right' }}>PTS</span><span style={{ textAlign: 'right' }}>REB</span><span style={{ textAlign: 'right' }}>AST</span><span style={{ textAlign: 'right' }}>TS%</span>
-          </div>
-          {games.map(g => (
-            <div key={g.gameId} style={{ ...logGrid, fontSize: 10.5, padding: '5px 2px', borderBottom: '1px solid #3d3a37', alignItems: 'center' }}>
-              <span style={{ color: '#a8a29c' }}>{shortDate(g.date)}</span>
-              <span style={{ whiteSpace: 'nowrap', fontWeight: 600, color: rankColor(g.oppRank) }}>{g.home ? g.opp : '@' + g.opp}</span>
-              <span style={{ fontWeight: 600, color: g.result === 'W' ? '#97c197' : '#fa962a' }}>{g.result}</span>
-              <span style={{ textAlign: 'right', fontWeight: 600 }}>{g.pts}</span>
-              <span style={{ textAlign: 'right' }}>{g.reb}</span>
-              <span style={{ textAlign: 'right' }}>{g.ast}</span>
-              <span style={{ textAlign: 'right', color: tsColor(g.ts) }}>{g.ts === null ? '—' : g.ts.toFixed(1)}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <WowyPanel profile={p} accent={accent} />
 
       {p.depth && (
         <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>

@@ -9,6 +9,7 @@ import { TEAM_COLORS } from '../lib/teams.js'
 const card = { border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }
 const logGrid = { display: 'grid', gridTemplateColumns: '28px 58px 12px repeat(3,minmax(0,1fr)) 30px', columnGap: 3, fontFamily: MONO }
 const INJURY = { OUT: '#fa962a', DTD: '#e6c27a' }
+const LAST_GAMES = 7
 
 const lastName = name => name.split(' ').slice(1).join(' ') || name
 const shortDate = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`
@@ -113,18 +114,20 @@ export default function BioCard({ profile: p, loading = false }) {
         </h1>
       </div>
 
-      {games.length > 0 && (
-        <div key={`games-${p.slug}`} className="swap-in" style={{ padding: '12px 14px 4px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', paddingBottom: 5 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', whiteSpace: 'nowrap' }}>LAST 5 GAMES</span>
-            <span style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#e6c27a' }}>TOP-10</span><span style={{ color: '#d6d1cb' }}>MID</span><span>BOTTOM-10</span>
-            </span>
-          </div>
-          <div style={{ ...logGrid, fontSize: 9, letterSpacing: '.06em', color: '#8a847e', borderBottom: '1px solid #6b655f', padding: '4px 2px' }}>
-            <span>DATE</span><span>OPP</span><span /><span style={{ textAlign: 'right' }}>PTS</span><span style={{ textAlign: 'right' }}>REB</span><span style={{ textAlign: 'right' }}>AST</span><span style={{ textAlign: 'right' }}>TS%</span>
-          </div>
-          {games.map(g => (
+      {/* Always LAST_GAMES rows (dash rows fill in when there are fewer, with a stamp when
+          there are none), so the card is the same height for every player. */}
+      <div key={`games-${p.slug}`} className="swap-in" style={{ padding: '12px 14px 4px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', paddingBottom: 5 }}>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', whiteSpace: 'nowrap' }}>LAST {LAST_GAMES} GAMES</span>
+          <span style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+            <span style={{ color: '#e6c27a' }}>TOP-10</span><span style={{ color: '#d6d1cb' }}>MID</span><span>BOTTOM-10</span>
+          </span>
+        </div>
+        <div style={{ ...logGrid, fontSize: 9, letterSpacing: '.06em', color: '#8a847e', borderBottom: '1px solid #6b655f', padding: '4px 2px' }}>
+          <span>DATE</span><span>OPP</span><span /><span style={{ textAlign: 'right' }}>PTS</span><span style={{ textAlign: 'right' }}>REB</span><span style={{ textAlign: 'right' }}>AST</span><span style={{ textAlign: 'right' }}>TS%</span>
+        </div>
+        <div style={{ position: 'relative' }}>
+          {Array.from({ length: LAST_GAMES }, (_, i) => games[i]).map((g, i) => g ? (
             <div key={g.gameId} style={{ ...logGrid, fontSize: 10.5, padding: '5px 2px', borderBottom: '1px solid #3d3a37', alignItems: 'center' }}>
               <span style={{ color: '#a8a29c' }}>{shortDate(g.date)}</span>
               <span style={{ whiteSpace: 'nowrap', fontWeight: 600, color: rankColor(g.oppRank) }}>{g.home ? g.opp : '@' + g.opp}</span>
@@ -134,9 +137,16 @@ export default function BioCard({ profile: p, loading = false }) {
               <span style={{ textAlign: 'right' }}>{g.ast}</span>
               <span style={{ textAlign: 'right', color: tsColor(g.ts) }}>{g.ts === null ? '—' : g.ts.toFixed(1)}</span>
             </div>
+          ) : (
+            <div key={`empty-${i}`} aria-hidden="true" style={{ ...logGrid, fontSize: 10.5, padding: '5px 2px', borderBottom: '1px solid #3d3a37', alignItems: 'center', color: '#3d3a37' }}>
+              <span>—</span><span>—</span><span /><span style={{ textAlign: 'right' }}>—</span><span style={{ textAlign: 'right' }}>—</span><span style={{ textAlign: 'right' }}>—</span><span style={{ textAlign: 'right' }}>—</span>
+            </div>
           ))}
+          {games.length === 0 && (
+            <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#a8a29c', background: '#2c2a28', border: '1px solid #544f4b', padding: '4px 8px', whiteSpace: 'nowrap' }}>NO GAMES THIS SEASON</span>
+          )}
         </div>
-      )}
+      </div>
 
       {p.depth && (
         <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>

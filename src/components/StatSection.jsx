@@ -8,6 +8,12 @@ import SectionHeader from './SectionHeader.jsx'
 const pct = (v, of) => `${(v / of * 100).toFixed(2)}%`
 // A dragged span is framed like a spreadsheet range; the other seasons fade back.
 const SPAN_FRAME = '2px solid #ece8e3'
+// A span value against his career average: blue better, orange worse (flipped for
+// lower-is-better stats), plain when they match at the shown precision.
+const vsCareer = (stat, value, career) => {
+  if (value === null || career === null || fmt(stat, value) === fmt(stat, career)) return '#ece8e3'
+  return (value > career) !== !!stat.lowerBetter ? '#8fb0e6' : '#fa962a'
+}
 
 // Flat team-color blocks on the chart's x scale (chartModel's X), one per stint,
 // each starting on the point of the team's first season and ending on the last
@@ -212,7 +218,12 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
               <div onClick={spanOn ? () => setSel(null) : undefined} title={spanOn ? `Average of ${p.seasons[from].label} to ${p.seasons[to].label} · click to clear` : undefined} style={{ display: 'grid', gridTemplateColumns: grid, borderTop: `1px solid ${spanOn ? '#6b655f' : '#3d3a37'}`, borderBottom: `1px solid ${spanOn ? '#6b655f' : '#3d3a37'}`, background: spanOn ? '#141312' : 'transparent', fontFamily: MONO, fontSize: 13, fontWeight: 600, cursor: spanOn ? 'pointer' : 'default', transition: 'background-color .15s, border-color .15s' }}>
                 <span style={{ padding: '5px 10px', color: spanOn ? '#ece8e3' : '#544f4b' }}>{spanOn ? spanLabel(p.seasons, from, to) : 'SPAN'}</span>
                 <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{spanOn ? spanTeams(p.seasons, from, to) : ''}</span>
-                {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: spanOn ? '#ece8e3' : '#3d3a37' }}>{spanOn ? fmt(p.stats[l], spanMean(p, l, from, to)) : '—'}</span>)}
+                {shown.map(l => {
+                  if (!spanOn) return <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: '#3d3a37' }}>—</span>
+                  const st = p.stats[l]
+                  const value = spanMean(p, l, from, to)
+                  return <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: vsCareer(st, value, spanMean(p, l, 0, k)) }}>{fmt(st, value)}</span>
+                })}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '2px solid #ece8e3', background: '#34312e', fontFamily: MONO, fontSize: 13, fontWeight: 600 }}>
                 <span style={{ padding: '5px 10px' }}>CAREER</span>

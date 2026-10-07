@@ -15,9 +15,12 @@ html { scroll-behavior: smooth; }
 .depth-link { transition: color .15s, background .15s, border-color .15s; }
 /* Team-colour underline on a hovered teammate, lightened (like the logo tint) so dark navies still show. */
 .depth-link:hover { color: #ece8e3 !important; background: #2f2c2a !important; border-bottom-color: color-mix(in srgb, var(--team) 45%, #ece8e3) !important; }
-/* Lineup headshot tiles: a hovered teammate's tile frames in white. */
+/* Lineup headshot tiles sit back in muted greyscale so the numbers lead; a hovered
+   teammate's tile comes up to full colour and frames in white. */
 .lineup-tile { transition: border-color .15s; }
+.lineup-tile > :first-child { filter: grayscale(1) brightness(.72) contrast(1.05); transition: filter .2s; }
 a:hover > .lineup-tile { border-color: #ece8e3 !important; }
+a:hover > .lineup-tile > :first-child { filter: none; }
 
 /* Profile header hover: full-colour logo, a team-colour bar across the rule, a slight
    push-in on the headshot and brighter bokeh, and the draft line easing in. */

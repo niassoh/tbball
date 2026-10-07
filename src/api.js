@@ -32,6 +32,16 @@ export const loadDistribution = stat => {
   }
   return distributions.get(stat)
 }
+// The league's qualified lineup units' net ratings (the lineup tooltip's swarm),
+// fetched once per page load on the first hover.
+let lineupLeagueRequest = null
+export const loadLineupLeague = () => {
+  lineupLeagueRequest = lineupLeagueRequest || getJson(`${API_BASE}/api/lineups/league`).catch(err => {
+    lineupLeagueRequest = null
+    throw err
+  })
+  return lineupLeagueRequest
+}
 // source (from the API's `headshot`) is 'portrait' or 'nba' (the styled NBA.com fallback);
 // version changes when the image is replaced, so the browser fetches the new one.
 export const headshotUrl = (slug, size = 200, version = null, source = 'portrait') => `${API_BASE}/assets/players/${source === 'nba' ? 'nba' : 'webp'}/${slug}-${size}.webp${version ? `?v=${version}` : ''}`

@@ -112,7 +112,9 @@ export default function BioCard({ profile: p, loading = false }) {
       <LineupPanel profile={p} accent={accent} />
 
       {p.depth && (
-        <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
+        // marginTop auto pins the depth chart to the card's bottom edge when the row's
+        // taller cards leave spare height above it.
+        <div style={{ marginTop: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #544f4b', paddingBottom: 5 }}>
             <button type="button" className="team-switch" {...switcher} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0, background: 'none', border: 'none', color: '#ece8e3', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>
               {(p.teamName || p.team).toUpperCase()}

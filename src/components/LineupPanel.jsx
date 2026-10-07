@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { headshotUrl } from '../api.js'
+import { headshotUrl, loadLineupLeague } from '../api.js'
 import { MONO, ord, signed } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
 import { initials } from '../lib/teams.js'
+import { rankColor, rankLabel, rankPct, swarm } from '../lib/swarm.js'
 
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -12,8 +13,8 @@ const BLUE = '#8fb0e6'
 const ORANGE = '#fa962a'
 const RULE = '1px solid #3d3a37'
 const EDGE = '1px solid #544f4b'
-const TILE = 48
-const SMALL = 26
+const TILE = 42
+const SMALL = 25
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: DIM }
 const lastName = name => name.split(' ').slice(1).join(' ') || name
 const net = v => (v === null || v === undefined ? '—' : signed(v))
@@ -76,30 +77,85 @@ function SizePicker({ size, setSize }) {
   )
 }
 
-// A unit's net, with its league rank among units of its size over the minutes floor
-// in a tooltip on hover.
-function Net({ unit, size, floor }) {
-  const [hover, setHover] = useState(false)
-  const tip = unit.rank
-    ? `${ord(unit.rank.rank).toUpperCase()} OF ${unit.rank.of.toLocaleString()} ${size}-MAN UNITS · ${floor}+ MIN`
-    : `UNRANKED · UNDER ${floor} MIN`
+// A unit's net. Hovering (or focusing) it opens the rank tooltip over the lineup row.
+function Net({ unit, onTip }) {
   return (
-    <span tabIndex={0} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onFocus={() => setHover(true)} onBlur={() => setHover(false)}
-      style={{ position: 'relative', fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: verdict(unit.net), cursor: 'help', borderBottom: `1px dotted ${FAINT}`, paddingBottom: 1, outline: 'none' }}>
+    <span tabIndex={0} onMouseEnter={() => onTip(true)} onMouseLeave={() => onTip(false)} onFocus={() => onTip(true)} onBlur={() => onTip(false)}
+      style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: verdict(unit.net), cursor: 'help', borderBottom: `1px dotted ${FAINT}`, paddingBottom: 1, outline: 'none' }}>
       {net(unit.net)}
-      {hover && (
-        <span role="tooltip" style={{ position: 'absolute', right: 0, bottom: 'calc(100% + 6px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', padding: '5px 8px', fontSize: 9, fontWeight: 600, letterSpacing: '.06em', color: INK, whiteSpace: 'nowrap' }}>
-          {tip}
-        </span>
-      )}
     </span>
+  )
+}
+
+const SW = 400
+const SH = 64
+
+// The rank tooltip: the unit, its league rank among units of its size over the minutes
+// floor (coloured blue to orange by where it falls), and a swarm of every such unit's
+// net with this one marked. The league pool is fetched on the first hover.
+function RankTip({ unit, kind, size, floor, self }) {
+  const [league, setLeague] = useState(null)
+  useEffect(() => {
+    let live = true
+    loadLineupLeague().then(d => live && setLeague(d)).catch(() => {})
+    return () => { live = false }
+  }, [])
+  const nets = league ? (size === 5 ? league.five : league.trio) : null
+  const sw = useMemo(() => nets && swarm(nets, { width: SW, height: SH }), [nets])
+  const r = unit.rank
+  const tone = r ? rankColor(rankPct(r.rank, r.of)) : FAINT
+  const names = [self, ...unit.mates].map(m => (m.name ? lastName(m.name) : '?')).join(' · ')
+  const median = nets ? nets[Math.floor(nets.length / 2)] : null
+  return (
+    <div role="tooltip" style={{ position: 'absolute', left: 0, right: 0, bottom: 'calc(100% + 6px)', zIndex: 20, pointerEvents: 'none', background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, ...label }}>
+        <span>{kind} {size}-MAN</span>
+        <span>{floor}+ MIN · NET / 100</span>
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{names}</span>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, borderTop: RULE, paddingTop: 8 }}>
+        {r ? (
+          <>
+            <span style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, lineHeight: 1, color: tone }}>{ord(r.rank).toUpperCase()}</span>
+            <span style={{ ...label, fontSize: 10 }}>OF {r.of.toLocaleString()} {size}-MAN UNITS</span>
+            <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: '#1f1d1c', background: tone, padding: '2px 6px' }}>{rankLabel(r.rank, r.of)}</span>
+          </>
+        ) : (
+          <>
+            <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, lineHeight: 1, color: FAINT }}>UNRANKED</span>
+            <span style={{ ...label, fontSize: 10 }}>UNDER {floor} MIN TOGETHER</span>
+          </>
+        )}
+      </div>
+      {sw ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <svg viewBox={`0 -6 ${SW} ${SH + 12}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
+            <line x1={sw.x(0)} x2={sw.x(0)} y1={-4} y2={SH + 4} stroke={FAINT} strokeDasharray="2 3" />
+            {sw.dots.map((d, i) => <circle key={i} cx={d.x} cy={d.y} r={1.6} fill={rankColor(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.6} />)}
+            <line x1={sw.x(unit.net)} x2={sw.x(unit.net)} y1={-6} y2={SH + 6} stroke={INK} strokeWidth={1.5} />
+            <circle cx={sw.x(unit.net)} cy={SH / 2} r={4.5} fill={tone} stroke={INK} strokeWidth={1.5} />
+          </svg>
+          <div style={{ position: 'relative', height: 10, ...label, fontSize: 8 }}>
+            <span style={{ position: 'absolute', left: 0 }}>{signed(sw.lo, 0)}</span>
+            <span style={{ position: 'absolute', left: `${(sw.x(0) / SW) * 100}%`, transform: 'translateX(-50%)' }}>0</span>
+            <span style={{ position: 'absolute', right: 0 }}>{signed(sw.hi, 0)}</span>
+          </div>
+        </div>
+      ) : (
+        <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', ...label, color: FAINT }}>LOADING LEAGUE…</div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, ...label, fontSize: 8.5 }}>
+        <span><span style={{ color: verdict(unit.net), fontWeight: 700 }}>{net(unit.net)}</span> NET · {mins(unit.minutes)} MIN</span>
+        {median !== null && <span>LEAGUE MEDIAN {signed(median)}</span>}
+      </div>
+    </div>
   )
 }
 
 // One unit he plays in: him and his teammates in it as tiles, then its net and minutes
 // (and its share of his minutes when it's his most-used). Without a unit over the
 // floor, the same frame shows empty tiles. The row keeps one height for both sizes.
-function Unit({ title, unit, size, floor, self, team, accent, empty, style }) {
+function Unit({ title, unit, size, self, team, accent, empty, style, onTip }) {
   const small = size === 5
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, ...style }}>
@@ -111,7 +167,7 @@ function Unit({ title, unit, size, floor, self, team, accent, empty, style }) {
             : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, flex: 'none', border: '1px dashed #3d3a37' }} />)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
-          {unit ? <Net unit={unit} size={size} floor={floor} /> : <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: FAINT }}>—</span>}
+          {unit ? <Net unit={unit} onTip={onTip} /> : <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: FAINT }}>—</span>}
           <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>{unit ? `${mins(unit.minutes)} MIN` : empty}</span>
           {unit && unit.share !== undefined && <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>{unit.share}% OF MIN</span>}
         </div>
@@ -132,7 +188,9 @@ export default function LineupPanel({ profile: p, accent }) {
   const L = p.lineups
   const [size, setSize] = useState(3)
   const [best, used, floor] = !L ? [] : size === 5 ? [L.bestFive, L.mostUsed, L.floors.five] : [L.bestTrio, L.mostUsedTrio, L.floors.trio]
-  const unitProps = { size, floor, self: L && L.self, team: L && L.team, accent }
+  const [tip, setTip] = useState(null)
+  const unitProps = { size, self: L && L.self, team: L && L.team, accent }
+  const tipUnit = tip === 'best' ? best : tip === 'used' ? used : null
 
   return (
     <div key={`lineups-${p.slug}`} className="swap-in" style={{ padding: '10px 14px 8px', display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || INK }}>
@@ -167,9 +225,10 @@ export default function LineupPanel({ profile: p, accent }) {
             })}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+</>} unit={best} empty={`NONE ${floor}+ MIN`} style={{ padding: '5px 10px 5px 0', borderRight: RULE }} />
-            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} style={{ padding: '5px 0 5px 10px' }} />
+          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+</>} unit={best} empty={`NONE ${floor}+ MIN`} onTip={on => setTip(on ? 'best' : null)} style={{ padding: '5px 10px 5px 0', borderRight: RULE }} />
+            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={on => setTip(on ? 'used' : null)} style={{ padding: '5px 0 5px 10px' }} />
+            {tipUnit && <RankTip unit={tipUnit} kind={tip === 'best' ? 'BEST' : 'MOST USED'} size={size} floor={floor} self={L.self} />}
           </div>
         </>
       )}

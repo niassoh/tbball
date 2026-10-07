@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { MONO, fmt, heat } from '../lib/format.js'
 import { chartModel } from '../lib/chart.js'
 import { spanMean, spanLabel, spanTeams } from '../lib/span.js'
@@ -8,6 +8,13 @@ import SectionHeader from './SectionHeader.jsx'
 const pct = (v, of) => `${(v / of * 100).toFixed(2)}%`
 // A dragged span is framed like a spreadsheet range; the other seasons fade back.
 const SPAN_FRAME = '2px solid #ece8e3'
+// The season and team columns stay put while the stat columns scroll under them; the
+// team column's right rule marks the edge.
+const SEASON_W = 84
+const TM_W = 56
+const PAGE_BG = '#262422'
+const pinSeason = bg => ({ position: 'sticky', left: 0, zIndex: 1, background: bg })
+const pinTeam = bg => ({ position: 'sticky', left: SEASON_W, zIndex: 1, background: bg, boxShadow: 'inset -1px 0 0 #3d3a37', whiteSpace: 'nowrap' })
 // A span value against his career average: blue better, orange worse (flipped for
 // lower-is-better stats), plain when they match at the shown precision.
 const vsCareer = (stat, value, career) => {
@@ -164,8 +171,21 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
     d.moved = true
     setSel({ a: d.start, b: i })
   }
-  const grid = `84px 48px repeat(${shown.length},minmax(84px,1fr))`
-  const minW = 132 + shown.length * 84 + 'px'
+  const grid = `${SEASON_W}px ${TM_W}px repeat(${shown.length},minmax(84px,1fr))`
+  const minW = SEASON_W + TM_W + shown.length * 84 + 'px'
+  // A fade on the right edge while more stat columns lie off to the right.
+  const scroller = useRef(null)
+  const [more, setMore] = useState(false)
+  const measure = useCallback(() => {
+    const el = scroller.current
+    if (el) setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+  }, [])
+  useEffect(() => {
+    const ro = new ResizeObserver(measure)
+    ro.observe(scroller.current)
+    ro.observe(scroller.current.firstChild)
+    return () => ro.disconnect()
+  }, [measure])
 
   return (
     <section id={`sec-${tab.id}`} style={{ scrollMarginTop: 48, display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
@@ -181,11 +201,12 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
         <SeasonChart stat={p.stats[charted]} label={charted} seasons={p.seasons} span={spanOn ? { from, to, mean: spanMean(p, charted, from, to) } : null} />
         <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ position: 'relative' }}>
+          <div ref={scroller} className="stat-scroll" onScroll={measure} style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: minW, display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'grid', gridTemplateColumns: grid, fontFamily: MONO, fontSize: 10, letterSpacing: '.04em', borderBottom: '1px solid #6b655f', alignItems: 'end' }}>
-                <span style={{ padding: '5px 10px', color: '#8a847e' }}>SEASON</span>
-                <span style={{ padding: '5px 10px', color: '#8a847e' }}>TM</span>
+                <span style={{ padding: '5px 10px', color: '#8a847e', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', ...pinSeason(PAGE_BG) }}>SEASON</span>
+                <span style={{ padding: '5px 10px', color: '#8a847e', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', ...pinTeam(PAGE_BG) }}>TM</span>
                 {shown.map(l => {
                   const on = l === charted
                   return (
@@ -198,11 +219,13 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
               {p.seasons.map((s, i) => {
                 const picked = sel !== null && i >= from && i <= to
                 return (
-                <div key={s.season} onPointerDown={e => press(e, i)} onPointerEnter={() => enter(i)} style={{ position: 'relative', display: 'grid', gridTemplateColumns: grid, borderBottom: '1px solid #3d3a37', fontFamily: MONO, fontSize: 13, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', opacity: spanOn && !picked ? 0.4 : 1, transition: 'opacity .15s', boxShadow: i === k ? 'inset 3px 0 0 #97c197' : 'none' }}>
-                  {/* One frame around the whole span: sides on every picked row, top and bottom at its ends. */}
-                  {picked && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: i === to ? 0 : -1, zIndex: 1, pointerEvents: 'none', borderLeft: SPAN_FRAME, borderRight: SPAN_FRAME, borderTop: i === from ? SPAN_FRAME : 'none', borderBottom: i === to ? SPAN_FRAME : 'none' }} />}
-                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c' }}>{s.label}</span>
-                  <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{s.tm}</span>
+                <div key={s.season} onPointerDown={e => press(e, i)} onPointerEnter={() => enter(i)} style={{ position: 'relative', display: 'grid', gridTemplateColumns: grid, borderBottom: '1px solid #3d3a37', fontFamily: MONO, fontSize: 13, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', opacity: spanOn && !picked ? 0.4 : 1, transition: 'opacity .15s' }}>
+                  {/* One frame around the whole span: its top and bottom at the span's ends, its left
+                      edge on the pinned season cell (so it stays while the stats scroll), and its
+                      right edge at the table's far end. */}
+                  {picked && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: i === to ? 0 : -1, zIndex: 2, pointerEvents: 'none', borderRight: SPAN_FRAME, borderTop: i === from ? SPAN_FRAME : 'none', borderBottom: i === to ? SPAN_FRAME : 'none' }} />}
+                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c', ...pinSeason(PAGE_BG), boxShadow: picked ? 'inset 2px 0 0 #ece8e3' : i === k ? 'inset 3px 0 0 #97c197' : 'none' }}>{s.label}</span>
+                  <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam(PAGE_BG) }}>{s.tm}</span>
                   {shown.map(l => {
                     const st = p.stats[l]
                     const v = st.vals[i]
@@ -218,8 +241,8 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
               {/* Always in the table (a faint placeholder until a span is picked), so picking one
                   never changes the table's height, or the chart's beside it. */}
               <div onClick={spanOn ? () => setSel(null) : undefined} title={spanOn ? `Average of ${p.seasons[from].label} to ${p.seasons[to].label} · click to clear` : undefined} style={{ display: 'grid', gridTemplateColumns: grid, borderTop: `1px solid ${spanOn ? '#6b655f' : '#3d3a37'}`, borderBottom: `1px solid ${spanOn ? '#6b655f' : '#3d3a37'}`, background: spanOn ? '#141312' : 'transparent', fontFamily: MONO, fontSize: 13, fontWeight: 600, cursor: spanOn ? 'pointer' : 'default', transition: 'background-color .15s, border-color .15s' }}>
-                <span style={{ padding: '5px 10px', color: spanOn ? '#ece8e3' : '#544f4b' }}>{spanOn ? spanLabel(p.seasons, from, to) : 'SPAN'}</span>
-                <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{spanOn ? spanTeams(p.seasons, from, to) : ''}</span>
+                <span style={{ padding: '5px 10px', color: spanOn ? '#ece8e3' : '#544f4b', ...pinSeason(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? spanLabel(p.seasons, from, to) : 'SPAN'}</span>
+                <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? spanTeams(p.seasons, from, to) : ''}</span>
                 {shown.map(l => {
                   if (!spanOn) return <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: '#3d3a37' }}>—</span>
                   const st = p.stats[l]
@@ -228,11 +251,13 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
                 })}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '2px solid #ece8e3', background: '#34312e', fontFamily: MONO, fontSize: 13, fontWeight: 600 }}>
-                <span style={{ padding: '5px 10px' }}>CAREER</span>
-                <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{p.careerTm}</span>
+                <span style={{ padding: '5px 10px', ...pinSeason('#34312e') }}>CAREER</span>
+                <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam('#34312e') }}>{p.careerTm}</span>
                 {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{fmt(p.stats[l], spanMean(p, l, 0, k))}</span>)}
               </div>
             </div>
+          </div>
+          <div aria-hidden="true" style={{ position: 'absolute', top: 0, right: 0, bottom: 8, width: 40, pointerEvents: 'none', background: `linear-gradient(to right, rgba(38,36,34,0), ${PAGE_BG})`, opacity: more ? 1 : 0, transition: 'opacity .2s' }} />
           </div>
         </div>
       </div>

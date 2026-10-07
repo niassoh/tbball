@@ -6,6 +6,8 @@ import { TEAM_COLORS, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
 
 const pct = (v, of) => `${(v / of * 100).toFixed(2)}%`
+// Dark overlay on the seasons in a dragged span (laid over their percentile colours too).
+const SPAN_SHADE = 'rgba(0,0,0,.32)'
 
 // Flat team-color blocks on the chart's x scale (chartModel's X), one per stint,
 // each starting on the point of the team's first season and ending on the last
@@ -64,14 +66,14 @@ function SeasonChart({ stat, label, seasons, span }) {
       </div>
       <div onMouseLeave={() => setHover(null)} style={{ position: 'relative', flex: 1, minHeight: 200, display: 'flex' }}>
         <svg viewBox="0 0 330 150" preserveAspectRatio="none" style={{ width: '100%', height: '100%', minHeight: 200, display: 'block', overflow: 'visible', position: 'absolute', inset: 0 }}>
-          {band && <rect x={band.x0} y="0" width={band.x1 - band.x0} height="134" fill="rgba(250,150,42,.09)" />}
+          {band && <rect x={band.x0} y="0" width={band.x1 - band.x0} height="134" fill="rgba(0,0,0,.34)" />}
           {m.bands.map((b, i) => <path key={i} d={b.d} fill={b.fill} />)}
           <line x1="0" x2="330" y1="134" y2="134" stroke="#6b655f" vectorEffect="non-scaling-stroke" />
           {m.leagueLines.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke="#8a847e" strokeWidth="1.5" strokeDasharray="4 3" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
           {m.playerLines.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke="#ece8e3" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
-          {bandY !== null && <line x1={band.x0} x2={band.x1} y1={bandY} y2={bandY} stroke="#fa962a" strokeWidth="2" strokeDasharray="5 3" vectorEffect="non-scaling-stroke" />}
+          {bandY !== null && <line x1={band.x0} x2={band.x1} y1={bandY} y2={bandY} stroke="#d6d1cb" strokeWidth="1.5" strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />}
         </svg>
-        {bandY !== null && <span style={{ position: 'absolute', left: pct(band.x1, 330), top: pct(bandY, 150), transform: band.x1 > 290 ? 'translate(calc(-100% - 4px), -130%)' : 'translate(4px, -50%)', fontFamily: MONO, fontSize: 10, fontWeight: 700, color: '#fa962a', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{fmt(stat, span.mean)}</span>}
+        {bandY !== null && <span style={{ position: 'absolute', left: pct(band.x1, 330), top: pct(bandY, 150), transform: band.x1 > 290 ? 'translate(calc(-100% - 4px), -130%)' : 'translate(4px, -50%)', fontFamily: MONO, fontSize: 10, fontWeight: 700, color: '#ece8e3', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{fmt(stat, span.mean)}</span>}
         {m.pts.map(p => (
           <span key={`dots-${p.i}`}>
             {p.ly !== null && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.ly, 150), width: 5, height: 5, marginLeft: -2.5, marginTop: -2.5, borderRadius: '50%', background: '#8a847e', pointerEvents: 'none' }} />}
@@ -162,7 +164,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
       <SectionHeader num={num} title={tab.name}>
         <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', letterSpacing: '.06em' }}>
           {spanOn
-            ? <><span style={{ color: '#fa962a' }}>{to - from + 1}-SEASON AVERAGE</span> · CLICK IT OR ESC TO CLEAR</>
+            ? <><span style={{ color: '#ece8e3' }}>{to - from + 1}-SEASON AVERAGE</span> · CLICK IT OR ESC TO CLEAR</>
             : 'DRAG ACROSS SEASONS TO AVERAGE · CLICK A COLUMN TO CHART IT'}
         </span>
       </SectionHeader>
@@ -186,14 +188,14 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
               {p.seasons.map((s, i) => {
                 const picked = sel !== null && i >= from && i <= to
                 return (
-                <div key={s.season} onPointerDown={e => press(e, i)} onPointerEnter={() => enter(i)} style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '1px solid #3d3a37', fontFamily: MONO, fontSize: 13, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', background: picked ? 'rgba(250,150,42,.08)' : 'transparent', boxShadow: picked ? 'inset 3px 0 0 #fa962a' : i === k ? 'inset 3px 0 0 #97c197' : 'none' }}>
-                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked ? '#fa962a' : i === k ? '#ece8e3' : '#a8a29c' }}>{s.label}</span>
+                <div key={s.season} onPointerDown={e => press(e, i)} onPointerEnter={() => enter(i)} style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '1px solid #3d3a37', fontFamily: MONO, fontSize: 13, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', background: picked ? SPAN_SHADE : 'transparent', boxShadow: picked ? 'inset 3px 0 0 #8a847e' : i === k ? 'inset 3px 0 0 #97c197' : 'none' }}>
+                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c' }}>{s.label}</span>
                   <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{s.tm}</span>
                   {shown.map(l => {
                     const st = p.stats[l]
                     const v = st.vals[i]
                     return (
-                      <span key={l} style={{ padding: '5px 10px', textAlign: 'right', background: v ? heat(v.p, i === k ? 0.12 : 0) : 'transparent', fontWeight: l === charted ? 600 : 400, color: v ? '#ece8e3' : '#6b655f' }}>
+                      <span key={l} style={{ padding: '5px 10px', textAlign: 'right', background: v ? (picked ? `linear-gradient(${SPAN_SHADE}, ${SPAN_SHADE}), ` : '') + heat(v.p, i === k ? 0.12 : 0) : 'transparent', fontWeight: l === charted ? 600 : 400, color: v ? '#ece8e3' : '#6b655f' }}>
                         {v ? fmt(st, v.n) : '—'}
                       </span>
                     )
@@ -202,8 +204,8 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
                 )
               })}
               {spanOn && (
-                <div onClick={() => setSel(null)} title={`Average of ${p.seasons[from].label} to ${p.seasons[to].label} · click to clear`} style={{ display: 'grid', gridTemplateColumns: grid, borderTop: '1px solid #fa962a', borderBottom: '1px solid #fa962a', background: 'rgba(250,150,42,.14)', fontFamily: MONO, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                  <span style={{ padding: '5px 10px', color: '#fa962a' }}>{spanLabel(p.seasons, from, to)}</span>
+                <div onClick={() => setSel(null)} title={`Average of ${p.seasons[from].label} to ${p.seasons[to].label} · click to clear`} style={{ display: 'grid', gridTemplateColumns: grid, borderTop: '1px solid #6b655f', borderBottom: '1px solid #6b655f', background: '#141312', fontFamily: MONO, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  <span style={{ padding: '5px 10px', color: '#ece8e3' }}>{spanLabel(p.seasons, from, to)}</span>
                   <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{spanTeams(p.seasons, from, to)}</span>
                   {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{fmt(p.stats[l], spanMean(p, l, from, to))}</span>)}
                 </div>

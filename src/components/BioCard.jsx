@@ -4,7 +4,7 @@ import { headshotUrl, loadTeams } from '../api.js'
 import { MONO } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
 import TeamPicker from './TeamPicker.jsx'
-import WowyPanel from './WowyPanel.jsx'
+import LineupPanel from './LineupPanel.jsx'
 import { TEAM_COLORS } from '../lib/teams.js'
 
 const card = { border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }
@@ -109,7 +109,7 @@ export default function BioCard({ profile: p, loading = false }) {
         </h1>
       </div>
 
-      <WowyPanel profile={p} accent={accent} />
+      <LineupPanel profile={p} />
 
       {p.depth && (
         <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>

@@ -6,8 +6,8 @@ import { TEAM_COLORS, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
 
 const pct = (v, of) => `${(v / of * 100).toFixed(2)}%`
-// Dark overlay on the seasons in a dragged span (laid over their percentile colours too).
-const SPAN_SHADE = 'rgba(0,0,0,.32)'
+// A dragged span is framed like a spreadsheet range; the other seasons fade back.
+const SPAN_FRAME = '2px solid #ece8e3'
 
 // Flat team-color blocks on the chart's x scale (chartModel's X), one per stint,
 // each starting on the point of the team's first season and ending on the last
@@ -165,7 +165,9 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
         <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', letterSpacing: '.06em' }}>
           {spanOn
             ? <><span style={{ color: '#ece8e3' }}>{to - from + 1}-SEASON AVERAGE</span> · CLICK IT OR ESC TO CLEAR</>
-            : 'DRAG ACROSS SEASONS TO AVERAGE · CLICK A COLUMN TO CHART IT'}
+            : sel
+              ? 'CLICK ANOTHER SEASON TO AVERAGE THE SPAN · ESC TO CANCEL'
+              : 'DRAG ACROSS SEASONS TO AVERAGE · CLICK A COLUMN TO CHART IT'}
         </span>
       </SectionHeader>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
@@ -188,14 +190,16 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
               {p.seasons.map((s, i) => {
                 const picked = sel !== null && i >= from && i <= to
                 return (
-                <div key={s.season} onPointerDown={e => press(e, i)} onPointerEnter={() => enter(i)} style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '1px solid #3d3a37', fontFamily: MONO, fontSize: 13, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', background: picked ? SPAN_SHADE : 'transparent', boxShadow: picked ? 'inset 3px 0 0 #8a847e' : i === k ? 'inset 3px 0 0 #97c197' : 'none' }}>
+                <div key={s.season} onPointerDown={e => press(e, i)} onPointerEnter={() => enter(i)} style={{ position: 'relative', display: 'grid', gridTemplateColumns: grid, borderBottom: '1px solid #3d3a37', fontFamily: MONO, fontSize: 13, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', opacity: spanOn && !picked ? 0.4 : 1, transition: 'opacity .15s', boxShadow: i === k ? 'inset 3px 0 0 #97c197' : 'none' }}>
+                  {/* One frame around the whole span: sides on every picked row, top and bottom at its ends. */}
+                  {picked && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: i === to ? 0 : -1, zIndex: 1, pointerEvents: 'none', borderLeft: SPAN_FRAME, borderRight: SPAN_FRAME, borderTop: i === from ? SPAN_FRAME : 'none', borderBottom: i === to ? SPAN_FRAME : 'none' }} />}
                   <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c' }}>{s.label}</span>
                   <span style={{ padding: '5px 10px', color: '#a8a29c' }}>{s.tm}</span>
                   {shown.map(l => {
                     const st = p.stats[l]
                     const v = st.vals[i]
                     return (
-                      <span key={l} style={{ padding: '5px 10px', textAlign: 'right', background: v ? (picked ? `linear-gradient(${SPAN_SHADE}, ${SPAN_SHADE}), ` : '') + heat(v.p, i === k ? 0.12 : 0) : 'transparent', fontWeight: l === charted ? 600 : 400, color: v ? '#ece8e3' : '#6b655f' }}>
+                      <span key={l} style={{ padding: '5px 10px', textAlign: 'right', background: v ? heat(v.p, i === k ? 0.12 : 0) : 'transparent', fontWeight: l === charted ? 600 : 400, color: v ? '#ece8e3' : '#6b655f' }}>
                         {v ? fmt(st, v.n) : '—'}
                       </span>
                     )

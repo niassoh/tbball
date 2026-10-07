@@ -79,6 +79,8 @@ function SeasonChart({ stat, label, seasons, span }) {
           {m.playerLines.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke="#ece8e3" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
           {bandY !== null && <line x1={band.x0} x2={band.x1} y1={bandY} y2={bandY} stroke="#d6d1cb" strokeWidth="1.5" strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />}
         </svg>
+        {/* Where the y scale starts: the value at the axis line, tagged on its left end. */}
+        <span style={{ position: 'absolute', left: 0, top: pct(134, 150), transform: 'translateY(-50%)', paddingRight: 4, background: '#2c2a28', fontFamily: MONO, fontSize: 8.5, lineHeight: 1, letterSpacing: '.04em', color: '#8a847e', pointerEvents: 'none' }}>{m.axisLabel}</span>
         {bandY !== null && <span style={{ position: 'absolute', left: pct(band.x1, 330), top: pct(bandY, 150), transform: band.x1 > 290 ? 'translate(calc(-100% - 4px), -130%)' : 'translate(4px, -50%)', fontFamily: MONO, fontSize: 10, fontWeight: 700, color: '#ece8e3', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{fmt(stat, span.mean)}</span>}
         {m.pts.map(p => (
           <span key={`dots-${p.i}`}>

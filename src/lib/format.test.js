@@ -35,6 +35,14 @@ describe('chart', () => {
     const lower = chartModel(stat([5, 6], [4, 4], { lowerBetter: true }), seasons(2))
     expect(lower.bands[0].fill).toBe('rgba(250,150,42,.12)')
   })
+  test('the axis label is the value where the y scale starts, formatted like the stat', () => {
+    // Values 4..6, padded 18% each way to 3.64..6.36; the axis sits 10% of that below.
+    const m = chartModel(stat([5, 6], [4, 4]), seasons(2))
+    expect(m.axisMin).toBeCloseTo(3.368, 6)
+    expect(m.axisLabel).toBe('3.4')
+    expect(m.Y(m.axisMin)).toBeCloseTo(134, 6)
+    expect(chartModel(stat([1, 2], [0, 0], { relative: true }), seasons(2)).axisLabel).toBe('−0.6')
+  })
   test('value labels thin out beyond 6 seasons', () => {
     const m = chartModel(stat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], Array(10).fill(5)), seasons(10))
     expect(m.pts.filter(p => p.showValue).map(p => p.i)).toEqual([0, 5, 9])

@@ -75,5 +75,7 @@ export function chartModel(stat, seasons) {
       fill: playerAbove !== lb ? BETTER : WORSE
     })
   }
-  return { pts, playerLines, leagueLines, bands, Y, legend: stat.relative ? 'LG AVG = 0' : 'LG AVG' }
+  // The value at the x-axis line (y = 134), where the y scale starts.
+  const axisMin = lo - ((134 - 124) / 100) * (hi - lo)
+  return { pts, playerLines, leagueLines, bands, Y, axisMin, axisLabel: fmt(stat, axisMin), legend: stat.relative ? 'LG AVG = 0' : 'LG AVG' }
 }

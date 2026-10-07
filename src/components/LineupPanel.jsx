@@ -46,7 +46,7 @@ function Tile({ player, team, accent, self, small }) {
     </span>
   )
   return (
-    <span title={player.name || ''} style={{ display: 'flex', flexDirection: 'column', gap: 3, width: size, minWidth: 0, flex: 'none' }}>
+    <span title={player.name || ''} style={{ display: 'flex', flexDirection: 'column', gap: 4, width: size, minWidth: 0, flex: 'none' }}>
       {player.slug && !self ? <Link to={`/player/${player.slug}`} style={{ display: 'block' }}>{box}</Link> : box}
       <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '.02em', textTransform: 'uppercase', textAlign: small ? 'center' : 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: small ? 'clip' : 'ellipsis', fontWeight: self ? 700 : 400, color: self ? INK : DIM }}>
         {player.slug && !self ? <Link to={`/player/${player.slug}`} className="depth-link" style={{ color: 'inherit', borderBottom: '1px solid transparent' }}>{name}</Link> : name}
@@ -170,10 +170,10 @@ function RankTip({ unit, kind, size, floor, self, onHover }) {
 function Unit({ title, unit, size, self, team, accent, empty, style, onTip }) {
   const small = size === 5
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, ...style }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0, ...style }}>
       <span style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>{title}</span>
       <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ display: 'flex', gap: small ? 2 : 3, flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', gap: small ? 2 : 4, flex: 1, minWidth: 0 }}>
           {unit
             ? [self, ...unit.mates].map((pl, i) => <Tile key={i} player={pl} team={team} accent={accent} self={i === 0} small={small} />)
             : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, flex: 'none', borderRadius: '50%', border: '1px dashed #4a4643' }} />)}
@@ -212,7 +212,7 @@ export default function LineupPanel({ profile: p, accent }) {
   const tipUnit = tip === 'best' ? best : tip === 'used' ? used : null
 
   return (
-    <div key={`lineups-${p.slug}`} className="swap-in" style={{ padding: '10px 14px 8px', display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || INK }}>
+    <div key={`lineups-${p.slug}`} className="swap-in" style={{ padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 10, '--team': accent || INK }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', ...label }}>
         <span>{L ? `${L.season.replace('-', '–')} · ${L.team} · LINEUPS` : 'LINEUPS'}</span>
         <span>NET / 100</span>
@@ -223,7 +223,7 @@ export default function LineupPanel({ profile: p, accent }) {
       ) : (
         <>
           <div>
-            <div style={{ ...mateGrid, ...label, paddingBottom: 3, borderBottom: EDGE }}>
+            <div style={{ ...mateGrid, ...label, paddingBottom: 5, borderBottom: EDGE }}>
               <span>TEAMMATES</span>
               <span style={{ textAlign: 'right' }}>SHARED</span>
               <span style={{ textAlign: 'right' }}>WITH</span>
@@ -233,7 +233,7 @@ export default function LineupPanel({ profile: p, accent }) {
             {L.mates.map((m, i) => {
               const d = m.together.net !== null && m.apart.net !== null ? m.together.net - m.apart.net : null
               return (
-                <div key={i} style={{ ...mateGrid, fontFamily: MONO, fontSize: 11, padding: '3px 0', borderBottom: RULE }}>
+                <div key={i} style={{ ...mateGrid, fontFamily: MONO, fontSize: 11, padding: '5px 0', borderBottom: RULE }}>
                   <span style={{ fontFamily: 'Montserrat,sans-serif', fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><Mate mate={m} /></span>
                   <span style={{ textAlign: 'right', color: DIM, fontSize: 9.5 }}>{mins(m.together.minutes)}</span>
                   <span style={{ textAlign: 'right', color: neutral(m.together.net) }}>{net(m.together.net)}</span>
@@ -245,8 +245,8 @@ export default function LineupPanel({ profile: p, accent }) {
           </div>
 
           <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+</>} unit={best} empty={`NONE ${floor}+ MIN`} onTip={hover('best')} style={{ padding: '5px 10px 5px 0', borderRight: RULE }} />
-            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} style={{ padding: '5px 0 5px 10px' }} />
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+</>} unit={best} empty={`NONE ${floor}+ MIN`} onTip={hover('best')} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
+            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} style={{ padding: '8px 0 9px 12px' }} />
             {tipUnit && <RankTip unit={tipUnit} kind={tip === 'best' ? 'BEST' : 'MOST USED'} size={size} floor={floor} self={L.self} onHover={hover(tip)} />}
           </div>
         </>

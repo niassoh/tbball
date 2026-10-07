@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { headshotUrl } from '../api.js'
 import { MONO, ord, signed } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
+import { initials } from '../lib/teams.js'
 
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -11,7 +12,8 @@ const BLUE = '#8fb0e6'
 const ORANGE = '#fa962a'
 const RULE = '1px solid #3d3a37'
 const EDGE = '1px solid #544f4b'
-const TILE = 40
+const TILE = 48
+const SMALL = 26
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: DIM }
 const lastName = name => name.split(' ').slice(1).join(' ') || name
 const net = v => (v === null || v === undefined ? '—' : signed(v))
@@ -27,47 +29,91 @@ function Mate({ mate }) {
     : <span style={{ color: DIM }}>{name}</span>
 }
 
-// A square headshot tile with the last name under it. His own tile carries a
-// team-colour bar; teammates' tiles link to their pages.
-function Tile({ player, team, accent, self }) {
+// A square headshot tile with the last name under it, or in a five's small tiles the
+// initials (the full name is on hover). His own tile carries a team-colour bar;
+// teammates' tiles link to their pages.
+function Tile({ player, team, accent, self, small }) {
   const [failed, setFailed] = useState(false)
-  const name = player.name ? lastName(player.name) : '?'
+  const size = small ? SMALL : TILE
+  const name = player.name ? (small ? initials(player.name) : lastName(player.name)) : '?'
   const face = player.headshot && !failed
     ? <img src={headshotUrl(player.slug, 100, player.headshotVersion, player.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%', display: 'block' }} />
-    : <TeamInitials name={player.name || '?'} team={team} fontSize={15} />
+    : <TeamInitials name={player.name || '?'} team={team} fontSize={small ? 9 : 15} />
   const box = (
-    <span className="lineup-tile" style={{ position: 'relative', display: 'block', width: TILE, height: TILE, border: EDGE, background: '#34312e', overflow: 'hidden' }}>
+    <span className="lineup-tile" style={{ position: 'relative', display: 'block', width: size, height: size, border: EDGE, background: '#34312e', overflow: 'hidden' }}>
       {face}
-      {self && <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: accent || INK }} />}
+      {self && <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: small ? 2 : 3, background: accent || INK }} />}
     </span>
   )
   return (
-    <span style={{ display: 'flex', flexDirection: 'column', gap: 3, width: TILE, minWidth: 0 }}>
-      {player.slug && !self ? <Link to={`/player/${player.slug}`} title={player.name} style={{ display: 'block' }}>{box}</Link> : box}
-      <span title={player.name || ''} style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '.02em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: self ? 700 : 400, color: self ? INK : DIM }}>
+    <span title={player.name || ''} style={{ display: 'flex', flexDirection: 'column', gap: 3, width: size, minWidth: 0, flex: 'none' }}>
+      {player.slug && !self ? <Link to={`/player/${player.slug}`} style={{ display: 'block' }}>{box}</Link> : box}
+      <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '.02em', textTransform: 'uppercase', textAlign: small ? 'center' : 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: small ? 'clip' : 'ellipsis', fontWeight: self ? 700 : 400, color: self ? INK : DIM }}>
         {player.slug && !self ? <Link to={`/player/${player.slug}`} className="depth-link" style={{ color: 'inherit', borderBottom: '1px solid transparent' }}>{name}</Link> : name}
       </span>
     </span>
   )
 }
 
+// 3-MAN / 5-MAN switch, styled like the percentile card's season menu.
+function SizePicker({ size, setSize }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(o => !o)} aria-label="Unit size" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'transparent', border: 'none', borderBottom: '1px dotted #8fb0e6', padding: 0, color: INK, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', cursor: 'pointer' }}>
+        {size}-MAN<span style={{ fontSize: 6.5, color: BLUE }}>▼</span>
+      </button>
+      {open && (
+        <span style={{ position: 'absolute', left: -4, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', minWidth: 64 }}>
+          {[3, 5].map(n => (
+            <button key={n} onClick={() => { setSize(n); setOpen(false) }} style={{ textAlign: 'left', background: n === size ? '#3d3a37' : 'transparent', border: 'none', borderBottom: '1px solid #3d3a37', color: n === size ? INK : '#b8b2ab', fontFamily: MONO, fontSize: 10, fontWeight: n === size ? 600 : 400, padding: '6px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {n}-MAN
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
+  )
+}
+
+// A unit's net, with its league rank among units of its size over the minutes floor
+// in a tooltip on hover.
+function Net({ unit, size, floor }) {
+  const [hover, setHover] = useState(false)
+  const tip = unit.rank
+    ? `${ord(unit.rank.rank).toUpperCase()} OF ${unit.rank.of.toLocaleString()} ${size}-MAN UNITS · ${floor}+ MIN`
+    : `UNRANKED · UNDER ${floor} MIN`
+  return (
+    <span tabIndex={0} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onFocus={() => setHover(true)} onBlur={() => setHover(false)}
+      style={{ position: 'relative', fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: verdict(unit.net), cursor: 'help', borderBottom: `1px dotted ${FAINT}`, paddingBottom: 1, outline: 'none' }}>
+      {net(unit.net)}
+      {hover && (
+        <span role="tooltip" style={{ position: 'absolute', right: 0, bottom: 'calc(100% + 6px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', padding: '5px 8px', fontSize: 9, fontWeight: 600, letterSpacing: '.06em', color: INK, whiteSpace: 'nowrap' }}>
+          {tip}
+        </span>
+      )}
+    </span>
+  )
+}
+
 // One unit he plays in: him and his teammates in it as tiles, then its net and minutes
 // (and its share of his minutes when it's his most-used). Without a unit over the
-// floor, the same frame shows empty tiles.
-function Unit({ title, unit, size, self, team, accent, empty, style }) {
+// floor, the same frame shows empty tiles. The row keeps one height for both sizes.
+function Unit({ title, unit, size, floor, self, team, accent, empty, style }) {
+  const small = size === 5
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, ...style }}>
-      <span style={{ ...label, whiteSpace: 'nowrap' }}>{title}</span>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <div style={{ display: 'flex', gap: 3, flex: 1, minWidth: 0 }}>
+      <span style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>{title}</span>
+      <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', gap: small ? 2 : 3, flex: 1, minWidth: 0 }}>
           {unit
-            ? [self, ...unit.mates].map((pl, i) => <Tile key={i} player={pl} team={team} accent={accent} self={i === 0} />)
-            : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: TILE, height: TILE, flex: 'none', border: '1px dashed #3d3a37' }} />)}
+            ? [self, ...unit.mates].map((pl, i) => <Tile key={i} player={pl} team={team} accent={accent} self={i === 0} small={small} />)
+            : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, flex: 'none', border: '1px dashed #3d3a37' }} />)}
         </div>
-        <div style={{ height: TILE, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
-          <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: unit ? verdict(unit.net) : FAINT }}>{unit ? net(unit.net) : '—'}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
+          {unit ? <Net unit={unit} size={size} floor={floor} /> : <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: FAINT }}>—</span>}
           <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>{unit ? `${mins(unit.minutes)} MIN` : empty}</span>
-          {unit && unit.share !== undefined && <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>{unit.share}% OF HIS</span>}
+          {unit && unit.share !== undefined && <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>{unit.share}% OF MIN</span>}
         </div>
       </div>
     </div>
@@ -78,12 +124,15 @@ const mateGrid = { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 44px 44p
 
 // The bio card's lineup module. First his most-shared teammates, with the team's net
 // with both on (WITH) and with him on and the teammate off (APART); Δ = WITH − APART,
-// so the teammates he wins with read blue. Then the units he plays in, as headshot
-// tiles: his best five (100+ min; his most-used five when none has the minutes), and
-// side by side his best trio (250+ min) and most-used trio. Then his career on/off.
+// so the teammates he wins with read blue. Then side by side his best and his most-used
+// three-man unit (best: 250+ min) as headshot tiles, switchable to five-man units (best:
+// 100+ min); each net shows its league rank on hover. Then his career on/off.
 // All net rating per 100 possessions, from the season's five-man lineups.
 export default function LineupPanel({ profile: p, accent }) {
   const L = p.lineups
+  const [size, setSize] = useState(3)
+  const [best, used, floor] = !L ? [] : size === 5 ? [L.bestFive, L.mostUsed, L.floors.five] : [L.bestTrio, L.mostUsedTrio, L.floors.trio]
+  const unitProps = { size, floor, self: L && L.self, team: L && L.team, accent }
 
   return (
     <div key={`lineups-${p.slug}`} className="swap-in" style={{ padding: '10px 14px 8px', display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || INK }}>
@@ -118,14 +167,9 @@ export default function LineupPanel({ profile: p, accent }) {
             })}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {L.bestFive
-              ? <Unit title={`BEST FIVE · ${L.floors.five}+ MIN`} unit={L.bestFive} size={5} self={L.self} team={L.team} accent={accent} style={{ padding: '5px 0', borderBottom: RULE }} />
-              : <Unit title="MOST USED FIVE" unit={L.mostUsed} size={5} self={L.self} team={L.team} accent={accent} style={{ padding: '5px 0', borderBottom: RULE }} />}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
-              <Unit title={`BEST TRIO · ${L.floors.trio}+`} unit={L.bestTrio} size={3} self={L.self} team={L.team} accent={accent} empty={`NONE ${L.floors.trio}+`} style={{ padding: '5px 10px 5px 0', borderRight: RULE }} />
-              <Unit title="MOST USED TRIO" unit={L.mostUsedTrio} size={3} self={L.self} team={L.team} accent={accent} style={{ padding: '5px 0 5px 10px' }} />
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+</>} unit={best} empty={`NONE ${floor}+ MIN`} style={{ padding: '5px 10px 5px 0', borderRight: RULE }} />
+            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} style={{ padding: '5px 0 5px 10px' }} />
           </div>
         </>
       )}

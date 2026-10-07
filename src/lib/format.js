@@ -39,8 +39,10 @@ export const ord = p => {
 // Fixed decimals, "+" for positive relative stats, typographic minus.
 export const fmt = (stat, n) => {
   if (n === null || n === undefined) return '—'
-  let t = n.toFixed(stat.dec)
-  if (stat.relative && n > 0) t = '+' + t
+  // Sign by the rounded value, so +0.04 at one decimal reads 0.0, not +0.0 (or −0.0).
+  const rounded = Number(n.toFixed(stat.dec))
+  let t = Math.abs(rounded) === 0 ? (0).toFixed(stat.dec) : n.toFixed(stat.dec)
+  if (stat.relative && rounded > 0) t = '+' + t
   return t.replace('-', '−')
 }
 

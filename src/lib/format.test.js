@@ -22,6 +22,9 @@ describe('format', () => {
     expect(fmt({ dec: 1, relative: true }, -2.34)).toBe('−2.3')
     expect(fmt({ dec: 0, relative: false }, 119.4)).toBe('119')
     expect(fmt({ dec: 1 }, null)).toBe('—')
+    // Values that round to zero carry no sign.
+    expect(fmt({ dec: 0, relative: true }, 0.2)).toBe('0')
+    expect(fmt({ dec: 1, relative: true }, -0.04)).toBe('0.0')
   })
 })
 

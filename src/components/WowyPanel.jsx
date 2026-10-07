@@ -11,11 +11,13 @@ const tone = v => (v === null || v === undefined ? '#6b655f' : v >= 0 ? BLUE : O
 const splitGrid = { display: 'grid', gridTemplateColumns: '104px minmax(0,1fr) 40px 40px', columnGap: 8, alignItems: 'center' }
 
 // One figure in the ON / OFF / SWING strip.
-function Figure({ title, value, sub, last = false }) {
+function Figure({ title, value, sub, first = false, last = false }) {
   return (
-    <div style={{ padding: '8px 10px', borderRight: last ? 'none' : RULE, display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-      <span style={label}>{title}</span>
-      <span style={{ fontFamily: MONO, fontSize: 20, fontWeight: 700, lineHeight: 1, color: tone(value) }}>{value === null || value === undefined ? '—' : signed(value)}</span>
+    <div style={{ padding: first ? '0 10px 0 0' : '0 10px', borderRight: last ? 'none' : RULE, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+        <span style={label}>{title}</span>
+        <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: tone(value) }}>{value === null || value === undefined ? '—' : signed(value)}</span>
+      </span>
       <span style={{ ...label, fontSize: 8.5 }}>{sub}</span>
     </div>
   )
@@ -29,17 +31,17 @@ function Split({ row, scale, on }) {
   const mate = row.mate
   const name = mate ? lastName(mate.name) : row.label
   return (
-    <div style={{ ...splitGrid, borderBottom: '1px solid #3d3a37', padding: '4px 0' }}>
+    <div style={{ ...splitGrid, borderBottom: '1px solid #3d3a37', padding: '3px 0' }}>
       <span title={row.label} style={{ display: 'flex', alignItems: 'baseline', gap: 5, minWidth: 0, whiteSpace: 'nowrap' }}>
         <span style={{ ...label, flex: 'none' }}>{row.kind === 'neither' ? 'NEITHER +' : 'W/O'}</span>
         {mate
           ? <Link to={`/player/${mate.slug}`} className="depth-link" style={{ fontSize: 11.5, fontWeight: 600, color: '#ece8e3', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: '1px solid transparent' }}>{name}</Link>
           : <span style={{ fontSize: 11.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>}
       </span>
-      <div style={{ position: 'relative', height: 10, background: '#34312e' }}>
-        <div style={{ position: 'absolute', left: '50%', top: -3, bottom: -3, width: 1, background: '#6b655f' }} />
+      <div style={{ position: 'relative', height: 6, background: '#34312e' }}>
+        <div style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: '#6b655f' }} />
         {net !== null && <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${Math.min(50, at(net))}%`, width: `${Math.abs(at(net) - 50)}%`, background: net >= 0 ? BAR_UP : ORANGE }} />}
-        {on !== null && <div title="His on-court net" style={{ position: 'absolute', top: -3, bottom: -3, left: `${at(on)}%`, width: 2, marginLeft: -1, background: '#ece8e3' }} />}
+        {on !== null && <div title="His on-court net" style={{ position: 'absolute', top: -2, bottom: -2, left: `${at(on)}%`, width: 2, marginLeft: -1, background: '#ece8e3' }} />}
       </div>
       <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, textAlign: 'right', color: net === null ? '#6b655f' : net >= 0 ? '#ece8e3' : ORANGE }}>{net === null ? '—' : signed(net)}</span>
       <span style={{ fontFamily: MONO, fontSize: 9.5, textAlign: 'right', color: '#8a847e' }}>{row.minutes.toLocaleString()}</span>
@@ -50,8 +52,8 @@ function Split({ row, scale, on }) {
 // The bio card's WOWY: his team's net rating per 100 with him on and off the floor and
 // the swing between them, then how the team does with him on but each of his top
 // teammates off (and with both off), each teammate linked to his page, then his career
-// on/off. It takes the card's spare height (the cards in a row match the tallest),
-// sharing it across the split rows. Without a season's WOWY the same frame shows dashes.
+// on/off. Compact, at its natural height; without a season's WOWY the same frame shows
+// dashes.
 export default function WowyPanel({ profile: p, accent }) {
   const w = p.wowy
   const on = w ? w.rows.find(r => r.kind === 'on') : null
@@ -63,28 +65,25 @@ export default function WowyPanel({ profile: p, accent }) {
   const placeholders = Array.from({ length: 4 }, (_, i) => i)
 
   return (
-    <div key={`wowy-${p.slug}`} className="swap-in" style={{ flex: '1 0 auto', padding: '12px 14px 8px', display: 'flex', flexDirection: 'column', gap: 8, '--team': accent || '#ece8e3' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-        <span title="With or without you: team net rating per 100 possessions" style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em' }}>WOWY</span>
-        <span style={{ ...label, whiteSpace: 'nowrap' }}>{w ? `${w.season.replace('-', '–')} · ${w.team} · ` : ''}NET / 100</span>
-      </div>
+    <div key={`wowy-${p.slug}`} className="swap-in" style={{ padding: '12px 14px 10px', display: 'flex', flexDirection: 'column', gap: 8, '--team': accent || '#ece8e3' }}>
+      <span title="With or without you: team net rating per 100 possessions" style={{ ...label, whiteSpace: 'nowrap' }}>{w ? `${w.season.replace('-', '–')} · ${w.team} · ` : ''}NET / 100 ON AND OFF</span>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', border: RULE, background: '#262422' }}>
-        <Figure title="ON" value={onNet} sub={on ? `${on.minutes.toLocaleString()} MIN` : '—'} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', padding: '2px 0' }}>
+        <Figure title="ON" value={onNet} sub={on ? `${on.minutes.toLocaleString()} MIN` : '—'} first />
         <Figure title="OFF" value={off ? off.net : null} sub={off ? `${off.minutes.toLocaleString()} MIN` : '—'} />
         <Figure title="SWING" value={swing} sub="ON − OFF" last />
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
         <div style={{ ...splitGrid, ...label, paddingBottom: 3, borderBottom: '1px solid #6b655f' }}>
           <span style={{ gridColumn: '1 / 3', whiteSpace: 'nowrap' }}>HIM ON, TEAMMATE OFF</span><span style={{ textAlign: 'right' }}>NET</span><span style={{ textAlign: 'right' }}>MIN</span>
         </div>
-        <div style={{ flex: 1, display: 'grid', gridAutoRows: '1fr' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           {w
             ? splits.map(r => <Split key={r.label} row={r} scale={scale} on={onNet} />)
             : placeholders.map(i => (
-              <div key={i} aria-hidden="true" style={{ ...splitGrid, borderBottom: '1px solid #3d3a37', padding: '4px 0', color: '#3d3a37', fontFamily: MONO, fontSize: 11 }}>
-                <span>—</span><div style={{ height: 10, background: '#2f2c2a' }} /><span style={{ textAlign: 'right' }}>—</span><span style={{ textAlign: 'right' }}>—</span>
+              <div key={i} aria-hidden="true" style={{ ...splitGrid, borderBottom: '1px solid #3d3a37', padding: '3px 0', color: '#3d3a37', fontFamily: MONO, fontSize: 11 }}>
+                <span>—</span><div style={{ height: 6, background: '#2f2c2a' }} /><span style={{ textAlign: 'right' }}>—</span><span style={{ textAlign: 'right' }}>—</span>
               </div>
             ))}
         </div>

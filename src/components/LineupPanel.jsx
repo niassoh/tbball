@@ -13,7 +13,10 @@ const BLUE = '#8fb0e6'
 const ORANGE = '#fa962a'
 const RULE = '1px solid #3d3a37'
 const EDGE = '1px solid #544f4b'
-const TILE = 42
+const TILE = 36
+// A 3-man tile's column is a little wider than its headshot, so the name centred
+// under it has room.
+const COL = 40
 const SMALL = 25
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: DIM }
 const lastName = name => name.split(' ').slice(1).join(' ') || name
@@ -46,9 +49,9 @@ function Tile({ player, team, accent, self, small }) {
     </span>
   )
   return (
-    <span title={player.name || ''} style={{ display: 'flex', flexDirection: 'column', gap: 4, width: size, minWidth: 0, flex: 'none' }}>
+    <span title={player.name || ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: small ? SMALL : COL, minWidth: 0, flex: 'none' }}>
       {player.slug && !self ? <Link to={`/player/${player.slug}`} style={{ display: 'block' }}>{box}</Link> : box}
-      <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '.02em', textTransform: 'uppercase', textAlign: small ? 'center' : 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: small ? 'clip' : 'ellipsis', fontWeight: self ? 700 : 400, color: self ? INK : DIM }}>
+      <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '.02em', textTransform: 'uppercase', width: '100%', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: small ? 'clip' : 'ellipsis', fontWeight: self ? 700 : 400, color: self ? INK : DIM }}>
         {player.slug && !self ? <Link to={`/player/${player.slug}`} className="depth-link" style={{ color: 'inherit', borderBottom: '1px solid transparent' }}>{name}</Link> : name}
       </span>
     </span>
@@ -172,11 +175,11 @@ function Unit({ title, unit, size, self, team, accent, empty, style, onTip }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0, ...style }}>
       <span style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>{title}</span>
-      <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ display: 'flex', gap: small ? 2 : 4, flex: 1, minWidth: 0 }}>
+      <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
           {unit
             ? [self, ...unit.mates].map((pl, i) => <Tile key={i} player={pl} team={team} accent={accent} self={i === 0} small={small} />)
-            : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, flex: 'none', borderRadius: '50%', border: '1px dashed #4a4643' }} />)}
+            : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, margin: small ? 0 : `0 ${(COL - TILE) / 2}px`, flex: 'none', borderRadius: '50%', border: '1px dashed #4a4643' }} />)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
           {unit ? <Net unit={unit} onTip={onTip} /> : <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: FAINT }}>—</span>}

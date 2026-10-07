@@ -191,10 +191,11 @@ function Unit({ title, unit, size, self, team, accent, empty, style, onTip }) {
 const mateGrid = { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 44px 44px 44px 40px', columnGap: 6, alignItems: 'baseline' }
 
 // The bio card's lineup module. First his most-shared teammates, with the team's net
-// with both on (WITH) and with him on and the teammate off (APART); Δ = WITH − APART,
-// so the teammates he wins with read blue. Then side by side his best and his most-used
-// three-man unit (best: 250+ min) as headshot tiles, switchable to five-man units (best:
-// 100+ min); each net shows its league rank on hover. Then his career on/off.
+// with both on (WITH) and with him on and the teammate off (APART); Δ = APART − WITH,
+// how he does without that teammate, so one he leans on reads negative (orange). Then
+// side by side his best and his most-used three-man unit as headshot tiles, switchable
+// to five-man units (best: over the league's minutes floor, which the API sets); each
+// net shows its league rank on hover. Then his career on/off.
 // All net rating per 100 possessions, from the season's five-man lineups.
 export default function LineupPanel({ profile: p, accent }) {
   const L = p.lineups
@@ -228,10 +229,10 @@ export default function LineupPanel({ profile: p, accent }) {
               <span style={{ textAlign: 'right' }}>SHARED</span>
               <span style={{ textAlign: 'right' }}>WITH</span>
               <span style={{ textAlign: 'right' }}>APART</span>
-              <span style={{ textAlign: 'right' }}>Δ</span>
+              <span title="APART − WITH: how he does without this teammate" style={{ textAlign: 'right' }}>Δ</span>
             </div>
             {L.mates.map((m, i) => {
-              const d = m.together.net !== null && m.apart.net !== null ? m.together.net - m.apart.net : null
+              const d = m.together.net !== null && m.apart.net !== null ? m.apart.net - m.together.net : null
               return (
                 <div key={i} style={{ ...mateGrid, fontFamily: MONO, fontSize: 11, padding: '5px 0', borderBottom: RULE }}>
                   <span style={{ fontFamily: 'Montserrat,sans-serif', fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><Mate mate={m} /></span>

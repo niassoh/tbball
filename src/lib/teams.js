@@ -10,6 +10,12 @@ export const TEAM_COLORS = {
   SAC: '#5a2d81', SAS: '#000000', TOR: '#d91244', UTA: '#4e008e', WAS: '#e31837'
 }
 
+// Conferences and divisions (the team switcher's layout), five teams each, alphabetical by city.
+export const DIVISIONS = [
+  ['EAST', [['ATLANTIC', ['BOS', 'BKN', 'NYK', 'PHI', 'TOR']], ['CENTRAL', ['CHI', 'CLE', 'DET', 'IND', 'MIL']], ['SOUTHEAST', ['ATL', 'CHA', 'MIA', 'ORL', 'WAS']]]],
+  ['WEST', [['NORTHWEST', ['DEN', 'MIN', 'OKC', 'POR', 'UTA']], ['PACIFIC', ['GSW', 'LAC', 'LAL', 'PHX', 'SAC']], ['SOUTHWEST', ['DAL', 'HOU', 'MEM', 'NOP', 'SAS']]]]
+]
+
 export const initials = name => name.split(' ').map(w => w[0]).slice(0, 2).join('')
 
 // Team stints for the season charts, in season-index units: season i runs from

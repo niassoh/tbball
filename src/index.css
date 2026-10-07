@@ -52,9 +52,10 @@ html { scroll-behavior: smooth; }
 .fold-ready { opacity: 1; transition: opacity .25s ease; }
 /* Team switcher: logos muted at rest like the header's, full colour on hover. */
 .team-switch:focus-visible { outline: 2px solid #ece8e3; outline-offset: 2px; }
-.team-cell { transition: background-color .15s; }
-.team-cell:not(:disabled):hover, .team-cell:focus-visible { background: #2f2c2a !important; }
-.team-cell:focus-visible { outline: 2px solid #ece8e3; outline-offset: -2px; }
+/* Hover inverts the square to a light tile, like a selected cell in a printed table. */
+.team-cell { transition: background-color .12s; }
+.team-cell:not(:disabled):hover, .team-cell:focus-visible { background: #ece8e3 !important; }
+.team-cell:focus-visible { outline: none; }
 .team-cell .team-cell-logo { filter: saturate(.6) brightness(.9); transition: filter .15s ease, transform .15s ease; }
 .team-cell:not(:disabled):hover .team-cell-logo, .team-cell:focus-visible .team-cell-logo, .team-cell:disabled .team-cell-logo { filter: none; }
 .team-cell:not(:disabled):hover .team-cell-logo { transform: scale(1.1); }

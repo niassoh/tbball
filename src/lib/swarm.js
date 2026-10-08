@@ -2,15 +2,19 @@
 // into columns along the x axis and stacked out from the middle, so dense nets read as
 // a wider band. Columns that would overflow the height squeeze their spacing instead.
 
-// values: net ratings. Returns the x scale and a dot per value.
-export const swarm = (values, { width, height, r = 1.6 }) => {
+// values: net ratings; include: values the domain must hold (the marked unit).
+// Returns the x scale, its gridline ticks and a dot per value.
+export const swarm = (values, { width, height, r = 1.6, include = [] }) => {
   const sorted = [...values].sort((a, b) => a - b)
   const at = q => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(q * (sorted.length - 1))))]
-  // A symmetric domain around 0 that covers the middle 96%, in steps of 5; the few
-  // beyond it sit on the edge.
-  const reach = Math.max(5, Math.ceil(Math.max(Math.abs(at(0.02)), Math.abs(at(0.98))) / 5) * 5)
-  const lo = -reach
-  const hi = reach
+  // The domain fits the data: the middle 96% plus anything in `include`, rounded out to
+  // multiples of 5 (the few beyond it sit on the edge). Ticks every 5, or every 10 over a
+  // wider span, so there are a few evenly spaced gridlines.
+  const lo = Math.floor(Math.min(at(0.02), ...include) / 5) * 5
+  const hi = Math.max(lo + 5, Math.ceil(Math.max(at(0.98), ...include) / 5) * 5)
+  const tickStep = hi - lo > 30 ? 10 : 5
+  const ticks = []
+  for (let t = Math.ceil(lo / tickStep) * tickStep; t <= hi; t += tickStep) ticks.push(t)
   const x = v => r + ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * (width - 2 * r)
   const colW = 2 * r + 0.4
   const cols = Math.max(1, Math.floor(width / colW))
@@ -32,7 +36,7 @@ export const swarm = (values, { width, height, r = 1.6 }) => {
   }
   // The net at an x position (the swarm's hover readout).
   const value = px => lo + ((Math.max(r, Math.min(width - r, px)) - r) / (width - 2 * r)) * (hi - lo)
-  return { lo, hi, x, value, dots }
+  return { lo, hi, ticks, x, value, dots }
 }
 
 // Where a rank sits, as a share of the pool at or below it (1 = the best unit).

@@ -122,7 +122,7 @@ function RankTip({ unit, size, floor, self, onHover }) {
     return () => { live = false }
   }, [])
   const nets = league ? (size === 5 ? league.five : league.trio) : null
-  const sw = useMemo(() => nets && swarm(nets, { width: SL, height: SS, r: 1.5 }), [nets])
+  const sw = useMemo(() => nets && swarm(nets, { width: SL, height: SS, r: 1.5, include: [unit.net] }), [nets, unit.net])
   const yOf = v => SL - sw.x(v)
   const dx = (TIP_IN - SS) / 2
   const r = unit.rank
@@ -154,7 +154,7 @@ function RankTip({ unit, size, floor, self, onHover }) {
             }}
             onMouseLeave={() => setProbe(null)}>
             <rect x={0} y={-4} width={TIP_IN} height={SL + 8} fill="transparent" />
-            {[sw.hi, 0, sw.lo].map(v => (
+            {sw.ticks.map(v => (
               <g key={v}>
                 <line x1={0} x2={TIP_IN} y1={yOf(v)} y2={yOf(v)} stroke="#3d3a37" strokeDasharray={v ? undefined : '2 3'} />
                 <text x={0} y={yOf(v) - 3} style={tick}>{v ? signed(v, 0) : '0'}</text>

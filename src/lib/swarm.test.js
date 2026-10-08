@@ -15,12 +15,22 @@ describe('swarm', () => {
     }
   })
 
-  it('uses a symmetric domain in steps of 5 and pins outliers to the edges', () => {
-    const { lo, hi, x } = swarm(values, { width: 200, height: 40, r: 2 })
-    expect(lo).toBe(-hi)
-    expect(hi % 5).toBe(0)
+  it('fits the domain to the middle of the data in steps of 5 and pins outliers to the edges', () => {
+    const many = Array.from({ length: 101 }, (_, i) => -8 + i * 0.3) // -8 … +22
+    const { lo, hi, x } = swarm([...many, -60, 90], { width: 200, height: 40, r: 2 })
+    expect([lo, hi]).toEqual([-10, 25])
     expect(x(1000)).toBe(x(hi))
-    expect(x(0)).toBeCloseTo(100)
+    expect(x(-1000)).toBe(x(lo))
+  })
+
+  it('stretches the domain to hold the marked value', () => {
+    const { lo, hi } = swarm([0, 1, 2, 3], { width: 200, height: 40, include: [-12.4] })
+    expect([lo, hi]).toEqual([-15, 5])
+  })
+
+  it('ticks every 5 over a narrow span and every 10 over a wide one', () => {
+    expect(swarm([-4, 0, 9], { width: 200, height: 40 }).ticks).toEqual([-5, 0, 5, 10])
+    expect(swarm([-12, 0, 33], { width: 200, height: 40 }).ticks).toEqual([-10, 0, 10, 20, 30])
   })
 
   it('reads a net back from an x position (the hover readout)', () => {

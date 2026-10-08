@@ -41,12 +41,12 @@ instead of the API, under the base path `VITE_BASE`.
 # in thinking-bball, after a data pull
 npm run export:static -- --out ../thinking-bball-profile/public
 # here: preview the static build at its Pages path
-VITE_STATIC=1 VITE_BASE=/thinking-bball-profile/ npm run build && cp dist/index.html dist/404.html
-npx vite preview --base /thinking-bball-profile/
+VITE_STATIC=1 VITE_BASE=/tbball/ npm run build && cp dist/index.html dist/404.html
+npx vite preview --base /tbball/
 ```
 
 Pushing `main` runs `.github/workflows/pages.yml`, which tests, builds and publishes to
-https://niassoh.github.io/thinking-bball-profile/. `dist/404.html` is a copy of the app so
+https://niassoh.github.io/tbball/ (repo `niassoh/tbball`). `dist/404.html` is a copy of the app so
 deep links (`/player/<slug>`) work on Pages. The daily-refresh plan is in thinking-bball
 `docs/daily-pipeline-requirements.md`.
 

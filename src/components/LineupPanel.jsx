@@ -216,7 +216,7 @@ const mateGrid = { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 44px 44p
 // how he does without that teammate, so one he leans on reads negative (orange). Then
 // side by side his best and his most-used three-man unit as headshot tiles, switchable
 // to five-man units (best: over the league's minutes floor, which the API sets); each
-// net shows its league rank on hover. Then his career on/off.
+// net shows its league rank on hover.
 // All net rating per 100 possessions, from the season's five-man lineups.
 export default function LineupPanel({ profile: p, accent }) {
   const L = p.lineups
@@ -271,12 +271,6 @@ export default function LineupPanel({ profile: p, accent }) {
         </>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', ...label }}>
-        <span>CAREER ON/OFF</span>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: p.onOff ? neutral(p.onOff.value) : FAINT }}>
-          {p.onOff ? `${signed(p.onOff.value)} · ${ord(p.onOff.pctl).toUpperCase()} PCT` : '—'}
-        </span>
-      </div>
     </div>
   )
 }

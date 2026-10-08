@@ -141,7 +141,14 @@ function RankTip({ unit, size, floor, onHover }) {
         ) : (
           <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, lineHeight: 1, color: FAINT }}>UNRANKED</span>
         )}
-        <span style={{ ...label, fontSize: 7.5 }}>{r ? `OF ${r.of.toLocaleString()} UNITS · ${floor}+ MIN` : `UNDER ${floor} MIN TOGETHER`}</span>
+        {r ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ ...label, fontSize: 9 }}>OF <span style={{ color: INK, fontWeight: 700, fontSize: 10.5 }}>{r.of.toLocaleString()}</span> UNITS</span>
+            <span style={{ ...label, fontSize: 7.5 }}>{floor}+ MIN</span>
+          </div>
+        ) : (
+          <span style={{ ...label, fontSize: 7.5 }}>UNDER {floor} MIN TOGETHER</span>
+        )}
       </div>
       <div style={section}>
         {sw ? (

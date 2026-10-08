@@ -93,12 +93,14 @@ function Net({ unit, onTip, tip }) {
   )
 }
 
-// The rank tooltip's swarm: net runs up the value axis (SL tall), dots spread across
-// it (SS wide), with an AXIS-wide gutter on the left for the scale.
-const SL = 200
-const SS = 78
-const AXIS = 22
+// The rank tooltip is one TIP_IN-wide column: every row shares its left and right edge.
+// The swarm fills that width, net running up SL px, its dots spread SS px about the
+// middle.
 const TIP_W = 160
+const TIP_PAD = 10
+const TIP_IN = TIP_W - 2 * TIP_PAD - 2
+const SL = 196
+const SS = 92
 
 // The rank tooltip, a narrow popover just above the hovered net: the unit, its league rank
 // among units of its size over the minutes floor (coloured blue to orange by where it
@@ -122,59 +124,59 @@ function RankTip({ unit, kind, size, floor, self, onHover }) {
   const nets = league ? (size === 5 ? league.five : league.trio) : null
   const sw = useMemo(() => nets && swarm(nets, { width: SL, height: SS, r: 1.5 }), [nets])
   const yOf = v => SL - sw.x(v)
+  const dx = (TIP_IN - SS) / 2
   const r = unit.rank
   const tone = r ? rankColor(rankPct(r.rank, r.of)) : FAINT
   const names = [self, ...unit.mates].map(m => (m.name ? lastName(m.name) : '?')).join(' · ')
   const median = nets ? nets[Math.floor(nets.length / 2)] : null
-  const tick = { fontFamily: MONO, fontSize: 8, fill: DIM }
+  const tick = { fontFamily: MONO, fontSize: 7.5, fill: FAINT }
+  const section = { borderTop: RULE, paddingTop: 7 }
   return (
-    <div ref={box} role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', right: -6, ...(below ? { top: 'calc(100% + 8px)' } : { bottom: 'calc(100% + 8px)' }), zIndex: 20, width: TIP_W, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: '9px 10px', display: 'flex', flexDirection: 'column', gap: 7, fontFamily: 'Montserrat,sans-serif', fontWeight: 400, lineHeight: 'normal', textAlign: 'left', color: INK, cursor: 'default' }}>
-      <span style={{ ...label, fontSize: 8 }}>{kind} {size}-MAN · {floor}+ MIN</span>
-      <span style={{ fontSize: 11, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{names}</span>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5, borderTop: RULE, paddingTop: 7 }}>
+    <div ref={box} role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', right: -6, ...(below ? { top: 'calc(100% + 8px)' } : { bottom: 'calc(100% + 8px)' }), zIndex: 20, width: TIP_W, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: TIP_PAD, display: 'flex', flexDirection: 'column', gap: 7, fontFamily: 'Montserrat,sans-serif', fontWeight: 400, lineHeight: 'normal', textAlign: 'left', color: INK, cursor: 'default' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span style={{ ...label, fontSize: 8 }}>{kind} {size}-MAN</span>
+        <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3 }}>{names}</span>
+      </div>
+      <div style={{ ...section, display: 'flex', flexDirection: 'column', gap: 4 }}>
         {r ? (
-          <>
-            <span style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-              <span style={{ fontFamily: MONO, fontSize: 18, fontWeight: 700, lineHeight: 1, color: tone }}>{ord(r.rank).toUpperCase()}</span>
-              <span style={{ ...label, fontSize: 9 }}>OF {r.of.toLocaleString()}</span>
-            </span>
-            <span style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', color: `color-mix(in srgb, ${tone} 55%, ${INK})`, background: `color-mix(in srgb, ${tone} 18%, transparent)`, border: `1px solid color-mix(in srgb, ${tone} 60%, transparent)`, padding: '2px 6px' }}>{rankLabel(r.rank, r.of)}</span>
-          </>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontFamily: MONO, fontSize: 18, fontWeight: 700, lineHeight: 1, color: tone }}>{ord(r.rank).toUpperCase()}</span>
+            <span style={{ fontFamily: MONO, fontSize: 8.5, fontWeight: 700, letterSpacing: '.06em', color: `color-mix(in srgb, ${tone} 55%, ${INK})`, background: `color-mix(in srgb, ${tone} 18%, transparent)`, border: `1px solid color-mix(in srgb, ${tone} 60%, transparent)`, padding: '2px 5px' }}>{rankLabel(r.rank, r.of)}</span>
+          </div>
         ) : (
-          <>
-            <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, lineHeight: 1, color: FAINT }}>UNRANKED</span>
-            <span style={{ ...label, fontSize: 9 }}>UNDER {floor} MIN</span>
-          </>
+          <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, lineHeight: 1, color: FAINT }}>UNRANKED</span>
+        )}
+        <span style={{ ...label, fontSize: 7.5 }}>{r ? `OF ${r.of.toLocaleString()} UNITS · ${floor}+ MIN` : `UNDER ${floor} MIN TOGETHER`}</span>
+      </div>
+      <div style={section}>
+        {sw ? (
+          <svg width={TIP_IN} height={SL + 8} viewBox={`0 -4 ${TIP_IN} ${SL + 8}`} style={{ display: 'block', overflow: 'visible', cursor: 'crosshair' }}
+            onMouseMove={e => {
+              const v = sw.value(SL - (e.clientY - e.currentTarget.getBoundingClientRect().top - 4))
+              setProbe({ v, rank: nets.filter(n => n > v).length + 1 })
+            }}
+            onMouseLeave={() => setProbe(null)}>
+            <rect x={0} y={-4} width={TIP_IN} height={SL + 8} fill="transparent" />
+            {[sw.hi, 0, sw.lo].map(v => (
+              <g key={v}>
+                <line x1={0} x2={TIP_IN} y1={yOf(v)} y2={yOf(v)} stroke="#3d3a37" strokeDasharray={v ? undefined : '2 3'} />
+                <text x={0} y={yOf(v) - 3} style={tick}>{v ? signed(v, 0) : '0'}</text>
+              </g>
+            ))}
+            {sw.dots.map((d, i) => <circle key={i} cx={dx + d.y} cy={SL - d.x} r={1.5} fill={rankColor(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.75} />)}
+            <line x1={0} x2={TIP_IN} y1={yOf(unit.net)} y2={yOf(unit.net)} stroke={INK} strokeWidth={1} />
+            <circle cx={TIP_IN / 2} cy={yOf(unit.net)} r={3.5} fill={tone} stroke={INK} strokeWidth={1.25} />
+            <text x={TIP_IN} y={yOf(unit.net) - 4} textAnchor="end" style={{ ...tick, fill: INK, fontWeight: 700, fontSize: 8.5 }}>{net(unit.net)}</text>
+            {probe && <line x1={0} x2={TIP_IN} y1={yOf(probe.v)} y2={yOf(probe.v)} stroke={DIM} strokeDasharray="1 2" pointerEvents="none" />}
+          </svg>
+        ) : (
+          <div style={{ height: SL + 8, display: 'flex', alignItems: 'center', justifyContent: 'center', ...label, color: FAINT }}>LOADING…</div>
         )}
       </div>
-      {sw ? (
-        <svg width={AXIS + SS + 38} height={SL + 12} viewBox={`${-AXIS} -6 ${AXIS + SS + 38} ${SL + 12}`} style={{ display: 'block', overflow: 'visible', cursor: 'crosshair' }}
-          onMouseMove={e => {
-            const v = sw.value(SL - (e.clientY - e.currentTarget.getBoundingClientRect().top - 6))
-            setProbe({ v, rank: nets.filter(n => n > v).length + 1 })
-          }}
-          onMouseLeave={() => setProbe(null)}>
-          <rect x={-AXIS} y={-6} width={AXIS + SS + 38} height={SL + 12} fill="transparent" />
-          {[sw.hi, 0, sw.lo].map(v => <text key={v} x={-6} y={yOf(v) + 3} textAnchor="end" style={tick}>{v ? signed(v, 0) : '0'}</text>)}
-          <line x1={0} x2={SS} y1={yOf(0)} y2={yOf(0)} stroke={FAINT} strokeDasharray="2 3" />
-          {sw.dots.map((d, i) => <circle key={i} cx={d.y} cy={SL - d.x} r={1.5} fill={rankColor(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.7} />)}
-          <line x1={-2} x2={SS + 2} y1={yOf(unit.net)} y2={yOf(unit.net)} stroke={INK} strokeWidth={1.25} />
-          <circle cx={SS / 2} cy={yOf(unit.net)} r={4} fill={tone} stroke={INK} strokeWidth={1.5} />
-          <text x={SS + 6} y={yOf(unit.net) + 3} style={{ ...tick, fill: INK, fontWeight: 700, fontSize: 9 }}>{net(unit.net)}</text>
-          {probe && (
-            <>
-              <line x1={-2} x2={SS + 2} y1={yOf(probe.v)} y2={yOf(probe.v)} stroke={DIM} strokeDasharray="1 2" pointerEvents="none" />
-              <text x={SS + 6} y={yOf(probe.v) + 3} style={tick} pointerEvents="none">{signed(probe.v)}</text>
-            </>
-          )}
-        </svg>
-      ) : (
-        <div style={{ height: SL + 12, display: 'flex', alignItems: 'center', justifyContent: 'center', ...label, color: FAINT }}>LOADING LEAGUE…</div>
-      )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, ...label, fontSize: 8 }}>
+      <div style={{ ...section, display: 'flex', justifyContent: 'space-between', ...label, fontSize: 7.5 }}>
         <span>{mins(unit.minutes)} MIN</span>
         {probe
-          ? <span>AT {signed(probe.v)} · <span style={{ color: rankColor(rankPct(probe.rank, nets.length)), fontWeight: 700 }}>{ord(probe.rank).toUpperCase()}</span></span>
+          ? <span>{signed(probe.v)} · <span style={{ color: rankColor(rankPct(probe.rank, nets.length)), fontWeight: 700 }}>{ord(probe.rank).toUpperCase()}</span></span>
           : median !== null && <span>MEDIAN {signed(median)}</span>}
       </div>
     </div>

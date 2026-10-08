@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { headshotUrl, loadLineupLeague } from '../api.js'
 import { MONO, ord, signed } from '../lib/format.js'
@@ -79,30 +79,41 @@ function SizePicker({ size, setSize }) {
   )
 }
 
-// A unit's net. Hovering (or focusing) it opens the rank tooltip over the lineup row.
-function Net({ unit, onTip }) {
+// A unit's net. Hovering (or focusing) it opens the rank tooltip, which sits on the
+// number itself.
+function Net({ unit, onTip, tip }) {
   return (
-    <span tabIndex={0} onMouseEnter={() => onTip(true)} onMouseLeave={() => onTip(false)} onFocus={() => onTip(true)} onBlur={() => onTip(false)}
-      style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: verdict(unit.net), cursor: 'default', borderBottom: `1px dotted ${FAINT}`, paddingBottom: 1, outline: 'none' }}>
-      {net(unit.net)}
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <span tabIndex={0} onMouseEnter={() => onTip(true)} onMouseLeave={() => onTip(false)} onFocus={() => onTip(true)} onBlur={() => onTip(false)}
+        style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: verdict(unit.net), cursor: 'default', borderBottom: `1px dotted ${FAINT}`, paddingBottom: 1, outline: 'none' }}>
+        {net(unit.net)}
+      </span>
+      {tip}
     </span>
   )
 }
 
 // The rank tooltip's swarm: net runs up the value axis (SL tall), dots spread across
 // it (SS wide), with an AXIS-wide gutter on the left for the scale.
-const SL = 176
-const SS = 96
-const AXIS = 26
+const SL = 200
+const SS = 78
+const AXIS = 22
+const TIP_W = 160
 
-// The rank tooltip, a compact popover over the hovered unit: the unit, its league rank
+// The rank tooltip, a narrow popover just above the hovered net: the unit, its league rank
 // among units of its size over the minutes floor (coloured blue to orange by where it
 // falls), and a vertical swarm of every such unit's net with this one marked. It stays
 // open while the pointer is over it, and moving up and down the swarm reads out the net
 // and league rank at that height. The league pool is fetched on the first hover.
-function RankTip({ unit, kind, size, floor, self, onHover, align }) {
+function RankTip({ unit, kind, size, floor, self, onHover }) {
   const [league, setLeague] = useState(null)
   const [probe, setProbe] = useState(null)
+  // Opens above the number; when that would run off the top of the window, below it.
+  const box = useRef(null)
+  const [below, setBelow] = useState(false)
+  useLayoutEffect(() => {
+    if (box.current && box.current.getBoundingClientRect().top < 8) setBelow(true)
+  }, [])
   useEffect(() => {
     let live = true
     loadLineupLeague().then(d => live && setLeague(d)).catch(() => {})
@@ -117,15 +128,17 @@ function RankTip({ unit, kind, size, floor, self, onHover, align }) {
   const median = nets ? nets[Math.floor(nets.length / 2)] : null
   const tick = { fontFamily: MONO, fontSize: 8, fill: DIM }
   return (
-    <div role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', [align]: 0, bottom: 'calc(100% + 4px)', zIndex: 20, width: 214, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <span style={{ ...label, fontSize: 8.5 }}>{kind} {size}-MAN · {floor}+ MIN</span>
-      <span style={{ fontSize: 11.5, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{names}</span>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, borderTop: RULE, paddingTop: 8 }}>
+    <div ref={box} role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', right: -6, ...(below ? { top: 'calc(100% + 8px)' } : { bottom: 'calc(100% + 8px)' }), zIndex: 20, width: TIP_W, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: '9px 10px', display: 'flex', flexDirection: 'column', gap: 7, fontFamily: 'Montserrat,sans-serif', fontWeight: 400, lineHeight: 'normal', textAlign: 'left', color: INK, cursor: 'default' }}>
+      <span style={{ ...label, fontSize: 8 }}>{kind} {size}-MAN · {floor}+ MIN</span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{names}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5, borderTop: RULE, paddingTop: 7 }}>
         {r ? (
           <>
-            <span style={{ fontFamily: MONO, fontSize: 20, fontWeight: 700, lineHeight: 1, color: tone }}>{ord(r.rank).toUpperCase()}</span>
-            <span style={{ ...label, fontSize: 9 }}>OF {r.of.toLocaleString()}</span>
-            <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.06em', color: `color-mix(in srgb, ${tone} 55%, ${INK})`, background: `color-mix(in srgb, ${tone} 18%, transparent)`, border: `1px solid color-mix(in srgb, ${tone} 60%, transparent)`, padding: '2px 6px' }}>{rankLabel(r.rank, r.of)}</span>
+            <span style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+              <span style={{ fontFamily: MONO, fontSize: 18, fontWeight: 700, lineHeight: 1, color: tone }}>{ord(r.rank).toUpperCase()}</span>
+              <span style={{ ...label, fontSize: 9 }}>OF {r.of.toLocaleString()}</span>
+            </span>
+            <span style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', color: `color-mix(in srgb, ${tone} 55%, ${INK})`, background: `color-mix(in srgb, ${tone} 18%, transparent)`, border: `1px solid color-mix(in srgb, ${tone} 60%, transparent)`, padding: '2px 6px' }}>{rankLabel(r.rank, r.of)}</span>
           </>
         ) : (
           <>
@@ -135,13 +148,13 @@ function RankTip({ unit, kind, size, floor, self, onHover, align }) {
         )}
       </div>
       {sw ? (
-        <svg width={AXIS + SS + 40} height={SL + 12} viewBox={`${-AXIS} -6 ${AXIS + SS + 40} ${SL + 12}`} style={{ display: 'block', overflow: 'visible', cursor: 'crosshair', alignSelf: 'center' }}
+        <svg width={AXIS + SS + 38} height={SL + 12} viewBox={`${-AXIS} -6 ${AXIS + SS + 38} ${SL + 12}`} style={{ display: 'block', overflow: 'visible', cursor: 'crosshair' }}
           onMouseMove={e => {
             const v = sw.value(SL - (e.clientY - e.currentTarget.getBoundingClientRect().top - 6))
             setProbe({ v, rank: nets.filter(n => n > v).length + 1 })
           }}
           onMouseLeave={() => setProbe(null)}>
-          <rect x={-AXIS} y={-6} width={AXIS + SS + 40} height={SL + 12} fill="transparent" />
+          <rect x={-AXIS} y={-6} width={AXIS + SS + 38} height={SL + 12} fill="transparent" />
           {[sw.hi, 0, sw.lo].map(v => <text key={v} x={-6} y={yOf(v) + 3} textAnchor="end" style={tick}>{v ? signed(v, 0) : '0'}</text>)}
           <line x1={0} x2={SS} y1={yOf(0)} y2={yOf(0)} stroke={FAINT} strokeDasharray="2 3" />
           {sw.dots.map((d, i) => <circle key={i} cx={d.y} cy={SL - d.x} r={1.5} fill={rankColor(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.7} />)}
@@ -174,8 +187,7 @@ function RankTip({ unit, kind, size, floor, self, onHover, align }) {
 function Unit({ title, unit, size, self, team, accent, empty, style, onTip, tip }) {
   const small = size === 5
   return (
-    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 11, minWidth: 0, ...style }}>
-      {tip}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 11, minWidth: 0, ...style }}>
       <span style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>{title}</span>
       <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
@@ -184,7 +196,7 @@ function Unit({ title, unit, size, self, team, accent, empty, style, onTip, tip 
             : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, margin: small ? 0 : `0 ${(COL - TILE) / 2}px`, flex: 'none', borderRadius: '50%', border: '1px dashed #4a4643' }} />)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
-          {unit ? <Net unit={unit} onTip={onTip} /> : <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: FAINT }}>—</span>}
+          {unit ? <Net unit={unit} onTip={onTip} tip={tip} /> : <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: FAINT }}>—</span>}
           <span style={{ ...label, fontSize: 8, whiteSpace: unit ? 'nowrap' : 'pre-line', textAlign: 'right', lineHeight: 1.4 }}>{unit ? `${mins(unit.minutes)} MIN` : empty}</span>
           {unit && unit.share !== undefined && <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>{unit.share}% OF MIN</span>}
         </div>
@@ -249,8 +261,8 @@ export default function LineupPanel({ profile: p, accent }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+ MINUTES</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} kind="BEST" size={size} floor={floor} self={L.self} onHover={hover('best')} align="left" />} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
-            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} kind="MOST USED" size={size} floor={floor} self={L.self} onHover={hover('used')} align="right" />} style={{ padding: '8px 0 9px 12px' }} />
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+ MINUTES</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} kind="BEST" size={size} floor={floor} self={L.self} onHover={hover('best')} />} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
+            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} kind="MOST USED" size={size} floor={floor} self={L.self} onHover={hover('used')} />} style={{ padding: '8px 0 9px 12px' }} />
           </div>
         </>
       )}

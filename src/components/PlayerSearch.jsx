@@ -13,7 +13,6 @@ const PAPER = '#1f1d1c'
 const BLUE = '#8fb0e6'
 // Same charcoal the portraits sit on elsewhere (search page thumbnails).
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
-const lastName = name => name.split(' ').slice(1).join(' ') || name
 
 function Thumb({ player }) {
   const [failed, setFailed] = useState(false)
@@ -26,9 +25,9 @@ function Thumb({ player }) {
   )
 }
 
-// A name in the mono face: the first name light, the rest heavier, the typed letters in
-// blue. `whole` sets it all heavy (team names).
-function Name({ text, query, on, whole = false }) {
+// A name: the first name lighter, the rest bold, the typed letters underlined in blue.
+// `whole` sets it all bold (team names).
+function Name({ text, query, whole = false }) {
   const split = whole ? 0 : text.indexOf(' ') + 1
   const pieces = []
   let at = 0
@@ -40,9 +39,9 @@ function Name({ text, query, on, whole = false }) {
     at += part.length
   }
   return (
-    <span style={{ flex: 1, minWidth: 0, fontFamily: MONO, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+    <span style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       {pieces.map((p, i) => (
-        <span key={i} style={{ fontWeight: p.first ? 400 : 600, color: p.hit ? BLUE : p.first ? '#8a847e' : on ? INK : '#d6d1cb' }}>{p.text}</span>
+        <span key={i} style={{ fontWeight: p.first ? 500 : 700, color: p.first ? '#b8b2ab' : INK, textDecoration: p.hit ? `underline 2px ${BLUE}` : 'none', textUnderlineOffset: 3 }}>{p.text}</span>
       ))}
     </span>
   )
@@ -120,9 +119,9 @@ export default function PlayerSearch({ profile }) {
         <span title="Press / to search" style={{ fontFamily: MONO, fontSize: 10, color: '#b8b2ab', border: '1px solid #6b655f', padding: '0 5px', marginRight: 7 }}>/</span>
       </div>
       {showing && (
-        // Hangs off the field as one white-framed block. Type carries it: names in the
-        // mono face, first name light and the rest heavier, the typed letters in blue.
-        // Teams come first, ruled off from the players.
+        // Hangs off the field as one white-framed block: names with the first name lighter
+        // and the rest bold, the typed letters underlined in blue. Teams come first, ruled
+        // off from the players.
         <div role="listbox" style={{ position: 'absolute', right: 0, top: '100%', marginTop: -1, width: '100%', zIndex: 20, background: PAPER, border: `1px solid ${INK}`, boxShadow: '0 14px 32px rgba(0,0,0,.55)', padding: '4px 0' }}>
           {results.map((r, i) => {
             const on = i === active
@@ -141,15 +140,12 @@ export default function PlayerSearch({ profile }) {
                     <span style={{ width: 28, height: 28, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <img src={`/logos/color/${r.team.team}.png`} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
                     </span>
-                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <Name text={r.team.name} query={query} on={on} whole />
-                      <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.08em', color: '#6b655f' }}>{r.current ? 'CURRENT TEAM' : `OPENS ${lastName(r.fit.player.name).toUpperCase()}`}</span>
-                    </span>
+                    <Name text={r.team.name} query={query} whole />
                   </>
                 ) : (
                   <>
                     <Thumb player={r.player} />
-                    <Name text={r.player.name} query={query} on={on} />
+                    <Name text={r.player.name} query={query} />
                   </>
                 )}
                 <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: on ? INK : '#6b655f', flex: 'none' }}>{r.team ? r.team.team : r.player.team}</span>

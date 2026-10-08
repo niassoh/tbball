@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { fetchPlayers, headshotUrl, loadTeams } from '../api.js'
 import { MONO } from '../lib/format.js'
 import { matchParts, searchPlayers, searchTeams } from '../lib/search.js'
-import { TEAM_COLORS } from '../lib/teams.js'
 import { bestFit, depthSlot } from '../lib/depth.js'
 import TeamInitials from './TeamInitials.jsx'
 
@@ -11,20 +10,18 @@ const MAX = 8
 const MAX_TEAMS = 3
 const INK = '#ece8e3'
 const PAPER = '#1f1d1c'
+const BLUE = '#8fb0e6'
 // Same charcoal the portraits sit on elsewhere (search page thumbnails).
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 const lastName = name => name.split(' ').slice(1).join(' ') || name
-const teamTone = team => {
-  const c = TEAM_COLORS[team]
-  return c === '#000000' ? '#c4ced4' : c || '#6b655f'
-}
-const small = { fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em' }
 
-// A round headshot ringed in the player's team colour, like the lineup tiles.
-function Thumb({ player }) {
+// Results sit back in muted greyscale; the active row's picture comes up to colour.
+const muted = on => ({ filter: on ? 'none' : 'grayscale(1) brightness(.6)', transition: 'filter .15s' })
+
+function Thumb({ player, on }) {
   const [failed, setFailed] = useState(false)
   return (
-    <span style={{ width: 26, height: 26, flex: 'none', overflow: 'hidden', borderRadius: '50%', border: `1.5px solid color-mix(in srgb, ${teamTone(player.team)} 55%, #544f4b)`, background: PORTRAIT_BG, display: 'flex' }}>
+    <span style={{ width: 28, height: 28, flex: 'none', overflow: 'hidden', borderRadius: '50%', background: PORTRAIT_BG, display: 'flex', ...muted(on) }}>
       {player.headshot && !failed
         ? <img src={headshotUrl(player.slug, 100, player.headshotVersion, player.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 22%' }} />
         : <TeamInitials name={player.name} team={player.team} fontSize={9} />}
@@ -32,21 +29,23 @@ function Thumb({ player }) {
   )
 }
 
-// The typed text picked out of a name: bright and heavy, the rest quieter.
+// A name in caps: the first name light, the rest heavy, and the typed letters in blue.
 function Name({ text, query, on }) {
-  const [before, match, after] = matchParts(text, query)
+  const split = text.indexOf(' ') + 1
+  const pieces = []
+  let at = 0
+  for (const [part, hit] of matchParts(text, query).map((part, i) => [part, i === 1])) {
+    // Cut each piece where the first name ends, so its weight can change there.
+    for (const [a, b] of [[at, Math.min(at + part.length, split)], [Math.max(at, split), at + part.length]]) {
+      if (b > a) pieces.push({ text: text.slice(a, b), hit, first: a < split })
+    }
+    at += part.length
+  }
   return (
-    <span style={{ flex: 1, minWidth: 0, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: on ? '#4a4643' : '#a8a29c', fontWeight: 500 }}>
-      {before}<span style={{ color: on ? PAPER : INK, fontWeight: 800 }}>{match}</span>{after}
-    </span>
-  )
-}
-
-// The team code with a square of its colour.
-function Code({ team, on }) {
-  return (
-    <span style={{ ...small, display: 'inline-flex', alignItems: 'center', gap: 5, color: on ? PAPER : '#8a847e', flex: 'none' }}>
-      <span style={{ width: 7, height: 7, background: teamTone(team), outline: `1px solid ${on ? '#a8a29c' : '#544f4b'}` }} />{team}
+    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, letterSpacing: '.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      {pieces.map((p, i) => (
+        <span key={i} style={{ fontWeight: p.first ? 400 : 800, color: p.hit ? BLUE : p.first ? '#8a847e' : on ? INK : '#b8b2ab' }}>{p.text}</span>
+      ))}
     </span>
   )
 }
@@ -123,54 +122,42 @@ export default function PlayerSearch({ profile }) {
         <span title="Press / to search" style={{ fontFamily: MONO, fontSize: 10, color: '#b8b2ab', border: '1px solid #6b655f', padding: '0 5px', marginRight: 7 }}>/</span>
       </div>
       {showing && (
-        // Hangs off the field as one block: white frame, a section label over teams and
-        // players, numbered rows with the typed text picked out, the active row inverted,
-        // and the keys along the bottom.
-        <div role="listbox" style={{ position: 'absolute', right: 0, top: '100%', marginTop: -1, width: '100%', zIndex: 20, background: PAPER, border: `1px solid ${INK}`, boxShadow: '0 14px 32px rgba(0,0,0,.55)' }}>
-          {[['TEAMS', teamRows], ['PLAYERS', playerRows]].filter(([, rows]) => rows.length).map(([title, rows]) => (
-            <div key={title}>
-              <div style={{ ...small, display: 'flex', justifyContent: 'space-between', color: '#8a847e', padding: '6px 10px 5px', borderBottom: '1px solid #3d3a37', background: '#1a1918' }}>
-                <span>{title}</span><span>{rows.length}</span>
-              </div>
-              {rows.map(r => {
-                const i = results.indexOf(r)
-                const on = i === active
-                return (
-                  <button
-                    key={r.key}
-                    role="option"
-                    aria-selected={on}
-                    onMouseDown={e => { e.preventDefault(); go(r) }}
-                    onMouseEnter={() => setActive(i)}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', border: 'none', borderBottom: '1px solid #2f2c2a', background: on ? INK : 'transparent', color: on ? PAPER : INK, textAlign: 'left', cursor: 'pointer' }}
-                  >
-                    <span style={{ ...small, width: 14, color: on ? '#6b655f' : '#544f4b', flex: 'none' }}>{String(i + 1).padStart(2, '0')}</span>
-                    {r.team ? (
-                      <>
-                        <span style={{ width: 26, height: 26, flex: 'none', borderRadius: '50%', border: `1.5px solid color-mix(in srgb, ${teamTone(r.team.team)} 55%, #544f4b)`, background: PORTRAIT_BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <img src={`/logos/color/${r.team.team}.png`} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.team.name}</span>
-                          <span style={{ ...small, fontSize: 8, color: on ? '#6b655f' : '#8a847e' }}>{r.current ? 'CURRENT TEAM' : `OPENS ${lastName(r.fit.player.name).toUpperCase()}`}</span>
-                        </span>
-                        <Code team={r.team.team} on={on} />
-                      </>
-                    ) : (
-                      <>
-                        <Thumb player={r.player} />
-                        <Name text={r.player.name} query={query} on={on} />
-                        {r.player.team && <Code team={r.player.team} on={on} />}
-                      </>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          ))}
-          <div style={{ ...small, fontSize: 8, display: 'flex', gap: 12, color: '#6b655f', padding: '6px 10px' }}>
-            <span>↑↓ MOVE</span><span>↵ OPEN</span><span>ESC CLOSE</span>
-          </div>
+        // Hangs off the field as one white-framed block. Type carries it: names in caps,
+        // first name light and the rest heavy, the typed letters in blue; pictures stay
+        // grey until their row is active. Teams come first, ruled off from the players.
+        <div role="listbox" style={{ position: 'absolute', right: 0, top: '100%', marginTop: -1, width: '100%', zIndex: 20, background: PAPER, border: `1px solid ${INK}`, boxShadow: '0 14px 32px rgba(0,0,0,.55)', padding: '4px 0' }}>
+          {results.map((r, i) => {
+            const on = i === active
+            const lastTeam = r.team && !(results[i + 1] && results[i + 1].team) && i < results.length - 1
+            return (
+              <button
+                key={r.key}
+                role="option"
+                aria-selected={on}
+                onMouseDown={e => { e.preventDefault(); go(r) }}
+                onMouseEnter={() => setActive(i)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', border: 'none', borderBottom: lastTeam ? '1px solid #544f4b' : 'none', marginBottom: lastTeam ? 4 : 0, background: on ? '#2a2826' : 'transparent', color: INK, textAlign: 'left', cursor: 'pointer' }}
+              >
+                {r.team ? (
+                  <>
+                    <span style={{ width: 28, height: 28, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', ...muted(on) }}>
+                      <img src={`/logos/color/${r.team.team}.png`} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Name text={`the ${r.team.name}`} query={query} on={on} />
+                      <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.08em', color: '#6b655f' }}>{r.current ? 'CURRENT TEAM' : `OPENS ${lastName(r.fit.player.name).toUpperCase()}`}</span>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Thumb player={r.player} on={on} />
+                    <Name text={r.player.name} query={query} on={on} />
+                  </>
+                )}
+                <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: on ? INK : '#6b655f', flex: 'none' }}>{r.team ? r.team.team : r.player.team}</span>
+              </button>
+            )
+          })}
         </div>
       )}
     </div>

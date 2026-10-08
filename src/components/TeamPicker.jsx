@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { loadTeams } from '../api.js'
 import { MONO } from '../lib/format.js'
 import { bestFit, depthSlot, slotName } from '../lib/depth.js'
+import { asset } from '../lib/static.js'
 
 const COLS = 6
 const CELL = 46
@@ -76,7 +77,7 @@ export default function TeamPicker({ profile: p, anchor, onClose }) {
               aria-label={current ? `${t.name} (current team)` : fit ? `${t.name}: open ${fit.player.name}` : `${t.name}: no player`}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, border: 'none', background: '#1f1d1c', boxShadow: current ? 'inset 0 0 0 2px #ece8e3' : 'none', cursor: current || !fit ? 'default' : 'pointer', opacity: current || fit ? 1 : 0.3 }}
             >
-              <img className="team-cell-logo" src={`/logos/color/${t.team}.png`} alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
+              <img className="team-cell-logo" src={asset(`logos/color/${t.team}.png`)} alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
             </button>
           )
         })}

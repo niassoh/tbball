@@ -6,6 +6,7 @@ import TeamInitials from './TeamInitials.jsx'
 import TeamPicker from './TeamPicker.jsx'
 import LineupPanel from './LineupPanel.jsx'
 import { TEAM_COLORS } from '../lib/teams.js'
+import { asset } from '../lib/static.js'
 
 const card = { border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }
 const INJURY = { OUT: '#fa962a', DTD: '#e6c27a' }
@@ -115,7 +116,7 @@ export default function BioCard({ profile: p, loading = false }) {
   return (
     <div ref={cardRef} style={card}>
       <div className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid #ece8e3', overflow: 'hidden' }}>
-        <img className="hero-bokeh" src="/banner-bokeh.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
+        <img className="hero-bokeh" src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
         <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={p.team} />
         {/* A soft overhead light along the top-right hides the seam where the headshot box begins. */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 42% 60% at 84% -8%, rgba(236,232,227,.16), rgba(236,232,227,.06) 45%, transparent 75%)' }} />
@@ -124,7 +125,7 @@ export default function BioCard({ profile: p, loading = false }) {
             // The real logo, muted at rest (index.css); full colour on hover.
             <div style={{ paddingRight: 10, borderRight: '1px solid #6b655f', margin: '-5px 10px -5px 0' }}>
               <button type="button" className="team-switch" aria-label={`${p.teamName || p.team}: switch team`} {...switcher} style={{ display: 'block', padding: 0, margin: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
-                <img className="hero-logo" src={`/logos/color/${p.team}.png`} alt={p.team} style={{ display: 'block', width: 44, height: 44, objectFit: 'contain' }} />
+                <img className="hero-logo" src={asset(`logos/color/${p.team}.png`)} alt={p.team} style={{ display: 'block', width: 44, height: 44, objectFit: 'contain' }} />
               </button>
             </div>
           )}

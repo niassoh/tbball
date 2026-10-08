@@ -29,6 +29,27 @@ npm run build
 
 `VITE_API_BASE` defaults to `http://localhost:8080`.
 
+## Deploy (GitHub Pages, static)
+
+The public site has no server: thinking-bball's `npm run export:static` writes the API's
+documents as files into `public/` (`api/profile/<slug>.json`, `api/profiles.json`,
+`api/teams.json`, `api/distribution/<stat key>.json`, `api/lineups-league.json`, and the
+100/400px headshots under `assets/players/`). A build with `VITE_STATIC=1` reads those
+instead of the API, under the base path `VITE_BASE`.
+
+```sh
+# in thinking-bball, after a data pull
+npm run export:static -- --out ../thinking-bball-profile/public
+# here: preview the static build at its Pages path
+VITE_STATIC=1 VITE_BASE=/thinking-bball-profile/ npm run build && cp dist/index.html dist/404.html
+npx vite preview --base /thinking-bball-profile/
+```
+
+Pushing `main` runs `.github/workflows/pages.yml`, which tests, builds and publishes to
+https://niassoh.github.io/thinking-bball-profile/. `dist/404.html` is a copy of the app so
+deep links (`/player/<slug>`) work on Pages. The daily-refresh plan is in thinking-bball
+`docs/daily-pipeline-requirements.md`.
+
 ## Layout
 
 - `src/lib/` — pure logic ported from the design (percentile colors, chart geometry, shot-zone map) and season-span averages (`span.js`: minutes-weighted, shooting % attempts-weighted; used by the stat tables' drag-to-average and career rows); unit tested.

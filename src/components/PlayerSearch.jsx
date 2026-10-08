@@ -5,6 +5,7 @@ import { MONO } from '../lib/format.js'
 import { matchParts, searchPlayers, searchTeams } from '../lib/search.js'
 import { bestFit, depthSlot } from '../lib/depth.js'
 import TeamInitials from './TeamInitials.jsx'
+import { asset } from '../lib/static.js'
 
 const MAX = 8
 const MAX_TEAMS = 3
@@ -138,7 +139,7 @@ export default function PlayerSearch({ profile }) {
                 {r.team ? (
                   <>
                     <span style={{ width: 28, height: 28, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img src={`/logos/color/${r.team.team}.png`} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                      <img src={asset(`logos/color/${r.team.team}.png`)} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
                     </span>
                     <Name text={r.team.name} query={query} whole />
                   </>

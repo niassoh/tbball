@@ -194,7 +194,7 @@ function Unit({ title, unit, size, self, team, accent, empty, style, onTip }) {
 const mateGrid = { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 44px 44px 44px 40px', columnGap: 6, alignItems: 'baseline' }
 
 // The bio card's lineup module. First his most-shared teammates, with the team's net
-// with both on (WITH) and with him on and the teammate off (APART); Δ = APART − WITH,
+// with both on (ON) and with him on and the teammate off (OFF); Δ = OFF − ON,
 // how he does without that teammate, so one he leans on reads negative (orange). Then
 // side by side his best and his most-used three-man unit as headshot tiles, switchable
 // to five-man units (best: over the league's minutes floor, which the API sets); each
@@ -228,11 +228,10 @@ export default function LineupPanel({ profile: p, accent }) {
         <>
           <div>
             <div style={{ ...mateGrid, ...label, paddingBottom: 5, borderBottom: EDGE }}>
-              <span>TEAMMATES</span>
-              <span style={{ textAlign: 'right' }}>SHARED</span>
-              <span style={{ textAlign: 'right' }}>WITH</span>
-              <span style={{ textAlign: 'right' }}>APART</span>
-              <span title="APART − WITH: how he does without this teammate" style={{ textAlign: 'right' }}>Δ</span>
+              <span style={{ gridColumn: '1 / 3', textAlign: 'right' }}>MINUTES WITH</span>
+              <span title="Team net with both on" style={{ textAlign: 'right' }}>ON</span>
+              <span title="Team net with him on and the teammate off" style={{ textAlign: 'right' }}>OFF</span>
+              <span title="OFF − ON: how he does without this teammate" style={{ textAlign: 'right' }}>Δ</span>
             </div>
             {L.mates.map((m, i) => {
               const d = m.together.net !== null && m.apart.net !== null ? m.apart.net - m.together.net : null

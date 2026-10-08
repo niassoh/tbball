@@ -107,7 +107,7 @@ const SS = 92
 // falls), and a vertical swarm of every such unit's net with this one marked. It stays
 // open while the pointer is over it, and moving up and down the swarm reads out the net
 // and league rank at that height. The league pool is fetched on the first hover.
-function RankTip({ unit, kind, size, floor, self, onHover }) {
+function RankTip({ unit, size, floor, self, onHover }) {
   const [league, setLeague] = useState(null)
   const [probe, setProbe] = useState(null)
   // Opens above the number; when that would run off the top of the window, below it.
@@ -133,10 +133,7 @@ function RankTip({ unit, kind, size, floor, self, onHover }) {
   const section = { borderTop: RULE, paddingTop: 7 }
   return (
     <div ref={box} role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', right: -6, ...(below ? { top: 'calc(100% + 8px)' } : { bottom: 'calc(100% + 8px)' }), zIndex: 20, width: TIP_W, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: TIP_PAD, display: 'flex', flexDirection: 'column', gap: 7, fontFamily: 'Montserrat,sans-serif', fontWeight: 400, lineHeight: 'normal', textAlign: 'left', color: INK, cursor: 'default' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span style={{ ...label, fontSize: 8 }}>{kind} {size}-MAN</span>
-        <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3 }}>{names}</span>
-      </div>
+      <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.3 }}>{names}</span>
       <div style={{ ...section, display: 'flex', flexDirection: 'column', gap: 4 }}>
         {r ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -263,8 +260,8 @@ export default function LineupPanel({ profile: p, accent }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+ MINUTES</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} kind="BEST" size={size} floor={floor} self={L.self} onHover={hover('best')} />} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
-            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} kind="MOST USED" size={size} floor={floor} self={L.self} onHover={hover('used')} />} style={{ padding: '8px 0 9px 12px' }} />
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+ MINUTES</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} self={L.self} onHover={hover('best')} />} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
+            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} self={L.self} onHover={hover('used')} />} style={{ padding: '8px 0 9px 12px' }} />
           </div>
         </>
       )}

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { headshotUrl, loadTeams } from '../api.js'
 import { MONO } from '../lib/format.js'
@@ -78,8 +78,42 @@ export default function BioCard({ profile: p, loading = false }) {
   const open = e => setPicking(picking ? null : e.currentTarget)
   const switcher = { onClick: open, onPointerEnter: () => { loadTeams().catch(() => {}) }, title: 'Switch team' }
 
+  // The depth chart's header rule lines up with the percentile card's DEFENSE rule
+  // beside it: the space above the chart is measured to put the two rules level, and
+  // re-measured whenever either card resizes. When the cards stack (narrow screens),
+  // the chart just sits on the card's bottom edge.
+  const cardRef = useRef(null)
+  const depthRef = useRef(null)
+  const ruleRef = useRef(null)
+  const [depthGap, setDepthGap] = useState(null)
+  useLayoutEffect(() => {
+    const box = cardRef.current
+    const target = document.querySelector('[data-align-rule="defense"]')
+    if (!box || !target) return
+    // Layout positions (offsets), not on-screen boxes: the cards' swap-in animation
+    // shifts the boxes while it runs.
+    const top = el => {
+      let y = 0
+      for (let e = el; e; e = e.offsetParent) y += e.offsetTop + (e.offsetParent ? e.offsetParent.clientTop : 0)
+      return y
+    }
+    const align = () => {
+      const depth = depthRef.current
+      const rule = ruleRef.current
+      if (!depth || !rule || target.getBoundingClientRect().left < box.getBoundingClientRect().right) return setDepthGap(null)
+      const prev = depth.previousElementSibling
+      const above = top(prev) + prev.offsetHeight
+      const ruleInDepth = top(rule) + rule.offsetHeight - top(depth)
+      setDepthGap(Math.max(0, top(target) + target.offsetHeight - above - ruleInDepth))
+    }
+    align()
+    const ro = new ResizeObserver(align)
+    for (const el of [box.parentElement, ...box.parentElement.children, target.parentElement.parentElement]) ro.observe(el)
+    return () => ro.disconnect()
+  }, [p.slug])
+
   return (
-    <div style={card}>
+    <div ref={cardRef} style={card}>
       <div className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid #ece8e3', overflow: 'hidden' }}>
         <img className="hero-bokeh" src="/banner-bokeh.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
         <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={p.team} />
@@ -112,10 +146,8 @@ export default function BioCard({ profile: p, loading = false }) {
       <LineupPanel profile={p} accent={accent} />
 
       {p.depth && (
-        // marginTop auto pins the depth chart to the card's bottom edge when the row's
-        // taller cards leave spare height above it.
-        <div style={{ marginTop: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #544f4b', paddingBottom: 5 }}>
+        <div ref={depthRef} style={{ marginTop: depthGap === null ? 'auto' : depthGap, padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
+          <div ref={ruleRef} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #544f4b', paddingBottom: 5 }}>
             <button type="button" className="team-switch" {...switcher} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0, background: 'none', border: 'none', color: '#ece8e3', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>
               {(p.teamName || p.team).toUpperCase()}
               <span aria-hidden="true" style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e' }}>▾</span>

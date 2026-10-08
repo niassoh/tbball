@@ -78,7 +78,7 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
           const rows = labels.map(l => [l, p.stats[l]]).filter(([, s]) => s && s.vals[kp])
           return (
             <div key={name} style={{ display: 'flex', flexDirection: 'column' }}>
-              <a href="#tabs" onClick={() => onPickGroup(tab)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0 4px', marginBottom: 3, color: '#ece8e3', borderBottom: '1px solid #6b655f' }}>
+              <a href="#tabs" onClick={() => onPickGroup(tab)} data-align-rule={tab === 'defense' ? 'defense' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0 4px', marginBottom: 3, color: '#ece8e3', borderBottom: '1px solid #6b655f' }}>
                 <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>{name}</span>
                 <span style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e' }}>BY SEASON ↓</span>
               </a>

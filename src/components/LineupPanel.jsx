@@ -188,10 +188,10 @@ function RankTip({ unit, size, floor, onHover }) {
 // One unit he plays in: him and his teammates in it as tiles, then its net and minutes
 // (and its share of his minutes when it's his most-used). Without a unit over the
 // floor, the same frame shows empty tiles. The row keeps one height for both sizes.
-function Unit({ title, unit, size, self, team, accent, empty, style, onTip, tip }) {
+function Unit({ title, unit, size, self, team, accent, empty, className, onTip, tip }) {
   const small = size === 5
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 11, minWidth: 0, ...style }}>
+    <div className={className} style={{ display: 'flex', flexDirection: 'column', gap: 11, minWidth: 0 }}>
       <span style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>{title}</span>
       <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
@@ -264,10 +264,10 @@ export default function LineupPanel({ profile: p, accent }) {
             })}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+ MINUTES</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} onHover={hover('best')} />} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
-            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} onHover={hover('used')} />} style={{ padding: '8px 0 9px 12px' }} />
-          </div>
+          <div className="lineup-units-wrap"><div className="lineup-units">
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+ MINUTES</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} onHover={hover('best')} />} className="lineup-unit-a" />
+            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} onHover={hover('used')} />} className="lineup-unit-b" />
+          </div></div>
         </>
       )}
 

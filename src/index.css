@@ -24,6 +24,17 @@ html { scroll-behavior: smooth; }
 .lineup-tile > :first-child { filter: saturate(.45) brightness(.88); transition: filter .2s; }
 a:hover > .lineup-tile { border-color: #ece8e3 !important; }
 a:hover > .lineup-tile > :first-child { filter: none; }
+/* Lineup units: best and most used side by side, stacked when the card is too narrow for
+   both (phones). Keyed to the card's width, not the window's. */
+.lineup-units-wrap { container-type: inline-size; }
+.lineup-units { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); border-bottom: 1px solid #3d3a37; }
+.lineup-unit-a { padding: 8px 12px 9px 0; border-right: 1px solid #3d3a37; }
+.lineup-unit-b { padding: 8px 0 9px 12px; }
+@container (max-width: 400px) {
+  .lineup-units { grid-template-columns: minmax(0,1fr); }
+  .lineup-unit-a { padding: 8px 0 9px; border-right: none; border-bottom: 1px solid #3d3a37; }
+  .lineup-unit-b { padding: 8px 0 9px; }
+}
 
 /* Profile header hover: full-colour logo, a team-colour bar across the rule, a slight
    push-in on the headshot and brighter bokeh, and the draft line easing in. */

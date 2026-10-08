@@ -89,15 +89,18 @@ function Net({ unit, onTip }) {
   )
 }
 
-const SW = 400
-const SH = 64
+// The rank tooltip's swarm: net runs up the value axis (SL tall), dots spread across
+// it (SS wide), with an AXIS-wide gutter on the left for the scale.
+const SL = 176
+const SS = 96
+const AXIS = 26
 
-// The rank tooltip: the unit, its league rank among units of its size over the minutes
-// floor (coloured blue to orange by where it falls), and a swarm of every such unit's
-// net with this one marked. It stays open while the pointer is over it, and hovering
-// the swarm reads out the net and league rank under the pointer. The league pool is
-// fetched on the first hover.
-function RankTip({ unit, kind, size, floor, self, onHover }) {
+// The rank tooltip, a compact popover over the hovered unit: the unit, its league rank
+// among units of its size over the minutes floor (coloured blue to orange by where it
+// falls), and a vertical swarm of every such unit's net with this one marked. It stays
+// open while the pointer is over it, and moving up and down the swarm reads out the net
+// and league rank at that height. The league pool is fetched on the first hover.
+function RankTip({ unit, kind, size, floor, self, onHover, align }) {
   const [league, setLeague] = useState(null)
   const [probe, setProbe] = useState(null)
   useEffect(() => {
@@ -106,62 +109,60 @@ function RankTip({ unit, kind, size, floor, self, onHover }) {
     return () => { live = false }
   }, [])
   const nets = league ? (size === 5 ? league.five : league.trio) : null
-  const sw = useMemo(() => nets && swarm(nets, { width: SW, height: SH }), [nets])
+  const sw = useMemo(() => nets && swarm(nets, { width: SL, height: SS, r: 1.5 }), [nets])
+  const yOf = v => SL - sw.x(v)
   const r = unit.rank
   const tone = r ? rankColor(rankPct(r.rank, r.of)) : FAINT
   const names = [self, ...unit.mates].map(m => (m.name ? lastName(m.name) : '?')).join(' · ')
   const median = nets ? nets[Math.floor(nets.length / 2)] : null
+  const tick = { fontFamily: MONO, fontSize: 8, fill: DIM }
   return (
-    <div role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', left: 0, right: 0, bottom: 'calc(100% + 6px)', zIndex: 20, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, ...label }}>
-        <span>{kind} {size}-MAN</span>
-        <span>{floor}+ MIN · NET / 100</span>
-      </div>
-      <span style={{ fontSize: 12, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{names}</span>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, borderTop: RULE, paddingTop: 8 }}>
+    <div role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', [align]: 0, bottom: 'calc(100% + 4px)', zIndex: 20, width: 214, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ ...label, fontSize: 8.5 }}>{kind} {size}-MAN · {floor}+ MIN</span>
+      <span style={{ fontSize: 11.5, fontWeight: 700, color: INK, lineHeight: 1.3 }}>{names}</span>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, borderTop: RULE, paddingTop: 8 }}>
         {r ? (
           <>
-            <span style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, lineHeight: 1, color: tone }}>{ord(r.rank).toUpperCase()}</span>
-            <span style={{ ...label, fontSize: 10 }}>OF {r.of.toLocaleString()} {size}-MAN UNITS</span>
-            <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', color: `color-mix(in srgb, ${tone} 55%, ${INK})`, background: `color-mix(in srgb, ${tone} 18%, transparent)`, border: `1px solid color-mix(in srgb, ${tone} 60%, transparent)`, padding: '3px 7px' }}>{rankLabel(r.rank, r.of)}</span>
+            <span style={{ fontFamily: MONO, fontSize: 20, fontWeight: 700, lineHeight: 1, color: tone }}>{ord(r.rank).toUpperCase()}</span>
+            <span style={{ ...label, fontSize: 9 }}>OF {r.of.toLocaleString()}</span>
+            <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.06em', color: `color-mix(in srgb, ${tone} 55%, ${INK})`, background: `color-mix(in srgb, ${tone} 18%, transparent)`, border: `1px solid color-mix(in srgb, ${tone} 60%, transparent)`, padding: '2px 6px' }}>{rankLabel(r.rank, r.of)}</span>
           </>
         ) : (
           <>
-            <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, lineHeight: 1, color: FAINT }}>UNRANKED</span>
-            <span style={{ ...label, fontSize: 10 }}>UNDER {floor} MIN TOGETHER</span>
+            <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, lineHeight: 1, color: FAINT }}>UNRANKED</span>
+            <span style={{ ...label, fontSize: 9 }}>UNDER {floor} MIN</span>
           </>
         )}
       </div>
       {sw ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <svg viewBox={`0 -6 ${SW} ${SH + 12}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible', cursor: 'crosshair' }}
-            onMouseMove={e => {
-              const box = e.currentTarget.getBoundingClientRect()
-              const v = sw.value(((e.clientX - box.left) / box.width) * SW)
-              setProbe({ v, rank: nets.filter(n => n > v).length + 1 })
-            }}
-            onMouseLeave={() => setProbe(null)}>
-            <rect x={0} y={-6} width={SW} height={SH + 12} fill="transparent" />
-            <line x1={sw.x(0)} x2={sw.x(0)} y1={-4} y2={SH + 4} stroke={FAINT} strokeDasharray="2 3" />
-            {sw.dots.map((d, i) => <circle key={i} cx={d.x} cy={d.y} r={1.6} fill={rankColor(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.6} />)}
-            <line x1={sw.x(unit.net)} x2={sw.x(unit.net)} y1={-6} y2={SH + 6} stroke={INK} strokeWidth={1.5} />
-            <circle cx={sw.x(unit.net)} cy={SH / 2} r={4.5} fill={tone} stroke={INK} strokeWidth={1.5} />
-            {probe && <line x1={sw.x(probe.v)} x2={sw.x(probe.v)} y1={-6} y2={SH + 6} stroke={DIM} strokeDasharray="1 2" pointerEvents="none" />}
-          </svg>
-          <div style={{ position: 'relative', height: 10, ...label, fontSize: 8 }}>
-            <span style={{ position: 'absolute', left: 0 }}>{signed(sw.lo, 0)}</span>
-            <span style={{ position: 'absolute', left: `${(sw.x(0) / SW) * 100}%`, transform: 'translateX(-50%)' }}>0</span>
-            <span style={{ position: 'absolute', right: 0 }}>{signed(sw.hi, 0)}</span>
-          </div>
-        </div>
+        <svg width={AXIS + SS + 40} height={SL + 12} viewBox={`${-AXIS} -6 ${AXIS + SS + 40} ${SL + 12}`} style={{ display: 'block', overflow: 'visible', cursor: 'crosshair', alignSelf: 'center' }}
+          onMouseMove={e => {
+            const v = sw.value(SL - (e.clientY - e.currentTarget.getBoundingClientRect().top - 6))
+            setProbe({ v, rank: nets.filter(n => n > v).length + 1 })
+          }}
+          onMouseLeave={() => setProbe(null)}>
+          <rect x={-AXIS} y={-6} width={AXIS + SS + 40} height={SL + 12} fill="transparent" />
+          {[sw.hi, 0, sw.lo].map(v => <text key={v} x={-6} y={yOf(v) + 3} textAnchor="end" style={tick}>{v ? signed(v, 0) : '0'}</text>)}
+          <line x1={0} x2={SS} y1={yOf(0)} y2={yOf(0)} stroke={FAINT} strokeDasharray="2 3" />
+          {sw.dots.map((d, i) => <circle key={i} cx={d.y} cy={SL - d.x} r={1.5} fill={rankColor(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.7} />)}
+          <line x1={-2} x2={SS + 2} y1={yOf(unit.net)} y2={yOf(unit.net)} stroke={INK} strokeWidth={1.25} />
+          <circle cx={SS / 2} cy={yOf(unit.net)} r={4} fill={tone} stroke={INK} strokeWidth={1.5} />
+          <text x={SS + 6} y={yOf(unit.net) + 3} style={{ ...tick, fill: INK, fontWeight: 700, fontSize: 9 }}>{net(unit.net)}</text>
+          {probe && (
+            <>
+              <line x1={-2} x2={SS + 2} y1={yOf(probe.v)} y2={yOf(probe.v)} stroke={DIM} strokeDasharray="1 2" pointerEvents="none" />
+              <text x={SS + 6} y={yOf(probe.v) + 3} style={tick} pointerEvents="none">{signed(probe.v)}</text>
+            </>
+          )}
+        </svg>
       ) : (
-        <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', ...label, color: FAINT }}>LOADING LEAGUE…</div>
+        <div style={{ height: SL + 12, display: 'flex', alignItems: 'center', justifyContent: 'center', ...label, color: FAINT }}>LOADING LEAGUE…</div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, ...label, fontSize: 8.5 }}>
-        <span><span style={{ color: verdict(unit.net), fontWeight: 700 }}>{net(unit.net)}</span> NET · {mins(unit.minutes)} MIN</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, ...label, fontSize: 8 }}>
+        <span>{mins(unit.minutes)} MIN</span>
         {probe
-          ? <span>AT <span style={{ color: INK, fontWeight: 700 }}>{signed(probe.v)}</span> · <span style={{ color: rankColor(rankPct(probe.rank, nets.length)), fontWeight: 700 }}>{ord(probe.rank).toUpperCase()}</span> OF {nets.length.toLocaleString()}</span>
-          : median !== null && <span>LEAGUE MEDIAN {signed(median)}</span>}
+          ? <span>AT {signed(probe.v)} · <span style={{ color: rankColor(rankPct(probe.rank, nets.length)), fontWeight: 700 }}>{ord(probe.rank).toUpperCase()}</span></span>
+          : median !== null && <span>MEDIAN {signed(median)}</span>}
       </div>
     </div>
   )
@@ -170,10 +171,11 @@ function RankTip({ unit, kind, size, floor, self, onHover }) {
 // One unit he plays in: him and his teammates in it as tiles, then its net and minutes
 // (and its share of his minutes when it's his most-used). Without a unit over the
 // floor, the same frame shows empty tiles. The row keeps one height for both sizes.
-function Unit({ title, unit, size, self, team, accent, empty, style, onTip }) {
+function Unit({ title, unit, size, self, team, accent, empty, style, onTip, tip }) {
   const small = size === 5
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 11, minWidth: 0, ...style }}>
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 11, minWidth: 0, ...style }}>
+      {tip}
       <span style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>{title}</span>
       <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
@@ -213,7 +215,6 @@ export default function LineupPanel({ profile: p, accent }) {
   }
   useEffect(() => () => clearTimeout(closing.current), [])
   const unitProps = { size, self: L && L.self, team: L && L.team, accent }
-  const tipUnit = tip === 'best' ? best : tip === 'used' ? used : null
 
   return (
     <div key={`lineups-${p.slug}`} className="swap-in" style={{ padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 10, '--team': accent || INK }}>
@@ -247,10 +248,9 @@ export default function LineupPanel({ profile: p, accent }) {
             })}
           </div>
 
-          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+ MINUTES</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
-            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} style={{ padding: '8px 0 9px 12px' }} />
-            {tipUnit && <RankTip unit={tipUnit} kind={tip === 'best' ? 'BEST' : 'MOST USED'} size={size} floor={floor} self={L.self} onHover={hover(tip)} />}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', borderBottom: RULE }}>
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+ MINUTES</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} kind="BEST" size={size} floor={floor} self={L.self} onHover={hover('best')} align="left" />} style={{ padding: '8px 12px 9px 0', borderRight: RULE }} />
+            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} kind="MOST USED" size={size} floor={floor} self={L.self} onHover={hover('used')} align="right" />} style={{ padding: '8px 0 9px 12px' }} />
           </div>
         </>
       )}

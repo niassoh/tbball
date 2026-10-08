@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { searchPlayers, searchTeams } from './search.js'
+import { matchParts, searchPlayers, searchTeams } from './search.js'
 
 const teams = [{ team: 'LAC', name: 'Clippers' }, { team: 'LAL', name: 'Lakers' }, { team: 'PHI', name: '76ers' }, { team: 'ORL', name: 'Magic' }]
 
@@ -22,5 +22,14 @@ describe('top-bar search', () => {
     expect(searchTeams(teams, 'ic', 3).map(t => t.team)).toEqual(['ORL'])
     expect(searchTeams([{ team: 'X', name: 'Magic' }, { team: 'MIA', name: 'Mice' }], 'mi', 3).map(t => t.name)).toEqual(['Mice'])
     expect(searchTeams(teams, 'l', 3)).toEqual([])
+  })
+
+  test('match parts: highlights the typed text, preferring a word start, through diacritics', () => {
+    expect(matchParts('Karl-Anthony Towns', 't')).toEqual(['Karl-Anthony ', 'T', 'owns'])
+    expect(matchParts('Cole Anthony', 'an')).toEqual(['Cole ', 'An', 'thony'])
+    expect(matchParts('Nikola Jokić', 'jokic')).toEqual(['Nikola ', 'Jokić', ''])
+    expect(matchParts('Tyrese Maxey', 'ese')).toEqual(['Tyr', 'ese', ' Maxey'])
+    expect(matchParts('Amen Thompson', 'zz')).toEqual(['Amen Thompson', '', ''])
+    expect(matchParts('Amen Thompson', ' ')).toEqual(['Amen Thompson', '', ''])
   })
 })

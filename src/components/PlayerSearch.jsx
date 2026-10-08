@@ -15,13 +15,10 @@ const BLUE = '#8fb0e6'
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 const lastName = name => name.split(' ').slice(1).join(' ') || name
 
-// Results sit back in muted greyscale; the active row's picture comes up to colour.
-const muted = on => ({ filter: on ? 'none' : 'grayscale(1) brightness(.6)', transition: 'filter .15s' })
-
-function Thumb({ player, on }) {
+function Thumb({ player }) {
   const [failed, setFailed] = useState(false)
   return (
-    <span style={{ width: 28, height: 28, flex: 'none', overflow: 'hidden', borderRadius: '50%', background: PORTRAIT_BG, display: 'flex', ...muted(on) }}>
+    <span style={{ width: 28, height: 28, flex: 'none', overflow: 'hidden', borderRadius: '50%', background: PORTRAIT_BG, display: 'flex' }}>
       {player.headshot && !failed
         ? <img src={headshotUrl(player.slug, 100, player.headshotVersion, player.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 22%' }} />
         : <TeamInitials name={player.name} team={player.team} fontSize={9} />}
@@ -29,9 +26,10 @@ function Thumb({ player, on }) {
   )
 }
 
-// A name in caps: the first name light, the rest heavy, and the typed letters in blue.
-function Name({ text, query, on }) {
-  const split = text.indexOf(' ') + 1
+// A name in the mono face: the first name light, the rest heavier, the typed letters in
+// blue. `whole` sets it all heavy (team names).
+function Name({ text, query, on, whole = false }) {
+  const split = whole ? 0 : text.indexOf(' ') + 1
   const pieces = []
   let at = 0
   for (const [part, hit] of matchParts(text, query).map((part, i) => [part, i === 1])) {
@@ -42,9 +40,9 @@ function Name({ text, query, on }) {
     at += part.length
   }
   return (
-    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, letterSpacing: '.03em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+    <span style={{ flex: 1, minWidth: 0, fontFamily: MONO, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       {pieces.map((p, i) => (
-        <span key={i} style={{ fontWeight: p.first ? 400 : 800, color: p.hit ? BLUE : p.first ? '#8a847e' : on ? INK : '#b8b2ab' }}>{p.text}</span>
+        <span key={i} style={{ fontWeight: p.first ? 400 : 600, color: p.hit ? BLUE : p.first ? '#8a847e' : on ? INK : '#d6d1cb' }}>{p.text}</span>
       ))}
     </span>
   )
@@ -122,9 +120,9 @@ export default function PlayerSearch({ profile }) {
         <span title="Press / to search" style={{ fontFamily: MONO, fontSize: 10, color: '#b8b2ab', border: '1px solid #6b655f', padding: '0 5px', marginRight: 7 }}>/</span>
       </div>
       {showing && (
-        // Hangs off the field as one white-framed block. Type carries it: names in caps,
-        // first name light and the rest heavy, the typed letters in blue; pictures stay
-        // grey until their row is active. Teams come first, ruled off from the players.
+        // Hangs off the field as one white-framed block. Type carries it: names in the
+        // mono face, first name light and the rest heavier, the typed letters in blue.
+        // Teams come first, ruled off from the players.
         <div role="listbox" style={{ position: 'absolute', right: 0, top: '100%', marginTop: -1, width: '100%', zIndex: 20, background: PAPER, border: `1px solid ${INK}`, boxShadow: '0 14px 32px rgba(0,0,0,.55)', padding: '4px 0' }}>
           {results.map((r, i) => {
             const on = i === active
@@ -140,17 +138,17 @@ export default function PlayerSearch({ profile }) {
               >
                 {r.team ? (
                   <>
-                    <span style={{ width: 28, height: 28, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', ...muted(on) }}>
+                    <span style={{ width: 28, height: 28, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <img src={`/logos/color/${r.team.team}.png`} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
                     </span>
                     <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <Name text={`the ${r.team.name}`} query={query} on={on} />
+                      <Name text={r.team.name} query={query} on={on} whole />
                       <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.08em', color: '#6b655f' }}>{r.current ? 'CURRENT TEAM' : `OPENS ${lastName(r.fit.player.name).toUpperCase()}`}</span>
                     </span>
                   </>
                 ) : (
                   <>
-                    <Thumb player={r.player} on={on} />
+                    <Thumb player={r.player} />
                     <Name text={r.player.name} query={query} on={on} />
                   </>
                 )}

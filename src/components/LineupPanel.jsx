@@ -155,8 +155,8 @@ function RankTip({ unit, size, floor, isDefault, self, team, onHover }) {
   useLayoutEffect(() => {
     if (box.current && box.current.getBoundingClientRect().top < 8) setBelow(true)
   }, [])
-  useEffect(() => {
   const { playoffs } = useSeasonType()
+  useEffect(() => {
     let live = true
     loadLineupLeague(playoffs).then(d => live && setLeague(d)).catch(() => {})
     return () => { live = false }

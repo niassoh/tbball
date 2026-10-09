@@ -87,7 +87,7 @@ function MinutesPicker({ value, def, range, onChange, open, setOpen }) {
   const choices = [...new Set([def, ...Array.from({ length: Math.floor((hi - lo) / STEP) + 1 }, (_, i) => lo + i * STEP)])].sort((a, b) => a - b)
   return (
     <span style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(o => !o)} aria-label="Minimum minutes" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'transparent', border: 'none', borderBottom: '1px dotted #8fb0e6', padding: 0, color: INK, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', cursor: 'pointer' }}>
+      <button onClick={() => setOpen(o => !o)} aria-label="Minimum minutes" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'transparent', border: 'none', padding: 0, color: INK, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', cursor: 'pointer' }}>
         {value}+ MIN<span style={{ fontSize: 6.5, color: BLUE }}>▼</span>
       </button>
       {open && (

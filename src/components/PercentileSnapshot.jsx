@@ -91,31 +91,33 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
       </div>
       <div style={{ padding: '8px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {GROUPS.map(([name, tab, labels]) => {
-          const rows = labels.map(l => [l, p.stats[l]]).filter(([, s]) => s && s.vals[kp])
+          // Every stat keeps its row (empty without a value this season), so the card, and
+          // the row of cards with it, keeps one height across seasons and season types.
+          const rows = labels.map(l => [l, p.stats[l]]).filter(([, s]) => s)
           return (
             <div key={name} style={{ display: 'flex', flexDirection: 'column' }}>
               <a href="#tabs" onClick={() => onPickGroup(tab)} data-align-rule={tab === 'defense' ? 'defense' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0 4px', marginBottom: 3, color: '#ece8e3', borderBottom: '1px solid #6b655f' }}>
                 <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>{name}</span>
                 <span style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e' }}>BY SEASON ↓</span>
               </a>
-              {rows.length === 0 && <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', padding: '4px 0' }}>No data this season</span>}
               {rows.map(([label, s]) => {
                 const v = s.vals[kp]
-                const w = Math.max(v.p, 1) + '%'
-                const c = col(v.p)
+                const has = !!v && v.p !== null
+                const w = has ? Math.max(v.p, 1) + '%' : '0%'
+                const c = has ? col(v.p) : '#34312e'
                 return (
                   <div key={label} style={{ ...rowGrid, alignItems: 'center', height: 23, borderBottom: '1px dashed #3d3a37' }}>
                     <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minWidth: 0 }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: '#d6d1cb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: has ? '#d6d1cb' : '#6b655f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
                       <WindowTag stat={s} />
                     </span>
                     <div style={{ position: 'relative', height: 18, display: 'flex', alignItems: 'center' }}>
                       <div style={{ position: 'absolute', left: 0, right: 0, height: 14, background: '#34312e' }} />
                       <div style={{ position: 'absolute', left: 0, height: 14, width: w, background: c, transition: slide(['width', 'background-color']) }} />
                       <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#6b655f' }} />
-                      <div style={{ position: 'absolute', left: w, transform: 'translateX(-50%)', width: 19, height: 19, borderRadius: '50%', background: c, transition: slide(['left', 'background-color']), border: '1.5px solid #ece8e3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8.5, fontWeight: 600, color: '#1f1d1c' }}>{v.p}</div>
+                      <div style={{ position: 'absolute', left: w, transform: 'translateX(-50%)', width: 19, height: 19, borderRadius: '50%', background: c, transition: slide(['left', 'background-color', 'opacity']), border: '1.5px solid #ece8e3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8.5, fontWeight: 600, color: '#1f1d1c', opacity: has ? 1 : 0 }}>{has ? v.p : ''}</div>
                     </div>
-                    <span style={{ fontFamily: MONO, fontSize: 11, textAlign: 'right' }}>{fmt(s, v.n)}</span>
+                    <span style={{ fontFamily: MONO, fontSize: 11, textAlign: 'right', color: has ? '#ece8e3' : '#6b655f' }}>{has ? fmt(s, v.n) : '—'}</span>
                   </div>
                 )
               })}

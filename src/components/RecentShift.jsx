@@ -186,12 +186,16 @@ const sliderColor = (t, top) => rgb(t >= 0 ? mix(SLIDER_MID, top, t) : mix(SLIDE
 function CoreStats({ profile: p, po = false }) {
   // Rises reach the site green, or gold in playoffs mode.
   const top = po ? GOLD : BETTER
-  const rows = p.recentShift.stats.filter(r => p.stats[r.stat])
+  // The same rows every time (EMPTY_STATS' order), a missing one drawn empty, so the
+  // card keeps its height between players and between the season and the playoffs.
+  const byStat = new Map(p.recentShift.stats.filter(r => p.stats[r.stat]).map(r => [r.stat, r]))
+  const rows = EMPTY_STATS.map(stat => byStat.get(stat) || { stat, missing: true })
   return (
     <>
       <Legend labels={WINDOWS[po ? 'playoffs' : 'regular']} />
       <div style={statRows}>
         {rows.map(r => {
+          if (r.missing) return <EmptyRow key={r.stat} stat={r.stat} />
           const stat = p.stats[r.stat]
           const change = r.recent.value - r.season.value
           // Right is better, so a lower-better stat moves right when it falls.
@@ -234,24 +238,29 @@ function CoreStats({ profile: p, po = false }) {
 const EMPTY_STATS = ['BPM', 'AuPM / g', 'Load', 'Net On', 'ORTG On']
 const stamp = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#a8a29c', background: '#2c2a28', border: '1px solid #544f4b', padding: '4px 8px', whiteSpace: 'nowrap' }
 
+// A stat row with no value: its frame at low contrast.
+function EmptyRow({ stat }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr) 54px', gap: 10, alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #3d3a37', opacity: 0.45 }}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: '#8a847e' }}>{stat}</span>
+        <span style={{ fontFamily: MONO, fontSize: 9, color: '#6b655f' }}>— → —</span>
+      </div>
+      <div style={{ position: 'relative', height: 18 }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: '#3d3a37' }} />
+        <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#6b655f' }} />
+      </div>
+      <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color: '#6b655f' }}>—</span>
+    </div>
+  )
+}
+
 function EmptyStats({ reason }) {
   return (
     <>
       <Legend hidden />
       <div style={{ ...statRows, position: 'relative' }}>
-        {EMPTY_STATS.map(s => (
-          <div key={s} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr) 54px', gap: 10, alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #3d3a37', opacity: 0.45 }}>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: '#8a847e' }}>{s}</span>
-              <span style={{ fontFamily: MONO, fontSize: 9, color: '#6b655f' }}>— → —</span>
-            </div>
-            <div style={{ position: 'relative', height: 18 }}>
-              <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: '#3d3a37' }} />
-              <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#6b655f' }} />
-            </div>
-            <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color: '#6b655f' }}>—</span>
-          </div>
-        ))}
+        {EMPTY_STATS.map(s => <EmptyRow key={s} stat={s} />)}
         <span style={{ ...stamp, position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)' }}>{reason}</span>
       </div>
     </>

@@ -6,7 +6,11 @@ import { statKey } from './lib/static.js'
 // served from the site's base path.
 const STATIC = import.meta.env.VITE_STATIC === '1'
 export const API_BASE = STATIC ? import.meta.env.BASE_URL.replace(/\/$/, '') : (import.meta.env.VITE_API_BASE || 'http://localhost:8080').replace(/\/$/, '')
-const api = (route, file) => `${API_BASE}/api/${STATIC ? file : route}`
+// Pages lets browsers cache files for 10 minutes, so after a deploy a browser could pair
+// the new app with yesterday's data. Each build's data URLs carry its version (the commit,
+// VITE_DATA_VERSION) so a new app always fetches matching data.
+const VERSION = import.meta.env.VITE_DATA_VERSION ? `?v=${import.meta.env.VITE_DATA_VERSION}` : ''
+const api = (route, file) => (STATIC ? `${API_BASE}/api/${file}${VERSION}` : `${API_BASE}/api/${route}`)
 
 const getJson = async url => {
   const res = await fetch(url)

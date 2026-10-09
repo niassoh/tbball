@@ -220,7 +220,8 @@ const mateGrid = { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 44px 44p
 // the API sets); each net shows its league rank on hover.
 // All net rating per 100 possessions, from the season's five-man lineups.
 export default function LineupPanel({ profile: p, accent }) {
-  const L = p.lineups
+  // Lineups in an older shape (no `units`) show as no data rather than breaking the page.
+  const L = p.lineups && p.lineups.units ? p.lineups : null
   const [size, setSize] = useState(3)
   const [best, used, floor] = !L ? [] : [L.units[size].best, L.units[size].mostUsed, L.floors[size]]
   const [tip, setTip] = useState(null)

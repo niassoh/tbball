@@ -31,6 +31,7 @@ jobs:
         env:
           VITE_STATIC: '1'
           VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_DATA_VERSION: ${{ github.sha }}
       # Pages has no SPA fallback: its 404 page is the app, so deep links
       # (/player/<slug>) load and the router takes over.
       - run: cp dist/index.html dist/404.html

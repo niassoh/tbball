@@ -139,9 +139,20 @@ function ShotMap({ shotShift, divided }) {
             {shots.map(({ s, i, r }) => <Shot key={i} shot={s} offset={spread(i)} animate={animate} delay={Math.round((r / far) * 240)} />)}
           </g>
           {band && (
-            <g pointerEvents="none">
-              <rect x="10" y="10" width={band.name.length * 10 + 18} height="28" fill="rgba(31,29,28,.85)" />
-              <text x="19" y="24" dominantBaseline="central" fontFamily={MONO} fontSize="15" fontWeight="700" letterSpacing="1" fill="#ece8e3">{band.name}</text>
+            // The zone's own shooting in each window: makes/attempts, FG% and its share of
+            // the window's shots. The window whose shots are drawn is bright.
+            <g pointerEvents="none" fontFamily={MONO}>
+              <rect x="10" y="10" width="244" height="70" fill="rgba(31,29,28,.88)" />
+              <text x="19" y="25" dominantBaseline="central" fontSize="15" fontWeight="700" letterSpacing="1" fill="#ece8e3">{band.name}</text>
+              {[['RECENT', band.recentShots, !season], ['SEASON', band.seasonShots, season]].map(([name, c, on], i) => (
+                <text key={name} x="19" y={48 + i * 18} dominantBaseline="central" fontSize="11.5" fontWeight={on ? 700 : 400} fill={on ? '#ece8e3' : '#8a847e'}>
+                  <tspan>{name}</tspan>
+                  <tspan x="84">{c.fgm}/{c.fga}</tspan>
+                  <tspan x="148">{c.pct === null ? '—' : `${c.pct.toFixed(1)}%`}</tspan>
+                  <tspan x="204">{c.share === null ? '—' : `${Math.round(c.share)}%`}</tspan>
+                </text>
+              ))}
+              <text x="245" y="25" dominantBaseline="central" textAnchor="end" fontSize="9" fill="#8a847e">FG · FG% · OF FGA</text>
             </g>
           )}
         </svg>

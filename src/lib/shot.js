@@ -54,6 +54,9 @@ export function shotModel({ zones, league }, mode) {
     const recent = bandValue(zones[id].recent, totals.recent, points, league[id], mode)
     const delta = rest === null || recent === null ? null : recent - rest
     const small = delta === null || Math.abs(delta) < MODES[mode].th
+    // The band's own shooting in each window, for the hover readout: makes, attempts,
+    // FG% and its share of the window's shots.
+    const counts = w => ({ fgm: zones[id][w].fgm, fga: zones[id][w].fga, pct: zones[id][w].fga ? (zones[id][w].fgm / zones[id][w].fga) * 100 : null, share: totals[w] ? (zones[id][w].fga / totals[w]) * 100 : null })
     return {
       id,
       d,
@@ -63,6 +66,8 @@ export function shotModel({ zones, league }, mode) {
       ly,
       delta,
       small,
+      recentShots: counts('recent'),
+      seasonShots: counts('rest'),
       label: delta === null ? '—' : (delta >= 0 ? '+' : '−') + Math.abs(delta).toFixed(1)
     }
   })

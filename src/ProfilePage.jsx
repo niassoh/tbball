@@ -54,8 +54,6 @@ function ProfilePage({ slug, playoffs }) {
     return () => { live = false; clearTimeout(timer) }
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps -- state.profile only gates the delay
 
-  // Back to the top for the incoming player (the header is where the change shows).
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [slug])
 
   if (state.status !== 'ready') {
     const msg = { loading: 'Loading…', missing: 'Player not found.', error: `Couldn't load profile (${state.error}).` }[state.status]

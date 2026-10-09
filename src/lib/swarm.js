@@ -3,9 +3,11 @@
 // a wider band. Columns that would overflow the height squeeze their spacing instead.
 
 // values: net ratings; include: values the domain must hold (the marked unit).
-// Returns the x scale, its gridline ticks and a dot per value.
+// Returns the x scale, its gridline ticks and a dot per value, lowest first, each with
+// its value's index in `values` (i).
 export const swarm = (values, { width, height, r = 1.6, include = [] }) => {
-  const sorted = [...values].sort((a, b) => a - b)
+  const order = values.map((_, i) => i).sort((a, b) => values[a] - values[b])
+  const sorted = order.map(i => values[i])
   const at = q => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(q * (sorted.length - 1))))]
   // The domain fits the data: the middle 96% plus anything in `include`, rounded out to
   // multiples of 5 (the few beyond it sit on the edge). Ticks every 5, or every 10 over a
@@ -20,18 +22,18 @@ export const swarm = (values, { width, height, r = 1.6, include = [] }) => {
   const cols = Math.max(1, Math.floor(width / colW))
   const colOf = v => Math.round(((x(v) - r) / (width - 2 * r)) * (cols - 1))
   const byCol = new Map()
-  for (const v of sorted) {
-    const c = colOf(v)
+  for (const i of order) {
+    const c = colOf(values[i])
     if (!byCol.has(c)) byCol.set(c, [])
-    byCol.get(c).push(v)
+    byCol.get(c).push(i)
   }
   const mid = height / 2
   const dots = []
-  for (const [c, vs] of byCol) {
-    const step = Math.min(2 * r + 0.3, (mid - r) / Math.max(1, Math.ceil((vs.length - 1) / 2)))
-    vs.forEach((v, i) => {
-      const k = Math.ceil(i / 2) * (i % 2 ? -1 : 1)
-      dots.push({ v, x: r + (c / Math.max(1, cols - 1)) * (width - 2 * r), y: mid + k * step })
+  for (const [c, is] of byCol) {
+    const step = Math.min(2 * r + 0.3, (mid - r) / Math.max(1, Math.ceil((is.length - 1) / 2)))
+    is.forEach((i, n) => {
+      const k = Math.ceil(n / 2) * (n % 2 ? -1 : 1)
+      dots.push({ v: values[i], i, x: r + (c / Math.max(1, cols - 1)) * (width - 2 * r), y: mid + k * step })
     })
   }
   return { lo, hi, ticks, x, dots }

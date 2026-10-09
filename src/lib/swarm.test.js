@@ -33,6 +33,13 @@ describe('swarm', () => {
     expect(swarm([-12, 0, 33], { width: 200, height: 40 }).ticks).toEqual([-10, 0, 10, 20, 30])
   })
 
+  it('keeps each dot tied to its value, lowest first', () => {
+    const { dots } = swarm(values, { width: 200, height: 40 })
+    for (const d of dots) expect(d.v).toBe(values[d.i])
+    expect(new Set(dots.map(d => d.i)).size).toBe(values.length)
+    expect(dots.map(d => d.v)).toEqual([...values].sort((a, b) => a - b))
+  })
+
   it('stacks equal values out from the middle', () => {
     const { dots } = swarm([0, 0, 0], { width: 100, height: 40, r: 2 })
     expect(dots.map(d => d.y).sort((a, b) => a - b)).toEqual([15.7, 20, 24.3])

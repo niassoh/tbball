@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { headshotUrl, loadLineupLeague } from '../api.js'
 import { MONO, ord, signed } from '../lib/format.js'
@@ -129,12 +129,23 @@ const TIP_IN = TIP_W - 2 * TIP_PAD - 2
 const SL = 196
 const SS = 92
 
+// The swarm's dots, drawn once per pool so pointing at them only redraws the ring and
+// the readout.
+const SwarmDots = memo(function SwarmDots({ dots, r, dx }) {
+  return <g pointerEvents="none">{dots.map((d, i) => <circle key={i} cx={dx + d.y} cy={SL - d.x} r={r} fill={dotTint(dots.length > 1 ? i / (dots.length - 1) : 1)} opacity={0.5} />)}</g>
+})
+
 // The rank tooltip, a narrow popover just above the hovered net: the unit's league rank
 // among units of its size over the minutes floor (coloured blue to orange by where it
-// falls), and a vertical swarm of every such unit's net with this one marked. It stays
-// open while the pointer is over it. The league pool is fetched on the first hover.
-function RankTip({ unit, size, floor, isDefault, onHover }) {
+// falls), and a vertical swarm of every such unit's net with this one marked. Pointing
+// at a dot names that unit in the readout under the swarm (otherwise it shows this
+// one). It stays open while the pointer is over it. The league pool is fetched on the
+// first hover.
+function RankTip({ unit, size, floor, isDefault, self, team, onHover }) {
   const [league, setLeague] = useState(null)
+  const [hot, setHot] = useState(null)
+  const frame = useRef(0)
+  useEffect(() => () => cancelAnimationFrame(frame.current), [])
   // Opens above the number; when that would run off the top of the window, below it.
   const box = useRef(null)
   const [below, setBelow] = useState(false)
@@ -146,16 +157,41 @@ function RankTip({ unit, size, floor, isDefault, onHover }) {
     loadLineupLeague().then(d => live && setLeague(d)).catch(() => {})
     return () => { live = false }
   }, [])
-  // Every league unit of this size over the chosen minimum, best first.
-  const nets = useMemo(() => league && league.pool ? league.pool[size].filter(([m]) => m >= floor).map(([, n]) => n).sort((a, b) => b - a) : null, [league, size, floor])
+  // Every league unit of this size over the chosen minimum as [minutes, net, player ids,
+  // team], and their nets best first.
+  const units = useMemo(() => league && league.pool ? league.pool[size].filter(([m]) => m >= floor) : null, [league, size, floor])
+  const nets = useMemo(() => units && units.map(u => u[1]).sort((a, b) => b - a), [units])
   const dotR = nets ? dotRadius(nets.length) : 1.5
-  const sw = useMemo(() => nets && swarm(nets, { width: SL, height: SS, r: dotR, include: [unit.net] }), [nets, dotR, unit.net])
+  const sw = useMemo(() => units && swarm(units.map(u => u[1]), { width: SL, height: SS, r: dotR, include: [unit.net] }), [units, dotR, unit.net])
   const yOf = v => SL - sw.x(v)
   const dx = (TIP_IN - SS) / 2
   // The rank at the chosen minimum, from the pool (until it loads, the API's rank at the default).
   const r = nets ? (unit.minutes >= floor ? { rank: nets.filter(n => n > unit.net).length + 1, of: nets.length } : null) : isDefault ? unit.rank : null
   const tone = r ? rankColor(rankPct(r.rank, r.of)) : FAINT
   const median = nets ? nets[Math.floor(nets.length / 2)] : null
+  // The dot nearest the pointer, looked up once per frame.
+  const point = e => {
+    const at = e.currentTarget.getBoundingClientRect()
+    const px = e.clientX - at.left
+    const py = e.clientY - at.top - 4
+    cancelAnimationFrame(frame.current)
+    frame.current = requestAnimationFrame(() => {
+      let near = null
+      let gap = Infinity
+      for (const d of sw.dots) {
+        const g = (dx + d.y - px) ** 2 + (SL - d.x - py) ** 2
+        if (g < gap) [near, gap] = [d, g]
+      }
+      setHot(near)
+    })
+  }
+  const leave = () => {
+    cancelAnimationFrame(frame.current)
+    setHot(null)
+  }
+  const shown = hot
+    ? (([m, n, ids, t]) => ({ names: (ids || []).map(id => league.people && league.people[id]), team: t, net: n, minutes: m, rank: nets.filter(x => x > n).length + 1 }))(units[hot.i])
+    : { names: [self, ...unit.mates].map(pl => pl && pl.name), team, net: unit.net, minutes: unit.minutes, rank: r && r.rank }
   const tick = { fontFamily: MONO, fontSize: 7.5, fill: FAINT }
   const section = { borderTop: RULE, paddingTop: 7 }
   return (
@@ -180,26 +216,37 @@ function RankTip({ unit, size, floor, isDefault, onHover }) {
       </div>
       <div style={section}>
         {sw ? (
-          <svg width={TIP_IN} height={SL + 8} viewBox={`0 -4 ${TIP_IN} ${SL + 8}`} style={{ display: 'block', overflow: 'visible' }}>
+          <svg width={TIP_IN} height={SL + 8} viewBox={`0 -4 ${TIP_IN} ${SL + 8}`} onMouseMove={point} onMouseLeave={leave} style={{ display: 'block', overflow: 'visible' }}>
+            <rect x={0} y={-4} width={TIP_IN} height={SL + 8} fill="transparent" />
             {sw.ticks.map(v => (
               <g key={v}>
                 <line x1={0} x2={TIP_IN} y1={yOf(v)} y2={yOf(v)} stroke="#3d3a37" strokeDasharray={v ? undefined : '2 3'} />
                 <text x={0} y={yOf(v) - 3} style={tick}>{v ? signed(v, 0) : '0'}</text>
               </g>
             ))}
-            {sw.dots.map((d, i) => <circle key={i} cx={dx + d.y} cy={SL - d.x} r={dotR} fill={dotTint(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.5} />)}
-            <line x1={0} x2={TIP_IN} y1={yOf(unit.net)} y2={yOf(unit.net)} stroke={INK} strokeWidth={1} />
-            <circle cx={TIP_IN / 2} cy={yOf(unit.net)} r={3.5} fill={tone} stroke={INK} strokeWidth={1.25} />
-            <text x={TIP_IN} y={yOf(unit.net) - 4} textAnchor="end" style={{ ...tick, fill: INK, fontWeight: 700, fontSize: 8.5 }}>{net(unit.net)}</text>
+            <SwarmDots dots={sw.dots} r={dotR} dx={dx} />
+            <g pointerEvents="none">
+              <line x1={0} x2={TIP_IN} y1={yOf(unit.net)} y2={yOf(unit.net)} stroke={INK} strokeWidth={1} />
+              <circle cx={TIP_IN / 2} cy={yOf(unit.net)} r={3.5} fill={tone} stroke={INK} strokeWidth={1.25} />
+              <text x={TIP_IN} y={yOf(unit.net) - 4} textAnchor="end" style={{ ...tick, fill: INK, fontWeight: 700, fontSize: 8.5 }}>{net(unit.net)}</text>
+              {hot && <circle cx={dx + hot.y} cy={SL - hot.x} r={dotR + 1.5} fill={INK} stroke="#1f1d1c" strokeWidth={1} />}
+            </g>
           </svg>
         ) : (
           <div style={{ height: SL + 8, display: 'flex', alignItems: 'center', justifyContent: 'center', ...label, color: FAINT }}>LOADING…</div>
         )}
       </div>
-      <div style={{ ...section, display: 'flex', justifyContent: 'space-between', ...label, fontSize: 7.5 }}>
-        <span>{mins(unit.minutes)} MIN</span>
-        {median !== null && <span>MEDIAN {signed(median)}</span>}
+      {/* A fixed height, so the tooltip doesn't shift as the names change. */}
+      <div style={{ ...section, height: 40, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 9.5, lineHeight: '12px', fontWeight: hot ? 600 : 400, color: INK, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{shown.names.map(n => (n ? lastName(n) : '?')).join(' · ')}</span>
+        <span style={{ ...label, fontSize: 7.5, display: 'flex', gap: 6 }}>
+          <span>{shown.team}</span>
+          <span style={{ color: INK, fontWeight: 700 }}>{net(shown.net)}</span>
+          {shown.rank && nets && <span style={{ color: rankColor(rankPct(shown.rank, nets.length)), fontWeight: 700 }}>{ord(shown.rank).toUpperCase()}</span>}
+          <span style={{ marginLeft: 'auto' }}>{mins(shown.minutes)} MIN</span>
+        </span>
       </div>
+      {median !== null && <div style={{ ...section, ...label, fontSize: 7.5 }}>MEDIAN {signed(median)}</div>}
     </div>
   )
 }
@@ -322,8 +369,8 @@ export default function LineupPanel({ profile: p, accent }) {
             <MinutesPicker open={menu === 'minutes'} setOpen={toggle('minutes')} value={floor} def={def} range={(L.floorRange && L.floorRange[size]) || [def, def]} onChange={v => setPicked(m => ({ ...m, [size]: v }))} />
           </div>
           <div className="lineup-units-wrap"><div className="lineup-units">
-            <Unit {...unitProps} title="BEST" unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} onHover={hover('best')} />} className="lineup-unit-a" />
-            <Unit {...unitProps} title="MOST USED" unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} isDefault={isDefault} onHover={hover('used')} />} className="lineup-unit-b" />
+            <Unit {...unitProps} title="BEST" unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} self={L.self} team={L.team} onHover={hover('best')} />} className="lineup-unit-a" />
+            <Unit {...unitProps} title="MOST USED" unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} isDefault={isDefault} self={L.self} team={L.team} onHover={hover('used')} />} className="lineup-unit-b" />
           </div></div>
         </>
       )}

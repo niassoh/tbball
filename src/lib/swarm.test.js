@@ -15,12 +15,21 @@ describe('swarm', () => {
     }
   })
 
-  it('fits the domain to the middle of the data in steps of 5 and pins outliers to the edges', () => {
+  it('fits the domain to every value in steps of 5', () => {
     const many = Array.from({ length: 101 }, (_, i) => -8 + i * 0.3) // -8 … +22
-    const { lo, hi, x } = swarm([...many, -60, 90], { width: 200, height: 40, r: 2 })
-    expect([lo, hi]).toEqual([-10, 25])
-    expect(x(1000)).toBe(x(hi))
-    expect(x(-1000)).toBe(x(lo))
+    const { lo, hi } = swarm([...many, -41, 52], { width: 200, height: 40, r: 2 })
+    expect([lo, hi]).toEqual([-45, 55])
+  })
+
+  it('puts every dot at its own value, so dots level with each other have the same net', () => {
+    const spread = Array.from({ length: 300 }, (_, i) => Math.round(Math.sin(i) * 200) / 10)
+    const { dots, x } = swarm(spread, { width: 196, height: 92, r: 1.5 })
+    for (const d of dots) expect(d.x).toBeCloseTo(x(d.v))
+  })
+
+  it('keeps dots from overlapping when there is room', () => {
+    const { dots } = swarm(values, { width: 200, height: 40, r: 2 })
+    for (const a of dots) for (const b of dots) if (a !== b) expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(4.3 - 1e-6)
   })
 
   it('stretches the domain to hold the marked value', () => {

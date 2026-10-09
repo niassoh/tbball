@@ -1,6 +1,6 @@
-// The lineup tooltip's beeswarm: every qualified unit's net rating as a dot, packed
-// into columns along the x axis and stacked out from the middle, so dense nets read as
-// a wider band. Columns that would overflow the height squeeze their spacing instead.
+// The lineup tooltip's beeswarm: every qualified unit's net rating as a dot at its exact
+// place along the x axis, pushed out from the middle just far enough not to overlap the
+// dots beside it, so dense nets read as a wider band.
 
 // values: net ratings; include: values the domain must hold (the marked unit).
 // Returns the x scale, its gridline ticks and a dot per value, lowest first, each with
@@ -8,34 +8,35 @@
 export const swarm = (values, { width, height, r = 1.6, include = [] }) => {
   const order = values.map((_, i) => i).sort((a, b) => values[a] - values[b])
   const sorted = order.map(i => values[i])
-  const at = q => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(q * (sorted.length - 1))))]
-  // The domain fits the data: the middle 96% plus anything in `include`, rounded out to
-  // multiples of 5 (the few beyond it sit on the edge). Ticks every 5, or every 10 over a
-  // wider span, so there are a few evenly spaced gridlines.
-  const lo = Math.floor(Math.min(at(0.02), ...include) / 5) * 5
-  const hi = Math.max(lo + 5, Math.ceil(Math.max(at(0.98), ...include) / 5) * 5)
+  // The domain holds every value (the tooltip names any dot, so none may sit off its
+  // true place) and anything in `include`, rounded out to multiples of 5. Ticks every 5,
+  // or every 10 over a wider span, so there are a few evenly spaced gridlines.
+  const lo = Math.floor(Math.min(...sorted.slice(0, 1), ...include) / 5) * 5
+  const hi = Math.max(lo + 5, Math.ceil(Math.max(...sorted.slice(-1), ...include) / 5) * 5)
   const tickStep = hi - lo > 30 ? 10 : 5
   const ticks = []
   for (let t = Math.ceil(lo / tickStep) * tickStep; t <= hi; t += tickStep) ticks.push(t)
   const x = v => r + ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * (width - 2 * r)
-  const colW = 2 * r + 0.4
-  const cols = Math.max(1, Math.floor(width / colW))
-  const colOf = v => Math.round(((x(v) - r) / (width - 2 * r)) * (cols - 1))
-  const byCol = new Map()
-  for (const i of order) {
-    const c = colOf(values[i])
-    if (!byCol.has(c)) byCol.set(c, [])
-    byCol.get(c).push(i)
-  }
   const mid = height / 2
-  const dots = []
-  for (const [c, is] of byCol) {
-    const step = Math.min(2 * r + 0.3, (mid - r) / Math.max(1, Math.ceil((is.length - 1) / 2)))
-    is.forEach((i, n) => {
-      const k = Math.ceil(n / 2) * (n % 2 ? -1 : 1)
-      dots.push({ v: values[i], i, x: r + (c / Math.max(1, cols - 1)) * (width - 2 * r), y: mid + k * step })
-    })
+  // Lowest first, each dot tries slots out from the middle (alternating sides, `gap`
+  // apart) and takes the first that overlaps no dot already placed within `gap` along x.
+  const place = gap => {
+    const dots = []
+    let from = 0
+    for (const i of order) {
+      const px = x(values[i])
+      while (from < dots.length && px - dots[from].x >= gap) from++
+      const near = dots.slice(from)
+      let k = 0
+      for (let n = 1; near.some(d => (d.x - px) ** 2 + (d.y - (mid + k * gap)) ** 2 < gap * gap - 1e-9); n++) k = Math.ceil(n / 2) * (n % 2 ? -1 : 1)
+      dots.push({ v: values[i], i, x: px, y: mid + k * gap })
+    }
+    return dots
   }
+  // A crowd too wide for the height packs tighter (the dots overlap a little) until it fits.
+  let gap = 2 * r + 0.3
+  let dots = place(gap)
+  while (gap > 0.01 && dots.some(d => Math.abs(d.y - mid) > mid - r)) dots = place((gap *= 0.85))
   return { lo, hi, ticks, x, dots }
 }
 

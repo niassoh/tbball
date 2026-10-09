@@ -59,8 +59,7 @@ function Tile({ player, team, accent, self, small }) {
 }
 
 // Unit-size switch (2- to 5-man), styled like the percentile card's season menu.
-function SizePicker({ size, setSize }) {
-  const [open, setOpen] = useState(false)
+function SizePicker({ size, setSize, open, setOpen }) {
   return (
     <span style={{ position: 'relative' }}>
       <button onClick={() => setOpen(o => !o)} aria-label="Unit size" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'transparent', border: 'none', borderBottom: '1px dotted #8fb0e6', padding: 0, color: INK, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', cursor: 'pointer' }}>
@@ -83,8 +82,7 @@ function SizePicker({ size, setSize }) {
 // multiple of 50 in the API's range for the size, plus the default (underlined in blue),
 // as a grid of numbers so the whole range shows at once without scrolling.
 const STEP = 50
-function MinutesPicker({ value, def, range, onChange }) {
-  const [open, setOpen] = useState(false)
+function MinutesPicker({ value, def, range, onChange, open, setOpen }) {
   const [lo, hi] = range
   const choices = [...new Set([def, ...Array.from({ length: Math.floor((hi - lo) / STEP) + 1 }, (_, i) => lo + i * STEP)])].sort((a, b) => a - b)
   return (
@@ -269,6 +267,24 @@ export default function LineupPanel({ profile: p, accent }) {
     return o ? { minutes: o[1], net: o[2], mates: o[0].map(id => L.people[id] || { name: null, slug: null }) } : null
   })()
   const [tip, setTip] = useState(null)
+  // One menu open at a time; a click outside the control row or Escape closes it.
+  const [menu, setMenu] = useState(null)
+  const controls = useRef(null)
+  const toggle = which => next => setMenu(m => {
+    const open = typeof next === 'function' ? next(m === which) : next
+    return open ? which : m === which ? null : m
+  })
+  useEffect(() => {
+    if (!menu) return
+    const outside = e => { if (controls.current && !controls.current.contains(e.target)) setMenu(null) }
+    const escape = e => { if (e.key === 'Escape') setMenu(null) }
+    document.addEventListener('mousedown', outside)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('mousedown', outside)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [menu])
   const closing = useRef(null)
   const hover = which => on => {
     clearTimeout(closing.current)
@@ -312,11 +328,11 @@ export default function LineupPanel({ profile: p, accent }) {
 
           {/* Size and minimum apply to both units (the minimum picks the best one and sets
               the league pool both are ranked in), so they sit on one row above them. */}
-          <div style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: -6 }}>
+          <div ref={controls} style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: -6 }}>
             <span>UNITS</span>
-            <SizePicker size={size} setSize={setSize} />
+            <SizePicker size={size} setSize={setSize} open={menu === 'size'} setOpen={toggle('size')} />
             <span>·</span>
-            <MinutesPicker value={floor} def={def} range={(L.floorRange && L.floorRange[size]) || [def, def]} onChange={v => setPicked(m => ({ ...m, [size]: v }))} />
+            <MinutesPicker open={menu === 'minutes'} setOpen={toggle('minutes')} value={floor} def={def} range={(L.floorRange && L.floorRange[size]) || [def, def]} onChange={v => setPicked(m => ({ ...m, [size]: v }))} />
           </div>
           <div className="lineup-units-wrap"><div className="lineup-units">
             <Unit {...unitProps} title="BEST" unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} onHover={hover('best')} />} className="lineup-unit-a" />

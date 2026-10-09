@@ -37,6 +37,24 @@ export const spanMean = (profile, label, from, to) => {
   return weight ? sum / weight : null
 }
 
+// Minutes-weighted mean percentile of `label` over seasons from..to (rounded), or null
+// when no season in the span has one: the span and career rows in percentile view, and
+// a rolling average's dot colour.
+export const spanPctl = (profile, label, from, to) => {
+  const vals = profile.stats[label].vals
+  let sum = 0
+  let weight = 0
+  for (let i = from; i <= to; i++) {
+    const v = vals[i]
+    const mp = profile.seasons[i].mp
+    if (v && v.p !== null && mp) {
+      sum += v.p * mp
+      weight += mp
+    }
+  }
+  return weight ? Math.round(sum / weight) : null
+}
+
 // "2016–19" for 2016–17 through 2018–19.
 export const spanLabel = (seasons, from, to) => `${seasons[from].label.slice(0, 4)}–${seasons[to].label.slice(-2)}`
 
@@ -54,16 +72,7 @@ export const rollingStat = (profile, label, n) => {
       if (i < n - 1) return null
       const value = spanMean(profile, label, i - n + 1, i)
       if (value === null) return null
-      let sum = 0
-      let weight = 0
-      for (let j = i - n + 1; j <= i; j++) {
-        const v = st.vals[j]
-        if (v && v.p !== null && seasons[j].mp) {
-          sum += v.p * seasons[j].mp
-          weight += seasons[j].mp
-        }
-      }
-      return { n: value, p: weight ? Math.round(sum / weight) : 50, detail: `${n}-YR AVG · ${spanLabel(seasons, i - n + 1, i)}` }
+      return { n: value, p: spanPctl(profile, label, i - n + 1, i) ?? 50, detail: `${n}-YR AVG · ${spanLabel(seasons, i - n + 1, i)}` }
     }),
     lg: seasons.map((_, i) => {
       if (i < n - 1) return null

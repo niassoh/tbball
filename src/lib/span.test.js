@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { rollingStat, spanMean, spanLabel, spanTeams } from './span.js'
+import { rollingStat, spanMean, spanLabel, spanPctl, spanTeams } from './span.js'
 
 const seasons = (mps, tms = []) => mps.map((mp, i) => ({ label: `${2016 + i}–${String(17 + i).padStart(2, '0')}`, mp, tm: tms[i] || 'BOS' }))
 const stat = vals => ({ vals: vals.map(n => (n === null ? null : { n, p: 50 })) })
@@ -59,5 +59,14 @@ describe('rolling averages', () => {
   test('the dot colour is the window percentile, minutes-weighted', () => {
     const p = { seasons: seasons([1000, 3000]), stats: { BPM: { vals: [{ n: 1, p: 20 }, { n: 2, p: 60 }], lg: [0, 0] } } }
     expect(rollingStat(p, 'BPM', 2).vals[1].p).toBe(50)
+  })
+
+  test('averages percentiles over a span by minutes', () => {
+    const p = {
+      seasons: [{ mp: 1000 }, { mp: 3000 }, { mp: 2000 }],
+      stats: { BPM: { vals: [{ n: 1, p: 40 }, { n: 4, p: 80 }, null] } }
+    }
+    expect(spanPctl(p, 'BPM', 0, 1)).toBe(70)
+    expect(spanPctl(p, 'BPM', 2, 2)).toBe(null)
   })
 })

@@ -33,6 +33,9 @@ function ProfilePage({ slug, playoffs }) {
   // The stat tables' dragged season span, kept here so it carries across tabs; tagged
   // with the player it was made on, so another player starts without one.
   const [span, setSpan] = useState(null)
+  // The stat tables show values or percentiles (a click on a table switches); kept here
+  // so the choice carries across tabs and players.
+  const [pctView, setPctView] = useState(false)
   const loading = state.key !== key
 
   useEffect(() => {
@@ -102,7 +105,7 @@ function ProfilePage({ slug, playoffs }) {
             <TabNav tabs={tabs} active={activeTab} onPick={setTab} />
 
             <div className={loading ? 'fold-loading' : 'fold-ready'}>
-              {statTab && <StatSection key={`${fold}-${activeTab}`} profile={p} tab={statTab} num={tabIndex + 1} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} />}
+              {statTab && <StatSection key={`${fold}-${activeTab}`} profile={p} tab={statTab} num={tabIndex + 1} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} pctView={pctView} setPctView={setPctView} />}
               {activeTab === 'yoy' && <YearToYear key={fold} profile={p} num={tabIndex + 1} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} />}
               {activeTab === 'career' && <Career key={fold} profile={p} num={tabIndex + 1} />}
             </div>

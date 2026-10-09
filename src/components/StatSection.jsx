@@ -5,7 +5,7 @@ import { histogram } from '../lib/dist.js'
 import { loadDistribution } from '../api.js'
 import { useSeasonType } from '../useSeasonType.js'
 import WindowTag from './WindowTag.jsx'
-import { rollingStat, spanMean, spanLabel, spanTeams } from '../lib/span.js'
+import { rollingStat, spanMean, spanLabel, spanPctl, spanTeams } from '../lib/span.js'
 import { TEAM_COLORS, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
 import { asset } from '../lib/static.js'
@@ -165,13 +165,14 @@ function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span }) {
   )
 }
 
-export default function StatSection({ profile: p, tab, num, sel, setSel }) {
+export default function StatSection({ profile: p, tab, num, sel, setSel, pctView = false, setPctView }) {
   const shown = tab.stats.filter(l => p.stats[l].available)
   const [charted, setCharted] = useState(shown[0])
   const k = p.seasons.length - 1
-  // Drag across season rows (or click one, then another) to average that span.
-  // sel (owned by the page, so it survives tab switches) holds the anchor row and the
-  // row the drag is on; drag tracks a press in progress.
+  // Drag across season rows to average that span; a click (a press without moving to
+  // another row) switches the table between values and percentiles. sel and pctView are
+  // owned by the page, so they survive tab switches; sel holds the row the drag started
+  // on and the row it's on; drag tracks a press in progress.
   const drag = useRef(null)
   const from = sel && Math.min(sel.a, sel.b)
   const to = sel && Math.max(sel.a, sel.b)
@@ -182,18 +183,12 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
   const rollingOn = spanOn && !!sel.rolling
 
   useEffect(() => {
-    // A press without movement is a click: a second click on another row finishes a
-    // span from the first (taps on touch screens, which don't drag); a click inside
-    // the current selection clears it; anywhere else starts a new anchor.
     const up = () => {
       const d = drag.current
       if (!d) return
       drag.current = null
-      if (d.moved) return
-      const prev = d.prev
-      if (prev && prev.a === prev.b && prev.a !== d.start) setSel({ a: prev.a, b: d.start })
-      else if (prev && d.start >= Math.min(prev.a, prev.b) && d.start <= Math.max(prev.a, prev.b)) setSel(null)
-      else setSel({ a: d.start, b: d.start })
+      // (Year to Year's table, already in percentile changes, has no percentile view.)
+      if (!d.moved && setPctView) setPctView(v => !v)
     }
     // The browser took the gesture (e.g. a touch scroll): put the old selection back.
     const cancel = () => {
@@ -209,12 +204,11 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
       window.removeEventListener('pointercancel', cancel)
       window.removeEventListener('keydown', key)
     }
-  }, [setSel])
+  }, [setSel, setPctView])
 
   const press = (e, i) => {
     if (e.button !== 0) return
     drag.current = { start: i, moved: false, prev: sel }
-    setSel({ a: i, b: i })
   }
   const enter = i => {
     const d = drag.current
@@ -249,9 +243,10 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
                 <button type="button" onClick={() => setSel({ ...sel, rolling: !sel.rolling })} aria-pressed={rollingOn} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', lineHeight: 'inherit', padding: '0 5px', border: '1px solid #6b655f', background: rollingOn ? '#ece8e3' : 'transparent', color: rollingOn ? '#1f1d1c' : '#ece8e3', cursor: 'pointer' }}>ROLLING {spanLen}-YR</button>
                 {' · CLICK IT OR ESC TO CLEAR'}
               </>
-            : sel
-              ? 'CLICK ANOTHER SEASON TO AVERAGE THE SPAN · ESC TO CANCEL'
-              : 'DRAG ACROSS SEASONS TO AVERAGE · CLICK A COLUMN TO CHART IT'}
+            : <>
+                {setPctView && (pctView ? <><span style={{ color: '#ece8e3' }}>PERCENTILES</span>{' · CLICK FOR VALUES · '}</> : 'CLICK FOR PERCENTILES · ')}
+                {'DRAG ACROSS SEASONS TO AVERAGE · CLICK A COLUMN TO CHART IT'}
+              </>}
         </span>
       </SectionHeader>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
@@ -287,7 +282,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
                     const v = st.vals[i]
                     return (
                       <span key={l} style={{ padding: '5px 10px', textAlign: 'right', background: v ? heat(v.p, i === k ? 0.12 : 0) : 'transparent', fontWeight: l === charted ? 600 : 400, color: v ? '#ece8e3' : '#6b655f' }}>
-                        {v ? fmt(st, v.n) : '—'}
+                        {v ? (pctView ? (v.p ?? '—') : fmt(st, v.n)) : '—'}
                       </span>
                     )
                   })}
@@ -303,13 +298,13 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
                   if (!spanOn) return <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: '#3d3a37' }}>—</span>
                   const st = p.stats[l]
                   const value = spanMean(p, l, from, to)
-                  return <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: vsCareer(st, value, spanMean(p, l, 0, k)) }}>{fmt(st, value)}</span>
+                  return <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: vsCareer(st, value, spanMean(p, l, 0, k)) }}>{pctView ? (spanPctl(p, l, from, to) ?? '—') : fmt(st, value)}</span>
                 })}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '2px solid #ece8e3', background: '#34312e', fontFamily: MONO, fontSize: 13, fontWeight: 600 }}>
                 <span style={{ padding: '5px 10px', ...pinSeason('#34312e') }}>{p.seasonType === 'playoffs' ? 'PLAYOFFS' : 'CAREER'}</span>
                 <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam('#34312e') }}>{p.careerTm}</span>
-                {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{fmt(p.stats[l], spanMean(p, l, 0, k))}</span>)}
+                {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{pctView ? (spanPctl(p, l, 0, k) ?? '—') : fmt(p.stats[l], spanMean(p, l, 0, k))}</span>)}
               </div>
             </div>
           </div>

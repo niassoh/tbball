@@ -6,19 +6,23 @@ import { initials } from '../lib/teams.js'
 import SeasonToggle from './SeasonToggle.jsx'
 import PlayerSearch from './PlayerSearch.jsx'
 
-// Past this far down the page the cards are behind you: the bar takes a background and
-// shows whose page this is.
+// Past this far down the page the cards are behind you: the bar shows whose page this is.
 const SCROLLED_Y = 220
 
 // The profile's top bar (back link, season switch, search). It stays at the top while
-// scrolling; once the cards scroll away it gets a solid ground and the player's headshot,
-// name and team slide in beside the back link. Its height is published as --topbar-h
+// scrolling, on a solid ground from the moment it sticks (so the cards never show
+// through it); once the cards scroll away the player's headshot, name and team slide in
+// beside the back link. Its height is published as --topbar-h
 // so the tab bar (and section jumps) sit just under it.
 export default function TopBar({ profile: p, homePath }) {
   const bar = useRef(null)
   const [scrolled, setScrolled] = useState(false)
+  const [stuck, setStuck] = useState(false)
   useEffect(() => {
-    const on = () => setScrolled(window.scrollY > SCROLLED_Y)
+    const on = () => {
+      setStuck(window.scrollY > 0)
+      setScrolled(window.scrollY > SCROLLED_Y)
+    }
     on()
     window.addEventListener('scroll', on, { passive: true })
     return () => window.removeEventListener('scroll', on)
@@ -33,7 +37,7 @@ export default function TopBar({ profile: p, homePath }) {
   }, [])
   const slide = { transition: 'opacity .25s, transform .25s cubic-bezier(.2,.8,.2,1)', opacity: scrolled ? 1 : 0, transform: scrolled ? 'none' : 'translateY(8px)' }
   return (
-    <div ref={bar} style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 -32px', padding: '10px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: scrolled ? '#262422' : 'transparent', borderBottom: `1px solid ${scrolled ? '#3d3a37' : 'transparent'}`, boxShadow: scrolled ? 'inset 0 2px 0 var(--mode-edge)' : 'none', transition: 'background-color .2s, border-color .2s' }}>
+    <div ref={bar} style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 -32px', padding: '10px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: stuck ? '#262422' : 'transparent', borderBottom: `1px solid ${stuck ? '#3d3a37' : 'transparent'}`, boxShadow: stuck ? 'inset 0 2px 0 var(--mode-edge)' : 'none', transition: 'background-color .2s, border-color .2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
         <Link to={homePath} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', color: '#a8a29c', whiteSpace: 'nowrap' }}>← ALL PLAYERS</Link>
         <span aria-hidden={!scrolled} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, pointerEvents: scrolled ? 'auto' : 'none', ...slide }}>

@@ -250,7 +250,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
                 <span style={{ color: '#ece8e3' }}>{spanLen}-{p.seasonType === 'playoffs' ? 'RUN' : 'SEASON'} AVERAGE</span>{' · '}
                 {/* Chart the stat as a rolling average over the span's length. */}
                 <button type="button" onClick={() => setSel({ ...sel, rolling: !sel.rolling })} aria-pressed={rollingOn} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', lineHeight: 'inherit', padding: '0 5px', border: '1px solid #6b655f', background: rollingOn ? '#ece8e3' : 'transparent', color: rollingOn ? '#1f1d1c' : '#ece8e3', cursor: 'pointer' }}>ROLLING {spanLen}-YR</button>
-                {' · CLICK IT OR ESC TO CLEAR'}
+                {' · × OR ESC TO CLEAR'}
               </>
             : <>
                 {setPctView && (pctView ? <><span style={{ color: '#ece8e3' }}>PERCENTILES</span>{' · CLICK FOR VALUES · '}</> : 'CLICK FOR PERCENTILES · ')}
@@ -286,7 +286,14 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
                       edge on the pinned season cell (so it stays while the stats scroll), and its
                       right edge at the table's far end. */}
                   {picked && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: i === to ? 0 : -1, zIndex: 2, pointerEvents: 'none', borderRight: SPAN_FRAME, borderTop: i === from ? SPAN_FRAME : 'none', borderBottom: i === to ? SPAN_FRAME : 'none' }} />}
-                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c', ...pinSeason(PAGE_BG), boxShadow: picked ? 'inset 2px 0 0 #ece8e3' : i === k ? 'inset 3px 0 0 var(--accent)' : 'none' }}>{s.label}</span>
+                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c', ...pinSeason(PAGE_BG), boxShadow: picked ? 'inset 2px 0 0 #ece8e3' : i === k ? 'inset 3px 0 0 var(--accent)' : 'none' }}>
+                    {s.label}
+                    {/* Clears the span; on the pinned season cell so it stays in view as the stats
+                        scroll. Its press doesn't reach the row (which would switch to percentiles). */}
+                    {spanOn && i === from && (
+                      <button type="button" aria-label="Clear the span" title="Clear the span" onPointerDown={e => e.stopPropagation()} onClick={() => setSel(null)} style={{ position: 'absolute', right: 4, top: -8, zIndex: 3, width: 15, height: 15, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1f1d1c', border: SPAN_FRAME.replace('2px', '1.5px'), color: '#ece8e3', fontFamily: MONO, fontSize: 11, lineHeight: 1, cursor: 'pointer' }}>×</button>
+                    )}
+                  </span>
                   <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam(PAGE_BG) }}>{s.tm}</span>
                   <span style={{ color: '#8a847e', ...pinGames(PAGE_BG) }}>{count(s.gp)}</span>
                   <span style={{ color: '#8a847e', ...pinMinutes(PAGE_BG) }}>{count(s.mp)}</span>

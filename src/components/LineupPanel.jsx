@@ -4,7 +4,7 @@ import { headshotUrl, loadLineupLeague } from '../api.js'
 import { MONO, ord, signed } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
 import { initials } from '../lib/teams.js'
-import { rankColor, rankLabel, rankPct, swarm } from '../lib/swarm.js'
+import { dotRadius, dotTint, rankColor, rankLabel, rankPct, swarm } from '../lib/swarm.js'
 
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -152,7 +152,8 @@ function RankTip({ unit, size, floor, isDefault, onHover }) {
   }, [])
   // Every league unit of this size over the chosen minimum, best first.
   const nets = useMemo(() => league && league.pool ? league.pool[size].filter(([m]) => m >= floor).map(([, n]) => n).sort((a, b) => b - a) : null, [league, size, floor])
-  const sw = useMemo(() => nets && swarm(nets, { width: SL, height: SS, r: 1.5, include: [unit.net] }), [nets, unit.net])
+  const dotR = nets ? dotRadius(nets.length) : 1.5
+  const sw = useMemo(() => nets && swarm(nets, { width: SL, height: SS, r: dotR, include: [unit.net] }), [nets, dotR, unit.net])
   const yOf = v => SL - sw.x(v)
   const dx = (TIP_IN - SS) / 2
   // The rank at the chosen minimum, from the pool (until it loads, the API's rank at the default).
@@ -196,7 +197,7 @@ function RankTip({ unit, size, floor, isDefault, onHover }) {
                 <text x={0} y={yOf(v) - 3} style={tick}>{v ? signed(v, 0) : '0'}</text>
               </g>
             ))}
-            {sw.dots.map((d, i) => <circle key={i} cx={dx + d.y} cy={SL - d.x} r={1.5} fill={rankColor(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.75} />)}
+            {sw.dots.map((d, i) => <circle key={i} cx={dx + d.y} cy={SL - d.x} r={dotR} fill={dotTint(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.5} />)}
             <line x1={0} x2={TIP_IN} y1={yOf(unit.net)} y2={yOf(unit.net)} stroke={INK} strokeWidth={1} />
             <circle cx={TIP_IN / 2} cy={yOf(unit.net)} r={3.5} fill={tone} stroke={INK} strokeWidth={1.25} />
             <text x={TIP_IN} y={yOf(unit.net) - 4} textAnchor="end" style={{ ...tick, fill: INK, fontWeight: 700, fontSize: 8.5 }}>{net(unit.net)}</text>

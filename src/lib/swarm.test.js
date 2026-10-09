@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { rankColor, rankLabel, rankPct, swarm } from './swarm.js'
+import { dotRadius, dotTint, rankColor, rankLabel, rankPct, swarm } from './swarm.js'
 
 describe('swarm', () => {
   const values = [-30, -4, -1, 0, 0, 0, 1, 2, 3, 12, 40]
@@ -69,5 +69,20 @@ describe('rank', () => {
     expect(rankColor(rankPct(30, 79))).toBe('#6e8bbd')
     expect(rankColor(rankPct(60, 79))).toBe('#c98a4b')
     expect(rankColor(rankPct(79, 79))).toBe('#fa962a')
+  })
+})
+
+describe('swarm paint', () => {
+  it('fades from orange through grey to blue', () => {
+    expect(dotTint(0)).toBe('rgb(176,120,72)')
+    expect(dotTint(0.5)).toBe('rgb(110,104,98)')
+    expect(dotTint(1)).toBe('rgb(110,140,190)')
+  })
+
+  it('shrinks dots for big pools, within limits', () => {
+    expect(dotRadius(100)).toBe(1.5)
+    expect(dotRadius(1200)).toBe(0.8)
+    expect(dotRadius(300)).toBe(1.5)
+    expect(dotRadius(600)).toBeCloseTo(1.06, 2)
   })
 })

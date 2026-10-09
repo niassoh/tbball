@@ -45,6 +45,23 @@ export const rankPct = (rank, of) => (of > 1 ? 1 - (rank - 1) / (of - 1) : 1)
 // Blue for the better half, orange for the worse, strongest at the ends.
 export const rankColor = pct => (pct >= 0.9 ? '#8fb0e6' : pct >= 0.5 ? '#6e8bbd' : pct >= 0.1 ? '#c98a4b' : '#fa962a')
 
+// The swarm's dot colour: a soft, continuous fade by rank from muted orange (worst)
+// through warm grey (middle) to muted blue (best), so the swarm reads as one painted
+// shape rather than two blocks with a hard edge.
+const WORST = [176, 120, 72]
+const MIDDLE = [110, 104, 98]
+const BEST = [110, 140, 190]
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t))
+export const dotTint = pct => {
+  const p = Math.max(0, Math.min(1, pct))
+  const [r, g, b] = p < 0.5 ? mix(WORST, MIDDLE, p / 0.5) : mix(MIDDLE, BEST, (p - 0.5) / 0.5)
+  return `rgb(${r},${g},${b})`
+}
+
+// Dot radius for a pool of n units: full size for a few hundred, smaller for more, so a
+// large pool reads as texture instead of a solid slab.
+export const dotRadius = n => Math.max(0.8, Math.min(1.5, 1.5 * Math.sqrt(300 / Math.max(1, n))))
+
 // "TOP 2%" / "BOTTOM 6%": the smallest share of the pool, from its end, that holds it.
 export const rankLabel = (rank, of) =>
   rank / of <= 0.5 ? `TOP ${Math.ceil((rank / of) * 100)}%` : `BOTTOM ${Math.ceil(((of - rank + 1) / of) * 100)}%`

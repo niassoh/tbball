@@ -132,11 +132,9 @@ const SS = 92
 // The rank tooltip, a narrow popover just above the hovered net: the unit's league rank
 // among units of its size over the minutes floor (coloured blue to orange by where it
 // falls), and a vertical swarm of every such unit's net with this one marked. It stays
-// open while the pointer is over it, and moving up and down the swarm reads out the net
-// and league rank at that height. The league pool is fetched on the first hover.
+// open while the pointer is over it. The league pool is fetched on the first hover.
 function RankTip({ unit, size, floor, isDefault, onHover }) {
   const [league, setLeague] = useState(null)
-  const [probe, setProbe] = useState(null)
   // Opens above the number; when that would run off the top of the window, below it.
   const box = useRef(null)
   const [below, setBelow] = useState(false)
@@ -182,26 +180,17 @@ function RankTip({ unit, size, floor, isDefault, onHover }) {
       </div>
       <div style={section}>
         {sw ? (
-          <svg width={TIP_IN} height={SL + 8} viewBox={`0 -4 ${TIP_IN} ${SL + 8}`} style={{ display: 'block', overflow: 'visible', cursor: 'crosshair' }}
-            onMouseMove={e => {
-              const v = sw.value(SL - (e.clientY - e.currentTarget.getBoundingClientRect().top - 4))
-              setProbe({ v, rank: nets.filter(n => n > v).length + 1 })
-            }}
-            onMouseLeave={() => setProbe(null)}>
-            <rect x={0} y={-4} width={TIP_IN} height={SL + 8} fill="transparent" />
+          <svg width={TIP_IN} height={SL + 8} viewBox={`0 -4 ${TIP_IN} ${SL + 8}`} style={{ display: 'block', overflow: 'visible' }}>
             {sw.ticks.map(v => (
               <g key={v}>
                 <line x1={0} x2={TIP_IN} y1={yOf(v)} y2={yOf(v)} stroke="#3d3a37" strokeDasharray={v ? undefined : '2 3'} />
                 <text x={0} y={yOf(v) - 3} style={tick}>{v ? signed(v, 0) : '0'}</text>
               </g>
             ))}
-            {/* Hovering the swarm lights up the units at or above the pointer (the ones the
-                readout's rank counts) and lets the rest fall back. */}
-            {sw.dots.map((d, i) => <circle key={i} cx={dx + d.y} cy={SL - d.x} r={dotR} fill={dotTint(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={probe ? (d.v >= probe.v ? 0.95 : 0.15) : 0.5} style={{ transition: 'opacity .12s' }} />)}
+            {sw.dots.map((d, i) => <circle key={i} cx={dx + d.y} cy={SL - d.x} r={dotR} fill={dotTint(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.5} />)}
             <line x1={0} x2={TIP_IN} y1={yOf(unit.net)} y2={yOf(unit.net)} stroke={INK} strokeWidth={1} />
             <circle cx={TIP_IN / 2} cy={yOf(unit.net)} r={3.5} fill={tone} stroke={INK} strokeWidth={1.25} />
             <text x={TIP_IN} y={yOf(unit.net) - 4} textAnchor="end" style={{ ...tick, fill: INK, fontWeight: 700, fontSize: 8.5 }}>{net(unit.net)}</text>
-            {probe && <line x1={0} x2={TIP_IN} y1={yOf(probe.v)} y2={yOf(probe.v)} stroke={dotTint(rankPct(probe.rank, nets.length))} strokeWidth={1.25} strokeDasharray="2 2" pointerEvents="none" />}
           </svg>
         ) : (
           <div style={{ height: SL + 8, display: 'flex', alignItems: 'center', justifyContent: 'center', ...label, color: FAINT }}>LOADING…</div>
@@ -209,9 +198,7 @@ function RankTip({ unit, size, floor, isDefault, onHover }) {
       </div>
       <div style={{ ...section, display: 'flex', justifyContent: 'space-between', ...label, fontSize: 7.5 }}>
         <span>{mins(unit.minutes)} MIN</span>
-        {probe
-          ? <span>{signed(probe.v)} · <span style={{ color: rankColor(rankPct(probe.rank, nets.length)), fontWeight: 700 }}>{ord(probe.rank).toUpperCase()}</span></span>
-          : median !== null && <span>MEDIAN {signed(median)}</span>}
+        {median !== null && <span>MEDIAN {signed(median)}</span>}
       </div>
     </div>
   )

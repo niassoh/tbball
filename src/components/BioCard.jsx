@@ -132,6 +132,7 @@ export default function BioCard({ profile: p, loading = false }) {
           {specs.map(([label, value], i) => (
             <span key={label} title={label} style={{ display: 'flex', alignItems: 'center', padding: '0 10px', paddingLeft: i === 0 && !TEAM_COLORS[p.team] ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #6b655f' : 'none', fontSize: 13, fontWeight: 600, color: '#ece8e3' }}>
               {value}
+              {label === 'AGE' && <span style={{ marginLeft: 3, fontSize: 9, fontWeight: 400, letterSpacing: '.06em', color: '#8a847e' }}>YRS</span>}
             </span>
           ))}
         </div>

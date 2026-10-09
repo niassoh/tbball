@@ -33,7 +33,7 @@ function Mate({ mate }) {
     : <span style={{ color: DIM }}>{name}</span>
 }
 
-// A round headshot with the last name under it, or in a five's small tiles the
+// A round headshot with the last name under it, or in 4- and 5-man units' small tiles the
 // initials (the full name is on hover). A ring in the team colour frames each; his own
 // is stronger. Teammates' tiles link to their pages.
 function Tile({ player, team, accent, self, small }) {
@@ -58,7 +58,7 @@ function Tile({ player, team, accent, self, small }) {
   )
 }
 
-// 3-MAN / 5-MAN switch, styled like the percentile card's season menu.
+// Unit-size switch (2- to 5-man), styled like the percentile card's season menu.
 function SizePicker({ size, setSize }) {
   const [open, setOpen] = useState(false)
   return (
@@ -68,7 +68,7 @@ function SizePicker({ size, setSize }) {
       </button>
       {open && (
         <span style={{ position: 'absolute', left: -4, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', minWidth: 64 }}>
-          {[3, 5].map(n => (
+          {[2, 3, 4, 5].map(n => (
             <button key={n} onClick={() => { setSize(n); setOpen(false) }} style={{ textAlign: 'left', background: n === size ? '#3d3a37' : 'transparent', border: 'none', borderBottom: '1px solid #3d3a37', color: n === size ? INK : '#b8b2ab', fontFamily: MONO, fontSize: 10, fontWeight: n === size ? 600 : 400, padding: '6px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {n}-MAN
             </button>
@@ -121,7 +121,7 @@ function RankTip({ unit, size, floor, onHover }) {
     loadLineupLeague().then(d => live && setLeague(d)).catch(() => {})
     return () => { live = false }
   }, [])
-  const nets = league ? (size === 5 ? league.five : league.trio) : null
+  const nets = league ? league.nets[size] : null
   const sw = useMemo(() => nets && swarm(nets, { width: SL, height: SS, r: 1.5, include: [unit.net] }), [nets, unit.net])
   const yOf = v => SL - sw.x(v)
   const dx = (TIP_IN - SS) / 2
@@ -189,7 +189,8 @@ function RankTip({ unit, size, floor, onHover }) {
 // (and its share of his minutes when it's his most-used). Without a unit over the
 // floor, the same frame shows empty tiles. The row keeps one height for both sizes.
 function Unit({ title, unit, size, self, team, accent, empty, className, onTip, tip }) {
-  const small = size === 5
+  // Four and five tiles don't fit at full size beside the numbers; they go small with initials.
+  const small = size >= 4
   return (
     <div className={className} style={{ display: 'flex', flexDirection: 'column', gap: 11, minWidth: 0 }}>
       <span style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>{title}</span>
@@ -214,14 +215,14 @@ const mateGrid = { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 44px 44p
 // The bio card's lineup module. First his most-shared teammates, with the team's net
 // with both on (ON) and with him on and the teammate off (OFF); Δ = OFF − ON,
 // how he does without that teammate, so one he leans on reads negative (orange). Then
-// side by side his best and his most-used three-man unit as headshot tiles, switchable
-// to five-man units (best: over the league's minutes floor, which the API sets); each
-// net shows its league rank on hover.
+// side by side his best and his most-used unit as headshot tiles, three-man by default
+// and switchable to 2-, 4- and 5-man (best: over that size's league minutes floor, which
+// the API sets); each net shows its league rank on hover.
 // All net rating per 100 possessions, from the season's five-man lineups.
 export default function LineupPanel({ profile: p, accent }) {
   const L = p.lineups
   const [size, setSize] = useState(3)
-  const [best, used, floor] = !L ? [] : size === 5 ? [L.bestFive, L.mostUsed, L.floors.five] : [L.bestTrio, L.mostUsedTrio, L.floors.trio]
+  const [best, used, floor] = !L ? [] : [L.units[size].best, L.units[size].mostUsed, L.floors[size]]
   const [tip, setTip] = useState(null)
   const closing = useRef(null)
   const hover = which => on => {

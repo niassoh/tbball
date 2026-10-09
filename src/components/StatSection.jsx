@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { MONO, col, fmt, heat, ord } from '../lib/format.js'
 import { chartModel } from '../lib/chart.js'
 import { histogram } from '../lib/dist.js'
@@ -225,6 +225,14 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
     d.moved = true
     setSel({ a: d.start, b: i })
   }
+  // The span's rows, measured for the CLEAR tab on the frame's left side.
+  const rows = useRef([])
+  const [band, setBand] = useState(null)
+  useLayoutEffect(() => {
+    const a = spanOn && rows.current[from]
+    const b = spanOn && rows.current[to]
+    setBand(a && b ? { top: a.offsetTop, height: b.offsetTop + b.offsetHeight - a.offsetTop } : null)
+  }, [spanOn, from, to])
   const grid = `${SEASON_W}px ${TM_W}px ${G_W}px ${MIN_W}px repeat(${shown.length},minmax(84px,1fr))`
   const minW = SEASON_W + TM_W + G_W + MIN_W + shown.length * 84 + 'px'
   // A fade on the right edge while more stat columns lie off to the right.
@@ -250,7 +258,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
                 <span style={{ color: '#ece8e3' }}>{spanLen}-{p.seasonType === 'playoffs' ? 'RUN' : 'SEASON'} AVERAGE</span>{' · '}
                 {/* Chart the stat as a rolling average over the span's length. */}
                 <button type="button" onClick={() => setSel({ ...sel, rolling: !sel.rolling })} aria-pressed={rollingOn} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', lineHeight: 'inherit', padding: '0 5px', border: '1px solid #6b655f', background: rollingOn ? '#ece8e3' : 'transparent', color: rollingOn ? '#1f1d1c' : '#ece8e3', cursor: 'pointer' }}>ROLLING {spanLen}-YR</button>
-                {' · × OR ESC TO CLEAR'}
+                {' · CLEAR OR ESC'}
               </>
             : <>
                 {setPctView && (pctView ? <><span style={{ color: '#ece8e3' }}>PERCENTILES</span>{' · CLICK FOR VALUES · '}</> : 'CLICK FOR PERCENTILES · ')}
@@ -262,6 +270,13 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
         <SeasonChart stat={rollingOn ? rollingStat(p, charted, spanLen) : p.stats[charted]} label={charted} lineLabel={rollingOn ? `${spanLen}-YR AVG` : 'PLAYER'} seasons={p.seasons} span={spanOn ? { from, to, mean: spanMean(p, charted, from, to) } : null} />
         <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ position: 'relative' }}>
+          {/* Clears the span: a slim tab on the frame's left side, outside the scrolling
+              table so it stays put, running the span's height. */}
+          {band && (
+            <button type="button" onClick={() => setSel(null)} aria-label="Clear the span" style={{ position: 'absolute', left: -17, top: band.top, height: band.height, width: 17, zIndex: 3, padding: 0, background: '#1f1d1c', border: SPAN_FRAME, borderRight: 'none', color: '#ece8e3', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontFamily: MONO, fontSize: 8.5, fontWeight: 600, letterSpacing: '.14em' }}>CLEAR</span>
+            </button>
+          )}
           <div ref={scroller} className="stat-scroll" onScroll={measure} style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: minW, display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'grid', gridTemplateColumns: grid, fontFamily: MONO, fontSize: 10, letterSpacing: '.04em', borderBottom: '1px solid #6b655f', alignItems: 'end' }}>
@@ -281,18 +296,13 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
               {p.seasons.map((s, i) => {
                 const picked = sel !== null && i >= from && i <= to
                 return (
-                <div key={s.season} onPointerDown={e => press(e, i)} onPointerEnter={() => enter(i)} style={{ position: 'relative', display: 'grid', gridTemplateColumns: grid, borderBottom: '1px solid #3d3a37', fontFamily: MONO, fontSize: 13, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', opacity: spanOn && !picked ? 0.4 : 1, transition: 'opacity .15s' }}>
+                <div key={s.season} ref={el => { rows.current[i] = el }} onPointerDown={e => press(e, i)} onPointerEnter={() => enter(i)} style={{ position: 'relative', display: 'grid', gridTemplateColumns: grid, borderBottom: '1px solid #3d3a37', fontFamily: MONO, fontSize: 13, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', opacity: spanOn && !picked ? 0.4 : 1, transition: 'opacity .15s' }}>
                   {/* One frame around the whole span: its top and bottom at the span's ends, its left
                       edge on the pinned season cell (so it stays while the stats scroll), and its
                       right edge at the table's far end. */}
                   {picked && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: i === to ? 0 : -1, zIndex: 2, pointerEvents: 'none', borderRight: SPAN_FRAME, borderTop: i === from ? SPAN_FRAME : 'none', borderBottom: i === to ? SPAN_FRAME : 'none' }} />}
                   <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c', ...pinSeason(PAGE_BG), boxShadow: picked ? 'inset 2px 0 0 #ece8e3' : i === k ? 'inset 3px 0 0 var(--accent)' : 'none' }}>
                     {s.label}
-                    {/* Clears the span; on the pinned season cell so it stays in view as the stats
-                        scroll. Its press doesn't reach the row (which would switch to percentiles). */}
-                    {spanOn && i === from && (
-                      <button type="button" aria-label="Clear the span" title="Clear the span" onPointerDown={e => e.stopPropagation()} onClick={() => setSel(null)} style={{ position: 'absolute', right: 4, top: -8, zIndex: 3, width: 15, height: 15, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1f1d1c', border: SPAN_FRAME.replace('2px', '1.5px'), color: '#ece8e3', fontFamily: MONO, fontSize: 11, lineHeight: 1, cursor: 'pointer' }}>×</button>
-                    )}
                   </span>
                   <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam(PAGE_BG) }}>{s.tm}</span>
                   <span style={{ color: '#8a847e', ...pinGames(PAGE_BG) }}>{count(s.gp)}</span>

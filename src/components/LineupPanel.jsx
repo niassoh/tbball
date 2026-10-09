@@ -310,9 +310,17 @@ export default function LineupPanel({ profile: p, accent }) {
             })}
           </div>
 
+          {/* Size and minimum apply to both units (the minimum picks the best one and sets
+              the league pool both are ranked in), so they sit on one row above them. */}
+          <div style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: -6 }}>
+            <span>UNITS</span>
+            <SizePicker size={size} setSize={setSize} />
+            <span>·</span>
+            <MinutesPicker value={floor} def={def} range={(L.floorRange && L.floorRange[size]) || [def, def]} onChange={v => setPicked(m => ({ ...m, [size]: v }))} />
+          </div>
           <div className="lineup-units-wrap"><div className="lineup-units">
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · <MinutesPicker value={floor} def={def} range={(L.floorRange && L.floorRange[size]) || [def, def]} onChange={v => setPicked(m => ({ ...m, [size]: v }))} /></>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} onHover={hover('best')} />} className="lineup-unit-a" />
-            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} isDefault={isDefault} onHover={hover('used')} />} className="lineup-unit-b" />
+            <Unit {...unitProps} title="BEST" unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} onHover={hover('best')} />} className="lineup-unit-a" />
+            <Unit {...unitProps} title="MOST USED" unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} isDefault={isDefault} onHover={hover('used')} />} className="lineup-unit-b" />
           </div></div>
         </>
       )}

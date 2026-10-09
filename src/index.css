@@ -28,8 +28,8 @@ a:hover > .lineup-tile > :first-child { filter: none; }
    both (phones). Keyed to the card's width, not the window's. */
 .lineup-units-wrap { container-type: inline-size; }
 .lineup-units { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); border-bottom: 1px solid #3d3a37; }
-.lineup-unit-a { padding: 8px 12px 9px 0; border-right: 1px solid #3d3a37; }
-.lineup-unit-b { padding: 8px 0 9px 12px; }
+.lineup-unit-a { padding: 6px 12px 9px 0; border-right: 1px solid #3d3a37; }
+.lineup-unit-b { padding: 6px 0 9px 12px; }
 @container (max-width: 400px) {
   .lineup-units { grid-template-columns: minmax(0,1fr); }
   .lineup-unit-a { padding: 8px 0 9px; border-right: none; border-bottom: 1px solid #3d3a37; }

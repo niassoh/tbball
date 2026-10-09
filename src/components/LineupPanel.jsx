@@ -149,13 +149,6 @@ function RankTip({ unit, size, floor, onHover }) {
         ) : (
           <span style={{ ...label, fontSize: 7.5 }}>UNDER {floor} MIN TOGETHER</span>
         )}
-        {/* The shown net is shrunk toward the league mean by sample size; the raw one and
-            its noise are here, so a short, lucky unit reads as such. */}
-        {unit.rawNet !== undefined && unit.rawNet !== null && (
-          <span title="The headline net is adjusted for sample size (pulled toward the league average by how few possessions the unit has); this is the unadjusted net and its noise" style={{ ...label, fontSize: 7.5 }}>
-            RAW <span style={{ color: '#b8b2ab', fontWeight: 700 }}>{signed(unit.rawNet)}</span>{unit.se !== null && ` ±${unit.se.toFixed(1)}`} · SAMPLE-ADJUSTED
-          </span>
-        )}
       </div>
       <div style={section}>
         {sw ? (

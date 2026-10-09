@@ -79,6 +79,23 @@ function SizePicker({ size, setSize }) {
   )
 }
 
+// The best unit's minutes minimum: − and + step it by 50 (snapping to multiples of 50)
+// within the API's range for the size; clicking the number goes back to the default.
+const STEP = 50
+function MinutesStepper({ value, def, range, onChange }) {
+  const [lo, hi] = range
+  const down = Math.max(lo, Math.ceil(value / STEP) * STEP - STEP)
+  const up = Math.min(hi, Math.floor(value / STEP) * STEP + STEP)
+  const btn = enabled => ({ background: 'transparent', border: '1px solid #544f4b', color: enabled ? INK : '#4a4643', fontFamily: MONO, fontSize: 9, lineHeight: 1, width: 13, height: 13, padding: 0, cursor: enabled ? 'pointer' : 'default' })
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <button aria-label="Fewer minutes" disabled={value <= lo} onClick={() => onChange(down)} style={btn(value > lo)}>−</button>
+      <button title={value === def ? 'Minimum minutes together' : `Back to ${def}+`} onClick={() => onChange(def)} style={{ background: 'transparent', border: 'none', padding: 0, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: value === def ? DIM : INK, cursor: value === def ? 'default' : 'pointer', borderBottom: value === def ? 'none' : `1px dotted ${BLUE}` }}>{value}+ MIN</button>
+      <button aria-label="More minutes" disabled={value >= hi} onClick={() => onChange(up)} style={btn(value < hi)}>+</button>
+    </span>
+  )
+}
+
 // A unit's net. Hovering (or focusing) it opens the rank tooltip, which sits on the
 // number itself.
 function Net({ unit, onTip, tip }) {
@@ -107,7 +124,7 @@ const SS = 92
 // falls), and a vertical swarm of every such unit's net with this one marked. It stays
 // open while the pointer is over it, and moving up and down the swarm reads out the net
 // and league rank at that height. The league pool is fetched on the first hover.
-function RankTip({ unit, size, floor, onHover }) {
+function RankTip({ unit, size, floor, isDefault, onHover }) {
   const [league, setLeague] = useState(null)
   const [probe, setProbe] = useState(null)
   // Opens above the number; when that would run off the top of the window, below it.
@@ -121,11 +138,13 @@ function RankTip({ unit, size, floor, onHover }) {
     loadLineupLeague().then(d => live && setLeague(d)).catch(() => {})
     return () => { live = false }
   }, [])
-  const nets = league ? league.nets[size] : null
+  // Every league unit of this size over the chosen minimum, best first.
+  const nets = useMemo(() => league && league.pool ? league.pool[size].filter(([m]) => m >= floor).map(([, n]) => n).sort((a, b) => b - a) : null, [league, size, floor])
   const sw = useMemo(() => nets && swarm(nets, { width: SL, height: SS, r: 1.5, include: [unit.net] }), [nets, unit.net])
   const yOf = v => SL - sw.x(v)
   const dx = (TIP_IN - SS) / 2
-  const r = unit.rank
+  // The rank at the chosen minimum, from the pool (until it loads, the API's rank at the default).
+  const r = nets ? (unit.minutes >= floor ? { rank: nets.filter(n => n > unit.net).length + 1, of: nets.length } : null) : isDefault ? unit.rank : null
   const tone = r ? rankColor(rankPct(r.rank, r.of)) : FAINT
   const median = nets ? nets[Math.floor(nets.length / 2)] : null
   const tick = { fontFamily: MONO, fontSize: 7.5, fill: FAINT }
@@ -223,7 +242,17 @@ export default function LineupPanel({ profile: p, accent }) {
   // Lineups in an older shape (no `units`) show as no data rather than breaking the page.
   const L = p.lineups && p.lineups.units ? p.lineups : null
   const [size, setSize] = useState(3)
-  const [best, used, floor] = !L ? [] : [L.units[size].best, L.units[size].mostUsed, L.floors[size]]
+  // A minimum the reader picked, per size; otherwise the API's default (L.floors).
+  const [picked, setPicked] = useState({})
+  const def = L ? L.floors[size] : null
+  const floor = L ? (picked[size] ?? def) : null
+  const isDefault = floor === def
+  const used = L ? L.units[size].mostUsed : null
+  // At the default the API's best unit; at another minimum, the best of his options over it.
+  const best = !L ? null : isDefault ? L.units[size].best : (() => {
+    const o = (L.units[size].options || []).find(([, m]) => m >= floor)
+    return o ? { minutes: o[1], net: o[2], mates: o[0].map(id => L.people[id] || { name: null, slug: null }) } : null
+  })()
   const [tip, setTip] = useState(null)
   const closing = useRef(null)
   const hover = which => on => {
@@ -267,8 +296,8 @@ export default function LineupPanel({ profile: p, accent }) {
           </div>
 
           <div className="lineup-units-wrap"><div className="lineup-units">
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · {floor}+ MINUTES</>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} onHover={hover('best')} />} className="lineup-unit-a" />
-            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} onHover={hover('used')} />} className="lineup-unit-b" />
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · <MinutesStepper value={floor} def={def} range={(L.floorRange && L.floorRange[size]) || [def, def]} onChange={v => setPicked(m => ({ ...m, [size]: v }))} /></>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} onHover={hover('best')} />} className="lineup-unit-a" />
+            <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} isDefault={isDefault} onHover={hover('used')} />} className="lineup-unit-b" />
           </div></div>
         </>
       )}

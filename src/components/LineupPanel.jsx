@@ -197,11 +197,13 @@ function RankTip({ unit, size, floor, isDefault, onHover }) {
                 <text x={0} y={yOf(v) - 3} style={tick}>{v ? signed(v, 0) : '0'}</text>
               </g>
             ))}
-            {sw.dots.map((d, i) => <circle key={i} cx={dx + d.y} cy={SL - d.x} r={dotR} fill={dotTint(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={0.5} />)}
+            {/* Hovering the swarm lights up the units at or above the pointer (the ones the
+                readout's rank counts) and lets the rest fall back. */}
+            {sw.dots.map((d, i) => <circle key={i} cx={dx + d.y} cy={SL - d.x} r={dotR} fill={dotTint(sw.dots.length > 1 ? i / (sw.dots.length - 1) : 1)} opacity={probe ? (d.v >= probe.v ? 0.95 : 0.15) : 0.5} style={{ transition: 'opacity .12s' }} />)}
             <line x1={0} x2={TIP_IN} y1={yOf(unit.net)} y2={yOf(unit.net)} stroke={INK} strokeWidth={1} />
             <circle cx={TIP_IN / 2} cy={yOf(unit.net)} r={3.5} fill={tone} stroke={INK} strokeWidth={1.25} />
             <text x={TIP_IN} y={yOf(unit.net) - 4} textAnchor="end" style={{ ...tick, fill: INK, fontWeight: 700, fontSize: 8.5 }}>{net(unit.net)}</text>
-            {probe && <line x1={0} x2={TIP_IN} y1={yOf(probe.v)} y2={yOf(probe.v)} stroke={DIM} strokeDasharray="1 2" pointerEvents="none" />}
+            {probe && <line x1={0} x2={TIP_IN} y1={yOf(probe.v)} y2={yOf(probe.v)} stroke={dotTint(rankPct(probe.rank, nets.length))} strokeWidth={1.25} strokeDasharray="2 2" pointerEvents="none" />}
           </svg>
         ) : (
           <div style={{ height: SL + 8, display: 'flex', alignItems: 'center', justifyContent: 'center', ...label, color: FAINT }}>LOADING…</div>

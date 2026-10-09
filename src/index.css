@@ -32,6 +32,9 @@ html { scroll-behavior: smooth; }
 .search-box { transition: border-color .15s; }
 .search-box:hover, .search-box:focus-within { border-color: #ece8e3 !important; }
 .tab-btn:hover { color: #ece8e3 !important; background: #2f2c2a !important; }
+/* The stat table span's CLEAR tab inverts on hover, like a pressed control. */
+.span-clear { transition: background-color .12s, color .12s; }
+.span-clear:hover, .span-clear:focus-visible { background: #ece8e3 !important; color: #1f1d1c !important; }
 .depth-link { transition: color .15s, background .15s, border-color .15s; }
 /* Team-colour underline on a hovered teammate, lightened (like the logo tint) so dark navies still show. */
 .depth-link:hover { color: #ece8e3 !important; background: #2f2c2a !important; border-bottom-color: color-mix(in srgb, var(--team) 45%, #ece8e3) !important; }

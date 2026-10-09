@@ -273,7 +273,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
           {/* Clears the span: a slim tab on the frame's left side, outside the scrolling
               table so it stays put, running the span's height. */}
           {band && (
-            <button type="button" onClick={() => setSel(null)} aria-label="Clear the span" style={{ position: 'absolute', left: -17, top: band.top, height: band.height, width: 17, zIndex: 3, padding: 0, background: '#1f1d1c', border: SPAN_FRAME, borderRight: 'none', color: '#ece8e3', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button type="button" className="span-clear" onClick={() => setSel(null)} aria-label="Clear the span" style={{ position: 'absolute', left: -17, top: band.top, height: band.height, width: 17, zIndex: 3, padding: 0, background: '#1f1d1c', border: SPAN_FRAME, borderRight: 'none', color: '#ece8e3', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontFamily: MONO, fontSize: 8.5, fontWeight: 600, letterSpacing: '.14em' }}>CLEAR</span>
             </button>
           )}

@@ -121,7 +121,7 @@ function Wowy({ wowy, onOff }) {
 
 export default function Career({ profile: p, num }) {
   return (
-    <section id="sec-career" style={{ scrollMarginTop: 48, display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
+    <section id="sec-career" style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
       <SectionHeader num={num} title="Career" />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', borderTop: '1px solid #544f4b', borderLeft: '1px solid #544f4b' }}>
         {p.grav && <Gravity grav={p.grav} />}

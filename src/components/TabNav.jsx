@@ -2,7 +2,7 @@ import { MONO } from '../lib/format.js'
 
 export default function TabNav({ tabs, active, onPick }) {
   return (
-    <nav id="tabs" style={{ position: 'sticky', top: 0, zIndex: 5, background: '#262422', borderBottom: '1px solid #544f4b', display: 'flex', gap: 0, overflowX: 'auto', scrollMarginTop: 0 }}>
+    <nav id="tabs" style={{ position: 'sticky', top: 'var(--topbar-h, 0px)', zIndex: 5, background: '#262422', borderBottom: '1px solid #544f4b', display: 'flex', gap: 0, overflowX: 'auto', scrollMarginTop: 'var(--topbar-h, 0px)' }}>
       {tabs.map(t => {
         const on = t.id === active
         return (

@@ -250,7 +250,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
   }, [measure])
 
   return (
-    <section id={`sec-${tab.id}`} style={{ scrollMarginTop: 48, display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
+    <section id={`sec-${tab.id}`} style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
       <SectionHeader num={num} title={tab.name}>
         <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', letterSpacing: '.06em' }}>
           {spanOn

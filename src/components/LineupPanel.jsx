@@ -126,11 +126,12 @@ function Net({ unit, onTip, tip }) {
 // The rank tooltip is one TIP_IN-wide column: every row shares its left and right edge.
 // The swarm fills that width, net running up SL px, its dots spread SS px about the
 // middle.
-const TIP_W = 160
+const TIP_W = 184
 const TIP_PAD = 10
 const TIP_IN = TIP_W - 2 * TIP_PAD - 2
 const SL = 196
 const SS = 92
+const NAMES_PX = 11.5
 
 // The swarm's dots, drawn once per pool so pointing at them only redraws the ring and
 // the readout.
@@ -172,7 +173,6 @@ function RankTip({ unit, size, floor, isDefault, self, team, onHover }) {
   // The rank at the chosen minimum, from the pool (until it loads, the API's rank at the default).
   const r = nets ? (unit.minutes >= floor ? { rank: nets.filter(n => n > unit.net).length + 1, of: nets.length } : null) : isDefault ? unit.rank : null
   const tone = r ? rankColor(rankPct(r.rank, r.of)) : FAINT
-  const median = nets ? nets[Math.floor(nets.length / 2)] : null
   // The dot nearest the pointer, looked up once per frame.
   const point = e => {
     const at = e.currentTarget.getBoundingClientRect()
@@ -196,26 +196,34 @@ function RankTip({ unit, size, floor, isDefault, self, team, onHover }) {
   const shown = hot
     ? (([m, n, ids, t]) => ({ names: (ids || []).map(id => league.people && league.people[id]), team: t, net: n, minutes: m, rank: nets.filter(x => x > n).length + 1 }))(units[hot.i])
     : { names: [self, ...unit.mates].map(pl => pl && pl.name), team, net: unit.net, minutes: unit.minutes, rank: r && r.rank }
-  const tick = { fontFamily: MONO, fontSize: 7.5, fill: FAINT }
+  const names = shown.names.map(n => (n ? lastName(n) : '?')).join(' · ')
+  // The names stay on one line: a lineup too long for the tooltip shrinks to fit it.
+  const namesBox = useRef(null)
+  useLayoutEffect(() => {
+    const el = namesBox.current
+    el.style.fontSize = `${NAMES_PX}px`
+    if (el.scrollWidth > el.clientWidth) el.style.fontSize = `${Math.floor(NAMES_PX * el.clientWidth / el.scrollWidth * 10) / 10}px`
+  }, [names, hot])
+  const tick = { fontFamily: MONO, fontSize: 9, fill: FAINT }
   const section = { borderTop: RULE, paddingTop: 7 }
   return (
-    <div ref={box} role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', right: -6, ...(below ? { top: 'calc(100% + 8px)' } : { bottom: 'calc(100% + 8px)' }), zIndex: 20, width: TIP_W, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: TIP_PAD, display: 'flex', flexDirection: 'column', gap: 7, fontFamily: 'Montserrat,sans-serif', fontWeight: 400, lineHeight: 'normal', textAlign: 'left', color: INK, cursor: 'default' }}>
+    <div ref={box} role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', right: -6, ...(below ? { top: 'calc(100% + 8px)' } : { bottom: 'calc(100% + 8px)' }), zIndex: 20, width: TIP_W, background: 'rgba(31, 29, 28, .92)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: TIP_PAD, display: 'flex', flexDirection: 'column', gap: 7, fontFamily: 'Montserrat,sans-serif', fontWeight: 400, lineHeight: 'normal', textAlign: 'left', color: INK, cursor: 'default' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {r ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontFamily: MONO, fontSize: 18, fontWeight: 700, lineHeight: 1, color: tone }}>{ord(r.rank).toUpperCase()}</span>
-            <span style={{ fontFamily: MONO, fontSize: 8.5, fontWeight: 700, letterSpacing: '.06em', color: `color-mix(in srgb, ${tone} 55%, ${INK})`, background: `color-mix(in srgb, ${tone} 18%, transparent)`, border: `1px solid color-mix(in srgb, ${tone} 60%, transparent)`, padding: '2px 5px' }}>{rankLabel(r.rank, r.of)}</span>
+            <span style={{ fontFamily: MONO, fontSize: 21, fontWeight: 700, lineHeight: 1, color: tone }}>{ord(r.rank).toUpperCase()}</span>
+            <span style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', color: `color-mix(in srgb, ${tone} 55%, ${INK})`, background: `color-mix(in srgb, ${tone} 18%, transparent)`, border: `1px solid color-mix(in srgb, ${tone} 60%, transparent)`, padding: '2px 5px' }}>{rankLabel(r.rank, r.of)}</span>
           </div>
         ) : (
-          <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, lineHeight: 1, color: FAINT }}>UNRANKED</span>
+          <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, lineHeight: 1, color: FAINT }}>UNRANKED</span>
         )}
         {r ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ ...label, fontSize: 9 }}>OF <span style={{ color: INK, fontWeight: 700, fontSize: 10.5 }}>{r.of.toLocaleString()}</span> UNITS</span>
-            <span style={{ ...label, fontSize: 7.5 }}>{floor}+ MIN</span>
+            <span style={{ ...label, fontSize: 10.5 }}>OF <span style={{ color: INK, fontWeight: 700, fontSize: 12.5 }}>{r.of.toLocaleString()}</span> UNITS</span>
+            <span style={{ ...label, fontSize: 9.5 }}>{floor}+ MIN</span>
           </div>
         ) : (
-          <span style={{ ...label, fontSize: 7.5 }}>UNDER {floor} MIN TOGETHER</span>
+          <span style={{ ...label, fontSize: 9.5 }}>UNDER {floor} MIN TOGETHER</span>
         )}
       </div>
       <div style={section}>
@@ -232,7 +240,7 @@ function RankTip({ unit, size, floor, isDefault, self, team, onHover }) {
             <g pointerEvents="none">
               <line x1={0} x2={TIP_IN} y1={yOf(unit.net)} y2={yOf(unit.net)} stroke={INK} strokeWidth={1} />
               <circle cx={TIP_IN / 2} cy={yOf(unit.net)} r={3.5} fill={tone} stroke={INK} strokeWidth={1.25} />
-              <text x={TIP_IN} y={yOf(unit.net) - 4} textAnchor="end" style={{ ...tick, fill: INK, fontWeight: 700, fontSize: 8.5 }}>{net(unit.net)}</text>
+              <text x={TIP_IN} y={yOf(unit.net) - 4} textAnchor="end" style={{ ...tick, fill: INK, fontWeight: 700, fontSize: 10 }}>{net(unit.net)}</text>
               {hot && <circle cx={dx + hot.y} cy={SL - hot.x} r={dotR + 1.5} fill={INK} stroke="#1f1d1c" strokeWidth={1} />}
             </g>
           </svg>
@@ -241,16 +249,15 @@ function RankTip({ unit, size, floor, isDefault, self, team, onHover }) {
         )}
       </div>
       {/* A fixed height, so the tooltip doesn't shift as the names change. */}
-      <div style={{ ...section, height: 40, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 9.5, lineHeight: '12px', fontWeight: hot ? 600 : 400, color: INK, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{shown.names.map(n => (n ? lastName(n) : '?')).join(' · ')}</span>
-        <span style={{ ...label, fontSize: 7.5, display: 'flex', gap: 6 }}>
+      <div style={{ ...section, height: 36, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <span ref={namesBox} style={{ fontSize: NAMES_PX, lineHeight: '14px', fontWeight: hot ? 600 : 400, color: INK, whiteSpace: 'nowrap', overflow: 'hidden' }}>{names}</span>
+        <span style={{ ...label, fontSize: 9.5, display: 'flex', gap: 7 }}>
           <span>{shown.team}</span>
           <span style={{ color: INK, fontWeight: 700 }}>{net(shown.net)}</span>
           {shown.rank && nets && <span style={{ color: rankColor(rankPct(shown.rank, nets.length)), fontWeight: 700 }}>{ord(shown.rank).toUpperCase()}</span>}
           <span style={{ marginLeft: 'auto' }}>{mins(shown.minutes)} MIN</span>
         </span>
       </div>
-      {median !== null && <div style={{ ...section, ...label, fontSize: 7.5 }}>MEDIAN {signed(median)}</div>}
     </div>
   )
 }

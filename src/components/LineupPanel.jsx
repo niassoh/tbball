@@ -79,19 +79,31 @@ function SizePicker({ size, setSize }) {
   )
 }
 
-// The best unit's minutes minimum: − and + step it by 50 (snapping to multiples of 50)
-// within the API's range for the size; clicking the number goes back to the default.
+// The best unit's minutes minimum, opened from a label like the size menu: every
+// multiple of 50 in the API's range for the size, plus the default (underlined in blue),
+// as a grid of numbers so the whole range shows at once without scrolling.
 const STEP = 50
-function MinutesStepper({ value, def, range, onChange }) {
+function MinutesPicker({ value, def, range, onChange }) {
+  const [open, setOpen] = useState(false)
   const [lo, hi] = range
-  const down = Math.max(lo, Math.ceil(value / STEP) * STEP - STEP)
-  const up = Math.min(hi, Math.floor(value / STEP) * STEP + STEP)
-  const btn = enabled => ({ background: 'transparent', border: '1px solid #544f4b', color: enabled ? INK : '#4a4643', fontFamily: MONO, fontSize: 9, lineHeight: 1, width: 13, height: 13, padding: 0, cursor: enabled ? 'pointer' : 'default' })
+  const choices = [...new Set([def, ...Array.from({ length: Math.floor((hi - lo) / STEP) + 1 }, (_, i) => lo + i * STEP)])].sort((a, b) => a - b)
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-      <button aria-label="Fewer minutes" disabled={value <= lo} onClick={() => onChange(down)} style={btn(value > lo)}>−</button>
-      <button title={value === def ? 'Minimum minutes together' : `Back to ${def}+`} onClick={() => onChange(def)} style={{ background: 'transparent', border: 'none', padding: 0, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: value === def ? DIM : INK, cursor: value === def ? 'default' : 'pointer', borderBottom: value === def ? 'none' : `1px dotted ${BLUE}` }}>{value}+ MIN</button>
-      <button aria-label="More minutes" disabled={value >= hi} onClick={() => onChange(up)} style={btn(value < hi)}>+</button>
+    <span style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(o => !o)} aria-label="Minimum minutes" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'transparent', border: 'none', borderBottom: '1px dotted #8fb0e6', padding: 0, color: INK, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', cursor: 'pointer' }}>
+        {value}+ MIN<span style={{ fontSize: 6.5, color: BLUE }}>▼</span>
+      </button>
+      {open && (
+        <span style={{ position: 'absolute', left: -4, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>MINIMUM MINUTES</span>
+          <span style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 38px)', gap: 2 }}>
+            {choices.map(n => (
+              <button key={n} onClick={() => { onChange(n); setOpen(false) }} title={n === def ? 'Default' : undefined} style={{ background: n === value ? INK : 'transparent', border: 'none', color: n === value ? '#1f1d1c' : '#b8b2ab', fontFamily: MONO, fontSize: 10, fontWeight: n === value ? 700 : 400, padding: '4px 0', textAlign: 'center', cursor: 'pointer', textDecoration: n === def ? `underline 1px ${BLUE}` : 'none', textUnderlineOffset: 3 }}>
+                {n}
+              </button>
+            ))}
+          </span>
+        </span>
+      )}
     </span>
   )
 }
@@ -296,7 +308,7 @@ export default function LineupPanel({ profile: p, accent }) {
           </div>
 
           <div className="lineup-units-wrap"><div className="lineup-units">
-            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · <MinutesStepper value={floor} def={def} range={(L.floorRange && L.floorRange[size]) || [def, def]} onChange={v => setPicked(m => ({ ...m, [size]: v }))} /></>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} onHover={hover('best')} />} className="lineup-unit-a" />
+            <Unit {...unitProps} title={<>BEST <SizePicker size={size} setSize={setSize} /> · <MinutesPicker value={floor} def={def} range={(L.floorRange && L.floorRange[size]) || [def, def]} onChange={v => setPicked(m => ({ ...m, [size]: v }))} /></>} unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} onHover={hover('best')} />} className="lineup-unit-a" />
             <Unit {...unitProps} title={<>MOST USED <SizePicker size={size} setSize={setSize} /></>} unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} isDefault={isDefault} onHover={hover('used')} />} className="lineup-unit-b" />
           </div></div>
         </>

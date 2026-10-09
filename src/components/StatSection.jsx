@@ -18,8 +18,17 @@ const SPAN_FRAME = '2px solid #ece8e3'
 const SEASON_W = 84
 const TM_W = 56
 const PAGE_BG = '#262422'
+// Slim games and minutes columns, pinned with the season and team (the rule after the
+// last one marks where the stats scroll).
+const G_W = 40
+const MIN_W = 58
 const pinSeason = bg => ({ position: 'sticky', left: 0, zIndex: 1, background: bg })
-const pinTeam = bg => ({ position: 'sticky', left: SEASON_W, zIndex: 1, background: bg, boxShadow: 'inset -1px 0 0 #3d3a37', whiteSpace: 'nowrap' })
+const pinTeam = bg => ({ position: 'sticky', left: SEASON_W, zIndex: 1, background: bg, whiteSpace: 'nowrap' })
+const pinGames = bg => ({ position: 'sticky', left: SEASON_W + TM_W, zIndex: 1, background: bg, textAlign: 'right', padding: '5px 6px', fontSize: 11 })
+const pinMinutes = bg => ({ position: 'sticky', left: SEASON_W + TM_W + G_W, zIndex: 1, background: bg, boxShadow: 'inset -1px 0 0 #3d3a37', whiteSpace: 'nowrap', textAlign: 'right', padding: '5px 8px 5px 6px', fontSize: 11 })
+const pctlText = n => (n === null ? '—' : ord(n))
+const count = n => (n === null || n === undefined ? '—' : Math.round(n).toLocaleString())
+const total = (seasons, key, from, to) => seasons.slice(from, to + 1).reduce((a, s) => a + (s[key] || 0), 0)
 // A span value against his career average: blue better, orange worse (flipped for
 // lower-is-better stats), plain when they match at the shown precision.
 const vsCareer = (stat, value, career) => {
@@ -216,8 +225,8 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
     d.moved = true
     setSel({ a: d.start, b: i })
   }
-  const grid = `${SEASON_W}px ${TM_W}px repeat(${shown.length},minmax(84px,1fr))`
-  const minW = SEASON_W + TM_W + shown.length * 84 + 'px'
+  const grid = `${SEASON_W}px ${TM_W}px ${G_W}px ${MIN_W}px repeat(${shown.length},minmax(84px,1fr))`
+  const minW = SEASON_W + TM_W + G_W + MIN_W + shown.length * 84 + 'px'
   // A fade on the right edge while more stat columns lie off to the right.
   const scroller = useRef(null)
   const [more, setMore] = useState(false)
@@ -258,6 +267,8 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
               <div style={{ display: 'grid', gridTemplateColumns: grid, fontFamily: MONO, fontSize: 10, letterSpacing: '.04em', borderBottom: '1px solid #6b655f', alignItems: 'end' }}>
                 <span style={{ padding: '5px 10px', color: '#8a847e', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', ...pinSeason(PAGE_BG) }}>SEASON</span>
                 <span style={{ padding: '5px 10px', color: '#8a847e', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', ...pinTeam(PAGE_BG) }}>TM</span>
+                <span style={{ color: '#8a847e', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', ...pinGames(PAGE_BG), fontSize: 10 }}>G</span>
+                <span style={{ color: '#8a847e', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', ...pinMinutes(PAGE_BG), fontSize: 10 }}>MIN</span>
                 {shown.map(l => {
                   const on = l === charted
                   return (
@@ -277,12 +288,14 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
                   {picked && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: i === to ? 0 : -1, zIndex: 2, pointerEvents: 'none', borderRight: SPAN_FRAME, borderTop: i === from ? SPAN_FRAME : 'none', borderBottom: i === to ? SPAN_FRAME : 'none' }} />}
                   <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c', ...pinSeason(PAGE_BG), boxShadow: picked ? 'inset 2px 0 0 #ece8e3' : i === k ? 'inset 3px 0 0 var(--accent)' : 'none' }}>{s.label}</span>
                   <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam(PAGE_BG) }}>{s.tm}</span>
+                  <span style={{ color: '#8a847e', ...pinGames(PAGE_BG) }}>{count(s.gp)}</span>
+                  <span style={{ color: '#8a847e', ...pinMinutes(PAGE_BG) }}>{count(s.mp)}</span>
                   {shown.map(l => {
                     const st = p.stats[l]
                     const v = st.vals[i]
                     return (
                       <span key={l} style={{ padding: '5px 10px', textAlign: 'right', background: v ? heat(v.p, i === k ? 0.12 : 0) : 'transparent', fontWeight: l === charted ? 600 : 400, color: v ? '#ece8e3' : '#6b655f' }}>
-                        {v ? (pctView ? (v.p ?? '—') : fmt(st, v.n)) : '—'}
+                        {v ? (pctView ? (v.p === null ? '—' : ord(v.p)) : fmt(st, v.n)) : '—'}
                       </span>
                     )
                   })}
@@ -294,17 +307,21 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
               <div onClick={spanOn ? () => setSel(null) : undefined} title={spanOn ? `Average of ${p.seasons[from].label} to ${p.seasons[to].label} · click to clear` : undefined} style={{ display: 'grid', gridTemplateColumns: grid, borderTop: `1px solid ${spanOn ? '#6b655f' : '#3d3a37'}`, borderBottom: `1px solid ${spanOn ? '#6b655f' : '#3d3a37'}`, background: spanOn ? '#141312' : 'transparent', fontFamily: MONO, fontSize: 13, fontWeight: 600, cursor: spanOn ? 'pointer' : 'default', transition: 'background-color .15s, border-color .15s' }}>
                 <span style={{ padding: '5px 10px', color: spanOn ? '#ece8e3' : '#544f4b', ...pinSeason(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? spanLabel(p.seasons, from, to) : 'SPAN'}</span>
                 <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? spanTeams(p.seasons, from, to) : ''}</span>
+                <span style={{ color: '#8a847e', fontWeight: 400, ...pinGames(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? count(total(p.seasons, 'gp', from, to)) : ''}</span>
+                <span style={{ color: '#8a847e', fontWeight: 400, ...pinMinutes(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? count(total(p.seasons, 'mp', from, to)) : ''}</span>
                 {shown.map(l => {
                   if (!spanOn) return <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: '#3d3a37' }}>—</span>
                   const st = p.stats[l]
                   const value = spanMean(p, l, from, to)
-                  return <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: vsCareer(st, value, spanMean(p, l, 0, k)) }}>{pctView ? (spanPctl(p, l, from, to) ?? '—') : fmt(st, value)}</span>
+                  return <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: vsCareer(st, value, spanMean(p, l, 0, k)) }}>{pctView ? pctlText(spanPctl(p, l, from, to)) : fmt(st, value)}</span>
                 })}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '2px solid #ece8e3', background: '#34312e', fontFamily: MONO, fontSize: 13, fontWeight: 600 }}>
                 <span style={{ padding: '5px 10px', ...pinSeason('#34312e') }}>{p.seasonType === 'playoffs' ? 'PLAYOFFS' : 'CAREER'}</span>
                 <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam('#34312e') }}>{p.careerTm}</span>
-                {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{pctView ? (spanPctl(p, l, 0, k) ?? '—') : fmt(p.stats[l], spanMean(p, l, 0, k))}</span>)}
+                <span style={{ color: '#a8a29c', fontWeight: 400, ...pinGames('#34312e') }}>{count(total(p.seasons, 'gp', 0, k))}</span>
+                <span style={{ color: '#a8a29c', fontWeight: 400, ...pinMinutes('#34312e') }}>{count(total(p.seasons, 'mp', 0, k))}</span>
+                {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{pctView ? pctlText(spanPctl(p, l, 0, k)) : fmt(p.stats[l], spanMean(p, l, 0, k))}</span>)}
               </div>
             </div>
           </div>

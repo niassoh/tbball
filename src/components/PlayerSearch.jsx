@@ -5,6 +5,7 @@ import { MONO } from '../lib/format.js'
 import { matchParts, searchPlayers, searchTeams } from '../lib/search.js'
 import { bestFit, depthSlot } from '../lib/depth.js'
 import TeamInitials from './TeamInitials.jsx'
+import { useSeasonType } from '../useSeasonType.js'
 import { asset } from '../lib/static.js'
 
 const MAX = 8
@@ -59,6 +60,7 @@ export default function PlayerSearch({ profile }) {
   const [active, setActive] = useState(0)
   const input = useRef(null)
   const navigate = useNavigate()
+  const { playerPath } = useSeasonType()
 
   useEffect(() => {
     const onKey = e => {
@@ -89,7 +91,7 @@ export default function PlayerSearch({ profile }) {
     setOpen(false)
     input.current?.blur()
     const slug = r.player ? r.player.slug : r.fit && r.fit.player.slug
-    if (slug) navigate(`/player/${slug}`)
+    if (slug) navigate(playerPath(slug))
   }
   const onKeyDown = e => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, results.length - 1)) }

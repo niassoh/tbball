@@ -33,17 +33,20 @@ const bandValue = (cell, total, points, league, mode) => {
 const NEUTRAL = [39, 37, 36]
 const DARKEST = [19, 18, 17]
 const GREENEST = [97, 113, 91]
+// Playoffs mode shades the same way toward the site's gold (index.css --accent).
+export const GOLD = [212, 167, 44]
+const GOLDEST = [124, 104, 52]
 export const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t))
 
-export const zoneFill = (d, mode, span = MODES[mode].th + MODES[mode].scale) => {
+export const zoneFill = (d, mode, span = MODES[mode].th + MODES[mode].scale, gold = false) => {
   const { th } = MODES[mode]
   const a = Math.abs(d)
   if (d === null || a < th) return rgb(NEUTRAL)
   const t = Math.min(1, (a - th) / (span - th)) ** 0.8
-  return rgb(mix(NEUTRAL, d > 0 ? GREENEST : DARKEST, t))
+  return rgb(mix(NEUTRAL, d > 0 ? (gold ? GOLDEST : GREENEST) : DARKEST, t))
 }
 
-export function shotModel({ zones, league }, mode) {
+export function shotModel({ zones, league }, mode, gold = false) {
   const totals = { rest: 0, recent: 0 }
   for (const { id } of BANDS) {
     totals.rest += zones[id].rest.fga
@@ -73,5 +76,5 @@ export function shotModel({ zones, league }, mode) {
   })
   const { th, scale } = MODES[mode]
   const span = Math.max(th + scale, ...bands.map(g => Math.abs(g.delta || 0)))
-  return bands.map(g => ({ ...g, fill: zoneFill(g.delta, mode, span) }))
+  return bands.map(g => ({ ...g, fill: zoneFill(g.delta, mode, span, gold) }))
 }

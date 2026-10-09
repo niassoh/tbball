@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MONO, col, fmt } from '../lib/format.js'
+import WindowTag from './WindowTag.jsx'
 
 // [group name, tab it links to, stat labels] as in the design's SNAPG.
 const GROUPS = [
@@ -24,9 +25,11 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
   const [playing, setPlaying] = useState(false)
   // A different player (the page isn't remounted): jump to their latest season, so the
   // bars slide from the old player's percentiles to the new one's.
-  const [shown, setShown] = useState(p.slug)
-  if (shown !== p.slug) {
-    setShown(p.slug)
+  // (Also on switching between the regular season and the playoffs.)
+  const who = `${p.slug}|${p.seasonType}`
+  const [shown, setShown] = useState(who)
+  if (shown !== who) {
+    setShown(who)
     setSeason(L)
     setPlaying(false)
     setMenuOpen(false)
@@ -49,6 +52,19 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
     setPlaying(true)
   }
 
+  const title = p.seasonType === 'playoffs' ? 'Playoff Percentiles' : 'Percentiles'
+  // No playoff runs on file: the card keeps its frame with the reason in it.
+  if (L < 0) {
+    return (
+      <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ padding: '12px 0 8px', borderBottom: '1px solid #544f4b', margin: '0 14px', fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase' }}>{title}</div>
+        <div style={{ flex: 1, minHeight: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#a8a29c', border: '1px solid #544f4b', padding: '4px 8px' }}>NO PLAYOFF GAMES</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
@@ -56,7 +72,7 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
           <button onClick={() => setMenuOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', borderBottom: '1px dotted #8fb0e6', padding: '0 0 1px', color: '#ece8e3', fontFamily: MONO, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {p.seasons[kp].label}<span style={{ fontSize: 8, color: '#8fb0e6' }}>▼</span>
           </button>
-          <span style={{ whiteSpace: 'nowrap' }}>Percentiles</span>
+          <span style={{ whiteSpace: 'nowrap' }}>{title}</span>
           {menuOpen && (
             <div style={{ position: 'absolute', left: -4, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', minWidth: 96, maxHeight: 320, overflowY: 'auto' }}>
               {p.seasons.map((s, i) => i).reverse().map(i => (
@@ -89,7 +105,10 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
                 const c = col(v.p)
                 return (
                   <div key={label} style={{ ...rowGrid, alignItems: 'center', height: 23, borderBottom: '1px dashed #3d3a37' }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: '#d6d1cb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right' }}>{label}</span>
+                    <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minWidth: 0 }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: '#d6d1cb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+                      <WindowTag stat={s} />
+                    </span>
                     <div style={{ position: 'relative', height: 18, display: 'flex', alignItems: 'center' }}>
                       <div style={{ position: 'absolute', left: 0, right: 0, height: 14, background: '#34312e' }} />
                       <div style={{ position: 'absolute', left: 0, height: 14, width: w, background: c, transition: slide(['width', 'background-color']) }} />

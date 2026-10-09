@@ -3,6 +3,8 @@ import { MONO, col, fmt, heat, ord } from '../lib/format.js'
 import { chartModel } from '../lib/chart.js'
 import { histogram } from '../lib/dist.js'
 import { loadDistribution } from '../api.js'
+import { useSeasonType } from '../useSeasonType.js'
+import WindowTag from './WindowTag.jsx'
 import { rollingStat, spanMean, spanLabel, spanTeams } from '../lib/span.js'
 import { TEAM_COLORS, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
@@ -99,12 +101,13 @@ function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span }) {
   // The charted stat's league spread per season, for the hover card (not for Year to
   // Year's derived changes, which have none).
   const [dist, setDist] = useState(null)
+  const { playoffs } = useSeasonType()
   useEffect(() => {
     if (stat.derived) return
     let live = true
-    loadDistribution(label).then(d => live && setDist({ label, seasons: (d && d.seasons) || {} })).catch(() => {})
+    loadDistribution(label, playoffs).then(d => live && setDist({ label, seasons: (d && d.seasons) || {} })).catch(() => {})
     return () => { live = false }
-  }, [label, stat.derived])
+  }, [label, stat.derived, playoffs])
   // (Also off for a rolling average of a real stat, whose distribution may already be loaded.)
   const seasonDist = hover !== null && !stat.derived && dist && dist.label === label ? dist.seasons[seasons[hover].season] : null
   const L = seasons.length - 1
@@ -115,7 +118,7 @@ function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span }) {
   return (
     <div style={{ flex: '0 1 330px', minWidth: 260, display: 'flex', flexDirection: 'column', gap: 10, background: '#2c2a28', border: '1px solid #544f4b', padding: 16, alignSelf: 'stretch' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: '.03em' }}>{label}</span>
+        <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: '.03em' }}>{label}<WindowTag stat={stat} /></span>
         <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#8a847e' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 2, background: '#ece8e3' }} />{lineLabel}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 0, borderTop: '2px dashed #8a847e' }} />{m.legend}</span>
@@ -241,7 +244,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
         <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', letterSpacing: '.06em' }}>
           {spanOn
             ? <>
-                <span style={{ color: '#ece8e3' }}>{spanLen}-SEASON AVERAGE</span>{' · '}
+                <span style={{ color: '#ece8e3' }}>{spanLen}-{p.seasonType === 'playoffs' ? 'RUN' : 'SEASON'} AVERAGE</span>{' · '}
                 {/* Chart the stat as a rolling average over the span's length. */}
                 <button type="button" onClick={() => setSel({ ...sel, rolling: !sel.rolling })} aria-pressed={rollingOn} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', lineHeight: 'inherit', padding: '0 5px', border: '1px solid #6b655f', background: rollingOn ? '#ece8e3' : 'transparent', color: rollingOn ? '#1f1d1c' : '#ece8e3', cursor: 'pointer' }}>ROLLING {spanLen}-YR</button>
                 {' · CLICK IT OR ESC TO CLEAR'}
@@ -264,7 +267,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
                   const on = l === charted
                   return (
                     <span key={l} onClick={() => setCharted(l)} style={{ padding: '8px 10px', textAlign: 'right', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, color: on ? '#ece8e3' : '#8a847e', fontWeight: on ? 600 : 400, boxShadow: on ? 'inset 0 -3px 0 #fa962a' : 'none', background: on ? '#2f2c2a' : 'transparent' }}>
-                      <span style={{ textTransform: 'uppercase', lineHeight: 1.3 }}>{l}</span>
+                      <span style={{ textTransform: 'uppercase', lineHeight: 1.3 }}>{l}<WindowTag stat={p.stats[l]} /></span>
                     </span>
                   )
                 })}
@@ -277,7 +280,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
                       edge on the pinned season cell (so it stays while the stats scroll), and its
                       right edge at the table's far end. */}
                   {picked && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: i === to ? 0 : -1, zIndex: 2, pointerEvents: 'none', borderRight: SPAN_FRAME, borderTop: i === from ? SPAN_FRAME : 'none', borderBottom: i === to ? SPAN_FRAME : 'none' }} />}
-                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c', ...pinSeason(PAGE_BG), boxShadow: picked ? 'inset 2px 0 0 #ece8e3' : i === k ? 'inset 3px 0 0 #97c197' : 'none' }}>{s.label}</span>
+                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c', ...pinSeason(PAGE_BG), boxShadow: picked ? 'inset 2px 0 0 #ece8e3' : i === k ? 'inset 3px 0 0 var(--accent)' : 'none' }}>{s.label}</span>
                   <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam(PAGE_BG) }}>{s.tm}</span>
                   {shown.map(l => {
                     const st = p.stats[l]
@@ -304,7 +307,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel }) {
                 })}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '2px solid #ece8e3', background: '#34312e', fontFamily: MONO, fontSize: 13, fontWeight: 600 }}>
-                <span style={{ padding: '5px 10px', ...pinSeason('#34312e') }}>CAREER</span>
+                <span style={{ padding: '5px 10px', ...pinSeason('#34312e') }}>{p.seasonType === 'playoffs' ? 'PLAYOFFS' : 'CAREER'}</span>
                 <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam('#34312e') }}>{p.careerTm}</span>
                 {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{fmt(p.stats[l], spanMean(p, l, 0, k))}</span>)}
               </div>

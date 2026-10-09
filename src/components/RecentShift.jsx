@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
-import { BANDS, BETTER, MODES, mix, rgb, shotModel } from '../lib/shot.js'
+import { BANDS, BETTER, GOLD, MODES, mix, rgb, shotModel } from '../lib/shot.js'
 import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, THREE_LINE } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
@@ -62,12 +62,17 @@ function ModeToggle({ mode, onPick, hidden }) {
   )
 }
 
-function Legend({ hidden }) {
+// The card's two windows: the last 30 days against the rest of the season, or in
+// playoffs mode the playoffs against that regular season (same data shape).
+// `short` fits the shot map's hover box.
+const WINDOWS = { regular: { base: 'SEASON', window: 'RECENT', short: 'SEASON' }, playoffs: { base: 'REG SEASON', window: 'PLAYOFFS', short: 'SEASON' } }
+
+function Legend({ hidden, labels = WINDOWS.regular }) {
   return (
     <div aria-hidden={hidden || undefined} style={{ padding: '10px 0 0', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px', visibility: hidden ? 'hidden' : 'visible' }}>
       <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#8a847e', whiteSpace: 'nowrap' }}>
-        {legendSwatch('#8a847e', 'SEASON', true, true)}
-        {legendSwatch('#ece8e3', 'RECENT', true)}
+        {legendSwatch('#8a847e', labels.base, true, true)}
+        {legendSwatch('#ece8e3', labels.window, true)}
       </span>
     </div>
   )
@@ -75,11 +80,12 @@ function Legend({ hidden }) {
 
 const statRows = { display: 'flex', flexDirection: 'column', padding: '4px 14px 12px', gap: 2 }
 
-function ShotMap({ shotShift, divided }) {
+function ShotMap({ shotShift, divided, po = false }) {
+  const labels = WINDOWS[po ? 'playoffs' : 'regular']
   const [mode, setMode] = useState('value')
   const [hover, setHover] = useState(null)
   const [season, setSeason] = useState(false)
-  const zones = shotModel(shotShift, mode)
+  const zones = shotModel(shotShift, mode, po)
   const band = zones.find(z => z.id === hover)
   const index = BANDS.findIndex(b => b.id === hover)
   // One set at a time, rippling out from the rim. Numbered before the set filter so
@@ -144,7 +150,7 @@ function ShotMap({ shotShift, divided }) {
             <g pointerEvents="none" fontFamily={MONO}>
               <rect x="10" y="10" width="244" height="70" fill="rgba(31,29,28,.88)" />
               <text x="19" y="25" dominantBaseline="central" fontSize="15" fontWeight="700" letterSpacing="1" fill="#ece8e3">{band.name}</text>
-              {[['RECENT', band.recentShots, !season], ['SEASON', band.seasonShots, season]].map(([name, c, on], i) => (
+              {[[labels.window, band.recentShots, !season], [labels.short, band.seasonShots, season]].map(([name, c, on], i) => (
                 <text key={name} x="19" y={48 + i * 18} dominantBaseline="central" fontSize="11.5" fontWeight={on ? 700 : 400} fill={on ? '#ece8e3' : '#8a847e'}>
                   <tspan>{name}</tspan>
                   <tspan x="84">{c.fgm}/{c.fga}</tspan>
@@ -175,13 +181,15 @@ const SLIDE = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 
 // rises reach the site green and the biggest drops near-black.
 const SLIDER_MID = [110, 122, 111]
 const SLIDER_LOW = [19, 18, 17]
-const sliderColor = t => rgb(t >= 0 ? mix(SLIDER_MID, BETTER, t) : mix(SLIDER_MID, SLIDER_LOW, -t))
+const sliderColor = (t, top) => rgb(t >= 0 ? mix(SLIDER_MID, top, t) : mix(SLIDER_MID, SLIDER_LOW, -t))
 
-function CoreStats({ profile: p }) {
+function CoreStats({ profile: p, po = false }) {
+  // Rises reach the site green, or gold in playoffs mode.
+  const top = po ? GOLD : BETTER
   const rows = p.recentShift.stats.filter(r => p.stats[r.stat])
   return (
     <>
-      <Legend />
+      <Legend labels={WINDOWS[po ? 'playoffs' : 'regular']} />
       <div style={statRows}>
         {rows.map(r => {
           const stat = p.stats[r.stat]
@@ -193,8 +201,8 @@ function CoreStats({ profile: p }) {
           const p1 = 50 + t * 50
           const neutral = Math.abs(move) < 0.1
           const good = move > 0
-          const color = neutral ? '#8a847e' : good ? rgb(BETTER) : '#d6d1cb'
-          const end = neutral ? '#8a847e' : sliderColor(t)
+          const color = neutral ? '#8a847e' : good ? rgb(top) : '#d6d1cb'
+          const end = neutral ? '#8a847e' : sliderColor(t, top)
           // The bar shades from the middle tone at the season dot to the move's colour at the recent dot.
           const bar = neutral ? '#6b655f' : `linear-gradient(to ${good ? 'right' : 'left'}, ${rgb(SLIDER_MID)}, ${end})`
           const lo = Math.min(p0, p1)
@@ -282,7 +290,32 @@ function EmptyShotMap({ reason, divided }) {
 const windowLabel = games =>
   games === null ? 'THE LAST 30 DAYS' : `LAST ${games} GAME${games === 1 ? '' : 'S'}`
 
+// Playoffs mode: the latest playoffs against that regular season.
+function PlayoffShift({ profile: p }) {
+  const season = (p.recentShift && p.recentShift.season) || p.playoffs.latest
+  const label = season ? season.replace('-', '–') : ''
+  const games = p.gameLog && p.gameLog.playoffGames !== undefined ? p.gameLog.playoffGames : null
+  // In this season's playoffs but under the playoff sheet's minutes floor.
+  const played = p.playoffs.latest === season && p.seasons.length > 0
+  const reason = played ? 'NOT QUALIFIED' : `NO ${label} PLAYOFF GAMES`
+  return (
+    <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Playoffs vs Season</span>
+          <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
+            DIFFERENCE BETWEEN <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{games === null ? `THE ${label} PLAYOFFS` : `${games} PLAYOFF GAME${games === 1 ? '' : 'S'}`}</span> AND {label} REG SEASON
+          </span>
+        </div>
+      </div>
+      {p.recentShift ? <CoreStats profile={p} po /> : <EmptyStats reason={reason} />}
+      {p.shotShift ? <ShotMap shotShift={p.shotShift} divided po /> : <EmptyShotMap reason={played ? 'NO PLAYOFF SHOTS' : reason} divided />}
+    </div>
+  )
+}
+
 export default function RecentShift({ profile: p }) {
+  if (p.seasonType === 'playoffs') return <PlayoffShift profile={p} />
   const games = p.gameLog && p.gameLog.recent ? p.gameLog.recent.games : null
   // Not in the pull, which keeps only players over the sheet's minutes floor: for the
   // season (no game log, so no shot data either), or, scaled to each window, in both

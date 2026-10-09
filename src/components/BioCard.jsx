@@ -7,6 +7,7 @@ import TeamPicker from './TeamPicker.jsx'
 import LineupPanel from './LineupPanel.jsx'
 import { TEAM_COLORS } from '../lib/teams.js'
 import { asset } from '../lib/static.js'
+import { useSeasonType } from '../useSeasonType.js'
 
 const card = { border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }
 const INJURY = { OUT: '#fa962a', DTD: '#e6c27a' }
@@ -64,6 +65,7 @@ const nameSize = lines => Math.min(30, Math.floor(240 / (0.62 * Math.max(...line
 const draftLine = d => (!d ? null : d.undrafted ? 'UNDRAFTED' : `${d.year} DRAFT · R${d.round} #${d.overall} · ${d.team}`)
 
 export default function BioCard({ profile: p, loading = false }) {
+  const { playerPath } = useSeasonType()
   // Spec strip: team logo, then position / height / age split by hard rules (labels as tooltips).
   const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', p.bio.age !== null ? p.bio.age.toFixed(1) : null]].filter(([, v]) => v)
   const lines = nameLines(p.name)
@@ -115,7 +117,7 @@ export default function BioCard({ profile: p, loading = false }) {
 
   return (
     <div ref={cardRef} style={card}>
-      <div className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid #ece8e3', overflow: 'hidden' }}>
+      <div className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid var(--trim)', overflow: 'hidden' }}>
         <img className="hero-bokeh" src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
         <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={p.team} />
         {/* A soft overhead light along the top-right hides the seam where the headshot box begins. */}
@@ -145,7 +147,8 @@ export default function BioCard({ profile: p, loading = false }) {
         </h1>
       </div>
 
-      <LineupPanel profile={p} accent={accent} />
+      {/* Remounted per season type: its chosen minimums belong to that type's pools. */}
+      <LineupPanel key={p.seasonType} profile={p} accent={accent} />
 
       {p.depth && (
         <div ref={depthRef} style={{ marginTop: depthGap === null ? 'auto' : depthGap, padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
@@ -169,7 +172,7 @@ export default function BioCard({ profile: p, loading = false }) {
                   const me = pl.slug === p.slug
                   const Name = pl.hasProfile && !me ? Link : 'span'
                   return (
-                    <Name key={pl.espnId} {...(Name === Link && { to: `/player/${pl.slug}`, className: 'depth-link' })} title={pl.name} style={{ fontSize: 10.5, lineHeight: 1.3, fontWeight: me ? 700 : 500, color: me ? '#ece8e3' : pl.status ? '#8a847e' : i > 2 ? '#8a847e' : '#d6d1cb', textAlign: 'center', padding: '3px 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: me ? '2px solid #97c197' : '2px solid transparent', background: me ? 'rgba(151,193,151,.12)' : 'transparent' }}>
+                    <Name key={pl.espnId} {...(Name === Link && { to: playerPath(pl.slug), className: 'depth-link' })} title={pl.name} style={{ fontSize: 10.5, lineHeight: 1.3, fontWeight: me ? 700 : 500, color: me ? '#ece8e3' : pl.status ? '#8a847e' : i > 2 ? '#8a847e' : '#d6d1cb', textAlign: 'center', padding: '3px 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: me ? '2px solid var(--accent)' : '2px solid transparent', background: me ? 'var(--accent-soft)' : 'transparent' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         {lastName(pl.name)}
                         {pl.status && <span title={pl.status} style={{ width: 5, height: 5, background: INJURY[pl.status], flex: 'none' }} />}

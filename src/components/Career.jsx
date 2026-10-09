@@ -41,7 +41,7 @@ function Gravity({ grav }) {
             <span style={{ textAlign: 'right' }}>{r.on.toFixed(1)}</span>
             <span style={{ textAlign: 'right', color: '#a8a29c' }}>{r.off.toFixed(1)}</span>
             <div style={{ position: 'relative', height: 12, background: '#34312e' }}>
-              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(Math.max(0, Math.min(d, GMAX)) / GMAX * 100).toFixed(1)}%`, background: r.career ? '#97c197' : '#597ec1' }} />
+              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(Math.max(0, Math.min(d, GMAX)) / GMAX * 100).toFixed(1)}%`, background: r.career ? 'var(--accent)' : '#597ec1' }} />
             </div>
             <span style={{ textAlign: 'right', fontWeight: 600, color: d >= 0 ? '#ece8e3' : '#fa962a' }}>{signed(d)}</span>
           </div>
@@ -90,7 +90,7 @@ function Wowy({ wowy, onOff }) {
   const grid = { display: 'grid', gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1.4fr) 52px 52px', gap: 10 }
   return (
     <div style={cell}>
-      <CellHeader title="WOWY">Team net rating per 100 with him on the floor vs. off it, and on-court splits without key teammates. {wowy ? `${wowy.season.replace('-', '–')}, ${wowy.team}.` : ''}</CellHeader>
+      <CellHeader title="WOWY">Team net rating per 100 with him on the floor vs. off it, and on-court splits without key teammates. {wowy ? `${wowy.season.replace('-', '–')}${wowy.rows[0] && / playoffs /.test(wowy.rows[0].sub) ? ' playoffs' : ''}, ${wowy.team}.` : ''}</CellHeader>
       {wowy && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{ ...grid, ...label, padding: '4px 0', borderBottom: '1px solid #544f4b' }}><span>SPLIT</span><span style={{ textAlign: 'center' }}>NET / 100</span><span style={{ textAlign: 'right' }}>NET</span><span style={{ textAlign: 'right' }}>MIN</span></div>

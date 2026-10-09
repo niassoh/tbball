@@ -19,7 +19,10 @@ const getJson = async url => {
   return res.json()
 }
 
-export const fetchProfile = slug => getJson(api(`profile/${encodeURIComponent(slug)}`, `profile/${encodeURIComponent(slug)}.json`))
+// Playoffs mode reads the same documents built from the playoffs, under playoffs/.
+const pre = playoffs => (playoffs ? 'playoffs/' : '')
+
+export const fetchProfile = (slug, playoffs = false) => getJson(api(`${pre(playoffs)}profile/${encodeURIComponent(slug)}`, `${pre(playoffs)}profile/${encodeURIComponent(slug)}.json`))
 export const fetchPlayers = () => getJson(api('profiles', 'profiles.json'))
 // Every team with its nickname and depth chart (the team switcher). Fetched once per
 // page load; the switcher's triggers start it on hover so the grid is ready on click.
@@ -34,24 +37,26 @@ export const loadTeams = () => {
 // One stat's league values per season (the season charts' hover histogram); each stat
 // is fetched once per page load, when it's first charted.
 const distributions = new Map()
-export const loadDistribution = stat => {
-  if (!distributions.has(stat)) {
-    distributions.set(stat, getJson(api(`distribution?stat=${encodeURIComponent(stat)}`, `distribution/${statKey(stat)}.json`)).catch(err => {
-      distributions.delete(stat)
+export const loadDistribution = (stat, playoffs = false) => {
+  const key = pre(playoffs) + stat
+  if (!distributions.has(key)) {
+    distributions.set(key, getJson(api(`${pre(playoffs)}distribution?stat=${encodeURIComponent(stat)}`, `${pre(playoffs)}distribution/${statKey(stat)}.json`)).catch(err => {
+      distributions.delete(key)
       throw err
     }))
   }
-  return distributions.get(stat)
+  return distributions.get(key)
 }
 // The league's qualified lineup units' net ratings (the lineup tooltip's swarm),
 // fetched once per page load on the first hover.
-let lineupLeagueRequest = null
-export const loadLineupLeague = () => {
-  lineupLeagueRequest = lineupLeagueRequest || getJson(api('lineups/league', 'lineups-league.json')).catch(err => {
-    lineupLeagueRequest = null
+const lineupLeagueRequests = {}
+export const loadLineupLeague = (playoffs = false) => {
+  const p = pre(playoffs)
+  lineupLeagueRequests[p] = lineupLeagueRequests[p] || getJson(api(`${p}lineups/league`, `${p}lineups-league.json`)).catch(err => {
+    delete lineupLeagueRequests[p]
     throw err
   })
-  return lineupLeagueRequest
+  return lineupLeagueRequests[p]
 }
 // source (from the API's `headshot`) is 'portrait' or 'nba' (the styled NBA.com fallback);
 // version changes when the image is replaced, so the browser fetches the new one.

@@ -5,6 +5,7 @@ import { loadTeams } from '../api.js'
 import { MONO } from '../lib/format.js'
 import { bestFit, depthSlot, slotName } from '../lib/depth.js'
 import { asset } from '../lib/static.js'
+import { useSeasonType } from '../useSeasonType.js'
 
 const COLS = 6
 const CELL = 46
@@ -23,6 +24,7 @@ export default function TeamPicker({ profile: p, anchor, onClose }) {
   const [, setLayout] = useState(0)
   const panel = useRef(null)
   const navigate = useNavigate()
+  const { playerPath } = useSeasonType()
 
   useEffect(() => {
     let live = true
@@ -73,7 +75,7 @@ export default function TeamPicker({ profile: p, anchor, onClose }) {
               disabled={current || !fit}
               onMouseEnter={() => setHover(t.team)}
               onFocus={() => setHover(t.team)}
-              onClick={() => { onClose(); navigate(`/player/${fit.player.slug}`) }}
+              onClick={() => { onClose(); navigate(playerPath(fit.player.slug)) }}
               aria-label={current ? `${t.name} (current team)` : fit ? `${t.name}: open ${fit.player.name}` : `${t.name}: no player`}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, border: 'none', background: '#1f1d1c', boxShadow: current ? 'inset 0 0 0 2px #ece8e3' : 'none', cursor: current || !fit ? 'default' : 'pointer', opacity: current || fit ? 1 : 0.3 }}
             >

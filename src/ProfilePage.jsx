@@ -10,25 +10,30 @@ import StatSection from './components/StatSection.jsx'
 import YearToYear from './components/YearToYear.jsx'
 import Career from './components/Career.jsx'
 import PlayerSearch from './components/PlayerSearch.jsx'
+import SeasonToggle from './components/SeasonToggle.jsx'
+import { useSeasonType } from './useSeasonType.js'
 
 // Not keyed by slug: moving to another player (e.g. from the depth chart) keeps the
 // current page up while the next profile loads, then swaps the data in, so the cards
 // stay put and animate rather than the whole page blanking.
 export default function ProfilePageRoute() {
   const { slug } = useParams()
-  return <ProfilePage slug={slug} />
+  const { playoffs } = useSeasonType()
+  return <ProfilePage slug={slug} playoffs={playoffs} />
 }
 
 const MIN_SWAP_MS = 350
 
-function ProfilePage({ slug }) {
-  // `slug` here is the one the state was loaded for; it lags the URL while loading.
-  const [state, setState] = useState({ status: 'loading', profile: null, slug: null })
+function ProfilePage({ slug, playoffs }) {
+  const { homePath, setPlayoffs } = useSeasonType()
+  // The player and season type the state was loaded for; it lags the URL while loading.
+  const key = `${slug}|${playoffs ? 'playoffs' : 'regular'}`
+  const [state, setState] = useState({ status: 'loading', profile: null, key: null })
   const [tab, setTab] = useState('impact')
   // The stat tables' dragged season span, kept here so it carries across tabs; tagged
   // with the player it was made on, so another player starts without one.
   const [span, setSpan] = useState(null)
-  const loading = state.slug !== slug
+  const loading = state.key !== key
 
   useEffect(() => {
     let live = true
@@ -41,11 +46,11 @@ function ProfilePage({ slug }) {
       const wait = state.profile ? Math.max(0, MIN_SWAP_MS - (performance.now() - started)) : 0
       timer = setTimeout(() => live && setState(next), wait)
     }
-    fetchProfile(slug)
-      .then(profile => settle({ status: profile ? 'ready' : 'missing', profile, slug }))
-      .catch(err => settle({ status: 'error', error: err.message, slug }))
+    fetchProfile(slug, playoffs)
+      .then(profile => settle({ status: profile ? 'ready' : 'missing', profile, key }))
+      .catch(err => settle({ status: 'error', error: err.message, key }))
     return () => { live = false; clearTimeout(timer) }
-  }, [slug]) // eslint-disable-line react-hooks/exhaustive-deps -- state.profile only gates the delay
+  }, [key]) // eslint-disable-line react-hooks/exhaustive-deps -- state.profile only gates the delay
 
   // Back to the top for the incoming player (the header is where the change shows).
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [slug])
@@ -54,12 +59,16 @@ function ProfilePage({ slug }) {
     const msg = { loading: 'Loading…', missing: 'Player not found.', error: `Couldn't load profile (${state.error}).` }[state.status]
     return (
       <main style={{ maxWidth: 1440, margin: '0 auto', padding: '40px 32px', fontFamily: MONO, color: '#a8a29c' }}>
-        {msg} <Link to="/">All players</Link>
+        {msg} <Link to={homePath}>All players</Link>
       </main>
     )
   }
 
   const p = state.profile
+  const po = p.seasonType === 'playoffs'
+  // Remounts the folds when the player or the season type changes (their season indexes
+  // belong to one profile).
+  const fold = `${p.slug}-${p.seasonType}`
   const tabs = [
     ...p.tabs.filter(t => t.stats.some(l => p.stats[l].available)).map(t => ({ id: t.id, name: t.name })),
     { id: 'yoy', name: 'Year to Year' },
@@ -74,8 +83,11 @@ function ProfilePage({ slug }) {
     <div style={{ minHeight: '100vh', background: '#262422' }}>
       <main style={{ maxWidth: 1440, margin: '0 auto', padding: '0 32px 64px' }}>
         <div style={{ paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <Link to="/" style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', color: '#a8a29c' }}>← ALL PLAYERS</Link>
-          <PlayerSearch profile={p} />
+          <Link to={homePath} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', color: '#a8a29c' }}>← ALL PLAYERS</Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            <SeasonToggle />
+            <PlayerSearch profile={p} />
+          </div>
         </div>
         <section style={{ padding: '10px 0 26px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,270px),1fr))', gap: 12, alignItems: 'stretch' }}>
@@ -85,16 +97,28 @@ function ProfilePage({ slug }) {
           </div>
         </section>
 
-        <TabNav tabs={tabs} active={activeTab} onPick={setTab} />
+        {p.seasons.length ? (
+          <>
+            <TabNav tabs={tabs} active={activeTab} onPick={setTab} />
 
-        <div className={loading ? 'fold-loading' : 'fold-ready'}>
-          {statTab && <StatSection key={`${p.slug}-${activeTab}`} profile={p} tab={statTab} num={tabIndex + 1} sel={span && span.slug === p.slug ? span : null} setSel={s => setSpan(s && { ...s, slug: p.slug })} />}
-          {activeTab === 'yoy' && <YearToYear key={p.slug} profile={p} num={tabIndex + 1} sel={span && span.slug === p.slug ? span : null} setSel={s => setSpan(s && { ...s, slug: p.slug })} />}
-          {activeTab === 'career' && <Career key={p.slug} profile={p} num={tabIndex + 1} />}
-        </div>
+            <div className={loading ? 'fold-loading' : 'fold-ready'}>
+              {statTab && <StatSection key={`${fold}-${activeTab}`} profile={p} tab={statTab} num={tabIndex + 1} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} />}
+              {activeTab === 'yoy' && <YearToYear key={fold} profile={p} num={tabIndex + 1} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} />}
+              {activeTab === 'career' && <Career key={fold} profile={p} num={tabIndex + 1} />}
+            </div>
+          </>
+        ) : (
+          // No playoff runs on file (playoffs mode only: every regular profile has seasons).
+          <div className={loading ? 'fold-loading' : 'fold-ready'} style={{ borderTop: '2px solid var(--trim)', padding: '28px 0', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', fontFamily: MONO, fontSize: 11, letterSpacing: '.08em', color: '#a8a29c' }}>
+            <span>NO PLAYOFF GAMES SINCE 2013–14</span>
+            <button type="button" onClick={() => setPlayoffs(false)} style={{ background: 'transparent', border: '1px solid #544f4b', color: '#ece8e3', fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', padding: '4px 8px', cursor: 'pointer' }}>REGULAR SEASON →</button>
+          </div>
+        )}
 
         <footer style={{ marginTop: 56, paddingTop: 16, borderTop: '1px solid #544f4b', display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', fontFamily: MONO, fontSize: 11, color: '#8a847e' }}>
-          <span>Percentiles vs. players with 800+ MP · Career, span and league averages = minutes-weighted (shooting % = attempts-weighted) · Recent shift = games in the last 30 days of the season vs. the rest</span>
+          {po
+            ? <span>Playoff percentiles vs. that postseason's players with 50+ MP · Career, span and league averages = minutes-weighted (shooting % = attempts-weighted) · Tracking shooting and rim defence cover that playoff run · Playoffs vs season = the latest playoffs vs. that regular season</span>
+            : <span>Percentiles vs. players with 800+ MP · Career, span and league averages = minutes-weighted (shooting % = attempts-weighted) · 3YR / 2YR = tracking stats over that season and the ones before it · Recent shift = games in the last 30 days of the season vs. the rest</span>}
           <span>thinkingbasketball.net</span>
         </footer>
       </main>

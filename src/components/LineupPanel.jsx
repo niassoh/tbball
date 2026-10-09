@@ -5,6 +5,7 @@ import { MONO, ord, signed } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
 import { initials } from '../lib/teams.js'
 import { dotRadius, dotTint, rankColor, rankLabel, rankPct, swarm } from '../lib/swarm.js'
+import { useSeasonType } from '../useSeasonType.js'
 
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -27,9 +28,10 @@ const neutral = v => (v === null || v === undefined ? FAINT : v >= 0 ? INK : '#a
 const mins = m => m.toLocaleString()
 
 function Mate({ mate }) {
+  const { playerPath } = useSeasonType()
   const name = mate.name ? lastName(mate.name) : '?'
   return mate.slug
-    ? <Link to={`/player/${mate.slug}`} className="depth-link" style={{ color: INK, borderBottom: '1px solid transparent' }}>{name}</Link>
+    ? <Link to={playerPath(mate.slug)} className="depth-link" style={{ color: INK, borderBottom: '1px solid transparent' }}>{name}</Link>
     : <span style={{ color: DIM }}>{name}</span>
 }
 
@@ -37,6 +39,7 @@ function Mate({ mate }) {
 // initials (the full name is on hover). A ring in the team colour frames each; his own
 // is stronger. Teammates' tiles link to their pages.
 function Tile({ player, team, accent, self, small }) {
+  const { playerPath } = useSeasonType()
   const [failed, setFailed] = useState(false)
   const size = small ? SMALL : TILE
   const name = player.name ? (small ? initials(player.name) : lastName(player.name)) : '?'
@@ -50,9 +53,9 @@ function Tile({ player, team, accent, self, small }) {
   )
   return (
     <span title={player.name || ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: small ? SMALL : COL, minWidth: 0, flex: 'none' }}>
-      {player.slug && !self ? <Link to={`/player/${player.slug}`} style={{ display: 'block' }}>{box}</Link> : box}
+      {player.slug && !self ? <Link to={playerPath(player.slug)} style={{ display: 'block' }}>{box}</Link> : box}
       <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '.02em', textTransform: 'uppercase', width: '100%', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: small ? 'clip' : 'ellipsis', fontWeight: self ? 700 : 400, color: self ? INK : DIM }}>
-        {player.slug && !self ? <Link to={`/player/${player.slug}`} className="depth-link" style={{ color: 'inherit', borderBottom: '1px solid transparent' }}>{name}</Link> : name}
+        {player.slug && !self ? <Link to={playerPath(player.slug)} className="depth-link" style={{ color: 'inherit', borderBottom: '1px solid transparent' }}>{name}</Link> : name}
       </span>
     </span>
   )
@@ -153,10 +156,11 @@ function RankTip({ unit, size, floor, isDefault, self, team, onHover }) {
     if (box.current && box.current.getBoundingClientRect().top < 8) setBelow(true)
   }, [])
   useEffect(() => {
+  const { playoffs } = useSeasonType()
     let live = true
-    loadLineupLeague().then(d => live && setLeague(d)).catch(() => {})
+    loadLineupLeague(playoffs).then(d => live && setLeague(d)).catch(() => {})
     return () => { live = false }
-  }, [])
+  }, [playoffs])
   // Every league unit of this size over the chosen minimum as [minutes, net, player ids,
   // team], and their nets best first.
   const units = useMemo(() => league && league.pool ? league.pool[size].filter(([m]) => m >= floor) : null, [league, size, floor])
@@ -331,12 +335,12 @@ export default function LineupPanel({ profile: p, accent }) {
   return (
     <div key={`lineups-${p.slug}`} className="swap-in" style={{ padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 10, '--team': accent || INK }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', ...label }}>
-        <span>{L ? `${L.season.replace('-', '–')} · ${L.team} · LINEUPS` : 'LINEUPS'}</span>
+        <span>{L ? `${L.season.replace('-', '–')}${p.seasonType === 'playoffs' ? ' PLAYOFFS' : ''} · ${L.team} · LINEUPS` : 'LINEUPS'}</span>
         <span>NET / 100</span>
       </div>
 
       {!L ? (
-        <span style={{ ...label, color: FAINT, padding: '6px 0', borderTop: RULE, borderBottom: RULE }}>NO LINEUP DATA THIS SEASON</span>
+        <span style={{ ...label, color: FAINT, padding: '6px 0', borderTop: RULE, borderBottom: RULE }}>{p.seasonType === 'playoffs' ? 'NO PLAYOFF LINEUPS THIS SEASON' : 'NO LINEUP DATA THIS SEASON'}</span>
       ) : (
         <>
           <div>

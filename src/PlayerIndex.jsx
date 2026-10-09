@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { fetchPlayers, headshotUrl } from './api.js'
 import { MONO } from './lib/format.js'
 import TeamInitials from './components/TeamInitials.jsx'
+import SeasonToggle from './components/SeasonToggle.jsx'
+import { useSeasonType } from './useSeasonType.js'
 
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 const span = p => (p.seasons[0] === p.seasons[1] ? p.seasons[0] : `${p.seasons[0]} – ${p.seasons[1]}`)
@@ -27,6 +29,7 @@ function Avatar({ player, size }) {
 }
 
 export default function PlayerIndex() {
+  const { playerPath } = useSeasonType()
   const [players, setPlayers] = useState(null)
   const [query, setQuery] = useState('')
   useEffect(() => { fetchPlayers().then(list => setPlayers(list || [])) }, [])
@@ -38,7 +41,8 @@ export default function PlayerIndex() {
 
   return (
     <main style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 32px 64px' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', borderBottom: '2px solid #ece8e3', paddingBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}><SeasonToggle /></div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', borderBottom: '2px solid var(--trim)', paddingBottom: 8 }}>
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase' }}>Player Profiles</h1>
         <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', letterSpacing: '.06em' }}>
           {players ? `${matches.length.toLocaleString()} OF ${players.length.toLocaleString()} PLAYERS` : 'LOADING…'}
@@ -56,7 +60,7 @@ export default function PlayerIndex() {
         <section style={{ marginBottom: 28 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 10 }}>
             {featured.map(p => (
-              <Link key={p.slug} to={`/player/${p.slug}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, background: '#2c2a28', border: '1px solid #544f4b', color: '#ece8e3' }}>
+              <Link key={p.slug} to={playerPath(p.slug)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, background: '#2c2a28', border: '1px solid #544f4b', color: '#ece8e3' }}>
                 <Avatar player={p} size={56} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                   <span style={{ fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
@@ -74,7 +78,7 @@ export default function PlayerIndex() {
           <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', color: '#8a847e', marginBottom: 6 }}>{featured.length ? 'ALL OTHER PLAYERS' : 'PLAYERS'}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', columnGap: 24 }}>
             {rest.map(p => (
-              <Link key={p.slug} to={`/player/${p.slug}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 2px', borderBottom: '1px solid #3d3a37', color: '#ece8e3' }}>
+              <Link key={p.slug} to={playerPath(p.slug)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 2px', borderBottom: '1px solid #3d3a37', color: '#ece8e3' }}>
                 <Avatar player={p} size={26} />
                 <span style={{ flex: 1, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
                 <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', whiteSpace: 'nowrap' }}>{p.team} · {p.seasons[1].slice(0, 4)}</span>

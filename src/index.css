@@ -1,4 +1,21 @@
+/* Accents. Green through the regular season; in playoffs mode (useSeasonType.js sets
+   data-season) the trim turns gold: a thin edge along the top of the page, the section
+   and header rules, the active tab and the current-season marks. */
+:root {
+  --accent: #97c197;
+  --accent-soft: rgba(151, 193, 151, .12);
+  --trim: #ece8e3;
+  --mode-edge: transparent;
+}
+:root[data-season="playoffs"] {
+  --accent: #d4a72c;
+  --accent-soft: rgba(212, 167, 44, .14);
+  --trim: #c9a227;
+  --mode-edge: #d4a72c;
+}
 body {
+  border-top: 2px solid var(--mode-edge);
+  transition: border-color .3s;
   margin: 0;
   background: #262422;
   color: #ece8e3;

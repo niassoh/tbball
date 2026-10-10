@@ -34,3 +34,13 @@ export const mateSegments = (text, mate) => {
   })
   return out
 }
+
+// The seasons a footprint covers with his team in each: "DEN, 2024–25 and 2025–26", or
+// "DAL 2024–25 and LAL 2025–26" when they differ (a traded season lists both teams).
+export const spanText = spans => {
+  const dash = season => season.replace('-', '–')
+  const seasons = [...new Set(spans.map(s => s.season))]
+  const teams = [...new Set(spans.map(s => s.team))]
+  if (teams.length === 1) return `${teams[0]}, ${seasons.map(dash).join(' and ')}`
+  return seasons.map(season => `${spans.filter(s => s.season === season).map(s => s.team).join('/')} ${dash(season)}`).join(' and ')
+}

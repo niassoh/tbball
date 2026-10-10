@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MONO, ord, signed } from '../lib/format.js'
-import { STAMPS, mateSegments, meter, toneOf } from '../lib/footprint.js'
+import { STAMPS, mateSegments, meter, spanText, toneOf } from '../lib/footprint.js'
 import { useSeasonType } from '../useSeasonType.js'
 import SectionHeader from './SectionHeader.jsx'
 
@@ -174,7 +174,7 @@ function FootprintTile({ s }) {
       <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', lineHeight: 1.15 }}>{s.effect}</span>
       <span style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, lineHeight: 1, color: TONES[tone] }}>{signed(s.diff)}</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e' }}>{s.label}{s.luck ? ' · MOSTLY VARIANCE' : ''}</span>
+        <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e' }}>{s.label}</span>
         <span style={{ fontFamily: MONO, fontSize: 11, color: '#d6d1cb' }}>{fmt1(s.off)} <span style={{ color: '#6b655f' }}>OFF</span> → {fmt1(s.on)} <span style={{ color: '#6b655f' }}>ON</span></span>
       </div>
       {/* Off (hollow) to on (filled) on one scale; the tick is the league's value. */}
@@ -199,7 +199,7 @@ function Footprint({ fp }) {
   const other = [fp.quiet && `${fp.quiet} other stats within noise`, fp.ordinary && `${fp.ordinary} real but typical`].filter(Boolean)
   return (
     <div style={{ ...cell, gridColumn: '1 / -1' }}>
-      <CellHeader title="Footprint">What changes for {fp.team} with him on the floor vs. off it, {fp.season.replace('-', '–')} regular season. Only swings that clear the noise and stand out against the league's, each checked against the teammates who take his minutes and play beside him.</CellHeader>
+      <CellHeader title="Footprint">What changes for his team with him on the floor vs. off it: {spanText(fp.spans)} regular season{new Set(fp.spans.map(s => s.season)).size > 1 ? 's' : ''}, each season against that season's team. Only swings that clear the noise and stand out against the league's, each checked against the teammates whose minutes move with his and who stand out in the skill behind it.</CellHeader>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 28px', fontSize: 12, fontWeight: 700, letterSpacing: '.02em' }}>
         <span><span style={{ ...label, marginRight: 8 }}>LIFTS</span>{list(fp.lifts, TONES.good)}</span>
         <span><span style={{ ...label, marginRight: 8 }}>COSTS</span>{list(fp.costs, TONES.bad)}</span>

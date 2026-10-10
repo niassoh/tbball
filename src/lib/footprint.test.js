@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'vitest'
-import { mateSegments, meter, toneOf } from './footprint.js'
+import { mateSegments, meter, spanText, toneOf } from './footprint.js'
 
 describe('footprint', () => {
+  test('the seasons covered name his team once, or each season\'s when they differ', () => {
+    const span = (season, team) => ({ season, team, minutes: { on: 1, off: 1 } })
+    expect(spanText([span('2024-25', 'DEN'), span('2025-26', 'DEN')])).toBe('DEN, 2024–25 and 2025–26')
+    expect(spanText([span('2024-25', 'DAL'), span('2024-25', 'LAL'), span('2025-26', 'LAL')])).toBe('DAL/LAL 2024–25 and LAL 2025–26')
+    expect(spanText([span('2025-26', 'SAS')])).toBe('SAS, 2025–26')
+  })
+
   test('a swing is good or bad for the team by its direction, neutral when it is neither', () => {
     expect(toneOf({ good: 1, diff: 8.4 })).toBe('good')
     expect(toneOf({ good: -1, diff: 5.6 })).toBe('bad')

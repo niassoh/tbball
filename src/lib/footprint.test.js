@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { bar, changeText, contextRows, seasonsText, shade, strengthOf, toneOf, yearsText } from './footprint.js'
+import { adjustment, bar, changeText, seasonsText, shade, strengthOf, toneOf, yearsText } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by the sign of its points', () => {
@@ -27,14 +27,15 @@ describe('footprint', () => {
     expect(yearsText(['2025-26'])).toBe('2025–2026')
   })
 
-  test('stat changes: per-shot values with three decimals, rates with one', () => {
-    expect(changeText({ change: 0.021 })).toBe('+0.021')
+  test('stat changes with one decimal, none for the shot-location tiles', () => {
     expect(changeText({ change: -2.28 })).toBe('−2.3')
+    expect(changeText({ change: null })).toBe(null)
   })
 
-  test('the context breakdown lists raw, his own, the named teammates and the rest', () => {
-    const rows = contextRows({ raw: 3, own: 2.1, top: [{ name: 'A B', slug: 'a-b', v: 0.6 }], others: 0.2, opponents: -0.1, schedule: 0.05, rest: 0.15 })
-    expect(rows.map(r => r.label)).toEqual(['Raw on/off', 'His own (adjusted)', 'A B', 'Other teammates', 'Opponents & schedule', 'Unexplained'])
-    expect(rows[4].v).toBeCloseTo(-0.05)
+  test('the adjustment: before, after, and only the teammates who moved it noticeably', () => {
+    const a = adjustment({ raw: 1.42, own: 1.03, top: [{ name: 'A B', slug: 'a-b', v: 0.27 }, { name: 'C D', slug: null, v: 0.06 }], others: 0.06, opponents: -0.16, schedule: 0, rest: 0.1 })
+    expect(a.before).toBe(1.42)
+    expect(a.after).toBe(1.03)
+    expect(a.mates.map(m => m.name)).toEqual(['A B'])
   })
 })

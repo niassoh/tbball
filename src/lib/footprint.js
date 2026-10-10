@@ -28,19 +28,15 @@ export const yearsText = seasons => {
   return `${sorted[0].slice(0, 4)}–${Number(sorted[sorted.length - 1].slice(0, 4)) + 1}`
 }
 
-// A tile's stat change: per-shot values carry two decimals, rates one.
-export const changeText = t => {
-  const d = Math.abs(t.change) < 0.1 ? 3 : 1
-  return `${t.change >= 0 ? '+' : '−'}${Math.abs(t.change).toFixed(d)}`
-}
+// A tile's adjusted stat change, one decimal; null for the shot-location tiles, whose
+// change is their points.
+export const changeText = t => (t.change === null ? null : `${t.change >= 0 ? '+' : '−'}${Math.abs(t.change).toFixed(1)}`)
 
-// The context breakdown of a lit tile, as rows: raw on/off = his own + the teammates who
-// explain the rest + opponents and schedule + what's left (all in points per 100).
-export const contextRows = c => [
-  { label: 'Raw on/off', v: c.raw, strong: true },
-  { label: 'His own (adjusted)', v: c.own },
-  ...c.top.map(m => ({ label: m.name, mate: m, v: m.v })),
-  { label: 'Other teammates', v: c.others },
-  { label: 'Opponents & schedule', v: c.opponents + c.schedule },
-  { label: 'Unexplained', v: c.rest }
-]
+// What adjusting for the rest of the floor changed, for a lit tile's WHY: the swing
+// before (his team with him on vs. off, unadjusted) and after, and the teammates whose
+// minutes moved the unadjusted number by at least 0.1 pts per 100.
+export const adjustment = c => ({
+  before: c.raw,
+  after: c.own,
+  mates: c.top.filter(m => Math.abs(m.v) >= 0.1)
+})

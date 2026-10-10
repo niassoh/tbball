@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MONO, signed } from '../lib/format.js'
-import { bar, changeText, contextRows, seasonsText, shade, strengthOf, toneOf, yearsText } from '../lib/footprint.js'
+import { adjustment, bar, changeText, seasonsText, shade, strengthOf, toneOf, yearsText } from '../lib/footprint.js'
 import { useSeasonType } from '../useSeasonType.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
 import SectionHeader from './SectionHeader.jsx'
@@ -11,13 +11,15 @@ import SectionHeader from './SectionHeader.jsx'
 // lib/footprint.js; method in docs/footprint-methodology.md), laid out as the Claude
 // Design "Footprint" module. Eight footprints, four on each end: those that clear the
 // noise are lit (a blue bar for a lift, orange for a cost, as strong as the evidence);
-// the rest stay dim. A lit tile's WHY opens the raw on/off swing broken into his own
-// effect and the teammates who explain the rest.
+// the rest stay dim. A lit tile's WHY says what changed with him on, why the tile has
+// its name, and what adjusting for the rest of the floor took out.
 const TONES = { good: '#8fb0e6', bad: '#fa962a' }
 const INK = '#ece8e3'
 const DIM = '#8a847e'
 const RULE = '#3d3a37'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
+// Points with a sign, but no "−0.0" for a value that rounds to nothing.
+const pts1 = v => (Math.abs(v) < 0.05 ? '0.0' : signed(v))
 const chip = { display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', padding: '3px 6px', lineHeight: 1, whiteSpace: 'nowrap', background: 'transparent' }
 
 // The glyph for each tile (the teammate-shot tile's follows its title).
@@ -36,21 +38,19 @@ function Why({ t }) {
     if (on) setOpen(true)
     else closing.current = setTimeout(() => setOpen(false), 150)
   }
+  const a = adjustment(t.context)
   return (
     <span style={{ position: 'relative', display: 'inline-flex' }} onMouseEnter={() => show(true)} onMouseLeave={() => show(false)}>
       <button type="button" onFocus={() => show(true)} onBlur={() => show(false)} onClick={() => setOpen(o => !o)} style={{ ...chip, border: `1px solid ${INK}`, color: INK, cursor: 'help' }}>WHY</button>
       {open && (
         <span role="tooltip" style={{ position: 'absolute', left: 0, bottom: 'calc(100% + 6px)', zIndex: 20, width: 270, background: 'rgba(31, 29, 28, .94)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: 10, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, lineHeight: 1.45, color: INK, textAlign: 'left' }}>
-          <span>His team&apos;s raw on/off swing, split by who explains it (pts per 100):</span>
-          <span style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 12px', fontFamily: MONO, fontSize: 11 }}>
-            {contextRows(t.context).map(r => (
-              <span key={r.label} style={{ display: 'contents' }}>
-                <span style={{ color: r.strong ? INK : '#c9c3bc', fontWeight: r.strong ? 700 : 400 }}>
-                  {r.mate && r.mate.slug ? <Link to={playerPath(r.mate.slug)} style={{ color: INK, borderBottom: `1px solid ${DIM}` }}>{r.label}</Link> : r.label}
-                </span>
-                <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{signed(r.v)}</span>
-              </span>
-            ))}
+          <span>{t.what}</span>
+          {t.how && <span style={{ color: '#c9c3bc' }}>Why {t.effect.toLowerCase()}: {t.how[0].toLowerCase() + t.how.slice(1)}.</span>}
+          <span style={{ color: '#c9c3bc' }}>
+            Worth {signed(a.after)} pts per 100 after accounting for who else was on the floor ({signed(a.before)} before)
+            {a.mates.length > 0 && <>; part of the difference is his minutes with {a.mates.map((m, i) => (
+              <span key={m.name}>{i > 0 && (i === a.mates.length - 1 ? ' and ' : ', ')}{m.slug ? <Link to={playerPath(m.slug)} style={{ color: INK, borderBottom: `1px solid ${DIM}` }}>{m.name}</Link> : m.name} ({signed(m.v)})</span>
+            ))}</>}.
           </span>
           <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>z {t.z.toFixed(1)} · RELIABILITY {t.reliability.toFixed(2)}</span>
         </span>
@@ -76,10 +76,10 @@ function FootprintTile({ t }) {
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 'auto' }}>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
-          <span style={{ fontSize: 30, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{signed(t.pts)}</span>
+          <span style={{ fontSize: 30, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{pts1(t.pts)}</span>
           <span style={{ fontSize: 9, color: DIM, letterSpacing: '.08em' }}>PTS/100</span>
         </span>
-        <span style={{ fontSize: 10, color: DIM, letterSpacing: '.04em', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' }} title="The adjusted change in the stat with him on"><span style={{ color: '#6b655f' }}>Δ</span> {changeText(t)}</span>
+        {changeText(t) && <span style={{ fontSize: 10, color: DIM, letterSpacing: '.04em', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' }} title="The adjusted change in the stat with him on"><span style={{ color: '#6b655f' }}>Δ</span> {changeText(t)}</span>}
       </div>
       {/* Points on a ±3 scale from zero. */}
       <div style={{ position: 'relative', height: 8 }}>
@@ -104,7 +104,7 @@ function FootprintTile({ t }) {
 
 function Method({ fp }) {
   const [open, setOpen] = useState(false)
-  const names = { mates: "Teammates' shot quality", trips: 'Foul pressure', tov: 'Ball security', oreb: 'Offensive glass', shots_d: 'Shot defense', tov_d: 'Turnover pressure', trips_d: 'Foul discipline', oreb_d: 'Defensive glass' }
+  const names = { mates: "Teammates' shot locations", trips: 'Foul pressure', tov: 'Ball security', oreb: 'Offensive glass', shots_d: "Shot defense (opponents' shot locations)", tov_d: 'Turnover pressure', trips_d: 'Foul discipline', oreb_d: 'Defensive glass' }
   const windows = fp.method.calibration.map(w => w.map(s => s.replace('-', '–')).join('+')).join(', ')
   return (
     <div style={{ borderTop: `1px solid ${RULE}`, paddingTop: 10, fontFamily: MONO }}>

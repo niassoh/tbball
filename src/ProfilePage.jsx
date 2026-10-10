@@ -9,6 +9,7 @@ import TabNav from './components/TabNav.jsx'
 import StatSection from './components/StatSection.jsx'
 import YearToYear from './components/YearToYear.jsx'
 import Career from './components/Career.jsx'
+import Footprint from './components/Footprint.jsx'
 import TopBar from './components/TopBar.jsx'
 import { useSeasonType } from './useSeasonType.js'
 
@@ -72,11 +73,12 @@ function ProfilePage({ slug, playoffs }) {
   const tabs = [
     ...p.tabs.filter(t => t.stats.some(l => p.stats[l].available)).map(t => ({ id: t.id, name: t.name })),
     { id: 'yoy', name: 'Year to Year' },
+    // Regular season only (the backend has none in the playoffs).
+    ...(p.footprint ? [{ id: 'footprint', name: 'Footprint' }] : []),
     { id: 'career', name: 'Career' }
   ]
   // Keep the open tab across players when the new one has it.
   const activeTab = tabs.some(t => t.id === tab) ? tab : tabs[0].id
-  const tabIndex = tabs.findIndex(t => t.id === activeTab)
   const statTab = p.tabs.find(t => t.id === activeTab)
 
   return (
@@ -96,9 +98,10 @@ function ProfilePage({ slug, playoffs }) {
             <TabNav tabs={tabs} active={activeTab} onPick={setTab} />
 
             <div className={loading ? 'fold-loading' : 'fold-ready'}>
-              {statTab && <StatSection key={`${fold}-${activeTab}`} profile={p} tab={statTab} num={tabIndex + 1} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} pctView={pctView} setPctView={setPctView} />}
-              {activeTab === 'yoy' && <YearToYear key={fold} profile={p} num={tabIndex + 1} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} />}
-              {activeTab === 'career' && <Career key={fold} profile={p} num={tabIndex + 1} />}
+              {statTab && <StatSection key={`${fold}-${activeTab}`} profile={p} tab={statTab} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} pctView={pctView} setPctView={setPctView} />}
+              {activeTab === 'yoy' && <YearToYear key={fold} profile={p} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} />}
+              {activeTab === 'footprint' && <Footprint key={fold} profile={p} />}
+              {activeTab === 'career' && <Career key={fold} profile={p} />}
             </div>
           </>
         ) : (

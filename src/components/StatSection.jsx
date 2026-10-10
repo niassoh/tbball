@@ -174,7 +174,7 @@ function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span }) {
   )
 }
 
-export default function StatSection({ profile: p, tab, num, sel, setSel, pctView = false, setPctView }) {
+export default function StatSection({ profile: p, tab, sel, setSel, pctView = false, setPctView }) {
   const shown = tab.stats.filter(l => p.stats[l].available)
   const [charted, setCharted] = useState(shown[0])
   const k = p.seasons.length - 1
@@ -251,7 +251,7 @@ export default function StatSection({ profile: p, tab, num, sel, setSel, pctView
 
   return (
     <section id={`sec-${tab.id}`} style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
-      <SectionHeader num={num} title={tab.name}>
+      <SectionHeader title={tab.name}>
         <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', letterSpacing: '.06em' }}>
           {spanOn
             ? <>

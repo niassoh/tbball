@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, change, litOf, seasonsText, starsText, toneOf, value } from './lonestar.js'
+import { STATS, change, litOf, seasonsText, starsText, toneOf, trackPos, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -26,6 +26,15 @@ describe('lonestar', () => {
     expect(litOf({ rank: 200, of: 200 })).toBe(0)
     expect(litOf({ rank: 100, of: 199 })).toBe(5)
     expect(litOf(null)).toBe(0)
+  })
+
+  test('a track places a value across the league spread, clamped to its ends', () => {
+    expect(trackPos([10, 30], 15)).toBe(25)
+    expect(trackPos([10, 30], 2)).toBe(0)
+    expect(trackPos([10, 30], 45)).toBe(100)
+    expect(trackPos([5, 5], 5)).toBe(50)
+    expect(trackPos([10, 30], null)).toBe(null)
+    expect(trackPos(null, 12)).toBe(null)
   })
 
   test('stars and seasons as words', () => {

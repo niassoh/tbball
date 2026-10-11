@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, litOf, seasonsText, starsText, toneOf, value } from '../lib/lonestar.js'
+import { STATS, change, litOf, seasonsText, starsText, toneOf, trackPos, value } from '../lib/lonestar.js'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
 // The Lonestar tab: how he plays when his team's stars sit (thinking-bball
-// lib/lonestar.js). Keys pick the stars: his top-Load teammate, or his top two. Each cell
-// is one stat: the change with them OFF against ON as the readout, the two raw values
-// under it, and where the change ranks among every player's (#1 the biggest increase) on
-// a 10-segment meter.
+// lib/lonestar.js). Keys pick the stars: his top-Load teammate, or his top two. Each row
+// is one stat: his value with them ON and OFF, both marked on a track across the
+// league's range, the change, and where it ranks among every player's (#1 the biggest
+// increase) on a 10-segment meter.
 const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#ece8e3' }
+const BG = '#262422'
 const INK = '#ece8e3'
 const DIM = '#8a847e'
 const FAINT = '#5f5a55'
@@ -45,28 +46,51 @@ function Key({ on, onClick, stars, team, children }) {
 
 function Meter({ n }) {
   return (
-    <span aria-hidden="true" style={{ display: 'flex', gap: 2, minWidth: 0 }}>
-      {/* Segments give way (5px → 3px) before a three-digit values line wraps. */}
-      {Array.from({ length: 10 }, (_, i) => <span key={i} style={{ flex: '0 1 5px', minWidth: 3, height: 8, background: i < n ? INK : RULE }} />)}
+    <span aria-hidden="true" style={{ display: 'flex', gap: 2 }}>
+      {Array.from({ length: 10 }, (_, i) => <span key={i} style={{ width: 5, height: 8, background: i < n ? INK : RULE }} />)}
     </span>
   )
 }
 
-function Cell({ stat, s }) {
+// The two markers: hollow WITH the stars, filled (in the change's tone) WITHOUT them.
+const dot = (hollow, color) => ({ width: 9, height: 9, borderRadius: '50%', boxSizing: 'border-box', flex: 'none', ...(hollow ? { border: '1.5px solid #b8b2ab', background: BG } : { background: color }) })
+
+// A stat's track across the league's spread of values (2nd to 98th percentile), end
+// ticks framing it: the hollow marker where he is with the stars, the filled one where
+// he is without, the stretch between in the change's tone.
+function Track({ a, b, tone }) {
+  if (a === null || b === null) return <span style={{ gridArea: 'track' }} />
+  const at = x => ({ position: 'absolute', top: '50%', left: `${x}%`, transform: 'translate(-50%, -50%)' })
+  return (
+    <span aria-hidden="true" style={{ gridArea: 'track', position: 'relative', height: 14, margin: '0 5px' }}>
+      <span style={{ position: 'absolute', left: -5, right: -5, top: '50%', height: 1, background: RULE }} />
+      {[-5, 'calc(100% + 4px)'].map(x => <span key={x} style={{ position: 'absolute', left: x, top: 3, width: 1, height: 8, background: EDGE }} />)}
+      <span style={{ position: 'absolute', left: `${Math.min(a, b)}%`, width: `${Math.abs(b - a)}%`, top: 'calc(50% - 1px)', height: 2, background: TONES[tone] }} />
+      <span style={{ ...at(a), ...dot(true) }} />
+      <span style={{ ...at(b), ...dot(false, TONES[tone]) }} />
+    </span>
+  )
+}
+
+// One stat: its value with the stars, the track, its value without, the change, and the
+// change's rank among every player's on the meter.
+function Row({ stat, s, scale }) {
+  const on = s.on[stat.key]
+  const off = s.off[stat.key]
   const d = s.change[stat.key]
   const tone = toneOf(stat, d)
   const r = s.ranks && s.ranks[stat.key]
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 14px 12px', border: `1px solid ${RULE}`, margin: '0 -1px -1px 0', background: '#262422', minWidth: 0, fontFamily: MONO }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ ...label, color: '#c9c3bc' }}>{stat.label}</span>
-        <span style={{ fontSize: 10, color: r ? INK : FAINT, letterSpacing: '.04em', fontVariantNumeric: 'tabular-nums' }} title={r ? `His change ranks #${r.rank} of ${r.of} players' (#1 the biggest increase)` : 'Too few minutes to rank'}>{r ? `#${r.rank}` : '—'}<span style={{ color: DIM }}>{r ? ` / ${r.of}` : ''}</span></span>
-      </div>
-      <span style={{ fontSize: 30, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: TONES[tone], fontVariantNumeric: 'tabular-nums' }}>{change(stat, d)}</span>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 10, color: DIM, fontVariantNumeric: 'tabular-nums' }}>
-        <span style={{ whiteSpace: 'nowrap' }}>{value(stat, s.on[stat.key])} <span style={{ color: FAINT }}>WITH</span> → {value(stat, s.off[stat.key])} <span style={{ color: FAINT }}>W/O</span></span>
+    <div className="ls-row">
+      <span style={{ gridArea: 'stat', ...label, color: '#c9c3bc' }}>{stat.label}</span>
+      <span style={{ gridArea: 'with', textAlign: 'right', color: '#b8b2ab' }}>{value(stat, on)}</span>
+      <Track a={trackPos(scale, on)} b={trackPos(scale, off)} tone={tone} />
+      <span style={{ gridArea: 'wo', color: INK, fontWeight: 600 }}>{value(stat, off)}</span>
+      <span style={{ gridArea: 'change', textAlign: 'right', fontSize: 15, fontWeight: 600, color: TONES[tone] }}>{change(stat, d)}</span>
+      <span style={{ gridArea: 'rank', display: 'flex', alignItems: 'center', gap: 10 }} title={r ? `His change ranks #${r.rank} of ${r.of} players' (#1 the biggest increase)` : 'Too few minutes to rank'}>
+        <span style={{ width: 66, fontSize: 11, color: r ? INK : FAINT }}>{r ? `#${r.rank}` : '—'}<span style={{ color: DIM, fontSize: 10 }}>{r ? ` / ${r.of}` : ''}</span></span>
         <Meter n={litOf(r)} />
-      </div>
+      </span>
     </div>
   )
 }
@@ -112,15 +136,25 @@ export default function Lonestar({ profile: p }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', paddingRight: 1, paddingBottom: 1 }}>
-        {STATS.map(stat => <Cell key={stat.key} stat={stat} s={s} />)}
+      {/* The stats as rows; the head names the two markers over the tracks. */}
+      <div className="ls-table" style={{ fontFamily: MONO }}>
+        <div className="ls-row ls-head">
+          <span style={{ gridArea: 'track', display: 'flex', justifyContent: 'space-between', gap: 12, ...label }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={dot(true)} />With stars</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Without<span style={dot(false, INK)} /></span>
+          </span>
+          <span style={{ gridArea: 'change', textAlign: 'right', ...label }}>Change</span>
+          <span style={{ gridArea: 'rank', ...label }}>Rank</span>
+        </div>
+        {STATS.map(stat => <Row key={stat.key} stat={stat} s={s} scale={ls.scale && ls.scale[stat.key]} />)}
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 14, height: 3, background: TONES.good }} />BETTER</span>
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 14, height: 3, background: TONES.bad }} />WORSE</span>
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 14, height: 3, background: TONES.neutral }} />VOLUME</span>
-        <span>BIG NUMBER · CHANGE W/O − WITH</span>
+        <span>CHANGE · W/O − WITH</span>
+        <span>TRACK · THE LEAGUE&apos;S RANGE FOR THE STAT</span>
         <span>#RANK · AMONG EVERY PLAYER&apos;S CHANGE ({ls.minRank}+ MIN EACH WAY), #1 THE BIGGEST INCREASE</span>
       </div>
     </section>

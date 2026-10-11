@@ -54,6 +54,15 @@ html { scroll-behavior: smooth; }
 .ls-key[aria-pressed="false"]:hover { border-color: #ece8e3 !important; color: #ece8e3 !important; }
 .ls-key .ls-face { filter: grayscale(1); opacity: .55; transition: opacity .12s; }
 .ls-key:hover .ls-face, .ls-key[aria-pressed="true"] .ls-face { opacity: 1; }
+/* Lonestar's rows: stat | with | track | without | change | rank. In a narrow column the
+   stat, change and rank sit over the with–track–without line. */
+.ls-table { container-type: inline-size; }
+.ls-row { display: grid; grid-template-columns: minmax(96px, 150px) 52px minmax(90px, 1fr) 52px 64px 150px; grid-template-areas: "stat with track wo change rank"; align-items: center; column-gap: 16px; min-height: 36px; border-bottom: 1px solid #3d3a37; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ls-row.ls-head { min-height: 30px; border-bottom-color: #544f4b; }
+.ls-row:not(.ls-head):hover { background: #2a2826; }
+@container (max-width: 640px) {
+  .ls-row { grid-template-columns: 44px minmax(0, 1fr) auto auto 44px; grid-template-areas: "stat stat change rank rank" "with track track track wo"; column-gap: 10px; row-gap: 8px; padding: 9px 0; }
+}
 .idx-logos-wrap { container-type: inline-size; }
 .idx-logos { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
 @container (min-width: 620px) { .idx-logos { grid-template-columns: repeat(15, 1fr); } }

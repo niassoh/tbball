@@ -28,6 +28,14 @@ export const change = (stat, v) => {
 // A lift (blue), a cost (orange) or neither, by which way the stat helps.
 export const toneOf = (stat, v) => (!stat.dir || v === null || v === undefined || Math.abs(v) < 1e-9 ? 'neutral' : stat.dir * v > 0 ? 'good' : 'bad')
 
+// Where a value sits on its stat's track, 0–100 across the league's spread (clamped to
+// the ends), or null without a value or a spread.
+export const trackPos = (scale, v) => {
+  if (!scale || v === null || v === undefined) return null
+  const [lo, hi] = scale
+  return hi > lo ? Math.max(0, Math.min(100, (100 * (v - lo)) / (hi - lo))) : 50
+}
+
 // How many of a 10-segment meter a rank lights: all for #1, none for the last.
 export const litOf = r => (r && r.of > 1 ? Math.round(10 * (1 - (r.rank - 1) / (r.of - 1))) : 0)
 

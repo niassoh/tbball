@@ -54,14 +54,17 @@ function Meter({ n }) {
 
 // The two markers, small squares: hollow WITH the stars, filled WITHOUT them.
 const MARK = '#c9c3bc'
-const mark = hollow => ({ width: 7, height: 7, boxSizing: 'border-box', flex: 'none', ...(hollow ? { border: `1px solid ${MARK}`, background: BG } : { background: MARK }) })
+const mark = (hollow, fill = MARK) => ({ width: 7, height: 7, boxSizing: 'border-box', flex: 'none', ...(hollow ? { border: `1px solid ${MARK}`, background: BG } : { background: fill }) })
+// The change's tone, muted into the warm greys (volume stays grey): about half strength
+// for the lit dots, a little more for the WITHOUT marker.
+const muted = (tone, share, grey) => (tone === 'neutral' ? grey : `color-mix(in srgb, ${TONES[tone]} ${share}%, ${grey})`)
 
 // A stat's track: a dot-matrix rule across the league's spread of values (2nd to 98th
-// percentile), the dots between his two values lit, and a marker at each. Only the
-// change carries colour. The lit dots are the same rule clipped to the stretch, so they
-// sit exactly on the unlit ones.
+// percentile), the dots between his two values lit in the change's muted tone, and a
+// marker at each. The lit dots are the same rule clipped to the stretch, so they sit
+// exactly on the unlit ones.
 const dots = color => `repeating-linear-gradient(90deg, ${color} 0 2px, transparent 2px 5px)`
-function Track({ a, b }) {
+function Track({ a, b, tone }) {
   if (a === null || b === null) return <span style={{ gridArea: 'track' }} />
   const lo = Math.min(a, b)
   const hi = Math.max(a, b)
@@ -70,9 +73,9 @@ function Track({ a, b }) {
   return (
     <span aria-hidden="true" style={{ gridArea: 'track', position: 'relative', height: 14, margin: '0 5px' }}>
       <span style={{ ...rule, background: dots(RULE) }} />
-      <span style={{ ...rule, background: dots(DIM), clipPath: `inset(0 ${100 - hi}% 0 ${lo}%)` }} />
+      <span style={{ ...rule, background: dots(muted(tone, 55, DIM)), clipPath: `inset(0 ${100 - hi}% 0 ${lo}%)` }} />
       <span style={{ ...at(a), ...mark(true) }} />
-      <span style={{ ...at(b), ...mark(false) }} />
+      <span style={{ ...at(b), ...mark(false, muted(tone, 75, MARK)) }} />
     </span>
   )
 }
@@ -89,7 +92,7 @@ function Row({ stat, s, scale }) {
     <div className="ls-row">
       <span style={{ gridArea: 'stat', ...label, color: '#c9c3bc' }}>{stat.label}</span>
       <span style={{ gridArea: 'with', textAlign: 'right', color: '#b8b2ab' }}>{value(stat, on)}</span>
-      <Track a={trackPos(scale, on)} b={trackPos(scale, off)} />
+      <Track a={trackPos(scale, on)} b={trackPos(scale, off)} tone={tone} />
       <span style={{ gridArea: 'wo', color: INK, fontWeight: 600 }}>{value(stat, off)}</span>
       <span style={{ gridArea: 'change', textAlign: 'right', fontSize: 15, fontWeight: 600, color: TONES[tone] }}>{change(stat, d)}</span>
       <span style={{ gridArea: 'rank', display: 'flex', alignItems: 'center', gap: 10 }} title={r ? `His change ranks #${r.rank} of ${r.of} players' (#1 the biggest increase)` : 'Too few minutes to rank'}>

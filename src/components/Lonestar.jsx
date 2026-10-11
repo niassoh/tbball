@@ -71,6 +71,17 @@ function Cell({ stat, s }) {
   )
 }
 
+// One figure beside the keys: its label over its value, set off by a rule, the keys' height.
+function Readout({ k, v, small, short, minRank }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, height: 34, padding: '0 14px', borderLeft: `1px solid ${RULE}` }}>
+      <span style={label}>{k}</span>
+      <span title={short ? `Under ${minRank} minutes: too few to rank` : undefined}
+        style={{ fontSize: small ? 11 : 15, fontWeight: small ? 500 : 600, color: short ? TONES.bad : INK, letterSpacing: small ? '.04em' : 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{v}</span>
+    </div>
+  )
+}
+
 export default function Lonestar({ profile: p }) {
   const ls = p.lonestar
   const [pick, setPick] = useState(0)
@@ -83,25 +94,21 @@ export default function Lonestar({ profile: p }) {
       </SectionHeader>
       <p style={{ margin: 0, fontFamily: MONO, fontSize: 12, lineHeight: 1.6, color: '#a8a29c' }}>{lastName(p.name)} with his team&apos;s stars OFF the floor, against ON</p>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {ls.scenarios.map((x, i) => (
-          <Key key={`${x.team}-${x.stars.map(t => t.id).join()}`} on={x === s} onClick={() => setPick(i)} stars={x.stars} team={x.team}>
-            W/O {starsText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}
-          </Key>
-        ))}
-      </div>
-
-      {/* The readout: minutes on each side, and the seasons and team behind them. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', border: `1px solid ${EDGE}`, fontFamily: MONO }}>
-        {[['Without', s.off.minutes], ['With', s.on.minutes]].map(([k, v]) => (
-          <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 16px', borderRight: `1px solid ${EDGE}` }}>
-            <span style={label}>{k} · min</span>
-            <span style={{ fontSize: 22, fontWeight: 600, color: INK, fontVariantNumeric: 'tabular-nums' }}>{Math.round(v).toLocaleString()}</span>
-          </div>
-        ))}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, padding: '10px 16px', minWidth: 200 }}>
-          <span style={label}>{s.team} · {seasonsText(s.seasons)}</span>
-          <span style={{ fontSize: 11, color: s.ranked ? '#c9c3bc' : '#fa962a', letterSpacing: '.04em' }}>{s.ranked ? `RANKED AMONG PLAYERS WITH ${ls.minRank}+ MIN EACH WAY` : `UNDER ${ls.minRank} MIN ON A SIDE · NOT RANKED`}</span>
+      {/* The keys, and at their right the picked one's team, seasons and minutes each way
+          (a side too short to rank shows orange). */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {ls.scenarios.map((x, i) => (
+            <Key key={`${x.team}-${x.stars.map(t => t.id).join()}`} on={x === s} onClick={() => setPick(i)} stars={x.stars} team={x.team}>
+              W/O {starsText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}
+            </Key>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
+          <Readout k={s.team} v={seasonsText(s.seasons)} small />
+          {[['W/O · min', s.off.minutes], ['With · min', s.on.minutes]].map(([k, m]) => (
+            <Readout key={k} k={k} v={Math.round(m).toLocaleString()} short={!s.ranked && m < ls.minRank} minRank={ls.minRank} />
+          ))}
         </div>
       </div>
 
@@ -114,7 +121,7 @@ export default function Lonestar({ profile: p }) {
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 14, height: 3, background: TONES.bad }} />WORSE</span>
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 14, height: 3, background: TONES.neutral }} />VOLUME</span>
         <span>BIG NUMBER · CHANGE W/O − WITH</span>
-        <span>#RANK · AMONG EVERY PLAYER&apos;S CHANGE, #1 THE BIGGEST INCREASE</span>
+        <span>#RANK · AMONG EVERY PLAYER&apos;S CHANGE ({ls.minRank}+ MIN EACH WAY), #1 THE BIGGEST INCREASE</span>
       </div>
     </section>
   )

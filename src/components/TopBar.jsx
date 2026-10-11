@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
 import { initials } from '../lib/teams.js'
@@ -9,12 +8,12 @@ import PlayerSearch from './PlayerSearch.jsx'
 // Past this far down the page the cards are behind you: the bar shows whose page this is.
 const SCROLLED_Y = 220
 
-// The profile's top bar (back link, season switch, search). It stays at the top while
-// scrolling, on a solid ground from the moment it sticks (so the cards never show
-// through it); once the cards scroll away the player's headshot, name and team slide in
-// beside the back link. Its height is published as --topbar-h
+// The profile's top bar (season switch, search). It stays at the top while scrolling,
+// on a solid ground from the moment it sticks (so the cards never show through it);
+// once the cards scroll away the player's headshot, name and team slide in at its
+// left. Its height is published as --topbar-h
 // so the tab bar (and section jumps) sit just under it.
-export default function TopBar({ profile: p, homePath }) {
+export default function TopBar({ profile: p }) {
   const bar = useRef(null)
   const [scrolled, setScrolled] = useState(false)
   const [stuck, setStuck] = useState(false)
@@ -39,7 +38,6 @@ export default function TopBar({ profile: p, homePath }) {
   return (
     <div ref={bar} style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 -32px', padding: '10px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: stuck ? '#262422' : 'transparent', borderBottom: `1px solid ${stuck ? '#3d3a37' : 'transparent'}`, boxShadow: stuck ? 'inset 0 2px 0 var(--mode-edge)' : 'none', transition: 'background-color .2s, border-color .2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-        <Link to={homePath} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', color: '#a8a29c', whiteSpace: 'nowrap' }}>← ALL PLAYERS</Link>
         <span aria-hidden={!scrolled} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, pointerEvents: scrolled ? 'auto' : 'none', ...slide }}>
           <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', overflow: 'hidden', background: '#34312e', border: '1px solid #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: '#a8a29c' }}>
             {p.headshot

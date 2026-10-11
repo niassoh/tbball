@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { frameOf, frameStyle, wipeClass } from './jersey.js'
+import { frameOf, frameStyle } from './jersey.js'
 
 const layers = { v: 'abc', top: 0.58, ids: ['OKC', 'GSW', 'BKN'], current: 'HOU' }
 
@@ -19,11 +19,5 @@ describe('jersey', () => {
     expect(s.backgroundPosition).toBe('100% 0')
     expect(frameStyle('u.webp', layers, 0).backgroundPosition).toBe('0% 0')
     expect(frameStyle('u.webp', { ...layers, ids: ['OKC'] }, 0).backgroundPosition).toBe('0% 0')
-  })
-
-  test('wipes rise going forward and fall going back', () => {
-    expect(wipeClass('in', 'up')).toBe('jersey-in-up')
-    expect(wipeClass('out', 'down')).toBe('jersey-out-down')
-    expect(wipeClass('in', undefined)).toBe('jersey-in-up')
   })
 })

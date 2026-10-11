@@ -23,9 +23,4 @@ export const frameStyle = (url, layers, k) => {
   }
 }
 
-// The wipe a jersey change plays (index.css): the incoming jersey rises from the bottom
-// moving forward through seasons ('up') and falls from the top moving back ('down');
-// back to the base jersey, the outgoing one clears the same way.
-export const wipeClass = (kind, dir) => `jersey-${kind}-${dir === 'down' ? 'down' : 'up'}`
-
 export const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches

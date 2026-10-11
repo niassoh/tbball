@@ -3,8 +3,8 @@ import { MONO } from '../lib/format.js'
 
 // The season control over the bio and percentile cards: a strip with the season
 // stepped back and forward at its left, then every season of his career as a tick
-// (labelled by the year it ended) to jump straight to, and PLAY to walk the career
-// one season at a time. Arrow keys step while it has focus. When the ticks don't all
+// (labelled by the year it ended) to jump straight to, and a play button to walk the
+// career one season at a time. Arrow keys step while it has focus. When the ticks don't all
 // fit (narrow screens) they scroll, keeping the picked one in view.
 const RULE = '#544f4b'
 const DIM = '#8a847e'
@@ -43,9 +43,14 @@ export default function SeasonRail({ seasons, index, onPick, playing, onTogglePl
         })}
       </div>
       {last > 0 && (
-        <button type="button" onClick={onTogglePlay} aria-label={playing ? 'Pause career playback' : 'Play career season by season'} className="rail-step"
-          style={{ ...cell, padding: '0 10px', fontSize: 9, letterSpacing: '.1em', borderLeft: `1px solid ${RULE}`, color: playing ? INK : DIM, whiteSpace: 'nowrap' }}>
-          {playing ? '❚❚ PAUSE' : '▶︎ PLAY'}
+        <button type="button" onClick={onTogglePlay} aria-label={playing ? 'Pause career playback' : 'Play career season by season'} title={playing ? 'Pause' : 'Play the career'} className="rail-step"
+          style={{ ...cell, width: 34, borderLeft: `1px solid ${RULE}`, color: playing ? INK : DIM }}>
+          {/* Hard-edged glyphs: a solid triangle, or two bars while playing. */}
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" style={{ display: 'block' }}>
+            {playing
+              ? <><rect x="1.5" y="1" width="2.5" height="8" fill="currentColor" /><rect x="6" y="1" width="2.5" height="8" fill="currentColor" /></>
+              : <polygon points="2,1 9,5 2,9" fill="currentColor" />}
+          </svg>
         </button>
       )}
     </div>

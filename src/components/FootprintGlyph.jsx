@@ -1,5 +1,5 @@
-// Line glyphs for the Footprint's tiles (Claude Design "Footprint" module), named for the
-// stat each was drawn for; Footprint.jsx maps tiles to them. 28×28, drawn in currentColor.
+// Line glyphs for the Footprint's tiles (Claude Design "Footprint" module), one per stat,
+// keyed like the stats (thinking-bball lib/footprint.js). 28×28, drawn in currentColor.
 const Svg = ({ children }) => (
   <svg viewBox="0 0 28 28" width={28} height={28} fill="none" stroke="currentColor" strokeWidth={1.25} strokeLinecap="square" strokeLinejoin="miter" style={{ display: 'block' }} aria-hidden="true">{children}</svg>
 )
@@ -22,6 +22,11 @@ const GLYPHS = {
   oppFtRate: <><Whistle /><line x1={6} y1={4} x2={22} y2={24} /></>,
   forcedTov: <><Ball x={14} y={14} r={7} /><path d="M14 3 A11 11 0 0 1 25 14" /><path d="M22 11 L25 14 L28 11" /></>,
   drebPct: <><Board /><line x1={14} y1={24} x2={14} y2={18} /><path d="M11 21 L14 18 L17 21" /></>,
+  rimPts: <><Hoop /><Dot x={14} y={10} r={2.5} /><line x1={14} y1={3} x2={14} y2={7} /></>,
+  oppRimPts: <><Hoop /><line x1={14} y1={2} x2={14} y2={9} /><line x1={8} y1={5} x2={20} y2={5} /></>,
+  pace: <><circle cx={14} cy={15} r={9} /><line x1={14} y1={15} x2={14} y2={9} /><line x1={14} y1={15} x2={19} y2={15} /><line x1={14} y1={3} x2={14} y2={6} /><line x1={11} y1={3} x2={17} y2={3} /></>,
+  oppThrees: <><Arc /><line x1={10} y1={6} x2={18} y2={14} /><line x1={18} y1={6} x2={10} y2={14} /></>,
+  blkRate: <><Ball x={8} y={20} r={5} /><line x1={14} y1={6} x2={14} y2={16} /><line x1={18} y1={6} x2={18} y2={16} /><line x1={14} y1={6} x2={18} y2={6} /><path d="M11 18 L21 8" /></>,
 }
 
 export default function FootprintGlyph({ stat }) {

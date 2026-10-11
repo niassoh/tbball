@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'vitest'
-import { adjustment, bar, changeText, seasonsText, shade, strengthOf, toneOf, yearsText } from './footprint.js'
+import { bar, seasonsOf, seasonsText, shade, strengthOf, swingText, toneOf, yearsText } from './footprint.js'
 
 describe('footprint', () => {
-  test('a lift or a cost by the sign of its points', () => {
-    expect(toneOf({ pts: 2.1 })).toBe('good')
-    expect(toneOf({ pts: -0.99 })).toBe('bad')
+  test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
+    expect(toneOf({ good: 1, diff: 2.1 })).toBe('good')
+    expect(toneOf({ good: -1, diff: 2.1 })).toBe('bad')
+    expect(toneOf({ good: -1, diff: -0.4 })).toBe('good')
+    expect(toneOf({ good: 0, diff: 4.5 })).toBe('neutral')
   })
 
   test('strength grows with z from the 2.5 bar to 7, and shades the color', () => {
@@ -15,27 +17,24 @@ describe('footprint', () => {
     expect(shade('#fa962a', 1)).toBe('color-mix(in srgb, #fa962a 100%, #5a5550)')
   })
 
-  test('the bar runs from the middle to the points, capped at the scale', () => {
-    expect(bar(1.5)).toEqual({ left: 50, width: 25 })
-    expect(bar(-1.5)).toEqual({ left: 25, width: 25 })
-    expect(bar(6)).toEqual({ left: 50, width: 50 })
+  test('the bar is as long as the swing ranks among players, toward the lift or the cost', () => {
+    expect(bar({ good: 1, diff: 3, pctl: 90 })).toEqual({ left: 50, width: 45 })
+    expect(bar({ good: -1, diff: 3, pctl: 50 })).toEqual({ left: 25, width: 25 })
+    expect(bar({ good: 0, diff: -2, pctl: 100 })).toEqual({ left: 0, width: 50 })
+    expect(bar({ good: 1, diff: null, pctl: null })).toEqual({ left: 50, width: 0 })
+  })
+
+  test('swings with a sign and one decimal', () => {
+    expect(swingText(9.26)).toBe('+9.3')
+    expect(swingText(-2)).toBe('−2.0')
+    expect(swingText(-0.04)).toBe('0.0')
+    expect(swingText(null)).toBe('—')
   })
 
   test('seasons and years', () => {
+    expect(seasonsOf({ spans: [{ season: '2025-26' }, { season: '2024-25' }, { season: '2025-26' }] })).toEqual(['2024-25', '2025-26'])
     expect(seasonsText(['2024-25', '2025-26'])).toBe('2024–25 and 2025–26')
     expect(yearsText(['2025-26', '2024-25'])).toBe('2024–2026')
     expect(yearsText(['2025-26'])).toBe('2025–2026')
-  })
-
-  test('stat changes with one decimal, none for the shot-location tiles', () => {
-    expect(changeText({ change: -2.28 })).toBe('−2.3')
-    expect(changeText({ change: null })).toBe(null)
-  })
-
-  test('the adjustment: before, after, and only the teammates who moved it noticeably', () => {
-    const a = adjustment({ raw: 1.42, own: 1.03, top: [{ name: 'A B', slug: 'a-b', v: 0.27 }, { name: 'C D', slug: null, v: 0.06 }], others: 0.06, opponents: -0.16, schedule: 0, rest: 0.1 })
-    expect(a.before).toBe(1.42)
-    expect(a.after).toBe(1.03)
-    expect(a.mates.map(m => m.name)).toEqual(['A B'])
   })
 })

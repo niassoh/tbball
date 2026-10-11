@@ -38,7 +38,6 @@ html { scroll-behavior: smooth; }
 .profile-cards-wrap { container-type: inline-size; }
 .profile-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 12px; align-items: stretch; }
 .season-rail-cell { grid-column: 1 / -1; min-width: 0; }
-@container (max-width: 480px) { .rail-label { display: none !important; } }
 @container (min-width: 834px) {
   .profile-cards.with-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .season-rail-cell { grid-column: 1 / span 2; }

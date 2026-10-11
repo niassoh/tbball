@@ -28,7 +28,6 @@ export default function SeasonRail({ seasons, index, onPick, playing, onTogglePl
   }
   return (
     <div role="group" aria-label="Season for the bio and percentile cards" onKeyDown={onKey} style={{ display: 'flex', alignItems: 'stretch', height: 30, border: `1px solid ${RULE}`, background: '#2c2a28', fontFamily: MONO, minWidth: 0 }}>
-      <span className="rail-label" style={{ ...cell, cursor: 'default', padding: '0 10px', fontSize: 9, letterSpacing: '.14em', borderRight: `1px solid ${RULE}` }}>SEASON</span>
       <button type="button" aria-label="Previous season" disabled={index <= 0} onClick={() => step(-1)} className="rail-step" style={{ ...cell, width: 28, fontSize: 11, borderRight: `1px solid ${RULE}`, opacity: index <= 0 ? 0.35 : 1 }}>◂</button>
       <span aria-live="polite" style={{ ...cell, cursor: 'default', padding: '0 12px', minWidth: 74, fontSize: 13, fontWeight: 700, color: INK, letterSpacing: '.02em' }}>{seasons[index].label}</span>
       <button type="button" aria-label="Next season" disabled={index >= last} onClick={() => step(1)} className="rail-step" style={{ ...cell, width: 28, fontSize: 11, borderLeft: `1px solid ${RULE}`, borderRight: `1px solid ${RULE}`, opacity: index >= last ? 0.35 : 1 }}>▸</button>

@@ -48,6 +48,18 @@ html { scroll-behavior: smooth; }
 .depth-link:hover { color: #ece8e3 !important; background: #2f2c2a !important; border-bottom-color: color-mix(in srgb, var(--team) 45%, #ece8e3) !important; }
 /* Lineup headshots sit back, part-desaturated, so the numbers lead; a hovered
    teammate's comes up to full colour and frames in white. */
+/* The player index (PlayerIndex.jsx): keys light their edge on hover, catalogue tiles
+   lift a shade and their portrait leans in, parts-list lines highlight. */
+.idx-key { transition: border-color .12s, background .12s, color .12s; }
+.idx-key:hover { border-color: #ece8e3 !important; color: #ece8e3 !important; }
+.idx-key[aria-pressed="true"]:hover { color: #1f1d1c !important; }
+.idx-tile { transition: background .15s; }
+.idx-tile:hover { background: #2f2c2a !important; }
+.idx-tile .idx-face img { transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+.idx-tile:hover .idx-face img { transform: scale(1.04); }
+.idx-row:hover { background: #2c2a28; }
+.idx-input::placeholder { color: #5f5a55; }
+.idx-input:focus { border-color: #6b655f !important; }
 .lineup-tile { transition: border-color .15s; }
 .lineup-tile > * { filter: saturate(.45) brightness(.88); transition: filter .2s; }
 a:hover > .lineup-tile { border-color: #ece8e3 !important; }
@@ -132,6 +144,7 @@ a:hover > .lineup-tile > * { filter: none; }
   .hero .hero-logo, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more { transition: none; }
   .hero.loading .hero-bar, .swap-in, .fade-in, .picker-in { animation: none; }
   .jersey-in, .jersey-out { animation: none; }
+  .idx-tile .idx-face img { transition: none; }
   .dist-bar, .dist-mark { transition: none; }
   .team-cell .team-cell-logo { transition: none; }
 }

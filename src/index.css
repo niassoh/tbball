@@ -54,9 +54,34 @@ html { scroll-behavior: smooth; }
 /* Lineup headshots sit back, part-desaturated, so the numbers lead; a hovered
    teammate's comes up to full colour and frames in white. */
 .lineup-tile { transition: border-color .15s; }
-.lineup-tile > :first-child { filter: saturate(.45) brightness(.88); transition: filter .2s; }
+.lineup-tile > * { filter: saturate(.45) brightness(.88); transition: filter .2s; }
 a:hover > .lineup-tile { border-color: #ece8e3 !important; }
-a:hover > .lineup-tile > :first-child { filter: none; }
+a:hover > .lineup-tile > * { filter: none; }
+/* A jersey change on the bio card's portrait (JerseyOverlay): the new jersey wipes in
+   behind a faceted, zig-zag edge, rising going forward through seasons and falling going
+   back; back to the base jersey, the old one clears the same way. Every keyframe has the
+   same seven points so the edge slides rather than morphs. */
+@keyframes jersey-in-up {
+  from { clip-path: polygon(0 106%, 25% 100%, 50% 106%, 75% 100%, 100% 106%, 100% 100%, 0 100%); }
+  to { clip-path: polygon(0 0, 25% -6%, 50% 0, 75% -6%, 100% 0, 100% 100%, 0 100%); }
+}
+@keyframes jersey-in-down {
+  from { clip-path: polygon(0 0, 100% 0, 100% -6%, 75% 0, 50% -6%, 25% 0, 0 -6%); }
+  to { clip-path: polygon(0 0, 100% 0, 100% 100%, 75% 106%, 50% 100%, 25% 106%, 0 100%); }
+}
+@keyframes jersey-out-up {
+  from { clip-path: polygon(0 0, 100% 0, 100% 106%, 75% 100%, 50% 106%, 25% 100%, 0 106%); }
+  to { clip-path: polygon(0 0, 100% 0, 100% 0, 75% -6%, 50% 0, 25% -6%, 0 0); }
+}
+@keyframes jersey-out-down {
+  from { clip-path: polygon(0 -6%, 25% 0, 50% -6%, 75% 0, 100% -6%, 100% 100%, 0 100%); }
+  to { clip-path: polygon(0 100%, 25% 106%, 50% 100%, 75% 106%, 100% 100%, 100% 100%, 0 100%); }
+}
+.jersey-in-up, .jersey-in-down, .jersey-out-up, .jersey-out-down { animation: .42s cubic-bezier(.2,.8,.2,1) both; }
+.jersey-in-up { animation-name: jersey-in-up; }
+.jersey-in-down { animation-name: jersey-in-down; }
+.jersey-out-up { animation-name: jersey-out-up; }
+.jersey-out-down { animation-name: jersey-out-down; }
 /* Lineup units: best and most used side by side, stacked when the card is too narrow for
    both (phones). Keyed to the card's width, not the window's. */
 .lineup-units-wrap { container-type: inline-size; }
@@ -128,6 +153,7 @@ a:hover > .lineup-tile > :first-child { filter: none; }
 @media (prefers-reduced-motion: reduce) {
   .hero .hero-logo, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more { transition: none; }
   .hero.loading .hero-bar, .swap-in, .fade-in, .picker-in { animation: none; }
+  .jersey-in-up, .jersey-in-down, .jersey-out-up, .jersey-out-down { animation: none; }
   .dist-bar, .dist-mark { transition: none; }
   .team-cell .team-cell-logo { transition: none; }
 }

@@ -1,10 +1,11 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { headshotUrl, loadTeams } from '../api.js'
+import { headshotUrl, jerseyUrl, loadTeams } from '../api.js'
 import { MONO } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
 import TeamPicker from './TeamPicker.jsx'
 import LineupPanel from './LineupPanel.jsx'
+import JerseyOverlay from './JerseyOverlay.jsx'
 import { TEAM_COLORS } from '../lib/teams.js'
 import { asset } from '../lib/static.js'
 import { useSeasonType } from '../useSeasonType.js'
@@ -32,7 +33,8 @@ const fadeIn = size => `radial-gradient(ellipse 80% 115% at 76% 72%, #000 70%, t
 // fades in from the left, dimmed so it reads as a backdrop rather than a box.
 const panelFade = 'linear-gradient(90deg, transparent 0%, #000 55%)'
 
-function Headshot({ slug, version, source, name, team }) {
+// In the season's jersey (JerseyOverlay) when his portrait has jersey layers.
+function Headshot({ slug, version, source, name, team, layers, jersey, dir }) {
   const [failed, setFailed] = useState(false)
   if (failed) {
     return (
@@ -49,6 +51,7 @@ function Headshot({ slug, version, source, name, team }) {
     // would clip the hair flat.
     <div className="hero-face fade-in" style={{ position: 'absolute', right: 0, bottom: 0, width: size, height: size, WebkitMaskImage: mask, WebkitMaskComposite: 'source-in', maskImage: mask, maskComposite: 'intersect' }}>
       <img src={headshotUrl(slug, 400, version, source)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
+      {source === 'jersey' && <JerseyOverlay slug={slug} size={400} layers={layers} id={jersey} dir={dir} animate />}
     </div>
   )
 }
@@ -80,6 +83,20 @@ const seasonView = (p, i) => {
 export default function BioCard({ profile: p, season, loading = false }) {
   const { playerPath } = useSeasonType()
   const v = seasonView(p, season)
+  // The jersey wipe rises when the rail moves forward and falls when it moves back.
+  const [moved, setMoved] = useState({ season, dir: 'up' })
+  if (moved.season !== season) setMoved({ season, dir: season < moved.season ? 'down' : 'up' })
+  const dir = moved.dir
+  const layers = p.jerseys ? p.jerseys[p.slug] : null
+  // His jersey sprite now, so stepping seasons never waits on it; teammates' small ones
+  // when the browser is idle.
+  useEffect(() => {
+    if (!p.jerseys) return
+    const own = p.jerseys[p.slug]
+    if (own) new Image().src = jerseyUrl(p.slug, 400, own.v)
+    const later = window.requestIdleCallback || (f => setTimeout(f, 300))
+    later(() => Object.entries(p.jerseys).forEach(([s, l]) => { new Image().src = jerseyUrl(s, 100, l.v) }))
+  }, [p.slug, p.jerseys])
   // Spec strip: team logo, then position / height / age split by hard rules (labels as tooltips).
   const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', v.age !== null ? v.age.toFixed(1) : null]].filter(([, x]) => x)
   const lines = nameLines(p.name)
@@ -133,7 +150,7 @@ export default function BioCard({ profile: p, season, loading = false }) {
     <div ref={cardRef} style={card}>
       <div className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid var(--trim)', overflow: 'hidden' }}>
         <img className="hero-bokeh" src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
-        <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={v.team} />
+        <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={v.team} layers={layers} jersey={p.seasons[season] ? p.seasons[season].jersey : null} dir={dir} />
         {/* A soft overhead light along the top-right hides the seam where the headshot box begins. */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 42% 60% at 84% -8%, rgba(236,232,227,.16), rgba(236,232,227,.06) 45%, transparent 75%)' }} />
         <div key={`specs-${p.slug}-${v.team}`} className="swap-in" style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>

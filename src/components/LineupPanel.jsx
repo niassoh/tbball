@@ -7,6 +7,7 @@ import { initials } from '../lib/teams.js'
 import { dotRadius, dotTint, rankColor, rankLabel, rankPct, swarm } from '../lib/swarm.js'
 import { useSeasonType } from '../useSeasonType.js'
 import { arrange } from '../lib/units.js'
+import JerseyOverlay from './JerseyOverlay.jsx'
 
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -40,7 +41,7 @@ function Mate({ mate, season }) {
 // A round headshot with the last name under it, or in 4- and 5-man units' small tiles the
 // initials (the full name is on hover). A ring in the team colour frames each; his own
 // is stronger. Teammates' tiles link to their pages.
-function Tile({ player, team, accent, self, small, state }) {
+function Tile({ player, team, accent, self, small, state, jerseys }) {
   const { playerPath } = useSeasonType()
   const [failed, setFailed] = useState(false)
   const size = small ? SMALL : TILE
@@ -51,6 +52,8 @@ function Tile({ player, team, accent, self, small, state }) {
   const box = (
     <span className="lineup-tile" style={{ position: 'relative', display: 'block', width: size, height: size, borderRadius: '50%', border: self ? `2px solid color-mix(in srgb, ${accent || INK} 70%, ${INK})` : `1.5px solid color-mix(in srgb, ${accent || INK} 40%, #544f4b)`, background: '#34312e', overflow: 'hidden' }}>
       {face}
+      {/* In the jersey he wore on this team that season. */}
+      {player.headshot === 'jersey' && !failed && jerseys && <JerseyOverlay slug={player.slug} size={100} layers={jerseys[player.slug]} id={player.jersey} />}
     </span>
   )
   return (
@@ -267,7 +270,7 @@ function RankTip({ unit, size, floor, isDefault, self, team, season, onHover }) 
 // One unit he plays in: him and his teammates in it as tiles, then its net and minutes
 // (and its share of his minutes when it's his most-used). Without a unit over the
 // floor, the same frame shows empty tiles. The row keeps one height for both sizes.
-function Unit({ title, unit, size, self, team, season, accent, empty, className, onTip, tip }) {
+function Unit({ title, unit, size, self, team, season, jerseys, accent, empty, className, onTip, tip }) {
   // Four and five tiles don't fit at full size beside the numbers; they go small with initials.
   const small = size >= 4
   // Arrived by clicking a teammate's tile: that unit's order holds (lib/units.js), and
@@ -281,7 +284,7 @@ function Unit({ title, unit, size, self, team, season, accent, empty, className,
       <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
           {unit
-            ? players.map((pl, i) => <Tile key={i} player={pl} team={team} accent={accent} self={pl === self} small={small} state={state} />)
+            ? players.map((pl, i) => <Tile key={i} player={pl} team={team} accent={accent} self={pl === self} small={small} state={state} jerseys={jerseys} />)
             : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, margin: small ? 0 : `0 ${(COL - TILE) / 2}px`, flex: 'none', borderRadius: '50%', border: '1px dashed #4a4643' }} />)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
@@ -344,7 +347,7 @@ export default function LineupPanel({ profile: p, accent }) {
     else closing.current = setTimeout(() => setTip(null), 180)
   }
   useEffect(() => () => clearTimeout(closing.current), [])
-  const unitProps = { size, self: L && L.self, team: L && L.team, season: L && L.season, accent }
+  const unitProps = { size, self: L && L.self, team: L && L.team, season: L && L.season, jerseys: p.jerseys, accent }
 
   return (
     <div key={`lineups-${p.slug}`} className="swap-in" style={{ padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 10, '--team': accent || INK }}>

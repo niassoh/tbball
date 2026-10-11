@@ -11,6 +11,7 @@ import StatSection from './components/StatSection.jsx'
 import YearToYear from './components/YearToYear.jsx'
 import Career from './components/Career.jsx'
 import Footprint from './components/Footprint.jsx'
+import Lonestar from './components/Lonestar.jsx'
 import TopBar from './components/TopBar.jsx'
 import { useSeasonType } from './useSeasonType.js'
 
@@ -131,6 +132,8 @@ function ProfilePage({ slug, playoffs }) {
     { id: 'yoy', name: 'Year to Year' },
     // Regular season only (the backend has none in the playoffs).
     ...(p.footprint ? [{ id: 'footprint', name: 'Footprint' }] : []),
+    // Regular season only, like the footprint.
+    ...(p.lonestar ? [{ id: 'lonestar', name: 'Lonestar' }] : []),
     { id: 'career', name: 'Career' }
   ]
   // Keep the open tab across players when the new one has it.
@@ -153,6 +156,7 @@ function ProfilePage({ slug, playoffs }) {
               {statTab && <StatSection key={`${fold}-${activeTab}`} profile={p} tab={statTab} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} pctView={pctView} setPctView={setPctView} />}
               {activeTab === 'yoy' && <YearToYear key={fold} profile={p} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} />}
               {activeTab === 'footprint' && <Footprint key={fold} profile={p} />}
+              {activeTab === 'lonestar' && <Lonestar key={fold} profile={p} />}
               {activeTab === 'career' && <Career key={fold} profile={p} />}
             </div>
           </>

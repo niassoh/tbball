@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchPlayers, headshotUrl } from './api.js'
 import { MONO } from './lib/format.js'
@@ -41,9 +41,26 @@ const span = p => (p.seasons[0] === p.seasons[1] ? yy(p.seasons[0]) : `${yy(p.se
 const signed = v => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1).replace('-', '−')}`)
 const firstName = name => name.split(' ')[0]
 const lastName = name => name.split(' ').slice(1).join(' ') || name
-// Long surnames step down so they fit the narrowest tile (up to ~0.8em a character in
-// this face, for the wide letters), to 10px at the least.
-const nameSize = name => Math.max(10, Math.min(17, Math.floor(130 / (0.8 * name.length))))
+// A surname at the tile's size, stepped down (to 10px at the least) until it fits the
+// tile: measured, since wide letters (W, M) defeat any estimate. Re-fit when the webfont
+// arrives and when the tile changes width.
+function FitName({ text }) {
+  const ref = useRef(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    const fit = () => {
+      let size = 17
+      el.style.fontSize = `${size}px`
+      while (el.scrollWidth > el.clientWidth && size > 10) el.style.fontSize = `${(size -= 0.5)}px`
+    }
+    fit()
+    if (document.fonts) document.fonts.ready.then(fit)
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [text])
+  return <span ref={ref} style={{ fontSize: 17, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: '20px', height: 20, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</span>
+}
 const low = v => v !== null && v < 0
 
 // Latest-season BPM as a 10-segment meter from −4 to +10.
@@ -83,13 +100,28 @@ function TeamLogo({ team, on, faded, onClick }) {
   )
 }
 
-function Face({ player, size, square }) {
+// Headshots load small first: the 100px image (a sixth of the bytes) fades in as soon as
+// it arrives, the first screen's eagerly and in order (`order` staggers the fade), the
+// rest as they scroll near; a catalogue tile then swaps in its 400px image over it,
+// fetched only once the small one shows, so the small ones never wait behind them. (The
+// delay is the fade's only: a tile's image also transitions its hover zoom, index.css.)
+const cover = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }
+const EAGER = 27
+function Face({ player, size, square, order = EAGER }) {
   const [failed, setFailed] = useState(false)
+  const [small, setSmall] = useState(false)
+  const [large, setLarge] = useState(false)
   const show = player.headshot && !failed
+  const url = px => headshotUrl(player.slug, px, player.headshotVersion, player.headshot)
+  const eager = order < EAGER
   return (
-    <span className="idx-face" style={{ display: 'block', width: square ? '100%' : size, height: square ? 'auto' : size, aspectRatio: '1 / 1', overflow: 'hidden', background: show ? PORTRAIT_BG : '#34312e', flex: 'none' }}>
+    <span className="idx-face" style={{ position: 'relative', display: 'block', width: square ? '100%' : size, height: square ? 'auto' : size, aspectRatio: '1 / 1', overflow: 'hidden', background: show ? PORTRAIT_BG : '#34312e', flex: 'none' }}>
       {show
-        ? <img src={headshotUrl(player.slug, square ? 400 : 100, player.headshotVersion, player.headshot)} alt="" loading="lazy" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
+        ? <>
+            <img src={url(100)} alt="" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" onLoad={() => setSmall(true)} onError={() => setFailed(true)}
+              className={small ? 'idx-in' : 'idx-wait'} style={{ ...cover, transitionDelay: small && eager && square ? `${order * 22}ms, 0ms` : '0ms' }} />
+            {square && small && <img src={url(400)} alt="" decoding="async" onLoad={() => setLarge(true)} className={large ? 'idx-in' : 'idx-wait'} style={cover} />}
+          </>
         : <TeamInitials name={player.name} team={player.team} fontSize={square ? 40 : 9} />}
     </span>
   )
@@ -97,7 +129,7 @@ function Face({ player, size, square }) {
 
 // A portrait in the catalogue: team and seasons over the portrait, then the name and his
 // latest BPM on the meter. The LED is lit for players in the latest season.
-function Tile({ player: p, to }) {
+function Tile({ player: p, to, order }) {
   return (
     <Link to={to} className="idx-tile" style={{ display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
       <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
@@ -107,10 +139,10 @@ function Tile({ player: p, to }) {
           <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}` }} />
         </span>
       </span>
-      <Face player={p} square />
+      <Face player={p} square order={order} />
       <span style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 10px 12px', borderTop: `1px solid ${RULE}` }}>
         <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>
-        <span style={{ fontSize: nameSize(lastName(p.name)), fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: '20px', height: 20, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{lastName(p.name)}</span>
+        <FitName text={lastName(p.name)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
           <span style={label}>BPM</span>
           <Meter value={p.recentBpm} />
@@ -182,7 +214,7 @@ export default function PlayerIndex() {
         <Section title="Illustrated" count={portraits.length}>
           {/* Tiles share their 1px edges (each overlaps the next by 1px), so a short last row leaves empty cells blank. */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', paddingRight: 1, paddingBottom: 1 }}>
-            {portraits.map(p => <Tile key={p.slug} player={p} to={playerPath(p.slug)} />)}
+            {portraits.map((p, i) => <Tile key={p.slug} player={p} to={playerPath(p.slug)} order={i} />)}
           </div>
         </Section>
       )}

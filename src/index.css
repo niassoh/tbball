@@ -50,6 +50,8 @@ html { scroll-behavior: smooth; }
    teammate's comes up to full colour and frames in white. */
 /* The player index (PlayerIndex.jsx): team logos sit muted until hovered or picked,
    catalogue tiles lift a shade and their portrait leans in, parts-list lines highlight. */
+.ls-key { transition: border-color .12s, color .12s; }
+.ls-key[aria-pressed="false"]:hover { border-color: #ece8e3 !important; color: #ece8e3 !important; }
 .idx-logos-wrap { container-type: inline-size; }
 .idx-logos { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
 @container (min-width: 620px) { .idx-logos { grid-template-columns: repeat(15, 1fr); } }
@@ -64,7 +66,9 @@ html { scroll-behavior: smooth; }
 .idx-logo:focus-visible { outline: 1px solid #ece8e3; outline-offset: -1px; }
 .idx-tile { transition: background .15s; }
 .idx-tile:hover { background: #2f2c2a !important; }
-.idx-tile .idx-face img { transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+.idx-face .idx-wait { opacity: 0; }
+.idx-face .idx-in { opacity: 1; transition: opacity .35s ease; }
+.idx-tile .idx-face img { transition: opacity .35s ease, transform .35s cubic-bezier(.2,.8,.2,1); }
 .idx-tile:hover .idx-face img { transform: scale(1.04); }
 .idx-row:hover { background: #2c2a28; }
 .idx-input::placeholder { color: #5f5a55; }
@@ -152,7 +156,7 @@ a:hover > .lineup-tile > * { filter: none; }
   .hero .hero-logo, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more { transition: none; }
   .hero.loading .hero-bar, .swap-in, .fade-in, .picker-in { animation: none; }
   .jersey-in, .jersey-out { animation: none; }
-  .idx-tile .idx-face img { transition: none; }
+  .idx-tile .idx-face img, .idx-face .idx-in { transition: none; }
   .dist-bar, .dist-mark { transition: none; }
   .team-cell .team-cell-logo { transition: none; }
 }

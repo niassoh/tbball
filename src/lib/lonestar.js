@@ -28,8 +28,14 @@ export const change = (stat, v) => {
   return Math.abs(x) < 0.05 ? '0.0' : `${x > 0 ? '+' : '−'}${Math.abs(x).toFixed(1)}`
 }
 
-// A lift (blue), a cost (orange) or neither, by which way the stat helps.
-export const toneOf = (stat, v) => (!stat.dir || v === null || v === undefined || Math.abs(v) < 1e-9 ? 'neutral' : stat.dir * v > 0 ? 'good' : 'bad')
+// A lift (blue) or a cost (orange) by which way the stat helps; a volume stat (Load,
+// Pts / 75, …) is blue for more and orange for less. Neither only when it doesn't move.
+export const toneOf = (stat, v) => (v === null || v === undefined || Math.abs(v) < 1e-9 ? 'neutral' : (stat.dir || 1) * v > 0 ? 'good' : 'bad')
+
+// How strongly a column takes its change's colour, by how big the change is (`size`, the
+// percentile of |change| among every player's): 20% for the smallest, 90% for the
+// biggest, 45% when unknown.
+export const tintOf = size => (size === null || size === undefined ? 45 : Math.round(20 + 0.7 * size))
 
 // A league percentile as lit segments of a 10-segment column.
 export const segmentsOf = p => (p === null || p === undefined ? 0 : Math.max(0, Math.min(10, Math.round(p / 10))))

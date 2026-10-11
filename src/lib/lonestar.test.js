@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { GROUPS, STATS, cellsOf, change, litOf, seasonsText, segmentsOf, shiftsOf, starsText, toneOf, value } from './lonestar.js'
+import { GROUPS, STATS, cellsOf, change, litOf, seasonsText, segmentsOf, shiftsOf, starsText, tintOf, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -17,7 +17,10 @@ describe('lonestar', () => {
     expect(toneOf(stat('rts'), 0.02)).toBe('good')
     expect(toneOf(stat('ctov'), 0.02)).toBe('bad')
     expect(toneOf(stat('ctov'), -0.01)).toBe('good')
-    expect(toneOf(stat('load'), 5)).toBe('neutral')
+    // A volume stat: blue for more, orange for less.
+    expect(toneOf(stat('load'), 5)).toBe('good')
+    expect(toneOf(stat('load'), -2)).toBe('bad')
+    expect(toneOf(stat('load'), 0)).toBe('neutral')
     expect(toneOf(stat('net'), null)).toBe('neutral')
   })
 
@@ -26,6 +29,13 @@ describe('lonestar', () => {
     expect(litOf({ rank: 200, of: 200 })).toBe(0)
     expect(litOf({ rank: 100, of: 199 })).toBe(5)
     expect(litOf(null)).toBe(0)
+  })
+
+  test("a column's colour strengthens with the size of the change", () => {
+    expect(tintOf(0)).toBe(20)
+    expect(tintOf(66)).toBe(66)
+    expect(tintOf(100)).toBe(90)
+    expect(tintOf(null)).toBe(45)
   })
 
   test('a column lights a segment per 10 percentile points', () => {

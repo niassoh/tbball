@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { GROUPS, cellsOf, change, litOf, seasonsText, segmentsOf, shiftsOf, starsText, toneOf, value } from '../lib/lonestar.js'
+import { GROUPS, cellsOf, change, litOf, seasonsText, segmentsOf, shiftsOf, starsText, tintOf, toneOf, value } from '../lib/lonestar.js'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
@@ -53,19 +53,21 @@ function Meter({ n }) {
   )
 }
 
-// A column fills to his league percentile without the stars, a segment per 10 points:
-// grey what he had with them too, lit in the change's colour what he gains without them
-// (a soft warm grey for a volume stat). A tick marks where it reached with them, so a
-// drop is the column standing short of its tick: the segments it gave up stay as a faint
-// wash of the change's colour, and the tick takes that colour.
+// A column fills to his league percentile without the stars, a segment per 10 points,
+// in the change's colour: what he had with them too tinted by how big the change is
+// (so a big change shows even when he's already at the top), what he gains without them
+// at full strength. A tick marks where it reached with them, so a drop is the column
+// standing short of its tick: the segments it gave up stay as a faint wash of the
+// change's colour, and the tick takes that colour.
 const HELD = '#6b655f'
-const VOLUME = '#cfc8bf'
 const TICK = '#b8b2ab'
 const EMPTY = '#2f2c2a'
 const SEG = 7
 const GAP = 3
-const cell = (state, color) => ({ background: state === 'held' ? HELD : state === 'gained' ? color : state === 'lost' ? `color-mix(in srgb, ${color} 24%, ${EMPTY})` : EMPTY })
-const toneColor = tone => (tone === 'neutral' ? VOLUME : TONES[tone])
+const cell = (state, color, tint) => ({
+  background: state === 'held' ? (tint ? `color-mix(in srgb, ${color} ${tint}%, ${HELD})` : HELD) : state === 'gained' ? color : state === 'lost' ? `color-mix(in srgb, ${color} 24%, ${EMPTY})` : EMPTY
+})
+const toneColor = tone => TONES[tone]
 const signed = n => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`
 const pctlText = p => (p === null || p === undefined ? '—' : String(p))
 
@@ -80,7 +82,7 @@ function Column({ stat, s, mode }) {
     <div title={`${stat.label}: ${value(stat, s.on[stat.key])} with his stars (${pctlText(pOn)} pctl), ${value(stat, s.off[stat.key])} without (${pctlText(pOff)} pctl)`}
       style={{ width: 44, flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <div aria-hidden="true" style={{ position: 'relative', display: 'flex', flexDirection: 'column-reverse', gap: GAP, width: 22, marginBottom: 2 }}>
-        {cellsOf(pOn, pOff).map((state, i) => <span key={i} style={{ height: SEG, ...cell(state, toneColor(tone)) }} />)}
+        {cellsOf(pOn, pOff).map((state, i) => <span key={i} style={{ height: SEG, ...cell(state, toneColor(tone), tone === 'neutral' ? 0 : tintOf(s.size && s.size[stat.key])) }} />)}
         {tick > 0 && <span style={{ position: 'absolute', left: -4, right: -4, bottom: tick * (SEG + GAP) - GAP / 2 - 1, height: 2, background: dropped ? toneColor(tone) : TICK }} />}
       </div>
       <span style={{ ...label, color: '#c9c3bc', textAlign: 'center', whiteSpace: 'nowrap' }}>{stat.short}</span>
@@ -91,29 +93,24 @@ function Column({ stat, s, mode }) {
 }
 
 // The three stats whose league percentile moves most without his stars: where he goes
-// from and to, and by how much, in raw numbers or percentiles, in the change's colour
-// (grey for a volume stat).
-function Shifts({ s, mode }) {
-  const pctl = mode === 'pctl'
+// from and to and by how much, always in percentiles (the only scale the stats share),
+// in the change's colour.
+function Shifts({ s }) {
   return (
     <div style={{ flex: '0 1 320px', minWidth: 220, display: 'flex', flexDirection: 'column', gap: 12, paddingLeft: 24, borderLeft: `1px solid ${RULE}` }}>
-      <span style={{ ...label, color: '#c9c3bc' }}>Biggest shifts</span>
-      {shiftsOf(s.pctl).map(x => {
-        const k = x.stat.key
-        const tone = toneOf(x.stat, s.change[k])
-        return (
-          <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', alignItems: 'baseline', gap: 14, fontVariantNumeric: 'tabular-nums' }}>
-            <span style={{ ...label, color: '#b8b2ab' }}>{x.stat.label}</span>
-            <span style={{ fontSize: 11, color: DIM }}>{pctl ? x.on : value(x.stat, s.on[k])}<span style={{ color: FAINT }}> → </span><span style={{ color: INK }}>{pctl ? x.off : value(x.stat, s.off[k])}</span></span>
-            <span style={{ fontSize: 20, fontWeight: 600, minWidth: 56, textAlign: 'right', color: toneColor(tone) }}>{pctl ? signed(x.delta) : change(x.stat, s.change[k])}</span>
-          </div>
-        )
-      })}
+      <span style={{ ...label, color: '#c9c3bc' }}>Biggest shifts · pctl</span>
+      {shiftsOf(s.pctl).map(x => (
+        <div key={x.stat.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', alignItems: 'baseline', gap: 14, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ ...label, color: '#b8b2ab' }}>{x.stat.label}</span>
+          <span style={{ fontSize: 11, color: DIM }}>{x.on}<span style={{ color: FAINT }}> → </span><span style={{ color: INK }}>{x.off}</span></span>
+          <span style={{ fontSize: 20, fontWeight: 600, minWidth: 56, textAlign: 'right', color: toneColor(toneOf(x.stat, s.change[x.stat.key])) }}>{signed(x.delta)}</span>
+        </div>
+      ))}
     </div>
   )
 }
 
-// RAW | PCTL: what the columns and the shifts read in.
+// RAW | PCTL: what the columns' numbers read in.
 function ModeSwitch({ mode, setMode }) {
   return (
     <div role="group" aria-label="Show values as" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
@@ -191,7 +188,7 @@ export default function Lonestar({ profile: p }) {
 
       {/* The shape: a column per stat at his league percentile without the stars, a tick
           where it reached with them; beside it, the stats that move most. RAW | PCTL sets
-          what their numbers read in. */}
+          what the columns' numbers read in. */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: -8 }}><ModeSwitch mode={mode} setMode={setMode} /></div>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', gap: '24px 40px', padding: '6px 0 4px', fontFamily: MONO }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px 24px' }}>
@@ -205,12 +202,12 @@ export default function Lonestar({ profile: p }) {
             </div>
           ))}
         </div>
-        <Shifts s={s} mode={mode} />
+        <Shifts s={s} />
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{swatch({ width: 14, height: 2, background: TICK })}WITH HIS STARS</span>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{swatch({ background: HELD })}WITHOUT</span>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{swatch({ background: TONES.good })}{swatch({ background: TONES.bad })}{swatch({ background: VOLUME })}GAINED W/O STARS · BETTER, WORSE, VOLUME</span>
+        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{swatch(cell('held', TONES.good, 30))}{swatch(cell('held', TONES.good, 80))}WITHOUT · STRONGER THE BIGGER THE CHANGE</span>
+        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{swatch({ background: TONES.good })}{swatch({ background: TONES.bad })}GAINED W/O STARS · BLUE BETTER, ORANGE WORSE (VOLUME STATS: MORE, LESS)</span>
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{swatch(cell('lost', TONES.bad))}{swatch({ width: 14, height: 2, background: TONES.bad })}GIVEN UP W/O STARS</span>
         <span>COLUMN · LEAGUE PERCENTILE · NUMBERS · WITHOUT, AND THE CHANGE</span>
       </div>

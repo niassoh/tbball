@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { startTransition, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchPlayers, headshotUrl } from './api.js'
 import { MONO } from './lib/format.js'
@@ -41,25 +41,35 @@ const span = p => (p.seasons[0] === p.seasons[1] ? yy(p.seasons[0]) : `${yy(p.se
 const signed = v => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1).replace('-', '−')}`)
 const firstName = name => name.split(' ')[0]
 const lastName = name => name.split(' ').slice(1).join(' ') || name
-// A surname at the tile's size, stepped down (to 10px at the least) until it fits the
-// tile: measured, since wide letters (W, M) defeat any estimate. Re-fit when the webfont
-// arrives and when the tile changes width.
+// A surname at the tile's size, shrunk (to 10px at the least) to fit the tile: its width
+// measured once on a canvas (no page layout) and the tile's width read from one shared
+// ResizeObserver (whose callbacks come after layout), so 219 names cost no reflows.
+// Re-fit when the webfont arrives and when a tile changes width.
+const NAME_PX = 17
+const canvas = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null
+const textWidth = text => {
+  canvas.font = `800 ${NAME_PX}px Montserrat, sans-serif`
+  // The name's -.01em letter spacing.
+  return canvas.measureText(text.toUpperCase()).width - 0.01 * NAME_PX * text.length
+}
+const fitters = new WeakMap()
+const sizer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(entries => entries.forEach(e => fitters.get(e.target)?.(e.contentRect.width))) : null
 function FitName({ text }) {
   const ref = useRef(null)
   useLayoutEffect(() => {
     const el = ref.current
-    const fit = () => {
-      let size = 17
-      el.style.fontSize = `${size}px`
-      while (el.scrollWidth > el.clientWidth && size > 10) el.style.fontSize = `${(size -= 0.5)}px`
+    let width = 0
+    const fit = w => {
+      width = w ?? width
+      if (!width) return
+      el.style.fontSize = `${Math.max(10, Math.min(NAME_PX, Math.floor((2 * NAME_PX * width) / textWidth(text)) / 2))}px`
     }
-    fit()
-    if (document.fonts) document.fonts.ready.then(fit)
-    const ro = new ResizeObserver(fit)
-    ro.observe(el)
-    return () => ro.disconnect()
+    fitters.set(el, fit)
+    sizer.observe(el)
+    if (document.fonts) document.fonts.ready.then(() => fit())
+    return () => sizer.unobserve(el)
   }, [text])
-  return <span ref={ref} style={{ fontSize: 17, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: '20px', height: 20, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</span>
+  return <span ref={ref} style={{ fontSize: NAME_PX, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: '20px', height: 20, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</span>
 }
 const low = v => v !== null && v < 0
 
@@ -88,14 +98,15 @@ function Meter({ value }) {
 }
 
 // A team's logo as its filter: the white logo at rest, the colour one on hover or when
-// picked (pick it again to clear); while one is picked the rest fade back.
+// picked (pick it again to clear); while one is picked the rest fade back. The row uses
+// the logos' 56px copies (logos/sm/): the full ones would come to 900KB, ahead of the faces.
 function TeamLogo({ team, on, faded, onClick }) {
   const img = { position: 'absolute', inset: 0, margin: 'auto', width: 26, height: 26, objectFit: 'contain' }
   return (
     <button type="button" className="idx-logo" aria-pressed={on} aria-label={team} title={team} onClick={onClick}
       style={{ position: 'relative', height: 44, padding: 0, background: on ? '#2f2c2a' : 'transparent', border: `1px solid ${on ? INK : 'transparent'}`, cursor: 'pointer', opacity: faded ? 0.3 : 1 }}>
-      <img className="idx-logo-mono" src={asset(`logos/${team}.png`)} alt="" style={img} />
-      <img className="idx-logo-color" src={asset(`logos/color/${team}.png`)} alt="" style={img} />
+      <img className="idx-logo-mono" src={asset(`logos/sm/${team}.webp`)} alt="" style={img} />
+      <img className="idx-logo-color" src={asset(`logos/color/sm/${team}.webp`)} alt="" style={img} />
     </button>
   )
 }
@@ -106,8 +117,9 @@ function TeamLogo({ team, on, faded, onClick }) {
 // fetched only once the small one shows, so the small ones never wait behind them. (The
 // delay is the fade's only: a tile's image also transitions its hover zoom, index.css.)
 const cover = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }
-const EAGER = 27
-function Face({ player, size, square, order = EAGER }) {
+// Four rows of the widest grid (9 a row): a desktop's first screen.
+const EAGER = 36
+function Face({ player, size, square, order = EAGER, onShown }) {
   const [failed, setFailed] = useState(false)
   const [small, setSmall] = useState(false)
   const [large, setLarge] = useState(false)
@@ -118,8 +130,8 @@ function Face({ player, size, square, order = EAGER }) {
     <span className="idx-face" style={{ position: 'relative', display: 'block', width: square ? '100%' : size, height: square ? 'auto' : size, aspectRatio: '1 / 1', overflow: 'hidden', background: show ? PORTRAIT_BG : '#34312e', flex: 'none' }}>
       {show
         ? <>
-            <img src={url(100)} alt="" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" onLoad={() => setSmall(true)} onError={() => setFailed(true)}
-              className={small ? 'idx-in' : 'idx-wait'} style={{ ...cover, transitionDelay: small && eager && square ? `${order * 22}ms, 0ms` : '0ms' }} />
+            <img src={url(100)} alt="" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" onLoad={() => { setSmall(true); onShown?.() }} onError={() => setFailed(true)}
+              className={small ? 'idx-in' : 'idx-wait'} style={{ ...cover, transitionDelay: small && eager && square ? `${order * 8}ms, 0ms` : '0ms' }} />
             {square && small && <img src={url(400)} alt="" decoding="async" onLoad={() => setLarge(true)} className={large ? 'idx-in' : 'idx-wait'} style={cover} />}
           </>
         : <TeamInitials name={player.name} team={player.team} fontSize={square ? 40 : 9} />}
@@ -129,9 +141,9 @@ function Face({ player, size, square, order = EAGER }) {
 
 // A portrait in the catalogue: team and seasons over the portrait, then the name and his
 // latest BPM on the meter. The LED is lit for players in the latest season.
-function Tile({ player: p, to, order }) {
+function Tile({ player: p, to, order, onShown }) {
   return (
-    <Link to={to} className="idx-tile" style={{ display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
+    <Link to={to} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
       <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
         <TeamChip team={p.team} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
@@ -139,7 +151,7 @@ function Tile({ player: p, to, order }) {
           <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}` }} />
         </span>
       </span>
-      <Face player={p} square order={order} />
+      <Face player={p} square order={order} onShown={onShown} />
       <span style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 10px 12px', borderTop: `1px solid ${RULE}` }}>
         <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>
         <FitName text={lastName(p.name)} />
@@ -156,7 +168,7 @@ function Tile({ player: p, to, order }) {
 // A line in the parts list.
 function Row({ player: p, to }) {
   return (
-    <Link to={to} className="idx-row" style={{ display: 'grid', gridTemplateColumns: '22px minmax(0,1fr) 48px 30px 44px', gap: 10, alignItems: 'center', height: 32, padding: '0 4px', borderBottom: `1px solid ${RULE}`, color: INK }}>
+    <Link to={to} className="idx-row idx-later-row" style={{ display: 'grid', gridTemplateColumns: '22px minmax(0,1fr) 48px 30px 44px', gap: 10, alignItems: 'center', height: 32, padding: '0 4px', borderBottom: `1px solid ${RULE}`, color: INK }}>
       <Face player={p} size={22} />
       <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
       <TeamChip team={p.team} />
@@ -185,6 +197,22 @@ export default function PlayerIndex() {
   const [query, setQuery] = useState('')
   const [team, setTeam] = useState(null)
   useEffect(() => { fetchPlayers().then(list => setPlayers(list || [])) }, [])
+  // The first screen of tiles renders as soon as the list arrives; the rest of the tiles
+  // and the list of everyone else wait for its faces to show (2.5s at the most), since
+  // the first faces otherwise wait on rendering 900 more players (about a second on a
+  // phone), transition or not. A search or a team renders them at once.
+  const [full, setFull] = useState(false)
+  const shown = useRef(0)
+  const showAll = () => startTransition(() => setFull(true))
+  const onShown = () => {
+    shown.current += 1
+    if (shown.current === EAGER) showAll()
+  }
+  useEffect(() => {
+    if (!players) return
+    const t = setTimeout(showAll, 2500)
+    return () => clearTimeout(t)
+  }, [players])
 
   // A team code typed into the search works like its logo.
   const q = fold(query.trim())
@@ -192,6 +220,7 @@ export default function PlayerIndex() {
   const matches = (players || []).filter(p => (!team || p.team === team) && (!q || fold(p.name).includes(q) || (typedTeam && p.team === typedTeam)))
   const portraits = matches.filter(p => ILLUSTRATED.has(p.headshot))
   const rest = matches.filter(p => !ILLUSTRATED.has(p.headshot))
+  const all = full || !!q || !!team
 
   return (
     <main style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 32px 64px' }}>
@@ -214,12 +243,12 @@ export default function PlayerIndex() {
         <Section title="Illustrated" count={portraits.length}>
           {/* Tiles share their 1px edges (each overlaps the next by 1px), so a short last row leaves empty cells blank. */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', paddingRight: 1, paddingBottom: 1 }}>
-            {portraits.map((p, i) => <Tile key={p.slug} player={p} to={playerPath(p.slug)} order={i} />)}
+            {(all ? portraits : portraits.slice(0, EAGER)).map((p, i) => <Tile key={p.slug} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} />)}
           </div>
         </Section>
       )}
 
-      {rest.length > 0 && (
+      {all && rest.length > 0 && (
         <Section title={portraits.length ? 'Everyone else' : 'Players'} count={rest.length}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', columnGap: 28 }}>
             {rest.map(p => <Row key={p.slug} player={p} to={playerPath(p.slug)} />)}

@@ -67,10 +67,14 @@ html { scroll-behavior: smooth; }
 .idx-tile { transition: background .15s; }
 .idx-tile:hover { background: #2f2c2a !important; }
 .idx-face .idx-wait { opacity: 0; }
-.idx-face .idx-in { opacity: 1; transition: opacity .35s ease; }
-.idx-tile .idx-face img { transition: opacity .35s ease, transform .35s cubic-bezier(.2,.8,.2,1); }
+.idx-face .idx-in { opacity: 1; transition: opacity .25s ease; }
+.idx-tile .idx-face img { transition: opacity .25s ease, transform .35s cubic-bezier(.2,.8,.2,1); }
 .idx-tile:hover .idx-face img { transform: scale(1.04); }
 .idx-row:hover { background: #2c2a28; }
+/* Tiles past the first screen and the list's rows are laid out and painted only when
+   scrolled near (their sizes are held meanwhile), so the first screen paints sooner. */
+.idx-later { content-visibility: auto; contain-intrinsic-size: auto 290px; }
+.idx-later-row { content-visibility: auto; contain-intrinsic-size: auto 33px; }
 .idx-input::placeholder { color: #5f5a55; }
 .lineup-tile { transition: border-color .15s; }
 .lineup-tile > * { filter: saturate(.45) brightness(.88); transition: filter .2s; }

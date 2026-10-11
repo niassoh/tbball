@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, change, litOf, rampAt, seasonsText, starsText, toneOf, trackPos, value } from './lonestar.js'
+import { GROUPS, STATS, cellsOf, change, litOf, seasonsText, segmentsOf, shiftsOf, starsText, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -28,25 +28,28 @@ describe('lonestar', () => {
     expect(litOf(null)).toBe(0)
   })
 
-  test('a track places a value across the league spread, clamped to its ends', () => {
-    expect(trackPos([10, 30], 15)).toBe(25)
-    expect(trackPos([10, 30], 2)).toBe(0)
-    expect(trackPos([10, 30], 45)).toBe(100)
-    expect(trackPos([5, 5], 5)).toBe(50)
-    expect(trackPos([10, 30], null)).toBe(null)
-    expect(trackPos(null, 12)).toBe(null)
+  test('a column lights a segment per 10 percentile points', () => {
+    expect(segmentsOf(0)).toBe(0)
+    expect(segmentsOf(46)).toBe(5)
+    expect(segmentsOf(100)).toBe(10)
+    expect(segmentsOf(null)).toBe(0)
   })
 
-  test('a track is grey at the middle and comes on toward its ends, blue high, orange low', () => {
-    expect(rampAt(50).share).toBe(0)
-    expect(rampAt(100)).toEqual({ tone: 'good', share: 100 })
-    expect(rampAt(0)).toEqual({ tone: 'bad', share: 100 })
-    expect(rampAt(75)).toEqual({ tone: 'good', share: 25 })
-    expect(rampAt(37.5)).toEqual({ tone: 'bad', share: 6 })
-    // Volume stats follow it too; better-low stats flip.
-    expect(rampAt(90, 0).tone).toBe('good')
-    expect(rampAt(90, -1).tone).toBe('bad')
-    expect(rampAt(10, -1).tone).toBe('good')
+  test('a column shows what he holds, gains and loses without his stars', () => {
+    // 40th with them, 70th without: four held, three gained.
+    expect(cellsOf(40, 70)).toEqual(['held', 'held', 'held', 'held', 'gained', 'gained', 'gained', 'empty', 'empty', 'empty'])
+    // 60th with them, 30th without: three held, three lost.
+    expect(cellsOf(60, 30)).toEqual(['held', 'held', 'held', 'lost', 'lost', 'lost', 'empty', 'empty', 'empty', 'empty'])
+  })
+
+  test('the biggest shifts are the stats whose percentile moves most, either way', () => {
+    const pctl = { on: { load: 80, passerRating: 51, rts: 43, pct3: 40, net: null }, off: { load: 98, passerRating: 96, rts: 18, pct3: 12, net: 70 } }
+    expect(shiftsOf(pctl).map(x => [x.stat.key, x.delta])).toEqual([['passerRating', 45], ['pct3', -28], ['rts', -25]])
+  })
+
+  test('the stats fall in four groups, in order', () => {
+    expect(GROUPS.map(g => g.name)).toEqual(['Role', 'Shot diet', 'Efficiency', 'Team'])
+    expect(GROUPS.flatMap(g => g.stats)).toEqual(STATS)
   })
 
   test('stars and seasons as words', () => {

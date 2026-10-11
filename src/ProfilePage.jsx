@@ -140,7 +140,7 @@ function ProfilePage({ slug, playoffs }) {
   return (
     <div style={{ minHeight: '100vh', background: '#262422' }}>
       <main style={{ maxWidth: 1440, margin: '0 auto', padding: '0 32px 64px' }}>
-        <TopBar profile={p} />
+        <TopBar profile={p} homePath={homePath} />
         <section style={{ padding: '4px 0 26px' }}>
           <Cards profile={p} loading={loading} onPickGroup={setTab} />
         </section>

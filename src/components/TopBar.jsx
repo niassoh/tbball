@@ -36,7 +36,7 @@ export default function TopBar({ profile: p }) {
   }, [])
   const slide = { transition: 'opacity .25s, transform .25s cubic-bezier(.2,.8,.2,1)', opacity: scrolled ? 1 : 0, transform: scrolled ? 'none' : 'translateY(8px)' }
   return (
-    <div ref={bar} style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 -32px', padding: '10px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: stuck ? '#262422' : 'transparent', borderBottom: `1px solid ${stuck ? '#3d3a37' : 'transparent'}`, boxShadow: stuck ? 'inset 0 2px 0 var(--mode-edge)' : 'none', transition: 'background-color .2s, border-color .2s' }}>
+    <div ref={bar} style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 -32px', padding: '10px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: stuck ? '#262422' : 'transparent', borderBottom: `1px solid ${stuck ? '#3d3a37' : 'transparent'}`, transition: 'background-color .2s, border-color .2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
         <span aria-hidden={!scrolled} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, pointerEvents: scrolled ? 'auto' : 'none', ...slide }}>
           <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', overflow: 'hidden', background: '#34312e', border: '1px solid #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: '#a8a29c' }}>

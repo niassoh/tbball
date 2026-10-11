@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, litOf, seasonsText, starsText, toneOf, trackPos, value } from '../lib/lonestar.js'
+import { STATS, change, litOf, rampAt, seasonsText, starsText, toneOf, trackPos, value } from '../lib/lonestar.js'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
@@ -55,16 +55,21 @@ function Meter({ n }) {
 // The two markers, small squares: hollow WITH the stars, filled WITHOUT them.
 const MARK = '#c9c3bc'
 const mark = (hollow, fill = MARK) => ({ width: 7, height: 7, boxSizing: 'border-box', flex: 'none', ...(hollow ? { border: `1px solid ${MARK}`, background: BG } : { background: fill }) })
-// The change's tone, muted into the warm greys (volume stays grey): about half strength
-// for the lit dots, a little more for the WITHOUT marker.
-const muted = (tone, share, grey) => (tone === 'neutral' ? grey : `color-mix(in srgb, ${TONES[tone]} ${share}%, ${grey})`)
+// A point's colour on the track (lib rampAt): grey at the middle, orange toward the low
+// end and blue toward the high end; `grey` is the middle's (the dots' or the marker's).
+const rampColor = (x, dir, grey) => {
+  const r = rampAt(x, dir)
+  return `color-mix(in srgb, ${TONES[r.tone]} ${r.share}%, ${grey})`
+}
+const ramp = dir => `linear-gradient(90deg, ${Array.from({ length: 21 }, (_, i) => `${rampColor(i * 5, dir, DIM)} ${i * 5}%`).join(', ')})`
 
 // A stat's track: a dot-matrix rule across the league's spread of values (2nd to 98th
-// percentile), the dots between his two values lit in the change's muted tone, and a
-// marker at each. The lit dots are the same rule clipped to the stretch, so they sit
-// exactly on the unlit ones.
+// percentile), the dots between his two values lit in the colour of where they sit, and
+// a marker at each, the WITHOUT one in the colour of its spot. The lit dots are the ramp
+// masked to the rule's dots and clipped to the stretch, so they sit exactly on the unlit
+// ones.
 const dots = color => `repeating-linear-gradient(90deg, ${color} 0 2px, transparent 2px 5px)`
-function Track({ a, b, tone }) {
+function Track({ a, b, dir }) {
   if (a === null || b === null) return <span style={{ gridArea: 'track' }} />
   const lo = Math.min(a, b)
   const hi = Math.max(a, b)
@@ -73,9 +78,9 @@ function Track({ a, b, tone }) {
   return (
     <span aria-hidden="true" style={{ gridArea: 'track', position: 'relative', height: 14, margin: '0 5px' }}>
       <span style={{ ...rule, background: dots(RULE) }} />
-      <span style={{ ...rule, background: dots(muted(tone, 55, DIM)), clipPath: `inset(0 ${100 - hi}% 0 ${lo}%)` }} />
+      <span style={{ ...rule, background: ramp(dir), WebkitMaskImage: dots('#000'), maskImage: dots('#000'), clipPath: `inset(0 ${100 - hi}% 0 ${lo}%)` }} />
       <span style={{ ...at(a), ...mark(true) }} />
-      <span style={{ ...at(b), ...mark(false, muted(tone, 75, MARK)) }} />
+      <span style={{ ...at(b), ...mark(false, rampColor(b, dir, MARK)) }} />
     </span>
   )
 }
@@ -92,7 +97,7 @@ function Row({ stat, s, scale }) {
     <div className="ls-row">
       <span style={{ gridArea: 'stat', ...label, color: '#c9c3bc' }}>{stat.label}</span>
       <span style={{ gridArea: 'with', textAlign: 'right', color: '#b8b2ab' }}>{value(stat, on)}</span>
-      <Track a={trackPos(scale, on)} b={trackPos(scale, off)} tone={tone} />
+      <Track a={trackPos(scale, on)} b={trackPos(scale, off)} dir={stat.dir} />
       <span style={{ gridArea: 'wo', color: INK, fontWeight: 600 }}>{value(stat, off)}</span>
       <span style={{ gridArea: 'change', textAlign: 'right', fontSize: 15, fontWeight: 600, color: TONES[tone] }}>{change(stat, d)}</span>
       <span style={{ gridArea: 'rank', display: 'flex', alignItems: 'center', gap: 10 }} title={r ? `His change ranks #${r.rank} of ${r.of} players' (#1 the biggest increase)` : 'Too few minutes to rank'}>
@@ -162,7 +167,7 @@ export default function Lonestar({ profile: p }) {
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 6, height: 6, background: TONES.bad }} />WORSE</span>
         <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 6, height: 6, background: TONES.neutral }} />VOLUME</span>
         <span>CHANGE · W/O − WITH</span>
-        <span>TRACK · THE LEAGUE&apos;S RANGE FOR THE STAT</span>
+        <span>TRACK · THE LEAGUE&apos;S RANGE: GREY MID, ORANGE LOW, BLUE HIGH (cTOV% FLIPPED)</span>
         <span>#RANK · AMONG EVERY PLAYER&apos;S CHANGE ({ls.minRank}+ MIN EACH WAY), #1 THE BIGGEST INCREASE</span>
       </div>
     </section>

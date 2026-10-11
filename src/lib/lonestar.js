@@ -36,6 +36,15 @@ export const trackPos = (scale, v) => {
   return hi > lo ? Math.max(0, Math.min(100, (100 * (v - lo)) / (hi - lo))) : 50
 }
 
+// The colour of a point on a track: grey at the middle, the full colour at either end,
+// coming on with the square of the distance from the middle (so it stays grey near the
+// middle and saturates toward the ends). The high end is blue and the low end orange,
+// volume stats too; a stat that's better low (cTOV%) flips.
+export const rampAt = (x, dir = 1) => {
+  const t = Math.min(1, Math.abs(x - 50) / 50)
+  return { tone: (x >= 50) === (dir !== -1) ? 'good' : 'bad', share: Math.round(100 * t * t) }
+}
+
 // How many of a 10-segment meter a rank lights: all for #1, none for the last.
 export const litOf = r => (r && r.of > 1 ? Math.round(10 * (1 - (r.rank - 1) / (r.of - 1))) : 0)
 

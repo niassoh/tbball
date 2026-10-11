@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, change, litOf, seasonsText, starsText, toneOf, trackPos, value } from './lonestar.js'
+import { STATS, change, litOf, rampAt, seasonsText, starsText, toneOf, trackPos, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -35,6 +35,18 @@ describe('lonestar', () => {
     expect(trackPos([5, 5], 5)).toBe(50)
     expect(trackPos([10, 30], null)).toBe(null)
     expect(trackPos(null, 12)).toBe(null)
+  })
+
+  test('a track is grey at the middle and comes on toward its ends, blue high, orange low', () => {
+    expect(rampAt(50).share).toBe(0)
+    expect(rampAt(100)).toEqual({ tone: 'good', share: 100 })
+    expect(rampAt(0)).toEqual({ tone: 'bad', share: 100 })
+    expect(rampAt(75)).toEqual({ tone: 'good', share: 25 })
+    expect(rampAt(37.5)).toEqual({ tone: 'bad', share: 6 })
+    // Volume stats follow it too; better-low stats flip.
+    expect(rampAt(90, 0).tone).toBe('good')
+    expect(rampAt(90, -1).tone).toBe('bad')
+    expect(rampAt(10, -1).tone).toBe('good')
   })
 
   test('stars and seasons as words', () => {

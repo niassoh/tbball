@@ -1,22 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchPlayers, headshotUrl } from './api.js'
 import { MONO } from './lib/format.js'
 import { TEAM_COLORS } from './lib/teams.js'
+import { asset } from './lib/static.js'
 import TeamInitials from './components/TeamInitials.jsx'
 import SeasonToggle from './components/SeasonToggle.jsx'
 import { useSeasonType } from './useSeasonType.js'
 
-// The player index, laid out like a piece of hardware: a spec sheet, a display to type a
-// name into, a keypad of the 30 teams, then the illustrated portraits as a catalogue and
-// everyone else as a parts list. The mode accent (green; gold in the playoffs) lights
-// whatever is on.
+// The player index: a search line and the 30 teams' logos to filter by, then the
+// illustrated portraits as a catalogue and everyone else as a parts list. The mode accent
+// (green; gold in the playoffs) lights what's on.
 const INK = '#ece8e3'
 const DIM = '#8a847e'
 const FAINT = '#5f5a55'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
-const PANEL = '#2c2a28'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 // Portraits are transparent cutouts; behind them sits the charcoal they were drawn on.
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
@@ -71,13 +70,15 @@ function Meter({ value }) {
   )
 }
 
-// A key on the keypad: a square cap with a colour code along its foot, lit when on.
-function Key({ on, onClick, children, code }) {
+// A team's logo as its filter: the white logo at rest, the colour one on hover or when
+// picked (pick it again to clear); while one is picked the rest fade back.
+function TeamLogo({ team, on, faded, onClick }) {
+  const img = { position: 'absolute', inset: 0, margin: 'auto', width: 26, height: 26, objectFit: 'contain' }
   return (
-    <button type="button" className="idx-key" aria-pressed={on} onClick={onClick}
-      style={{ position: 'relative', height: 32, padding: '0 8px', background: on ? INK : 'transparent', color: on ? '#1f1d1c' : '#b8b2ab', border: `1px solid ${on ? INK : EDGE}`, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.06em', cursor: 'pointer' }}>
-      {children}
-      {code && <span aria-hidden="true" style={{ position: 'absolute', left: 3, right: 3, bottom: 3, height: 2, background: code }} />}
+    <button type="button" className="idx-logo" aria-pressed={on} aria-label={team} title={team} onClick={onClick}
+      style={{ position: 'relative', height: 44, padding: 0, background: on ? '#2f2c2a' : 'transparent', border: `1px solid ${on ? INK : 'transparent'}`, cursor: 'pointer', opacity: faded ? 0.3 : 1 }}>
+      <img className="idx-logo-mono" src={asset(`logos/${team}.png`)} alt="" style={img} />
+      <img className="idx-logo-color" src={asset(`logos/color/${team}.png`)} alt="" style={img} />
     </button>
   )
 }
@@ -151,71 +152,29 @@ export default function PlayerIndex() {
   const [players, setPlayers] = useState(null)
   const [query, setQuery] = useState('')
   const [team, setTeam] = useState(null)
-  const [activeOnly, setActiveOnly] = useState(false)
   useEffect(() => { fetchPlayers().then(list => setPlayers(list || [])) }, [])
 
-  const spec = useMemo(() => {
-    const all = players || []
-    const seasons = all.flatMap(p => p.seasons).sort()
-    return [
-      ['Players', all.length.toLocaleString()],
-      ['Active', all.filter(p => p.active).length.toLocaleString()],
-      ['Portraits', all.filter(p => ILLUSTRATED.has(p.headshot)).length.toLocaleString()],
-      ['Seasons', seasons.length ? `${seasons[0].slice(0, 4)}–${seasons[seasons.length - 1].slice(-2)}` : '—']
-    ]
-  }, [players])
-
-  // A team code typed into the display works like its key.
+  // A team code typed into the search works like its logo.
   const q = fold(query.trim())
   const typedTeam = TEAMS.find(t => fold(t) === q)
-  const matches = (players || []).filter(p => (!team || p.team === team) && (!activeOnly || p.active) && (!q || fold(p.name).includes(q) || (typedTeam && p.team === typedTeam)))
+  const matches = (players || []).filter(p => (!team || p.team === team) && (!q || fold(p.name).includes(q) || (typedTeam && p.team === typedTeam)))
   const portraits = matches.filter(p => ILLUSTRATED.has(p.headshot))
   const rest = matches.filter(p => !ILLUSTRATED.has(p.headshot))
 
   return (
     <main style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 32px 64px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <span style={label}>Thinking Basketball · Player Index</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderBottom: `1px solid ${EDGE}` }}>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ flex: 'none', color: DIM }}>
+          <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+        <input className="idx-input" autoFocus aria-label="Search players" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search" spellCheck={false}
+          style={{ flex: 1, minWidth: 0, padding: '18px 0', background: 'transparent', border: 'none', color: INK, fontFamily: MONO, fontSize: 'clamp(16px, 2vw, 22px)', letterSpacing: '.02em', outline: 'none', caretColor: 'var(--accent)' }} />
         <SeasonToggle />
       </div>
-
-      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', padding: '28px 0 14px', borderBottom: '2px solid var(--trim)' }}>
-        <h1 style={{ margin: 0, fontSize: 'clamp(48px, 9vw, 112px)', fontWeight: 900, letterSpacing: '-.04em', lineHeight: 0.82, textTransform: 'uppercase' }}>Players</h1>
-        <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'auto auto', columnGap: 18, rowGap: 3, fontFamily: MONO, fontSize: 11 }}>
-          {spec.map(([k, v]) => [
-            <dt key={`${k}-k`} style={{ ...label, fontSize: 10, alignSelf: 'center' }}>{k}</dt>,
-            <dd key={`${k}-v`} style={{ margin: 0, textAlign: 'right', color: INK, fontWeight: 600 }}>{players ? v : '…'}</dd>
-          ])}
-        </dl>
-      </header>
-
-      {/* The control panel: the display and its readout, then the keypad. */}
-      <div style={{ marginTop: 18, border: `1px solid ${EDGE}`, background: PANEL }}>
-        <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: `1px solid ${EDGE}` }}>
-          <label style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 14px', minWidth: 0 }}>
-            <span style={label}>Search</span>
-            <input className="idx-input" autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="NAME OR TEAM CODE" spellCheck={false}
-              style={{ width: '100%', padding: '10px 12px', background: '#1b1a19', border: `1px solid ${RULE}`, color: INK, fontFamily: MONO, fontSize: 'clamp(14px, 2.4vw, 18px)', letterSpacing: '.04em', outline: 'none', caretColor: 'var(--accent)' }} />
-          </label>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', gap: 4, padding: '10px 18px', borderLeft: `1px solid ${EDGE}`, minWidth: 120 }}>
-            <span style={label}>Showing</span>
-            <span style={{ fontFamily: MONO, fontSize: 30, fontWeight: 600, lineHeight: 1, color: INK }}>{players ? matches.length.toLocaleString() : '—'}</span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '12px 14px', flexWrap: 'wrap' }}>
-          <span style={{ ...label, paddingTop: 10, width: 44 }}>Team</span>
-          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: 4, minWidth: 260 }}>
-            <Key on={!team} onClick={() => setTeam(null)}>ALL</Key>
-            {TEAMS.map(t => <Key key={t} on={team === t} code={swatch(t)} onClick={() => setTeam(team === t ? null : t)}>{t}</Key>)}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={label}>Filter</span>
-            <button type="button" className="idx-key" aria-pressed={activeOnly} onClick={() => setActiveOnly(a => !a)}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, height: 32, padding: '0 10px', background: 'transparent', color: activeOnly ? INK : '#b8b2ab', border: `1px solid ${activeOnly ? INK : EDGE}`, fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', cursor: 'pointer' }}>
-              <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: activeOnly ? 'var(--accent)' : 'transparent', border: `1px solid ${activeOnly ? 'var(--accent)' : FAINT}`, boxShadow: activeOnly ? '0 0 6px var(--accent)' : 'none' }} />
-              ACTIVE ONLY
-            </button>
-          </div>
+      <div className="idx-logos-wrap" style={{ padding: '12px 0 4px' }}>
+        <div role="group" aria-label="Filter by team" className="idx-logos">
+          {TEAMS.map(t => <TeamLogo key={t} team={t} on={team === t} faded={!!team && team !== t} onClick={() => setTeam(team === t ? null : t)} />)}
         </div>
       </div>
 

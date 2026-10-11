@@ -48,18 +48,26 @@ html { scroll-behavior: smooth; }
 .depth-link:hover { color: #ece8e3 !important; background: #2f2c2a !important; border-bottom-color: color-mix(in srgb, var(--team) 45%, #ece8e3) !important; }
 /* Lineup headshots sit back, part-desaturated, so the numbers lead; a hovered
    teammate's comes up to full colour and frames in white. */
-/* The player index (PlayerIndex.jsx): keys light their edge on hover, catalogue tiles
-   lift a shade and their portrait leans in, parts-list lines highlight. */
-.idx-key { transition: border-color .12s, background .12s, color .12s; }
-.idx-key:hover { border-color: #ece8e3 !important; color: #ece8e3 !important; }
-.idx-key[aria-pressed="true"]:hover { color: #1f1d1c !important; }
+/* The player index (PlayerIndex.jsx): team logos sit muted until hovered or picked,
+   catalogue tiles lift a shade and their portrait leans in, parts-list lines highlight. */
+.idx-logos-wrap { container-type: inline-size; }
+.idx-logos { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
+@container (min-width: 620px) { .idx-logos { grid-template-columns: repeat(15, 1fr); } }
+@container (min-width: 1100px) { .idx-logos { grid-template-columns: repeat(30, 1fr); } }
+.idx-logo { transition: opacity .15s, border-color .15s; }
+.idx-logo img { transition: opacity .15s; }
+.idx-logo .idx-logo-mono { opacity: .5; }
+.idx-logo .idx-logo-color { opacity: 0; }
+.idx-logo:hover .idx-logo-mono, .idx-logo[aria-pressed="true"] .idx-logo-mono { opacity: 0; }
+.idx-logo:hover .idx-logo-color, .idx-logo[aria-pressed="true"] .idx-logo-color { opacity: 1; }
+.idx-logo:hover { opacity: 1 !important; }
+.idx-logo:focus-visible { outline: 1px solid #ece8e3; outline-offset: -1px; }
 .idx-tile { transition: background .15s; }
 .idx-tile:hover { background: #2f2c2a !important; }
 .idx-tile .idx-face img { transition: transform .35s cubic-bezier(.2,.8,.2,1); }
 .idx-tile:hover .idx-face img { transform: scale(1.04); }
 .idx-row:hover { background: #2c2a28; }
 .idx-input::placeholder { color: #5f5a55; }
-.idx-input:focus { border-color: #6b655f !important; }
 .lineup-tile { transition: border-color .15s; }
 .lineup-tile > * { filter: saturate(.45) brightness(.88); transition: filter .2s; }
 a:hover > .lineup-tile { border-color: #ece8e3 !important; }

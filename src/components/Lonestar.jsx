@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
 import { STATS, change, litOf, seasonsText, starsText, toneOf, value } from '../lib/lonestar.js'
 import SectionHeader from './SectionHeader.jsx'
+import TeamInitials from './TeamInitials.jsx'
 
 // The Lonestar tab: how he plays when his team's stars sit (thinking-bball
 // lib/lonestar.js). Keys pick the stars: his top-Load teammate, or his top two. Each cell
@@ -14,13 +16,28 @@ const DIM = '#8a847e'
 const FAINT = '#5f5a55'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
+const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 
-function Key({ on, onClick, children }) {
+// A star on a key: his face cropped close, in greyscale (he's the one sitting), in a
+// slot the key's full height (index.css lifts it on hover and when picked).
+function Slot({ who, team }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <span className="ls-face" style={{ width: 32, height: 32, flex: 'none', overflow: 'hidden', background: PORTRAIT_BG, borderRight: `1px solid ${RULE}` }}>
+      {who.headshot && !failed
+        ? <img src={headshotUrl(who.slug, 100, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%', transform: 'scale(1.4)', transformOrigin: '50% 26%', display: 'block' }} />
+        : <TeamInitials name={who.name || '?'} team={team} fontSize={9} />}
+    </span>
+  )
+}
+
+function Key({ on, onClick, stars, team, children }) {
   return (
     <button type="button" aria-pressed={on} onClick={onClick} className="ls-key"
-      style={{ height: 34, padding: '0 12px', background: on ? INK : 'transparent', color: on ? '#1f1d1c' : '#b8b2ab', border: `1px solid ${on ? INK : EDGE}`, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      style={{ display: 'flex', alignItems: 'center', gap: 10, height: 34, padding: '0 12px 0 0', background: on ? INK : 'transparent', color: on ? '#1f1d1c' : '#b8b2ab', border: `1px solid ${on ? INK : EDGE}`, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      <span style={{ display: 'flex' }}>{stars.map(t => <Slot key={t.id} who={t} team={team} />)}</span>
       {children}
     </button>
   )
@@ -68,7 +85,7 @@ export default function Lonestar({ profile: p }) {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {ls.scenarios.map((x, i) => (
-          <Key key={`${x.team}-${x.stars.map(t => t.id).join()}`} on={x === s} onClick={() => setPick(i)}>
+          <Key key={`${x.team}-${x.stars.map(t => t.id).join()}`} on={x === s} onClick={() => setPick(i)} stars={x.stars} team={x.team}>
             W/O {starsText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}
           </Key>
         ))}

@@ -64,12 +64,26 @@ const nameSize = lines => Math.min(30, Math.floor(240 / (0.62 * Math.max(...line
 // "2017 DRAFT · R1 #30 · UTA", or UNDRAFTED.
 const draftLine = d => (!d ? null : d.undrafted ? 'UNDRAFTED' : `${d.year} DRAFT · R${d.round} #${d.overall} · ${d.team}`)
 
-export default function BioCard({ profile: p, loading = false }) {
+// The card for the season picked on the season rail (an index into p.seasons): the
+// team he played most for that season, his age then, its lineups and its rotation
+// (p.seasons[i].card). The depth chart's own season (and a profile without seasons)
+// shows today's team, lineups and depth chart.
+const seasonView = (p, i) => {
+  const s = p.seasons[i]
+  if (!s || (!s.card && p.depth && s.season === p.depth.season)) {
+    return { team: p.team, teamName: p.teamName, age: p.bio.age, lineups: p.lineups, chart: p.depth, rotation: false }
+  }
+  if (!s.card) return { team: s.teams[s.teams.length - 1], teamName: null, age: s.age, lineups: null, chart: null, rotation: true }
+  return { team: s.card.team, teamName: s.card.teamName, age: s.age, lineups: s.card.lineups, chart: s.card.rotation, rotation: true }
+}
+
+export default function BioCard({ profile: p, season, loading = false }) {
   const { playerPath } = useSeasonType()
+  const v = seasonView(p, season)
   // Spec strip: team logo, then position / height / age split by hard rules (labels as tooltips).
-  const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', p.bio.age !== null ? p.bio.age.toFixed(1) : null]].filter(([, v]) => v)
+  const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', v.age !== null ? v.age.toFixed(1) : null]].filter(([, x]) => x)
   const lines = nameLines(p.name)
-  const color = TEAM_COLORS[p.team]
+  const color = TEAM_COLORS[v.team]
   // Black (BKN, SAS) would vanish on the dark banner, so those teams' bar is silver.
   const accent = color === '#000000' ? '#c4ced4' : color
   // Hover line: the draft pick, e.g. "2017 DRAFT · R1 #30 · UTA".
@@ -119,20 +133,20 @@ export default function BioCard({ profile: p, loading = false }) {
     <div ref={cardRef} style={card}>
       <div className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid var(--trim)', overflow: 'hidden' }}>
         <img className="hero-bokeh" src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
-        <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={p.team} />
+        <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={v.team} />
         {/* A soft overhead light along the top-right hides the seam where the headshot box begins. */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 42% 60% at 84% -8%, rgba(236,232,227,.16), rgba(236,232,227,.06) 45%, transparent 75%)' }} />
-        <div key={`specs-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
+        <div key={`specs-${p.slug}-${v.team}`} className="swap-in" style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
           {color && (
             // The real logo, muted at rest (index.css); full colour on hover.
             <div style={{ paddingRight: 10, borderRight: '1px solid #6b655f', margin: '-5px 10px -5px 0' }}>
-              <button type="button" className="team-switch" aria-label={`${p.teamName || p.team}: switch team`} {...switcher} style={{ display: 'block', padding: 0, margin: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
-                <img className="hero-logo" src={asset(`logos/color/${p.team}.png`)} alt={p.team} style={{ display: 'block', width: 44, height: 44, objectFit: 'contain' }} />
+              <button type="button" className="team-switch" aria-label={`${v.teamName || v.team}: switch team`} {...switcher} style={{ display: 'block', padding: 0, margin: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
+                <img className="hero-logo" src={asset(`logos/color/${v.team}.png`)} alt={v.team} style={{ display: 'block', width: 44, height: 44, objectFit: 'contain' }} />
               </button>
             </div>
           )}
           {specs.map(([label, value], i) => (
-            <span key={label} title={label} style={{ display: 'flex', alignItems: 'center', padding: '0 10px', paddingLeft: i === 0 && !TEAM_COLORS[p.team] ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #6b655f' : 'none', fontSize: 13, fontWeight: 600, color: '#ece8e3' }}>
+            <span key={label} title={label} style={{ display: 'flex', alignItems: 'center', padding: '0 10px', paddingLeft: i === 0 && !color ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #6b655f' : 'none', fontSize: 13, fontWeight: 600, color: '#ece8e3' }}>
               {value}
               {label === 'AGE' && <span style={{ marginLeft: 3, fontSize: 9, fontWeight: 400, letterSpacing: '.06em', color: '#8a847e' }}>YRS</span>}
             </span>
@@ -148,31 +162,35 @@ export default function BioCard({ profile: p, loading = false }) {
       </div>
 
       {/* Remounted per season type: its chosen minimums belong to that type's pools. */}
-      <LineupPanel key={p.seasonType} profile={p} accent={accent} />
+      <LineupPanel key={p.seasonType} profile={{ ...p, lineups: v.lineups }} accent={accent} />
 
-      {p.depth && (
+      {v.chart && (
         <div ref={depthRef} style={{ marginTop: depthGap === null ? 'auto' : depthGap, padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
           <div ref={ruleRef} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #544f4b', paddingBottom: 5 }}>
             <button type="button" className="team-switch" {...switcher} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0, background: 'none', border: 'none', color: '#ece8e3', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>
-              {(p.teamName || p.team).toUpperCase()}
+              {(v.teamName || v.team).toUpperCase()}
               <span aria-hidden="true" style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e' }}>▾</span>
             </button>
             <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#8a847e', display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span>DEPTH</span>
-              {Object.entries(INJURY).map(([k, c]) => (
-                <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 6, height: 6, background: c }} />{k}</span>
-              ))}
+              {v.rotation
+                ? <span title="First row: the team's most-used five. Then everyone with an hour on the floor, by minutes">ROTATION · BY MIN</span>
+                : <>
+                    <span>DEPTH</span>
+                    {Object.entries(INJURY).map(([k, c]) => (
+                      <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 6, height: 6, background: c }} />{k}</span>
+                    ))}
+                  </>}
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,minmax(0,1fr))', gap: '0 3px' }}>
-            {p.depth.rows.map(row => (
+            {v.chart.rows.map(row => (
               <div key={row.pos} style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', minWidth: 0 }}>
                 <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a8a29c', textAlign: 'center', paddingBottom: 3 }}>{row.pos}</span>
                 {row.players.map((pl, i) => {
                   const me = pl.slug === p.slug
                   const Name = pl.hasProfile && !me ? Link : 'span'
                   return (
-                    <Name key={pl.espnId} {...(Name === Link && { to: playerPath(pl.slug), className: 'depth-link' })} title={pl.name} style={{ fontSize: 10.5, lineHeight: 1.3, fontWeight: me ? 700 : 500, color: me ? '#ece8e3' : pl.status ? '#8a847e' : i > 2 ? '#8a847e' : '#d6d1cb', textAlign: 'center', padding: '3px 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: me ? '2px solid var(--accent)' : '2px solid transparent', background: me ? 'var(--accent-soft)' : 'transparent' }}>
+                    <Name key={pl.espnId || `${pl.name}-${i}`} {...(Name === Link && { to: playerPath(pl.slug), state: v.rotation ? { season: p.seasons[season].season } : undefined, className: 'depth-link' })} title={v.rotation ? `${pl.name} · ${pl.minutes} MIN` : pl.name} style={{ fontSize: 10.5, lineHeight: 1.3, fontWeight: me ? 700 : 500, color: me ? '#ece8e3' : pl.status ? '#8a847e' : i > 2 ? '#8a847e' : '#d6d1cb', textAlign: 'center', padding: '3px 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: me ? '2px solid var(--accent)' : '2px solid transparent', background: me ? 'var(--accent-soft)' : 'transparent' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         {lastName(pl.name)}
                         {pl.status && <span title={pl.status} style={{ width: 5, height: 5, background: INJURY[pl.status], flex: 'none' }} />}

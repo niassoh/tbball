@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useLocation, Link } from 'react-router-dom'
 import { fetchProfile } from './api.js'
 import { MONO } from './lib/format.js'
 import BioCard from './components/BioCard.jsx'
 import PercentileSnapshot from './components/PercentileSnapshot.jsx'
 import RecentShift from './components/RecentShift.jsx'
+import SeasonRail from './components/SeasonRail.jsx'
 import TabNav from './components/TabNav.jsx'
 import StatSection from './components/StatSection.jsx'
 import YearToYear from './components/YearToYear.jsx'
@@ -23,6 +24,61 @@ export default function ProfilePageRoute() {
 }
 
 const MIN_SWAP_MS = 350
+// Play steps through the career one season at a time; each step leaves time for the
+// percentile bars' slide to finish before the next.
+const STEP_MS = 900
+
+// The bio and percentile cards follow one season, picked on the rail over them.
+// A different player (the page isn't remounted) or season type starts at his latest
+// season, last season until the next one has games, so the bars slide from the old
+// player's percentiles to the new one's; arriving from a teammate link on a season's
+// card, at that season when he played it.
+function Cards({ profile: p, loading, onPickGroup }) {
+  const L = p.seasons.length - 1
+  const who = `${p.slug}|${p.seasonType}`
+  const from = useLocation().state
+  const start = () => {
+    const i = from && from.season ? p.seasons.findIndex(s => s.season === from.season) : -1
+    return i >= 0 ? i : L
+  }
+  const [pick, setPick] = useState(() => ({ who, i: start() }))
+  const [playing, setPlaying] = useState(false)
+  if (pick.who !== who) {
+    setPick({ who, i: start() })
+    setPlaying(false)
+  }
+  const k = Math.min(pick.i, L)
+
+  useEffect(() => {
+    if (!playing) return
+    const t = setTimeout(() => {
+      setPick(x => ({ ...x, i: x.i + 1 }))
+      if (k + 1 >= L) setPlaying(false)
+    }, STEP_MS)
+    return () => clearTimeout(t)
+  }, [playing, k, L])
+
+  const choose = i => {
+    setPick({ who, i })
+    setPlaying(false)
+  }
+  const togglePlay = () => {
+    if (playing) return setPlaying(false)
+    if (k >= L) setPick({ who, i: 0 })
+    setPlaying(true)
+  }
+
+  return (
+    <div className="profile-cards-wrap">
+      <div className={L > 0 ? 'profile-cards with-rail' : 'profile-cards'}>
+        {L > 0 && <div className="season-rail-cell"><SeasonRail seasons={p.seasons} index={k} onPick={choose} playing={playing} onTogglePlay={togglePlay} /></div>}
+        <BioCard profile={p} season={k} loading={loading} />
+        <PercentileSnapshot profile={p} season={k} onPickGroup={onPickGroup} />
+        <RecentShift profile={p} />
+      </div>
+    </div>
+  )
+}
 
 function ProfilePage({ slug, playoffs }) {
   const { homePath, setPlayoffs } = useSeasonType()
@@ -84,13 +140,9 @@ function ProfilePage({ slug, playoffs }) {
   return (
     <div style={{ minHeight: '100vh', background: '#262422' }}>
       <main style={{ maxWidth: 1440, margin: '0 auto', padding: '0 32px 64px' }}>
-        <TopBar profile={p} homePath={homePath} />
+        <TopBar profile={p} />
         <section style={{ padding: '4px 0 26px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,270px),1fr))', gap: 12, alignItems: 'stretch' }}>
-            <BioCard profile={p} loading={loading} />
-            <PercentileSnapshot profile={p} onPickGroup={setTab} />
-            <RecentShift profile={p} />
-          </div>
+          <Cards profile={p} loading={loading} onPickGroup={setTab} />
         </section>
 
         {p.seasons.length ? (

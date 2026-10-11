@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { MONO, col, fmt } from '../lib/format.js'
 import WindowTag from './WindowTag.jsx'
 
@@ -11,47 +10,13 @@ const GROUPS = [
 ]
 const rowGrid = { display: 'grid', gridTemplateColumns: '100px minmax(0,1fr) 38px', gap: 8 }
 // Bars and dots slide to the new season's percentile (rows are keyed by stat, so
-// they persist across seasons); skipped when the viewer asks for reduced motion.
+// they persist across seasons and players); skipped when the viewer asks for reduced motion.
 const EASE = '.45s cubic-bezier(.2,.8,.2,1)'
 const slide = props => (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'none' : props.map(x => `${x} ${EASE}`).join(', '))
-// Play steps through the career one season at a time; each step leaves time for
-// the slide to finish before the next.
-const STEP_MS = 900
 
-export default function PercentileSnapshot({ profile: p, onPickGroup }) {
+// The season (an index into p.seasons) is picked on the season rail over the cards.
+export default function PercentileSnapshot({ profile: p, season: kp, onPickGroup }) {
   const L = p.seasons.length - 1
-  const [season, setSeason] = useState(L)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [playing, setPlaying] = useState(false)
-  // A different player (the page isn't remounted): jump to their latest season, so the
-  // bars slide from the old player's percentiles to the new one's.
-  // (Also on switching between the regular season and the playoffs.)
-  const who = `${p.slug}|${p.seasonType}`
-  const [shown, setShown] = useState(who)
-  if (shown !== who) {
-    setShown(who)
-    setSeason(L)
-    setPlaying(false)
-    setMenuOpen(false)
-  }
-  const kp = Math.min(season, L)
-
-  useEffect(() => {
-    if (!playing) return
-    const t = setTimeout(() => {
-      setSeason(season + 1)
-      if (season + 1 >= L) setPlaying(false)
-    }, STEP_MS)
-    return () => clearTimeout(t)
-  }, [playing, season, L])
-
-  const togglePlay = () => {
-    if (playing) return setPlaying(false)
-    if (season >= L) setSeason(0)
-    setMenuOpen(false)
-    setPlaying(true)
-  }
-
   const title = p.seasonType === 'playoffs' ? 'Playoff Percentiles' : 'Percentiles'
   // No playoff runs on file: the card keeps its frame with the reason in it.
   if (L < 0) {
@@ -67,27 +32,9 @@ export default function PercentileSnapshot({ profile: p, onPickGroup }) {
 
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-      <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
-        <span style={{ position: 'relative', display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase' }}>
-          <button onClick={() => setMenuOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', borderBottom: '1px dotted #8fb0e6', padding: '0 0 1px', color: '#ece8e3', fontFamily: MONO, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {p.seasons[kp].label}<span style={{ fontSize: 8, color: '#8fb0e6' }}>▼</span>
-          </button>
-          <span style={{ whiteSpace: 'nowrap' }}>{title}</span>
-          {menuOpen && (
-            <div style={{ position: 'absolute', left: -4, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', minWidth: 96, maxHeight: 320, overflowY: 'auto' }}>
-              {p.seasons.map((s, i) => i).reverse().map(i => (
-                <button key={i} onClick={() => { setSeason(i); setMenuOpen(false); setPlaying(false) }} style={{ textAlign: 'left', background: i === kp ? '#3d3a37' : 'transparent', border: 'none', borderBottom: '1px solid #3d3a37', color: i === kp ? '#ece8e3' : '#b8b2ab', fontFamily: MONO, fontSize: 12, fontWeight: i === kp ? 600 : 400, padding: '7px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  {p.seasons[i].label}
-                </button>
-              ))}
-            </div>
-          )}
-        </span>
-        {L > 0 && (
-          <button onClick={togglePlay} aria-label={playing ? 'Pause career playback' : 'Play career season by season'} style={{ background: 'transparent', border: '1px solid #544f4b', color: playing ? '#ece8e3' : '#8a847e', fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', padding: '2px 7px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            {playing ? '❚❚ PAUSE' : '\u25B6\uFE0E PLAY'}
-          </button>
-        )}
+      <div style={{ padding: '12px 0 8px', display: 'flex', alignItems: 'baseline', gap: 6, borderBottom: '1px solid #544f4b', margin: '0 14px', fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase' }}>
+        <span style={{ fontFamily: MONO, fontWeight: 600, whiteSpace: 'nowrap' }}>{p.seasons[kp].label}</span>
+        <span style={{ whiteSpace: 'nowrap' }}>{title}</span>
       </div>
       <div style={{ padding: '8px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {GROUPS.map(([name, tab, labels]) => {

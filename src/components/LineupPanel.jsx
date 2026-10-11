@@ -1,11 +1,12 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { headshotUrl, loadLineupLeague } from '../api.js'
 import { MONO, ord, signed } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
 import { initials } from '../lib/teams.js'
 import { dotRadius, dotTint, rankColor, rankLabel, rankPct, swarm } from '../lib/swarm.js'
 import { useSeasonType } from '../useSeasonType.js'
+import { arrange } from '../lib/units.js'
 
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -27,18 +28,19 @@ const verdict = v => (v === null || v === undefined ? FAINT : v >= 0 ? BLUE : OR
 const neutral = v => (v === null || v === undefined ? FAINT : v >= 0 ? INK : '#a8a29c')
 const mins = m => m.toLocaleString()
 
-function Mate({ mate }) {
+// Links to teammates carry the season (his page opens on it, when he played it).
+function Mate({ mate, season }) {
   const { playerPath } = useSeasonType()
   const name = mate.name ? lastName(mate.name) : '?'
   return mate.slug
-    ? <Link to={playerPath(mate.slug)} className="depth-link" style={{ color: INK, borderBottom: '1px solid transparent' }}>{name}</Link>
+    ? <Link to={playerPath(mate.slug)} state={{ season }} className="depth-link" style={{ color: INK, borderBottom: '1px solid transparent' }}>{name}</Link>
     : <span style={{ color: DIM }}>{name}</span>
 }
 
 // A round headshot with the last name under it, or in 4- and 5-man units' small tiles the
 // initials (the full name is on hover). A ring in the team colour frames each; his own
 // is stronger. Teammates' tiles link to their pages.
-function Tile({ player, team, accent, self, small }) {
+function Tile({ player, team, accent, self, small, state }) {
   const { playerPath } = useSeasonType()
   const [failed, setFailed] = useState(false)
   const size = small ? SMALL : TILE
@@ -53,9 +55,9 @@ function Tile({ player, team, accent, self, small }) {
   )
   return (
     <span title={player.name || ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: small ? SMALL : COL, minWidth: 0, flex: 'none' }}>
-      {player.slug && !self ? <Link to={playerPath(player.slug)} style={{ display: 'block' }}>{box}</Link> : box}
+      {player.slug && !self ? <Link to={playerPath(player.slug)} state={state} style={{ display: 'block' }}>{box}</Link> : box}
       <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '.02em', textTransform: 'uppercase', width: '100%', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: small ? 'clip' : 'ellipsis', fontWeight: self ? 700 : 400, color: self ? INK : DIM }}>
-        {player.slug && !self ? <Link to={playerPath(player.slug)} className="depth-link" style={{ color: 'inherit', borderBottom: '1px solid transparent' }}>{name}</Link> : name}
+        {player.slug && !self ? <Link to={playerPath(player.slug)} state={state} className="depth-link" style={{ color: 'inherit', borderBottom: '1px solid transparent' }}>{name}</Link> : name}
       </span>
     </span>
   )
@@ -145,7 +147,7 @@ const SwarmDots = memo(function SwarmDots({ dots, r, dx }) {
 // at a dot names that unit in the readout under the swarm (otherwise it shows this
 // one). It stays open while the pointer is over it. The league pool is fetched on the
 // first hover.
-function RankTip({ unit, size, floor, isDefault, self, team, onHover }) {
+function RankTip({ unit, size, floor, isDefault, self, team, season, onHover }) {
   const [league, setLeague] = useState(null)
   const [hot, setHot] = useState(null)
   const frame = useRef(0)
@@ -159,9 +161,9 @@ function RankTip({ unit, size, floor, isDefault, self, team, onHover }) {
   const { playoffs } = useSeasonType()
   useEffect(() => {
     let live = true
-    loadLineupLeague(playoffs).then(d => live && setLeague(d)).catch(() => {})
+    loadLineupLeague(playoffs, season).then(d => live && setLeague(d)).catch(() => {})
     return () => { live = false }
-  }, [playoffs])
+  }, [playoffs, season])
   // Every league unit of this size over the chosen minimum as [minutes, net, player ids,
   // team], and their nets best first.
   const units = useMemo(() => league && league.pool ? league.pool[size].filter(([m]) => m >= floor) : null, [league, size, floor])
@@ -265,16 +267,21 @@ function RankTip({ unit, size, floor, isDefault, self, team, onHover }) {
 // One unit he plays in: him and his teammates in it as tiles, then its net and minutes
 // (and its share of his minutes when it's his most-used). Without a unit over the
 // floor, the same frame shows empty tiles. The row keeps one height for both sizes.
-function Unit({ title, unit, size, self, team, accent, empty, className, onTip, tip }) {
+function Unit({ title, unit, size, self, team, season, accent, empty, className, onTip, tip }) {
   // Four and five tiles don't fit at full size beside the numbers; they go small with initials.
   const small = size >= 4
+  // Arrived by clicking a teammate's tile: that unit's order holds (lib/units.js), and
+  // these tiles' links carry this order (and the season) on.
+  const from = useLocation().state
+  const players = unit ? arrange([self, ...unit.mates], from && from.unitOrder) : null
+  const state = players && { unitOrder: players.map(pl => pl.slug), season }
   return (
     <div className={className} style={{ display: 'flex', flexDirection: 'column', gap: 11, minWidth: 0 }}>
       <span style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>{title}</span>
       <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
           {unit
-            ? [self, ...unit.mates].map((pl, i) => <Tile key={i} player={pl} team={team} accent={accent} self={i === 0} small={small} />)
+            ? players.map((pl, i) => <Tile key={i} player={pl} team={team} accent={accent} self={pl === self} small={small} state={state} />)
             : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, margin: small ? 0 : `0 ${(COL - TILE) / 2}px`, flex: 'none', borderRadius: '50%', border: '1px dashed #4a4643' }} />)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
@@ -337,7 +344,7 @@ export default function LineupPanel({ profile: p, accent }) {
     else closing.current = setTimeout(() => setTip(null), 180)
   }
   useEffect(() => () => clearTimeout(closing.current), [])
-  const unitProps = { size, self: L && L.self, team: L && L.team, accent }
+  const unitProps = { size, self: L && L.self, team: L && L.team, season: L && L.season, accent }
 
   return (
     <div key={`lineups-${p.slug}`} className="swap-in" style={{ padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 10, '--team': accent || INK }}>
@@ -361,7 +368,7 @@ export default function LineupPanel({ profile: p, accent }) {
               const d = m.together.net !== null && m.apart.net !== null ? m.apart.net - m.together.net : null
               return (
                 <div key={i} style={{ ...mateGrid, fontFamily: MONO, fontSize: 11, padding: '5px 0', borderBottom: RULE }}>
-                  <span style={{ fontFamily: 'Montserrat,sans-serif', fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><Mate mate={m} /></span>
+                  <span style={{ fontFamily: 'Montserrat,sans-serif', fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><Mate mate={m} season={L.season} /></span>
                   <span style={{ textAlign: 'right', color: DIM, fontSize: 9.5 }}>{mins(m.together.minutes)}</span>
                   <span style={{ textAlign: 'right', color: neutral(m.together.net) }}>{net(m.together.net)}</span>
                   <span style={{ textAlign: 'right', color: neutral(m.apart.net) }}>{net(m.apart.net)}</span>
@@ -380,8 +387,8 @@ export default function LineupPanel({ profile: p, accent }) {
             <MinutesPicker open={menu === 'minutes'} setOpen={toggle('minutes')} value={floor} def={def} range={(L.floorRange && L.floorRange[size]) || [def, def]} onChange={v => setPicked(m => ({ ...m, [size]: v }))} />
           </div>
           <div className="lineup-units-wrap"><div className="lineup-units">
-            <Unit {...unitProps} title="BEST" unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} self={L.self} team={L.team} onHover={hover('best')} />} className="lineup-unit-a" />
-            <Unit {...unitProps} title="MOST USED" unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} isDefault={isDefault} self={L.self} team={L.team} onHover={hover('used')} />} className="lineup-unit-b" />
+            <Unit {...unitProps} title="BEST" unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} self={L.self} team={L.team} season={L.season} onHover={hover('best')} />} className="lineup-unit-a" />
+            <Unit {...unitProps} title="MOST USED" unit={used} onTip={hover('used')} tip={tip === 'used' && used && <RankTip unit={used} size={size} floor={floor} isDefault={isDefault} self={L.self} team={L.team} season={L.season} onHover={hover('used')} />} className="lineup-unit-b" />
           </div></div>
         </>
       )}

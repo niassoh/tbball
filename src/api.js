@@ -47,16 +47,17 @@ export const loadDistribution = (stat, playoffs = false) => {
   }
   return distributions.get(key)
 }
-// The league's qualified lineup units' net ratings (the lineup tooltip's swarm),
-// fetched once per page load on the first hover.
+// The league's qualified lineup units' net ratings in a season (the lineup tooltip's
+// swarm), fetched once per page load on the first hover.
 const lineupLeagueRequests = {}
-export const loadLineupLeague = (playoffs = false) => {
+export const loadLineupLeague = (playoffs = false, season) => {
   const p = pre(playoffs)
-  lineupLeagueRequests[p] = lineupLeagueRequests[p] || getJson(api(`${p}lineups/league`, `${p}lineups-league.json`)).catch(err => {
-    delete lineupLeagueRequests[p]
+  const key = `${p}${season}`
+  lineupLeagueRequests[key] = lineupLeagueRequests[key] || getJson(api(`${p}lineups/league?season=${season}`, `${p}lineups-league-${season}.json`)).catch(err => {
+    delete lineupLeagueRequests[key]
     throw err
   })
-  return lineupLeagueRequests[p]
+  return lineupLeagueRequests[key]
 }
 // source (from the API's `headshot`) is 'portrait' or 'nba' (the styled NBA.com fallback);
 // version changes when the image is replaced, so the browser fetches the new one.

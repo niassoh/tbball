@@ -32,6 +32,19 @@ html { scroll-behavior: smooth; }
 .search-box { transition: border-color .15s; }
 .search-box:hover, .search-box:focus-within { border-color: #ece8e3 !important; }
 .tab-btn:hover { color: #ece8e3 !important; background: #2f2c2a !important; }
+/* The bio, percentile and recent-shift cards. The season rail sits over the first two
+   (the cards it drives); when all three fit side by side, the third runs the full height
+   beside the rail and its two cards. */
+.profile-cards-wrap { container-type: inline-size; }
+.profile-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 12px; align-items: stretch; }
+.season-rail-cell { grid-column: 1 / -1; min-width: 0; }
+@container (max-width: 480px) { .rail-label { display: none !important; } }
+@container (min-width: 834px) {
+  .profile-cards.with-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .season-rail-cell { grid-column: 1 / span 2; }
+  .profile-cards.with-rail > :last-child { grid-column: 3; grid-row: 1 / span 2; }
+}
+.rail-step:not(:disabled):hover, .rail-tick[aria-pressed="false"]:hover { color: #ece8e3 !important; background: #3d3a37 !important; }
 /* The stat table span's CLEAR tab takes an orange frame and wash on hover (the text stays ink, to read). */
 .span-clear { transition: background-color .12s, border-color .12s; }
 .span-clear:hover, .span-clear:focus-visible { background: rgba(250, 150, 42, .22) !important; border-color: #fa962a !important; }

@@ -52,22 +52,27 @@ function Meter({ n }) {
   )
 }
 
-// The two markers: hollow WITH the stars, filled (in the change's tone) WITHOUT them.
-const dot = (hollow, color) => ({ width: 9, height: 9, borderRadius: '50%', boxSizing: 'border-box', flex: 'none', ...(hollow ? { border: '1.5px solid #b8b2ab', background: BG } : { background: color }) })
+// The two markers, small squares: hollow WITH the stars, filled WITHOUT them.
+const MARK = '#c9c3bc'
+const mark = hollow => ({ width: 7, height: 7, boxSizing: 'border-box', flex: 'none', ...(hollow ? { border: `1px solid ${MARK}`, background: BG } : { background: MARK }) })
 
-// A stat's track across the league's spread of values (2nd to 98th percentile), end
-// ticks framing it: the hollow marker where he is with the stars, the filled one where
-// he is without, the stretch between in the change's tone.
-function Track({ a, b, tone }) {
+// A stat's track: a dot-matrix rule across the league's spread of values (2nd to 98th
+// percentile), the dots between his two values lit, and a marker at each. Only the
+// change carries colour. The lit dots are the same rule clipped to the stretch, so they
+// sit exactly on the unlit ones.
+const dots = color => `repeating-linear-gradient(90deg, ${color} 0 2px, transparent 2px 5px)`
+function Track({ a, b }) {
   if (a === null || b === null) return <span style={{ gridArea: 'track' }} />
+  const lo = Math.min(a, b)
+  const hi = Math.max(a, b)
   const at = x => ({ position: 'absolute', top: '50%', left: `${x}%`, transform: 'translate(-50%, -50%)' })
+  const rule = { position: 'absolute', left: 0, right: 0, top: 6, height: 2 }
   return (
     <span aria-hidden="true" style={{ gridArea: 'track', position: 'relative', height: 14, margin: '0 5px' }}>
-      <span style={{ position: 'absolute', left: -5, right: -5, top: '50%', height: 1, background: RULE }} />
-      {[-5, 'calc(100% + 4px)'].map(x => <span key={x} style={{ position: 'absolute', left: x, top: 3, width: 1, height: 8, background: EDGE }} />)}
-      <span style={{ position: 'absolute', left: `${Math.min(a, b)}%`, width: `${Math.abs(b - a)}%`, top: 'calc(50% - 1px)', height: 2, background: TONES[tone] }} />
-      <span style={{ ...at(a), ...dot(true) }} />
-      <span style={{ ...at(b), ...dot(false, TONES[tone]) }} />
+      <span style={{ ...rule, background: dots(RULE) }} />
+      <span style={{ ...rule, background: dots(DIM), clipPath: `inset(0 ${100 - hi}% 0 ${lo}%)` }} />
+      <span style={{ ...at(a), ...mark(true) }} />
+      <span style={{ ...at(b), ...mark(false) }} />
     </span>
   )
 }
@@ -84,7 +89,7 @@ function Row({ stat, s, scale }) {
     <div className="ls-row">
       <span style={{ gridArea: 'stat', ...label, color: '#c9c3bc' }}>{stat.label}</span>
       <span style={{ gridArea: 'with', textAlign: 'right', color: '#b8b2ab' }}>{value(stat, on)}</span>
-      <Track a={trackPos(scale, on)} b={trackPos(scale, off)} tone={tone} />
+      <Track a={trackPos(scale, on)} b={trackPos(scale, off)} />
       <span style={{ gridArea: 'wo', color: INK, fontWeight: 600 }}>{value(stat, off)}</span>
       <span style={{ gridArea: 'change', textAlign: 'right', fontSize: 15, fontWeight: 600, color: TONES[tone] }}>{change(stat, d)}</span>
       <span style={{ gridArea: 'rank', display: 'flex', alignItems: 'center', gap: 10 }} title={r ? `His change ranks #${r.rank} of ${r.of} players' (#1 the biggest increase)` : 'Too few minutes to rank'}>
@@ -140,8 +145,8 @@ export default function Lonestar({ profile: p }) {
       <div className="ls-table" style={{ fontFamily: MONO }}>
         <div className="ls-row ls-head">
           <span style={{ gridArea: 'track', display: 'flex', justifyContent: 'space-between', gap: 12, ...label }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={dot(true)} />With stars</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Without<span style={dot(false, INK)} /></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={mark(true)} />With stars</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Without<span style={mark(false)} /></span>
           </span>
           <span style={{ gridArea: 'change', textAlign: 'right', ...label }}>Change</span>
           <span style={{ gridArea: 'rank', ...label }}>Rank</span>
@@ -150,9 +155,9 @@ export default function Lonestar({ profile: p }) {
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 14, height: 3, background: TONES.good }} />BETTER</span>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 14, height: 3, background: TONES.bad }} />WORSE</span>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 14, height: 3, background: TONES.neutral }} />VOLUME</span>
+        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 6, height: 6, background: TONES.good }} />BETTER</span>
+        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 6, height: 6, background: TONES.bad }} />WORSE</span>
+        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><span style={{ width: 6, height: 6, background: TONES.neutral }} />VOLUME</span>
         <span>CHANGE · W/O − WITH</span>
         <span>TRACK · THE LEAGUE&apos;S RANGE FOR THE STAT</span>
         <span>#RANK · AMONG EVERY PLAYER&apos;S CHANGE ({ls.minRank}+ MIN EACH WAY), #1 THE BIGGEST INCREASE</span>

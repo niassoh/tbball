@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLonestar, fetchProfile, headshotUrl } from '../api.js'
+import { chartModel } from '../lib/chart.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
 import { pctlOf, valueOf } from '../lib/leaderboard.js'
+import { rollingStat } from '../lib/span.js'
 import { starsText } from '../lib/lonestar.js'
 import { initials } from '../lib/teams.js'
 import { useSeasonType } from '../useSeasonType.js'
@@ -13,7 +15,8 @@ import FootprintGlyph from './FootprintGlyph.jsx'
 // the table is sorted by, then BPM, Load and rTS% as room allows) with their percentiles;
 // his footprint as the Footprint tab's icons, those whose swing clears the noise lit in
 // its colour (hover one for its swing); his percentiles across the profile's headline
-// stats; two small charts, his career (his BPM each season against the league's) and
+// stats; two small charts, his career (BPM as a moving average against the league's, as
+// his profile charts it) and
 // Lonestar's that season (Load and Net with both his stars on and off); and his best and
 // most-used two- and three-man units that season. The career and units come from his
 // profile, Lonestar from its own document, both fetched on opening. Its charts move: the
@@ -29,21 +32,16 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 // The headline stats, as on his profile's percentile card: impact, offense, defense.
 const CARD_STATS = ['BPM', 'Net On/Off', 'Load', 'Box Creation', 'Pts / 75', 'rTS%', 'Passer Rating', 'cTOV%', 'DRTG On', 'Def FGA Diff%']
-// The two small charts' frame (a viewBox; they scale to the card's half-width). Lonestar's
-// axes are its tab's (Load 0–80 split at 40, Net −25 to +25 split at 0); the career's run
-// over his seasons and his BPM, at least MIN_SPAN tall.
+// Lonestar's small chart: its frame (a viewBox; it scales to the card's half-width) and
+// its tab's axes (Load 0–80 split at 40, Net −25 to +25 split at 0). The career chart is
+// the profile's season chart's (lib/chart.js).
 const CW = 236
 const CH = 108
 const CM = { l: 20, r: 6, t: 8, b: 16 }
 const LOAD = [0, 80]
 const NET_AXIS = [-25, 25]
-const MIN_SPAN = { bpm: 6 }
-const fit = (vs, least) => {
-  const lo = Math.min(...vs)
-  const hi = Math.max(...vs)
-  const pad = Math.max((least - (hi - lo)) / 2, (hi - lo) * 0.1)
-  return [lo - pad, hi + pad]
-}
+// The career line's window: a 3-season moving average, as the profile's ROLLING 3-YR.
+const ROLL = 3
 const UNITS = { pct: 'pct pts', pts: 'pts/100', pace: 'poss/48' }
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 
@@ -118,35 +116,37 @@ function Frame({ x, y, splitX, splitY, xLabels, yName, children }) {
   )
 }
 
-// His career: his BPM each season, a dot in its percentile's colour (the season on show a
-// square, its BPM shown), against the league's average BPM (the dashed line; BPM is set
-// so the league averages 0 each season). The dots pop in season by season.
-function Career({ profile: p, season }) {
-  const s = p.stats.BPM
-  const pts = p.seasons.map((x, i) => ({ season: x.season, v: s.vals[i], lg: s.lg[i] ?? 0 })).filter(x => x.v)
-  if (!pts.length) return <span style={{ ...label, color: FAINT }}>—</span>
-  const xs = [-0.5, pts.length - 0.5]
-  const ys = fit([...pts.map(x => x.v.n), ...pts.map(x => x.lg)], MIN_SPAN.bpm)
-  // The league's average across the chart (BPM's is 0 every season).
-  const lg = py(ys, pts.reduce((a, q) => a + q.lg, 0) / pts.length)
-  const yy = q => `’${q.season.slice(5)}`
+// His career as his profile charts it (lib/chart.js chartModel), small: BPM as a 3-season
+// moving average (each season averaging itself and the two before; plain seasons for a
+// career shorter than that), dots in the window's percentile colour, against the
+// league's average dashed, the gap shaded blue where he's above it and orange below; the
+// season on show ringed and its value shown. The dots pop in season by season.
+function Career({ profile: p, season, n }) {
+  const stat = n > 1 ? rollingStat(p, 'BPM', n) : p.stats.BPM
+  const m = chartModel(stat, p.seasons)
+  const k = p.seasons.findIndex(x => x.season === season)
+  const pct = (v, of) => `${(v / of) * 100}%`
+  const tick = i => `’${p.seasons[i].season.slice(5)}`
   return (
-    <Frame x={xs} y={ys} xLabels={[yy(pts[0]), 'SEASON →', yy(pts[pts.length - 1])]} yName="BPM">
-      <line x1={CM.l} x2={CW - CM.r} y1={lg} y2={lg} stroke={DIM} strokeDasharray="2 3" />
-      <text x={CW - CM.r - 2} y={lg - 3} textAnchor="end" style={tiny}>LG AVG</text>
-      {pts.map((q, i) => {
-        const on = q.season === season
-        const [x, y] = [px(xs, i), py(ys, q.v.n)]
+    <div style={{ position: 'relative', height: 96 }}>
+      <svg viewBox="0 0 330 150" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
+        {m.bands.map((b, i) => <path key={i} d={b.d} fill={b.fill} />)}
+        <line x1="0" x2="330" y1="134" y2="134" stroke="#6b655f" vectorEffect="non-scaling-stroke" />
+        {m.leagueLines.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke={DIM} strokeWidth="1.5" strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />)}
+        {m.playerLines.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke={INK} strokeWidth="1.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
+      </svg>
+      {m.pts.filter(q => q.has).map(q => {
+        const on = q.i === k
+        const r = on ? 4.5 : 2.5
         return (
-          <g key={q.season}>
-            {on
-              ? <rect className="ls-pop" x={x - 3.5} y={y - 3.5} width={7} height={7} fill={INK} style={{ animationDelay: `${i * 50}ms` }} />
-              : <circle className="ls-pop" cx={x} cy={y} r={3} fill={q.v.p === null ? FAINT : col(q.v.p)} style={{ animationDelay: `${i * 50}ms` }} />}
-            {on && <text x={x} y={y - 7} textAnchor="middle" style={{ ...tiny, fill: INK }}>{fmt(s, q.v.n)}</text>}
-          </g>
+          <span key={q.i} className="ls-pop" style={{ position: 'absolute', left: pct(q.x, 330), top: pct(q.y, 150), width: r * 2, height: r * 2, marginLeft: -r, marginTop: -r, borderRadius: '50%', background: q.color, border: on ? `1.5px solid ${INK}` : 'none', boxSizing: 'border-box', animationDelay: `${q.i * 40}ms` }} />
         )
       })}
-    </Frame>
+      {k >= 0 && m.pts[k].has && <span style={{ position: 'absolute', left: pct(m.pts[k].x, 330), top: pct(m.pts[k].valueY, 150), transform: 'translate(-50%, -50%)', fontSize: 9.5, fontWeight: 600, color: INK, whiteSpace: 'nowrap' }}>{m.pts[k].value}</span>}
+      <span style={{ ...label, fontSize: 7.5, position: 'absolute', left: 0, top: '100%', marginTop: 3 }}>{tick(0)}</span>
+      {k > 0 && k < p.seasons.length - 1 && <span style={{ ...label, fontSize: 7.5, color: INK, position: 'absolute', left: pct(m.pts[k].x, 330), top: '100%', marginTop: 3, transform: 'translateX(-50%)' }}>{tick(k)}</span>}
+      <span style={{ ...label, fontSize: 7.5, position: 'absolute', right: 0, top: '100%', marginTop: 3, color: k === p.seasons.length - 1 ? INK : DIM }}>{tick(p.seasons.length - 1)}</span>
+    </div>
   )
 }
 
@@ -284,8 +284,8 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
 
       <div style={{ display: 'grid', gridTemplateColumns: playoffs ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
         <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-          <span style={{ ...label, color: '#b8b2ab' }}>Career <span style={{ color: FAINT }}>· bpm vs league</span></span>
-          {profile ? <Career profile={profile} season={season} /> : <span style={{ ...label, color: FAINT, height: 96 }}>{profile === false ? 'Unavailable' : 'Loading'}</span>}
+          <span style={{ ...label, color: '#b8b2ab' }}>BPM <span style={{ color: FAINT }}>· {profile && profile.seasons.length >= ROLL ? `${ROLL}-yr avg` : 'by season'} vs lg</span></span>
+          {profile ? <Career profile={profile} season={season} n={profile.seasons.length >= ROLL ? ROLL : 1} /> : <span style={{ ...label, color: FAINT, height: 96 }}>{profile === false ? 'Unavailable' : 'Loading'}</span>}
         </div>
         {!playoffs && (
           <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, borderLeft: `1px solid ${RULE}` }}>

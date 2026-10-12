@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, centered, change, fadeOf, lastName, posOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
+import { STATS, change, fadeOf, lastName, posOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
@@ -65,27 +65,28 @@ function useWidth(fallback) {
   return [ref, width]
 }
 
-// Load against Net on fixed axes, the same for every player: each centred on its league
-// median with one linear scale (lib centered), a little headroom past the league's ends
-// so its extremes stay off the frame, the median lines crossing in the middle. Drawn
-// 1:1 at the panel's width, its frame square (ASPECT) at any width, so its text stays the
-// same size. The quadrant names sit outside the frame, above and below it. His move is a vector: a hollow square where he is with the stars, a thin shaft
-// and a sharp head whose tip is where he is without them, in the colour of his Net
-// change; a move too short to point anywhere (under MIN_ARROW px) is a filled square
-// instead. On each pick the shaft draws and the head snaps on after it (index.css
-// .ls-draw, .ls-pop).
-const HEADROOM = 1.08
+// Load against Net on fixed axes, the same for every player, crossing in the middle:
+// Load 0 to 80 split at 40 (about where a team's primary option starts; nothing below 0,
+// and the league's heaviest stretches fit), Net −25 to +25 split at 0 (better and worse
+// on one scale; the rare stretch past ±25 sits on the edge). Drawn 1:1 at the panel's
+// width, its frame square (ASPECT) at any width, so its text stays the same size. The
+// quadrant names sit outside the frame, above and below it. His move is a vector: a
+// hollow square where he is with the stars, a thin shaft and a sharp head whose tip is
+// where he is without them, in the colour of his Net change; a move too short to point
+// anywhere (under MIN_ARROW px) is a filled square instead. On each pick the shaft draws
+// and the head snaps on after it (index.css .ls-draw, .ls-pop).
+const LOAD_AXIS = [0, 40, 80]
+const NET_AXIS = [-25, 0, 25]
 const ASPECT = 1
 const MIN_ARROW = 12
 const HEAD = { len: 9, half: 4.5 }
-const roomy = r => r && [r[1] - (r[1] - r[0]) * HEADROOM, r[1], r[1] + (r[2] - r[1]) * HEADROOM]
-function Plot({ s, scale, width: W, skey }) {
+function Plot({ s, width: W, skey }) {
   const box = { l: 22, r: 2, t: 12, b: 38 }
   const H = Math.round((W - box.l - box.r) / ASPECT) + box.t + box.b
   const right = W - box.r
   const bottom = H - box.b
-  const X = roomy(centered(scale.load))
-  const Y = roomy(centered(scale.net))
+  const X = LOAD_AXIS
+  const Y = NET_AXIS
   const x = v => box.l + posOf(X, v) * (right - box.l)
   const y = v => box.t + (1 - posOf(Y, v)) * (bottom - box.t)
   const ok = v => v !== null && v !== undefined
@@ -93,7 +94,6 @@ function Plot({ s, scale, width: W, skey }) {
   const b = [s.off.load, s.off.net]
   const tone = toneOf(NET, s.change.net)
   const t = { fontFamily: MONO, fontSize: 7.5, letterSpacing: '.08em', fill: DIM }
-  if (!X || !Y) return null
   const midX = (box.l + right) / 2
   const midY = (box.t + bottom) / 2
   return (
@@ -282,7 +282,7 @@ export default function Lonestar({ profile: p }) {
 
         <div className="ls-body">
           <div className="ls-side" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="ls-plot" style={{ padding: `20px ${PAD}px 12px` }}><div ref={plotRef}><Plot s={s} scale={ls.scale} width={plotWidth} skey={skey} /></div></div>
+            <div className="ls-plot" style={{ padding: `20px ${PAD}px 12px` }}><div ref={plotRef}><Plot s={s} width={plotWidth} skey={skey} /></div></div>
             <Cast key={skey} p={p} s={s} />
             <Numbers key={`n-${skey}`} s={s} minRank={ls.minRank} />
           </div>

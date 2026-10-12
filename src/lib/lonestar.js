@@ -41,15 +41,6 @@ export const posOf = (scale, v) => {
   return hi > lo ? Math.max(0, Math.min(1, (v - lo) / (hi - lo))) : 0.5
 }
 
-// A league range centred on its median: the same reach either side (the farther of the
-// two ends), so a plot's median lines sit in the middle on one linear scale.
-export const centered = scale => {
-  if (!scale) return null
-  const [lo, mid, hi] = scale
-  const reach = Math.max(mid - lo, hi - mid)
-  return [mid - reach, mid, mid + reach]
-}
-
 // A row's strip across the stat's league range: `n` cells (2% of the range each at 50),
 // the cell he's in with the stars ('with'), without them ('without'), the same one
 // either way ('both'), the cells between ('between'), and the rest ('empty').

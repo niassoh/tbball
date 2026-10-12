@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, centered, change, fadeOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
+import { STATS, change, fadeOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -34,13 +34,6 @@ describe('lonestar', () => {
     expect(posOf(scale, 99)).toBe(1)
     expect(posOf(scale, null)).toBe(null)
     expect(posOf(null, 30)).toBe(null)
-  })
-
-  test('a centred range reaches as far either side of the median, so the median sits in the middle', () => {
-    expect(centered([14, 28, 60])).toEqual([-4, 28, 60])
-    expect(centered([-19, -1, 15])).toEqual([-19, -1, 17])
-    expect(posOf(centered([14, 28, 60]), 28)).toBe(0.5)
-    expect(centered(null)).toBe(null)
   })
 
   test('a strip marks where he is with and without his stars, and the cells between', () => {

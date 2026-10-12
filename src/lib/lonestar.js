@@ -32,13 +32,25 @@ export const toneOf = (stat, v) => {
   return (stat.dir || 1) * v > 0 ? 'good' : 'bad'
 }
 
-// A row's league-percentile strip: `n` cells (5 points each at 20), the cell he's in
-// with the stars ('with'), without them ('without'), the same one either way ('both'),
-// the cells between ('between'), and the rest ('empty').
-export const stripOf = (pOn, pOff, n = 20) => {
-  const at = p => (p === null || p === undefined ? null : Math.min(n - 1, Math.floor((p * n) / 100)))
-  const a = at(pOn)
-  const b = at(pOff)
+// Where a value sits on its stat's league range (`scale`: [low, median, high]), 0–1,
+// clamped to the ends; null without a value or a range. Linear, so a big change near the
+// top shows as big as one in the middle.
+export const posOf = (scale, v) => {
+  if (!scale || v === null || v === undefined) return null
+  const [lo, , hi] = scale
+  return hi > lo ? Math.max(0, Math.min(1, (v - lo) / (hi - lo))) : 0.5
+}
+
+// A row's strip across the stat's league range: `n` cells (2% of the range each at 50),
+// the cell he's in with the stars ('with'), without them ('without'), the same one
+// either way ('both'), the cells between ('between'), and the rest ('empty').
+export const stripOf = (on, off, scale, n = 50) => {
+  const at = v => {
+    const x = posOf(scale, v)
+    return x === null ? null : Math.min(n - 1, Math.floor(x * n))
+  }
+  const a = at(on)
+  const b = at(off)
   return Array.from({ length: n }, (_, i) => {
     if (i === a && i === b) return 'both'
     if (i === a) return 'with'

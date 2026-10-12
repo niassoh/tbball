@@ -52,24 +52,29 @@ html { scroll-behavior: smooth; }
    catalogue tiles lift a shade and their portrait leans in, parts-list lines highlight. */
 .ls-key { transition: border-color .12s, color .12s; }
 .ls-key[aria-pressed="false"]:hover { border-color: #ece8e3 !important; color: #ece8e3 !important; }
-/* Lonestar: the shape of the change at the left, the stats at the right; one column
-   (the shape first) when narrow. The stats: stat | with | strip | without | change |
-   rank; in a narrow column with and rank drop (!important over their inline display). */
+/* Lonestar: one continuous panel at the left (its head lines up with the table's), the
+   stats at the right; one column (the panel first) when narrow. The stats: stat | with |
+   strip | without | change | rank, the strip 50 small cells; in a narrow column with and
+   rank drop (!important over their inline display) and the cells close up. */
 .ls-frame { container-type: inline-size; }
 .ls-body { display: grid; grid-template-columns: 300px minmax(0, 1fr); }
 .ls-side { border-right: 1px solid #3d3a37; }
+.ls-side-head { height: 34px; flex: none; }
 .ls-main { container-type: inline-size; min-width: 0; }
 @container (max-width: 860px) {
   .ls-body { grid-template-columns: minmax(0, 1fr); }
   .ls-side { border-right: none; border-bottom: 1px solid #3d3a37; }
 }
-.ls-row { display: grid; grid-template-columns: minmax(96px, 150px) 52px minmax(140px, 1fr) 52px 60px 112px; grid-template-areas: "stat with strip wo change rank"; align-items: center; column-gap: 14px; min-height: 42px; padding: 0 18px; border-bottom: 1px solid #3d3a37; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ls-row { display: grid; grid-template-columns: minmax(110px, 1fr) 52px minmax(150px, 460px) 52px 60px 112px; grid-template-areas: "stat with strip wo change rank"; align-items: center; column-gap: 14px; min-height: 42px; padding: 0 18px; border-bottom: 1px solid #3d3a37; font-size: 12px; font-variant-numeric: tabular-nums; }
 .ls-row.ls-head { min-height: 34px; }
 .ls-row:not(.ls-head):hover { background: #2a2826; }
+.ls-strip { display: flex; gap: 2px; }
+.ls-strip > span { flex: 1 1 0; min-width: 1px; max-width: 8px; height: 12px; }
 @container (max-width: 560px) {
-  .ls-row { grid-template-columns: minmax(0, 1fr) minmax(80px, 1.3fr) 44px 50px; grid-template-areas: "stat strip wo change"; column-gap: 8px; padding: 0 12px; }
+  .ls-row { grid-template-columns: minmax(0, 1fr) minmax(110px, 1.6fr) 44px 50px; grid-template-areas: "stat strip wo change"; column-gap: 8px; padding: 0 12px; }
   .ls-row .ls-with, .ls-row .ls-rank { display: none !important; }
-  .ls-head .ls-pctl-word { display: none; }
+  .ls-head .ls-range-word { display: none; }
+  .ls-strip { gap: 1px; }
 }
 .idx-logos-wrap { container-type: inline-size; }
 .idx-logos { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }

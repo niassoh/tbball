@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, change, litOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
+import { STATS, change, litOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -34,21 +34,31 @@ describe('lonestar', () => {
     expect(litOf(null)).toBe(0)
   })
 
+  test("a value's place on its stat's league range is linear and clamped", () => {
+    const scale = [10, 20, 60]
+    expect(posOf(scale, 35)).toBe(0.5)
+    expect(posOf(scale, 0)).toBe(0)
+    expect(posOf(scale, 99)).toBe(1)
+    expect(posOf(scale, null)).toBe(null)
+    expect(posOf(null, 30)).toBe(null)
+  })
+
   test('a strip marks where he is with and without his stars, and the cells between', () => {
-    // 40th with them (cell 8), 70th without (cell 14).
-    const up = stripOf(40, 70)
-    expect(up[8]).toBe('with')
-    expect(up[14]).toBe('without')
-    expect(up.slice(9, 14)).toEqual(['between', 'between', 'between', 'between', 'between'])
-    expect(up.filter(c => c === 'empty')).toHaveLength(13)
+    // On a 0–100 range: 40 with them (cell 20), 52 without (cell 26).
+    const scale = [0, 50, 100]
+    const up = stripOf(40, 52, scale)
+    expect(up).toHaveLength(50)
+    expect([up[20], up[26]]).toEqual(['with', 'without'])
+    expect(up.slice(21, 26)).toEqual(['between', 'between', 'between', 'between', 'between'])
+    expect(up.filter(c => c === 'empty')).toHaveLength(43)
     // The other way round.
-    const down = stripOf(70, 40)
-    expect([down[14], down[8], down[11]]).toEqual(['with', 'without', 'between'])
-    // The same cell either way; the 100th in the last cell.
-    expect(stripOf(50, 52)[10]).toBe('both')
-    expect(stripOf(100, 100)[19]).toBe('both')
+    const down = stripOf(52, 40, scale)
+    expect([down[26], down[20], down[23]]).toEqual(['with', 'without', 'between'])
+    // The same cell either way; past the top in the last cell.
+    expect(stripOf(50, 51, scale)[25]).toBe('both')
+    expect(stripOf(120, 130, scale)[49]).toBe('both')
     // A missing side marks only the other.
-    expect(stripOf(null, 40).filter(c => c !== 'empty')).toEqual(['without'])
+    expect(stripOf(null, 40, scale).filter(c => c !== 'empty')).toEqual(['without'])
   })
 
   test('stars and seasons as words', () => {

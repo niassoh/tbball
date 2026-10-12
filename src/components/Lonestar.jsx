@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, lastName, litOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
+import { STATS, change, lastName, litOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
 // The Lonestar tab: how he plays when his team's stars sit (thinking-bball
 // lib/lonestar.js). Keys pick the stars: his top-Load teammate, or his top two. On the
-// left, the shape of the change: Load against Net (league percentiles) with the stars and
-// without, the two moves in numbers, who's on and off, and the minutes each way. On the
-// right, every stat: with, a strip of league percentile (where he is with them, without
-// them, and the stretch between in the change's colour), without, the change, and its
-// rank among every player's (#1 the biggest increase).
+// left, one continuous panel: Load against Net with the stars and without, the two moves
+// in numbers, who's on and off, and the minutes each way. On the right, every stat: with,
+// a strip across the stat's league range (where he is with them, without them, and the
+// stretch between in the change's colour), without, the change, and its rank among every
+// player's (#1 the biggest increase). Positions are on each stat's league range, not its
+// percentile, so a big change near the top still reads as big.
 const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#5f5a55' }
 const BG = '#262422'
 const INK = '#ece8e3'
@@ -22,11 +23,13 @@ const FAINT = '#5f5a55'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
 const CELL = '#34312e'
+const PAD = 18
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 const LOAD = STATS.find(x => x.key === 'load')
 const NET = STATS.find(x => x.key === 'net')
 const pctlText = p => (p === null || p === undefined ? '—' : String(p))
 const signed = n => (n === null ? '—' : `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`)
+const rounded = v => `${v > 0.5 ? '+' : ''}${Math.round(v)}`
 
 function Key({ on, onClick, children }) {
   return (
@@ -49,42 +52,42 @@ function ModeSwitch({ mode, setMode }) {
   )
 }
 
-// Load against Net, both as league percentiles: a hollow square where he is with the
-// stars, a filled one without them, joined in the colour of his Net change.
-function Plot({ s }) {
+// Load against Net on their league ranges, split into quadrants at the league medians:
+// a hollow square where he is with the stars, a filled one without them, joined in the
+// colour of his Net change.
+function Plot({ s, scale }) {
   const W = 264
-  const H = 236
-  const box = { l: 18, r: 4, t: 16, b: 30 }
-  const x = p => box.l + (p / 100) * (W - box.l - box.r)
-  const y = p => box.t + (1 - p / 100) * (H - box.t - box.b)
-  const a = [s.pctl.on.load, s.pctl.on.net]
-  const b = [s.pctl.off.load, s.pctl.off.net]
-  const has = pt => pt.every(v => v !== null && v !== undefined)
+  const H = 214
+  const box = { l: 22, r: 2, t: 2, b: 26 }
+  const right = W - box.r
+  const bottom = H - box.b
+  const x = v => box.l + posOf(scale.load, v) * (right - box.l)
+  const y = v => box.t + (1 - posOf(scale.net, v)) * (bottom - box.t)
+  const ok = v => v !== null && v !== undefined
+  const a = [s.on.load, s.on.net]
+  const b = [s.off.load, s.off.net]
   const tone = toneOf(NET, s.change.net)
-  const corner = { fontFamily: MONO, fontSize: 7, letterSpacing: '.08em', fill: FAINT }
-  const right = x(100)
-  const bottom = y(0)
+  const t = { fontFamily: MONO, fontSize: 7, letterSpacing: '.08em', fill: FAINT }
+  if (!scale.load || !scale.net) return null
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <span style={label}>Load × Net · with → without</span>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={`Load and Net percentiles: ${pctlText(a[0])} and ${pctlText(a[1])} with his stars, ${pctlText(b[0])} and ${pctlText(b[1])} without`} style={{ display: 'block', overflow: 'visible' }}>
-        <rect x={box.l} y={box.t} width={right - box.l} height={bottom - box.t} fill="none" stroke={RULE} />
-        <line x1={x(50)} x2={x(50)} y1={box.t} y2={bottom} stroke={EDGE} strokeDasharray="1 3" />
-        <line x1={box.l} x2={right} y1={y(50)} y2={y(50)} stroke={EDGE} strokeDasharray="1 3" />
-        <text x={box.l + 5} y={box.t + 11} style={corner}>LESS LOAD · BETTER</text>
-        <text x={right - 5} y={box.t + 11} textAnchor="end" style={corner}>MORE LOAD · BETTER</text>
-        <text x={box.l + 5} y={bottom - 6} style={corner}>LESS LOAD · WORSE</text>
-        <text x={right - 5} y={bottom - 6} textAnchor="end" style={corner}>MORE LOAD · WORSE</text>
-        <text x={box.l - 5} y={box.t + 3} textAnchor="end" style={{ ...corner, fill: DIM }}>100</text>
-        <text x={box.l - 5} y={bottom + 3} textAnchor="end" style={{ ...corner, fill: DIM }}>0</text>
-        <text x={right} y={bottom + 12} textAnchor="end" style={{ ...corner, fill: DIM }}>100</text>
-        <text transform={`translate(${box.l - 11} ${(box.t + bottom) / 2}) rotate(-90)`} textAnchor="middle" style={{ ...corner, fill: DIM }}>NET PCTL</text>
-        <text x={(box.l + right) / 2} y={bottom + 24} textAnchor="middle" style={{ ...corner, fill: DIM }}>LOAD PCTL</text>
-        {has(a) && has(b) && <line x1={x(a[0])} y1={y(a[1])} x2={x(b[0])} y2={y(b[1])} stroke={TONES[tone] || DIM} strokeWidth="2" />}
-        {has(a) && <rect x={x(a[0]) - 4.5} y={y(a[1]) - 4.5} width="9" height="9" fill={BG} stroke={MID} strokeWidth="1.5" />}
-        {has(b) && <rect x={x(b[0]) - 5.5} y={y(b[1]) - 5.5} width="11" height="11" fill={SOFT} />}
-      </svg>
-    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={`Load ${value(LOAD, a[0])} and Net ${value(NET, a[1])} with his stars, ${value(LOAD, b[0])} and ${value(NET, b[1])} without`} style={{ display: 'block', overflow: 'visible' }}>
+      <rect x={box.l} y={box.t} width={right - box.l} height={bottom - box.t} fill="none" stroke={RULE} />
+      <line x1={x(scale.load[1])} x2={x(scale.load[1])} y1={box.t} y2={bottom} stroke={EDGE} strokeDasharray="1 3" />
+      <line x1={box.l} x2={right} y1={y(scale.net[1])} y2={y(scale.net[1])} stroke={EDGE} strokeDasharray="1 3" />
+      <text x={box.l + 6} y={box.t + 12} style={t}>LESS LOAD · BETTER</text>
+      <text x={right - 6} y={box.t + 12} textAnchor="end" style={t}>MORE LOAD · BETTER</text>
+      <text x={box.l + 6} y={bottom - 6} style={t}>LESS LOAD · WORSE</text>
+      <text x={right - 6} y={bottom - 6} textAnchor="end" style={t}>MORE LOAD · WORSE</text>
+      <text x={box.l - 5} y={box.t + 6} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(scale.net[2])}</text>
+      <text x={box.l - 5} y={bottom} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(scale.net[0])}</text>
+      <text transform={`translate(${box.l - 12} ${(box.t + bottom) / 2}) rotate(-90)`} textAnchor="middle" style={{ ...t, fill: DIM }}>NET</text>
+      <text x={box.l} y={bottom + 12} style={{ ...t, fill: DIM }}>{Math.round(scale.load[0])}</text>
+      <text x={(box.l + right) / 2} y={bottom + 12} textAnchor="middle" style={{ ...t, fill: DIM }}>LOAD</text>
+      <text x={right} y={bottom + 12} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(scale.load[2])}</text>
+      {ok(a[0]) && ok(a[1]) && ok(b[0]) && ok(b[1]) && <line x1={x(a[0])} y1={y(a[1])} x2={x(b[0])} y2={y(b[1])} stroke={tone === 'neutral' ? DIM : TONES[tone]} strokeWidth="2" />}
+      {ok(a[0]) && ok(a[1]) && <rect x={x(a[0]) - 4.5} y={y(a[1]) - 4.5} width="9" height="9" fill={BG} stroke={MID} strokeWidth="1.5" />}
+      {ok(b[0]) && ok(b[1]) && <rect x={x(b[0]) - 5.5} y={y(b[1]) - 5.5} width="11" height="11" fill={SOFT} />}
+    </svg>
   )
 }
 
@@ -92,65 +95,63 @@ function Plot({ s }) {
 function Move({ stat, name, s }) {
   const tone = toneOf(stat, s.change[stat.key])
   return (
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 12px' }}>
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4, padding: `12px ${PAD}px` }}>
       <span style={label}>{name}</span>
-      <span style={{ fontSize: 18, fontWeight: 600, color: TONES[tone] === FAINT ? MID : TONES[tone], fontVariantNumeric: 'tabular-nums' }}>{change(stat, s.change[stat.key])}</span>
+      <span style={{ fontSize: 18, fontWeight: 600, color: tone === 'neutral' ? MID : TONES[tone], fontVariantNumeric: 'tabular-nums' }}>{change(stat, s.change[stat.key])}</span>
       <span style={{ fontSize: 10, color: DIM, fontVariantNumeric: 'tabular-nums' }}>{value(stat, s.on[stat.key])} → <span style={{ color: INK }}>{value(stat, s.off[stat.key])}</span></span>
     </div>
   )
 }
 
-// One of the cast: his cut-out portrait standing on the shared rule, his name and
-// whether he's on or off under it. The stars who sit are smaller, greyscale and dim.
-function Figure({ who, team, on, size }) {
+// The cast: name tags along the top, cut-out portraits standing on the rule below (the
+// one over the minutes). He's in colour; the stars who sit are smaller, greyscale, dim.
+function Portrait({ who, team, on, size }) {
   const [failed, setFailed] = useState(false)
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-      <div style={{ height: 82, display: 'flex', alignItems: 'flex-end', paddingRight: 12 }}>
-        {who.headshot && !failed
-          ? <img src={headshotUrl(who.slug, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)}
-              style={{ width: size, height: size, objectFit: 'contain', objectPosition: '50% 100%', display: 'block', ...(on ? {} : { filter: 'grayscale(1)', opacity: 0.45 }) }} />
-          : <span style={{ width: size * 0.7, height: size * 0.7, display: 'block', opacity: on ? 1 : 0.45 }}><TeamInitials name={who.name || '?'} team={team} fontSize={12} /></span>}
-      </div>
-      <div style={{ alignSelf: 'stretch', borderTop: `1px solid ${EDGE}`, paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ ...label, color: on ? INK : MID, whiteSpace: 'nowrap' }}>{lastName(who.name)}</span>
-        <span style={{ ...label, color: on ? DIM : FAINT }}>{on ? 'On' : 'Off'}</span>
-      </div>
-    </div>
-  )
+  const dim = on ? {} : { filter: 'grayscale(1)', opacity: 0.45 }
+  return who.headshot && !failed
+    ? <img src={headshotUrl(who.slug, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)}
+        style={{ width: size, height: size, objectFit: 'contain', objectPosition: '50% 100%', display: 'block', alignSelf: 'end', ...dim }} />
+    : <span style={{ width: size * 0.7, height: size * 0.7, display: 'block', alignSelf: 'end', ...dim }}><TeamInitials name={who.name || '?'} team={team} fontSize={12} /></span>
 }
 
 function Cast({ p, s }) {
+  const cast = [{ who: p, on: true, size: 78 }, ...s.stars.map(t => ({ who: t, on: false, size: 58 }))]
+  const tag = (who, on) => (
+    <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <span style={{ ...label, color: on ? INK : MID, whiteSpace: 'nowrap' }}>{lastName(who.name)}</span>
+      <span style={{ ...label, color: on ? DIM : FAINT }}>{on ? 'On' : 'Off'}</span>
+    </span>
+  )
   return (
-    <div style={{ display: 'flex', alignItems: 'stretch' }} aria-label={`${p.name} without ${starsText(s.stars)}`}>
-      <Figure who={p} team={s.team} on size={82} />
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ ...label, height: 82, display: 'flex', alignItems: 'center', paddingRight: 12, color: FAINT }}>W/O</span>
-        <div style={{ borderTop: `1px solid ${EDGE}` }} />
-      </div>
-      {s.stars.map(t => <Figure key={t.id} who={t} team={s.team} size={60} />)}
+    <div aria-label={`${p.name} without ${starsText(s.stars)}`}
+      style={{ display: 'grid', gridTemplateRows: 'auto 80px', gridAutoFlow: 'column', justifyContent: 'start', columnGap: 16, rowGap: 6, padding: `14px ${PAD}px 0`, borderTop: `1px solid ${RULE}` }}>
+      {cast.flatMap((c, i) => [
+        ...(i === 1 ? [<span key="wo-tag" />, <span key="wo" style={{ ...label, color: FAINT, alignSelf: 'center' }}>W/O</span>] : []),
+        <span key={`t${i}`}>{tag(c.who, c.on)}</span>,
+        <Portrait key={`p${i}`} who={c.who} team={s.team} on={c.on} size={c.size} />
+      ])}
     </div>
   )
 }
 
-// Minutes with the stars and without (a side too short to rank shows orange), and the
-// team and seasons behind them.
+// Minutes with the stars and without (a side too short to rank shows orange) on the
+// rule the cast stands on, then the team and seasons behind them.
 function Minutes({ s, minRank }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
+    <>
+      <div style={{ display: 'flex', borderTop: `1px solid ${EDGE}` }}>
         {[['With · min', s.on.minutes], ['W/O · min', s.off.minutes]].map(([k, m], i) => {
           const short = !s.ranked && m < minRank
           return (
-            <div key={k} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 12px', borderLeft: i ? `1px solid ${EDGE}` : 'none' }}>
+            <div key={k} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, padding: `12px ${PAD}px`, borderLeft: i ? `1px solid ${RULE}` : 'none' }}>
               <span style={label}>{k}</span>
               <span title={short ? `Under ${minRank} minutes: too few to rank` : undefined} style={{ fontSize: 22, fontWeight: 600, color: short ? TONES.bad : INK, fontVariantNumeric: 'tabular-nums' }}>{Math.round(m).toLocaleString()}</span>
             </div>
           )
         })}
       </div>
-      <span style={{ ...label, color: FAINT }}>{s.team} · {seasonsText(s.seasons)}{s.ranked ? '' : ` · under ${minRank} min a side, not ranked`}</span>
-    </div>
+      <span style={{ ...label, color: FAINT, padding: `10px ${PAD}px`, borderTop: `1px solid ${RULE}` }}>{s.team} · {seasonsText(s.seasons)}{s.ranked ? '' : ` · under ${minRank} min a side, not ranked`}</span>
+    </>
   )
 }
 
@@ -172,7 +173,7 @@ function Meter({ n }) {
   )
 }
 
-function Row({ stat, s, mode }) {
+function Row({ stat, s, scale, mode }) {
   const k = stat.key
   const d = s.change[k]
   const tone = toneOf(stat, d)
@@ -184,8 +185,8 @@ function Row({ stat, s, mode }) {
     <div className="ls-row" title={`${stat.label}: ${value(stat, s.on[k])} with his stars (${pctlText(pOn)} pctl), ${value(stat, s.off[k])} without (${pctlText(pOff)} pctl)`}>
       <span style={{ gridArea: 'stat', ...label, color: '#c9c3bc' }}>{stat.label}</span>
       <span className="ls-with" style={{ gridArea: 'with', textAlign: 'right', color: DIM }}>{pctl ? pctlText(pOn) : value(stat, s.on[k])}</span>
-      <span aria-hidden="true" style={{ gridArea: 'strip', display: 'flex', gap: 2 }}>
-        {stripOf(pOn, pOff).map((state, i) => <span key={i} style={{ flex: 1, height: 13, ...stripCell(state, TONES[tone]) }} />)}
+      <span className="ls-strip" aria-hidden="true" style={{ gridArea: 'strip' }}>
+        {stripOf(s.on[k], s.off[k], scale).map((state, i) => <span key={i} style={stripCell(state, TONES[tone])} />)}
       </span>
       <span style={{ gridArea: 'wo', textAlign: 'right', color: INK, fontWeight: 600 }}>{pctl ? pctlText(pOff) : value(stat, s.off[k])}</span>
       <span style={{ gridArea: 'change', textAlign: 'right', fontSize: 15, fontWeight: 600, color: TONES[tone] }}>{pctl ? signed(pOn === null || pOff === null ? null : pOff - pOn) : change(stat, d)}</span>
@@ -197,7 +198,7 @@ function Row({ stat, s, mode }) {
   )
 }
 
-const swatch = style => <span style={{ width: 10, height: 10, flex: 'none', ...style }} />
+const swatch = style => <span style={{ width: 7, height: 11, flex: 'none', ...style }} />
 const legendItem = { display: 'inline-flex', gap: 6, alignItems: 'center' }
 
 export default function Lonestar({ profile: p }) {
@@ -213,7 +214,7 @@ export default function Lonestar({ profile: p }) {
       </SectionHeader>
 
       <div className="ls-frame" style={{ border: `1px solid ${RULE}`, fontFamily: MONO }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: '12px 18px', borderBottom: `1px solid ${RULE}` }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
           <span style={{ ...label, marginRight: 6 }}>Without</span>
           {ls.scenarios.map((x, i) => (
             <Key key={`${x.team}-${x.stars.map(t => t.id).join()}`} on={x === s} onClick={() => setPick(i)}>
@@ -224,11 +225,12 @@ export default function Lonestar({ profile: p }) {
         </div>
 
         <div className="ls-body">
-          <div className="ls-side" style={{ display: 'flex', flexDirection: 'column', gap: 22, padding: 18 }}>
-            <Plot s={s} />
-            <div style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
+          <div className="ls-side" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="ls-side-head" style={{ ...label, display: 'flex', alignItems: 'center', padding: `0 ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>Load × Net · with → without</div>
+            <div style={{ padding: `16px ${PAD}px 14px` }}><Plot s={s} scale={ls.scale} /></div>
+            <div style={{ display: 'flex', borderTop: `1px solid ${RULE}` }}>
               <Move stat={LOAD} name="Load" s={s} />
-              <div style={{ width: 1, background: EDGE }} />
+              <div style={{ width: 1, background: RULE }} />
               <Move stat={NET} name="Net rtg" s={s} />
             </div>
             <Cast p={p} s={s} />
@@ -239,19 +241,19 @@ export default function Lonestar({ profile: p }) {
             <div className="ls-row ls-head">
               <span style={{ gridArea: 'stat', ...label }}>Stat</span>
               <span className="ls-with" style={{ gridArea: 'with', textAlign: 'right', ...label }}>With</span>
-              <span style={{ gridArea: 'strip', display: 'flex', justifyContent: 'space-between', ...label, color: FAINT }}><span>0</span><span className="ls-pctl-word" style={{ color: DIM }}>League pctl</span><span>100</span></span>
+              <span style={{ gridArea: 'strip', display: 'flex', justifyContent: 'space-between', ...label, color: FAINT }}><span>Low</span><span className="ls-range-word" style={{ color: DIM }}>League range</span><span>High</span></span>
               <span style={{ gridArea: 'wo', textAlign: 'right', ...label }}>W/O</span>
               <span style={{ gridArea: 'change', textAlign: 'right', ...label }}>Change</span>
               <span className="ls-rank" style={{ gridArea: 'rank', textAlign: 'right', ...label }}>Rank</span>
             </div>
-            {STATS.map(stat => <Row key={stat.key} stat={stat} s={s} mode={mode} />)}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: '14px 18px', fontSize: 9, letterSpacing: '.1em', color: DIM }}>
+            {STATS.map(stat => <Row key={stat.key} stat={stat} s={s} scale={ls.scale && ls.scale[stat.key]} mode={mode} />)}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: `14px ${PAD}px`, fontSize: 9, letterSpacing: '.1em', color: DIM }}>
               <span style={legendItem}>{swatch(stripCell('with'))}WITH</span>
               <span style={legendItem}>{swatch(stripCell('without'))}WITHOUT</span>
               <span style={legendItem}>{swatch({ background: TONES.good })}BETTER W/O</span>
               <span style={legendItem}>{swatch({ background: TONES.bad })}WORSE W/O</span>
               <span>VOLUME STATS: BLUE MORE, ORANGE LESS</span>
-              <span>1 CELL = 5 PCTL</span>
+              <span>1 CELL = 2% OF THE STAT&apos;S LEAGUE RANGE</span>
               <span>#RANK · AMONG EVERY PLAYER&apos;S CHANGE ({ls.minRank}+ MIN EACH WAY)</span>
             </div>
           </div>

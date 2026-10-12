@@ -224,7 +224,6 @@ export default function PlayerIndex() {
 
   return (
     <main style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 32px 64px' }}>
-      <div className="idx-matrix" aria-hidden="true" style={{ backgroundImage: `url(${asset('banner-bokeh-sm.webp')})` }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderBottom: `1px solid ${EDGE}` }}>
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ flex: 'none', color: DIM }}>
           <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />

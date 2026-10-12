@@ -106,24 +106,6 @@ html { scroll-behavior: smooth; }
   .ls-row .ls-with { display: none !important; }
   .ls-head .ls-range-word { display: none; }
 }
-/* The index's head: the Thinking Basketball bokeh (the bio card's, small) seen through a
-   fine dot grid, like light behind a perforated panel, the full width of the page and
-   fading out under the team logos. Its darks crushed to black and a screen blend, so
-   only its lights show, as lit dots; it drifts very slowly (none with reduced motion).
-   Behind everything, never in the way. */
-.idx-matrix {
-  position: absolute; left: 0; right: 0; top: 0; height: 260px; z-index: -1; pointer-events: none;
-  background-size: 125% auto; background-position: 0% 10%; background-repeat: no-repeat;
-  opacity: .5; mix-blend-mode: screen; filter: contrast(1.5);
-  -webkit-mask-image: radial-gradient(circle, #000 .85px, transparent 1.25px), linear-gradient(#000 30%, transparent 80%);
-  -webkit-mask-size: 4px 4px, 100% 100%;
-  -webkit-mask-composite: source-in;
-  mask-image: radial-gradient(circle, #000 .85px, transparent 1.25px), linear-gradient(#000 30%, transparent 80%);
-  mask-size: 4px 4px, 100% 100%;
-  mask-composite: intersect;
-  animation: idx-drift 180s ease-in-out infinite alternate;
-}
-@keyframes idx-drift { to { background-position: 100% 30%; } }
 .idx-logos-wrap { container-type: inline-size; }
 .idx-logos { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
 @container (min-width: 620px) { .idx-logos { grid-template-columns: repeat(15, 1fr); } }
@@ -233,7 +215,6 @@ a:hover > .lineup-tile > * { filter: none; }
   .hero.loading .hero-bar, .swap-in, .fade-in, .picker-in { animation: none; }
   .jersey-in, .jersey-out { animation: none; }
   .idx-tile .idx-face img, .idx-face .idx-in { transition: none; }
-  .idx-matrix { animation: none; }
   .dist-bar, .dist-mark { transition: none; }
   .team-cell .team-cell-logo { transition: none; }
 }

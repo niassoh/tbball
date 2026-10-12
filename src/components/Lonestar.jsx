@@ -1,7 +1,7 @@
-import { useLayoutEffect, useRef, useState } from 'react'
-import { headshotUrl } from '../api.js'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { fetchLonestar, headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, lastName, namesText, posOf, seasonTag, seasonsText, starsText, toneOf, value } from '../lib/lonestar.js'
+import { STATS, change, lastName, namesText, posOf, seasonTag, seasonsBetween, shortSeason, spanId, spanText, starsText, toneOf, value } from '../lib/lonestar.js'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
@@ -284,21 +284,57 @@ const legendArrow = (color, dir) => {
   return <span style={{ display: 'inline-flex', alignItems: 'center' }}>{dir < 0 && <span style={head(-1, color)} />}{shaft}{dir > 0 && <span style={head(1, color)} />}</span>
 }
 
-// The seasons he has stretches in, oldest first, side by side like RAW | PCTL, each with a
-// lamp lit while it counts: the stretches pool over whichever are lit. One always stays
-// lit, so the last lit one doesn't switch off.
-function Seasons({ seasons, on, toggle }) {
+// The year strip: every season from his first to his last ('14 … '26), cells joined like
+// RAW | PCTL; those he has no stretch in are dim and can't be picked. Click one for that
+// season; drag across, or shift-click, for a span (arrow keys move, shift + arrows
+// stretch). The span's cells are lit with a bar under them, like a loop region. Pointer
+// events on the strip, not its cells, so a drag works by touch too.
+function YearRange({ seasons, from, to, pick }) {
+  const all = seasonsBetween(seasons[0], seasons[seasons.length - 1])
+  const has = new Set(seasons)
+  const anchor = useRef(from)
+  const dragging = useRef(false)
+  const span = (a, b) => (a <= b ? pick(a, b) : pick(b, a))
+  const at = e => {
+    const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-season]')
+    return cell && has.has(cell.dataset.season) ? cell.dataset.season : null
+  }
+  const down = e => {
+    const season = at(e)
+    if (!season) return
+    if (e.shiftKey) return span(anchor.current, season)
+    anchor.current = season
+    dragging.current = true
+    e.currentTarget.setPointerCapture(e.pointerId)
+    pick(season, season)
+  }
+  const move = e => {
+    const season = dragging.current && at(e)
+    if (season) span(anchor.current, season)
+  }
+  const key = e => {
+    const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key]
+    if (!step) return
+    e.preventDefault()
+    const near = (s, d) => seasons[Math.min(seasons.length - 1, Math.max(0, seasons.indexOf(s) + d))]
+    if (e.shiftKey) return step > 0 ? pick(from, near(to, 1)) : pick(near(from, -1), to)
+    const next = near(step > 0 ? to : from, step)
+    anchor.current = next
+    pick(next, next)
+  }
   return (
-    <div role="group" aria-label="Seasons" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
-      {seasons.map((season, i) => {
-        const lit = on.includes(season)
-        const last = lit && on.length === 1
+    <div role="group" aria-label={`Seasons: ${spanText(from, to)}`} tabIndex={0} className="ls-years" onPointerDown={down} onPointerMove={move}
+      onPointerUp={() => { dragging.current = false }} onKeyDown={key}
+      style={{ display: 'flex', border: `1px solid ${EDGE}`, touchAction: 'none', userSelect: 'none', minWidth: 0 }}>
+      {all.map((season, i) => {
+        const lit = season >= from && season <= to
+        const end = season === from || season === to
         return (
-          <button key={season} type="button" aria-pressed={lit} onClick={() => toggle(season)}
-            style={{ height: 28, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 8, background: lit ? '#3a3734' : 'transparent', color: lit ? INK : DIM, border: 'none', borderLeft: i ? `1px solid ${EDGE}` : 'none', fontFamily: MONO, fontSize: 10, fontWeight: lit ? 700 : 500, letterSpacing: '.08em', cursor: last ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
-            <span aria-hidden="true" style={{ width: 6, height: 6, flex: 'none', background: lit ? SOFT : 'transparent', boxShadow: `inset 0 0 0 1px ${lit ? SOFT : FAINT}`, transition: 'background .12s' }} />
-            {season.replace('-', '–')}
-          </button>
+          <span key={season} data-season={season} data-has={has.has(season) ? 1 : 0}
+            style={{ position: 'relative', flex: '1 1 0', minWidth: 26, height: 28, padding: '0 6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderLeft: i ? `1px solid ${EDGE}` : 'none', background: lit ? '#3a3734' : 'transparent', color: lit ? INK : has.has(season) ? DIM : FAINT, fontSize: 10, fontWeight: end ? 700 : 500, letterSpacing: '.04em', cursor: has.has(season) ? 'pointer' : 'default' }}>
+            {shortSeason(season)}
+            {lit && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, background: SOFT }} />}
+          </span>
         )
       })}
     </div>
@@ -307,61 +343,72 @@ function Seasons({ seasons, on, toggle }) {
 
 const starsKey = x => `${x.team}-${x.stars.map(t => t.id).join()}`
 
+// The tab fetches its views (every season and span) when opened; the profile has only
+// his seasons, for the header.
 export default function Lonestar({ profile: p }) {
-  const ls = p.lonestar
-  // The seasons first (his latest alone), then the scenario within them: the API's view
-  // for each mix of his seasons.
-  const seasons = ls.views.filter(v => v.seasons.length === 1).map(v => v.seasons[0]).sort()
-  const viewOf = on => ls.views.find(v => v.seasons.length === on.length && v.seasons.every(x => on.includes(x)))
-  const [on, setOn] = useState(ls.views[0].seasons)
-  const [pick, setPick] = useState(0)
-  const [mode, setMode] = useState('raw')
-  const [plotRef, plotWidth] = useWidth(304)
-  const view = viewOf(on)
-  const scenarios = view.scenarios
-  const s = scenarios[Math.min(pick, scenarios.length - 1)]
-  // Another mix keeps the same stars picked when it has them.
-  const toggle = season => {
-    const next = on.includes(season) ? on.filter(x => x !== season) : [...on, season]
-    if (!next.length) return
-    setOn(next)
-    setPick(Math.max(0, viewOf(next).scenarios.findIndex(x => starsKey(x) === starsKey(s))))
-  }
-  // The picked season and scenario: the animated parts remount on it, so each pick replays.
-  const skey = `${view.id}-${starsKey(s)}`
+  const [doc, setDoc] = useState(null)
+  useEffect(() => {
+    let live = true
+    fetchLonestar(p.slug).then(d => live && setDoc(d), () => live && setDoc(false))
+    return () => { live = false }
+  }, [p.slug])
+  const seasons = p.lonestar.seasons
   return (
     <section id="sec-lonestar" style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
       <SectionHeader title="Lonestar">
-        <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, letterSpacing: '.08em', textTransform: 'uppercase' }}>{p.name} · {seasonsText(ls.seasons)} REG</span>
+        <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, letterSpacing: '.08em', textTransform: 'uppercase' }}>{p.name} · {spanText(seasons[0], seasons[seasons.length - 1])} REG</span>
       </SectionHeader>
+      {doc
+        ? <Frame p={p} ls={doc} />
+        : <div className="ls-frame" style={{ border: `1px solid ${RULE}`, minHeight: 680, display: 'grid', placeItems: 'center', fontFamily: MONO }}><span style={label}>{doc === false ? 'Unavailable' : 'Loading'}</span></div>}
+    </section>
+  )
+}
 
-      <div className="ls-frame" style={{ border: `1px solid ${RULE}`, fontFamily: MONO }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
-          <span style={{ ...label, lineHeight: '30px', marginRight: 6 }}>Seasons</span>
-          <Seasons seasons={seasons} on={on} toggle={toggle} />
-          <span style={{ ...label, lineHeight: '30px', margin: '0 6px 0 14px' }}>Without</span>
-          {/* Every mix's keys in one cell, only the lit mix's showing (index.css
-              .ls-keys-off). With more than one season lit, a stretch from fewer of them
-              (his stars changed between seasons) carries its season, so two keys with
-              the same stars from different seasons can't be mistaken for each other. */}
-          <div style={{ display: 'grid', flex: '1 1 260px', minWidth: 0 }}>
-            {ls.views.map(v => {
-              const teams = new Set(v.scenarios.map(x => x.team))
-              return (
-                <div key={v.id} aria-hidden={v !== view} className={v === view ? undefined : 'ls-keys-off'} style={{ gridArea: '1 / 1', display: 'flex', flexWrap: 'wrap', alignContent: 'flex-start', gap: 8 }}>
-                  {v.scenarios.map((x, i) => (
-                    <Key key={starsKey(x)} on={x === s} onClick={() => setPick(i)}>
-                      {namesText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}{x.seasons.length < v.seasons.length ? ` · ${seasonTag(x.seasons)}` : ''}
-                    </Key>
-                  ))}
-                </div>
-              )
-            })}
-          </div>
-          <span style={{ marginLeft: 'auto' }}><ModeSwitch mode={mode} setMode={setMode} /></span>
+function Frame({ p, ls }) {
+  // The span first (his latest season alone), then the scenario within it.
+  const [span, setSpan] = useState({ from: ls.views[0].id, to: ls.views[0].id })
+  const [pick, setPick] = useState(0)
+  const [mode, setMode] = useState('raw')
+  const [plotRef, plotWidth] = useWidth(304)
+  const viewOf = (from, to) => ls.views.find(v => v.id === spanId(from, to))
+  const view = viewOf(span.from, span.to)
+  const scenarios = view.scenarios
+  const s = scenarios[Math.min(pick, scenarios.length - 1)]
+  const teams = new Set(scenarios.map(x => x.team))
+  // Another span keeps the same stars picked when it has them.
+  const choose = (from, to) => {
+    const next = viewOf(from, to)
+    if (!next || next === view) return
+    setSpan({ from, to })
+    setPick(Math.max(0, next.scenarios.findIndex(x => starsKey(x) === starsKey(s))))
+  }
+  // The picked span and scenario: the animated parts remount on it, so each pick replays.
+  const skey = `${view.id}-${starsKey(s)}`
+  const n = view.seasons.length
+  return (
+    <div className="ls-frame" style={{ border: `1px solid ${RULE}`, fontFamily: MONO }}>
+      {/* Two rows of fixed height, so the module's never changes: the span, then the
+          stars (on one line, scrolling sideways when a span has many teams). A stretch
+          from fewer of the span's seasons (his stars changed) carries its seasons. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
+        <span style={{ ...label, marginRight: 6 }}>Seasons</span>
+        <YearRange seasons={ls.seasons} from={span.from} to={span.to} pick={choose} />
+        <span style={{ ...label, color: MID, marginLeft: 6, whiteSpace: 'nowrap' }}>{spanText(span.from, span.to)}{n > 1 ? ` · ${n} seasons` : ''}</span>
+        <span style={{ marginLeft: 'auto' }}><ModeSwitch mode={mode} setMode={setMode} /></span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
+        <span style={{ ...label, marginRight: 6 }}>Without</span>
+        <div className="ls-keys" style={{ display: 'flex', gap: 8, overflowX: 'auto', minWidth: 0, flex: 1 }}>
+          {scenarios.map((x, i) => (
+            <Key key={starsKey(x)} on={x === s} onClick={() => setPick(i)}>
+              {namesText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}{x.seasons.length < n ? ` · ${seasonTag(x.seasons)}` : ''}
+            </Key>
+          ))}
         </div>
+      </div>
 
-        <div className="ls-body">
+      <div className="ls-body">
           <div className="ls-side" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="ls-plot" style={{ padding: `20px ${PAD}px 12px` }}><div ref={plotRef}><Plot s={s} width={plotWidth} skey={skey} /></div></div>
             <Cast key={skey} p={p} s={s} />
@@ -385,7 +432,6 @@ export default function Lonestar({ profile: p }) {
             </div>
           </div>
         </div>
-      </div>
-    </section>
+    </div>
   )
 }

@@ -85,17 +85,21 @@ html { scroll-behavior: smooth; }
 .ls-main { display: flex; flex-direction: column; }
 .ls-main > .ls-row:not(.ls-head) { flex: 1 0 auto; }
 .ls-plot { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
-/* The keys of the season mixes not lit: hidden in place, so the row is as tall as the
-   most keys and the module's height holds as seasons switch; gone once the panel stacks,
-   where the empty space would cost more (!important over their inline display). */
-.ls-keys-off { visibility: hidden; }
+/* The year strip: a pickable season lightens under the pointer; the strip shows focus for
+   its arrow keys. The stars' row scrolls sideways without a scrollbar. Narrow, the cells
+   close up to fit thirteen seasons. */
+.ls-years [data-has="1"]:hover { color: #ece8e3 !important; }
+.ls-years:focus-visible { outline: 1px solid #b8b2ab; outline-offset: 2px; }
+.ls-keys { scrollbar-width: none; }
+.ls-keys::-webkit-scrollbar { display: none; }
+.ls-keys > * { flex: none; }
 @container (max-width: 900px) {
   .ls-body { grid-template-columns: minmax(0, 1fr); }
   .ls-side { border-right: none; border-bottom: 1px solid #3d3a37; }
-  .ls-keys-off { display: none !important; }
 }
 @container (max-width: 560px) {
   .ls-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ls-years > span { min-width: 22px !important; padding: 0 2px !important; }
 }
 .ls-row { display: grid; grid-template-columns: 112px 52px minmax(150px, 1fr) 52px 64px; grid-template-areas: "stat with strip wo change"; align-items: center; column-gap: 14px; min-height: 34px; padding: 0 18px; border-bottom: 1px solid #3d3a37; font-size: 12px; font-variant-numeric: tabular-nums; }
 .ls-row.ls-head { min-height: 34px; }

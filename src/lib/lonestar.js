@@ -48,8 +48,19 @@ export const starsText = stars => stars.map(s => last(s.name)).join(' & ')
 // In full, for the keys: "Jamal Murray & Jonas Valančiūnas".
 export const namesText = stars => stars.map(s => s.name || '?').join(' & ')
 
-// "2024–25 and 2025–26" / "2025–26"
-export const seasonsText = seasons => seasons.map(s => s.replace('-', '–')).join(' and ')
+// Seasons as the year strip and readout write them: "'14" for 2013-14 (the year it ends,
+// as the site writes career spans), every season from one to another, a span
+// ("2018–19 → 2020–21", one season alone), and a view's id ("2018-19..2020-21").
+export const shortSeason = s => `’${s.slice(5)}`
+export const seasonsBetween = (first, last) => Array.from({ length: Number(last.slice(0, 4)) - Number(first.slice(0, 4)) + 1 }, (_, i) => {
+  const y = Number(first.slice(0, 4)) + i
+  return `${y}-${String(y + 1).slice(2)}`
+})
+export const spanText = (from, to) => (from === to ? from : `${from} → ${to}`).replace(/-/g, '–')
+export const spanId = (from, to) => (from === to ? from : `${from}..${to}`)
 
-// A key's season tag, for a stretch covering fewer seasons than the lit ones: "25–26".
-export const seasonTag = seasons => seasons.map(s => s.slice(2).replace('-', '–')).join(' ')
+// A key's season tag, for a stretch covering fewer seasons than the span on show: "25–26",
+// or for several "’19–’21".
+export const seasonTag = seasons => (seasons.length === 1
+  ? seasons[0].slice(2).replace('-', '–')
+  : `${shortSeason(seasons[0])}–${shortSeason(seasons[seasons.length - 1])}`)

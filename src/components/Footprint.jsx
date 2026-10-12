@@ -1,14 +1,18 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { fetchFootprint } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { UNITS, bar, seasonsOf, seasonsText, shade, strengthOf, swingText, toneOf, yearsText } from '../lib/footprint.js'
+import { UNITS, bar, shade, strengthOf, swingText, toneOf } from '../lib/footprint.js'
+import { spanId, spanText } from '../lib/seasons.js'
 import { useSeasonType } from '../useSeasonType.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
+import SeasonPicker from './SeasonPicker.jsx'
 import SectionHeader from './SectionHeader.jsx'
 
 // The Footprint tab: how his team's play changes with him on the floor vs. off it, from
-// his teams' five-man lineup totals over his last two regular seasons (thinking-bball
-// lib/footprint.js), laid out as the Claude Design "Footprint" module. Each tile is a
+// his teams' five-man lineup totals in a regular season or a span of them, picked as in
+// the Lonestar tab (thinking-bball lib/footprint.js), laid out as the Claude Design
+// "Footprint" module. Each tile is a
 // team stat with him on minus off; those that clear the noise and stand out against the
 // league's swings are lit (blue for a lift, orange for a cost, ink for a style stat, as
 // strong as the evidence), and their WHY says whether the swing survives the teammates
@@ -91,7 +95,7 @@ function FootprintTile({ e }) {
   )
 }
 
-function Method({ fp }) {
+function Method({ fp, from, to }) {
   const [open, setOpen] = useState(false)
   return (
     <div style={{ borderTop: `1px solid ${RULE}`, paddingTop: 10, fontFamily: MONO }}>
@@ -101,9 +105,9 @@ function Method({ fp }) {
       {open && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, paddingTop: 12, fontSize: 11, lineHeight: 1.6, color: '#c9c3bc' }}>
           <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <li>Raw on/off: each stat is his team&apos;s with him on the floor minus with him off, summed over every five-man lineup his teams used in {seasonsText(seasonsOf(fp))} (regular season).</li>
+            <li>Raw on/off: each stat is his team&apos;s with him on the floor minus with him off, summed over every five-man lineup his teams used in {spanText(from, to)} (regular season).</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
-            <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat.</li>
+            <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons.</li>
             <li>A lit tile is checked against the teammates whose minutes move with his: the one he plays with most and the one who takes his minutes. WHY says whether the swing holds without them.</li>
             <li>Rim scoring and Rim protection count points at the rim per 100 possessions, so getting there and finishing are one number.</li>
           </ul>
@@ -125,9 +129,34 @@ function Method({ fp }) {
   )
 }
 
+// The tab fetches its views (every season and span) when opened; the profile has only his
+// seasons, for the header.
 export default function Footprint({ profile: p }) {
-  const fp = p.footprint
-  const seasons = seasonsOf(fp)
+  const [doc, setDoc] = useState(null)
+  useEffect(() => {
+    let live = true
+    fetchFootprint(p.slug).then(d => live && setDoc(d), () => live && setDoc(false))
+    return () => { live = false }
+  }, [p.slug])
+  const seasons = p.footprint.seasons
+  return (
+    <section id="sec-footprint" style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
+      <SectionHeader title="Footprint">
+        <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, letterSpacing: '.08em', textTransform: 'uppercase' }}>{p.name} · {spanText(seasons[0], seasons[seasons.length - 1])} REG</span>
+      </SectionHeader>
+      {doc
+        ? <Views p={p} doc={doc} />
+        : <div style={{ border: `1px solid ${RULE}`, minHeight: 600, display: 'grid', placeItems: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }}>{doc === false ? 'Unavailable' : 'Loading'}</div>}
+    </section>
+  )
+}
+
+// The span on show (his latest season alone at first) and its tiles.
+function Views({ p, doc }) {
+  const [span, setSpan] = useState({ from: doc.views[0].id, to: doc.views[0].id })
+  const viewOf = (from, to) => doc.views.find(v => v.id === spanId(from, to))
+  const fp = viewOf(span.from, span.to)
+  const pick = (from, to) => { if (viewOf(from, to)) setSpan({ from, to }) }
   const sections = [
     { side: 'off', title: 'OFFENSE' },
     { side: 'def', title: 'DEFENSE' }
@@ -137,12 +166,12 @@ export default function Footprint({ profile: p }) {
   const defSwing = fp.drtg.off - fp.drtg.on
   const legendKey = { display: 'inline-flex', gap: 6, alignItems: 'center' }
   return (
-    <section id="sec-footprint" style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
-      <SectionHeader title="Footprint">
-        <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, letterSpacing: '.08em', textTransform: 'uppercase' }}>{p.name} · {seasonsText(seasons)} REG</span>
-      </SectionHeader>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'baseline', fontFamily: MONO }}>
-        <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#a8a29c', textWrap: 'pretty' }}>Team footprint with {lastName(p.name)} ON vs OFF the court ({yearsText(seasons)})</p>
+    <>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' }}>
+          <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} />
+          <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#a8a29c', textWrap: 'pretty' }}>Team footprint with {lastName(p.name)} ON vs OFF the court</p>
+        </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title="His team's points per 100 possessions scored (OFF) and kept off the board (DEF), with him on minus off">
           <span><span style={{ color: DIM }}>OFF</span> <span style={{ color: offSwing >= 0 ? TONES.good : TONES.bad }}>{swingText(offSwing)}</span></span>
           <span><span style={{ color: DIM }}>DEF</span> <span style={{ color: defSwing >= 0 ? TONES.good : TONES.bad }}>{swingText(defSwing)}</span></span>
@@ -167,7 +196,7 @@ export default function Footprint({ profile: p }) {
         <span style={legendKey}>DIM · WITHIN NOISE OR COMMON</span>
         <span style={legendKey}>BAR · SIZE AMONG PLAYERS&apos; SWINGS</span>
       </div>
-      <Method fp={fp} />
-    </section>
+      <Method fp={fp} from={span.from} to={span.to} />
+    </>
   )
 }

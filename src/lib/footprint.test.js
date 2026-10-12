@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { bar, seasonsOf, seasonsText, shade, strengthOf, swingText, toneOf, yearsText } from './footprint.js'
+import { bar, shade, strengthOf, swingText, toneOf } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -29,12 +29,5 @@ describe('footprint', () => {
     expect(swingText(-2)).toBe('−2.0')
     expect(swingText(-0.04)).toBe('0.0')
     expect(swingText(null)).toBe('—')
-  })
-
-  test('seasons and years', () => {
-    expect(seasonsOf({ spans: [{ season: '2025-26' }, { season: '2024-25' }, { season: '2025-26' }] })).toEqual(['2024-25', '2025-26'])
-    expect(seasonsText(['2024-25', '2025-26'])).toBe('2024–25 and 2025–26')
-    expect(yearsText(['2025-26', '2024-25'])).toBe('2024–2026')
-    expect(yearsText(['2025-26'])).toBe('2025–2026')
   })
 })

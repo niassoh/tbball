@@ -24,7 +24,8 @@ const pre = playoffs => (playoffs ? 'playoffs/' : '')
 
 export const fetchProfile = (slug, playoffs = false) => getJson(api(`${pre(playoffs)}profile/${encodeURIComponent(slug)}`, `${pre(playoffs)}profile/${encodeURIComponent(slug)}.json`))
 export const fetchPlayers = () => getJson(api('profiles', 'profiles.json'))
-// The Lonestar tab's views (every season and span), fetched when the tab opens.
+// The Footprint and Lonestar tabs' views (every season and span), fetched when the tab opens.
+export const fetchFootprint = slug => getJson(api(`footprint/${encodeURIComponent(slug)}`, `footprint/${encodeURIComponent(slug)}.json`))
 export const fetchLonestar = slug => getJson(api(`lonestar/${encodeURIComponent(slug)}`, `lonestar/${encodeURIComponent(slug)}.json`))
 // Every team with its nickname and depth chart (the team switcher). Fetched once per
 // page load; the switcher's triggers start it on hover so the grid is ready on click.

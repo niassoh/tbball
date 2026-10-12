@@ -25,15 +25,3 @@ export const swingText = v => (v === null || v === undefined ? '—' : Math.abs(
 
 // What each kind of stat's swing is counted in.
 export const UNITS = { pct: 'PCT PTS', pts: 'PTS/100', pace: 'POSS/48' }
-
-// The seasons a footprint covers, from its spans (a traded player has two in a season).
-export const seasonsOf = fp => [...new Set(fp.spans.map(s => s.season))].sort()
-
-// "2024–25 and 2025–26"
-export const seasonsText = seasons => seasons.map(s => s.replace('-', '–')).join(' and ')
-
-// The calendar years the seasons cover: "2024–2026" for 2024-25 and 2025-26.
-export const yearsText = seasons => {
-  const sorted = [...seasons].sort()
-  return `${sorted[0].slice(0, 4)}–${Number(sorted[sorted.length - 1].slice(0, 4)) + 1}`
-}

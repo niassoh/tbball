@@ -82,10 +82,10 @@ function Plot({ s, scale }) {
       <rect x={box.l} y={box.t} width={right - box.l} height={bottom - box.t} fill="none" stroke={RULE} />
       <line x1={midX} x2={midX} y1={box.t} y2={bottom} stroke={EDGE} strokeDasharray="1 3" />
       <line x1={box.l} x2={right} y1={midY} y2={midY} stroke={EDGE} strokeDasharray="1 3" />
-      <text x={box.l} y={box.t - 5} style={t}>LESS LOAD · BETTER</text>
-      <text x={right} y={box.t - 5} textAnchor="end" style={t}>MORE LOAD · BETTER</text>
-      <text x={box.l} y={bottom + 11} style={t}>LESS LOAD · WORSE</text>
-      <text x={right} y={bottom + 11} textAnchor="end" style={t}>MORE LOAD · WORSE</text>
+      <text x={box.l} y={box.t - 5} style={t}>LESS LOAD · BETTER NET</text>
+      <text x={right} y={box.t - 5} textAnchor="end" style={t}>MORE LOAD · BETTER NET</text>
+      <text x={box.l} y={bottom + 11} style={t}>LESS LOAD · WORSE NET</text>
+      <text x={right} y={bottom + 11} textAnchor="end" style={t}>MORE LOAD · WORSE NET</text>
       <text x={box.l - 5} y={box.t + 6} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[2])}</text>
       <text x={box.l - 5} y={midY + 2.5} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(Y[1])}</text>
       <text x={box.l - 5} y={bottom} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[0])}</text>

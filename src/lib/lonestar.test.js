@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, centered, change, fadeOf, litOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
+import { STATS, centered, change, fadeOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -25,13 +25,6 @@ describe('lonestar', () => {
     expect(toneOf(stat('pa3_75'), -0.03)).toBe('neutral')
     expect(toneOf(stat('rts'), 0.0004)).toBe('neutral')
     expect(toneOf(stat('net'), null)).toBe('neutral')
-  })
-
-  test('the rank meter lights all for #1 and none for the last', () => {
-    expect(litOf({ rank: 1, of: 200 })).toBe(10)
-    expect(litOf({ rank: 200, of: 200 })).toBe(0)
-    expect(litOf({ rank: 100, of: 199 })).toBe(5)
-    expect(litOf(null)).toBe(0)
   })
 
   test("a value's place on its stat's league range is linear and clamped", () => {

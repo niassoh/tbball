@@ -78,9 +78,6 @@ export const fadeOf = states => {
   return states.map((state, i) => (state === 'between' && a >= 0 && b >= 0 ? Math.abs(i - a) / Math.abs(b - a) : null))
 }
 
-// How many of a 10-segment meter a rank lights: all for #1, none for the last.
-export const litOf = r => (r && r.of > 1 ? Math.round(10 * (1 - (r.rank - 1) / (r.of - 1))) : 0)
-
 // The stars of a scenario as words: "Murray", "Murray & Valančiūnas".
 const last = name => (name || '?').split(' ').slice(1).join(' ') || name || '?'
 export const lastName = last

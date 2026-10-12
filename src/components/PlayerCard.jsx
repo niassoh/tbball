@@ -13,7 +13,7 @@ import FootprintGlyph from './FootprintGlyph.jsx'
 // the table is sorted by, then BPM, Load and rTS% as room allows) with their percentiles;
 // his footprint as the Footprint tab's icons, those whose swing clears the noise lit in
 // its colour (hover one for its swing); his percentiles across the profile's headline
-// stats; two small charts, his career (each season on Load and BPM, joined in order) and
+// stats; two small charts, his career (his BPM each season against the league's) and
 // Lonestar's that season (Load and Net with both his stars on and off); and his best and
 // most-used two- and three-man units that season. The career and units come from his
 // profile, Lonestar from its own document, both fetched on opening. Its charts move: the
@@ -31,13 +31,13 @@ const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%,
 const CARD_STATS = ['BPM', 'Net On/Off', 'Load', 'Box Creation', 'Pts / 75', 'rTS%', 'Passer Rating', 'cTOV%', 'DRTG On', 'Def FGA Diff%']
 // The two small charts' frame (a viewBox; they scale to the card's half-width). Lonestar's
 // axes are its tab's (Load 0–80 split at 40, Net −25 to +25 split at 0); the career's run
-// over his own seasons, at least MIN_SPAN wide, BPM split at 0 when it's in view.
+// over his seasons and his BPM, at least MIN_SPAN tall.
 const CW = 236
 const CH = 108
 const CM = { l: 20, r: 6, t: 8, b: 16 }
 const LOAD = [0, 80]
 const NET_AXIS = [-25, 25]
-const MIN_SPAN = { load: 16, bpm: 6 }
+const MIN_SPAN = { bpm: 6 }
 const fit = (vs, least) => {
   const lo = Math.min(...vs)
   const hi = Math.max(...vs)
@@ -93,23 +93,23 @@ function Footprint({ doc, player: pl, group }) {
   )
 }
 
-// A small chart's frame: its box, its split lines (where given and in view), each axis's
-// name and its ends' values.
+// A small chart's frame: its box, its split lines (where given and in view), the across
+// axis's labels (its ends and name), and the up axis's name and ends' values.
 const frac = (axis, v) => Math.max(0, Math.min(1, (v - axis[0]) / (axis[1] - axis[0])))
 const px = (axis, v) => CM.l + frac(axis, v) * (CW - CM.l - CM.r)
 const py = (axis, v) => CM.t + (1 - frac(axis, v)) * (CH - CM.t - CM.b)
 const tiny = { fontFamily: MONO, fontSize: 7, letterSpacing: '.08em', fill: FAINT }
 const end = v => `${v > 0 ? '+' : ''}${Math.round(v)}`.replace('-', '−')
-function Frame({ x, y, splitX, splitY, yName, children }) {
+function Frame({ x, y, splitX, splitY, xLabels, yName, children }) {
   const inside = (axis, v) => v !== undefined && v > axis[0] && v < axis[1]
   return (
     <svg viewBox={`0 0 ${CW} ${CH}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
       <rect x={CM.l} y={CM.t} width={CW - CM.l - CM.r} height={CH - CM.t - CM.b} fill="none" stroke={RULE} />
       {inside(x, splitX) && <line x1={px(x, splitX)} x2={px(x, splitX)} y1={CM.t} y2={CH - CM.b} stroke={EDGE} strokeDasharray="1 3" />}
       {inside(y, splitY) && <line x1={CM.l} x2={CW - CM.r} y1={py(y, splitY)} y2={py(y, splitY)} stroke={EDGE} strokeDasharray="1 3" />}
-      <text x={CM.l} y={CH - 5} style={tiny}>{Math.round(x[0])}</text>
-      <text x={(CM.l + CW - CM.r) / 2} y={CH - 5} textAnchor="middle" style={tiny}>LOAD →</text>
-      <text x={CW - CM.r} y={CH - 5} textAnchor="end" style={tiny}>{Math.round(x[1])}</text>
+      <text x={CM.l} y={CH - 5} style={tiny}>{xLabels[0]}</text>
+      <text x={(CM.l + CW - CM.r) / 2} y={CH - 5} textAnchor="middle" style={tiny}>{xLabels[1]}</text>
+      <text x={CW - CM.r} y={CH - 5} textAnchor="end" style={tiny}>{xLabels[2]}</text>
       <text x={CM.l - 4} y={CM.t + 6} textAnchor="end" style={tiny}>{end(y[1])}</text>
       <text transform={`translate(${CM.l - 6} ${(CM.t + CH - CM.b) / 2}) rotate(-90)`} textAnchor="middle" style={tiny}>{yName}</text>
       <text x={CM.l - 4} y={CH - CM.b} textAnchor="end" style={tiny}>{end(y[0])}</text>
@@ -118,30 +118,31 @@ function Frame({ x, y, splitX, splitY, yName, children }) {
   )
 }
 
-// His career: each season on Load and BPM, joined in order, the season on show filled
-// and named (the first and last named too).
+// His career: his BPM each season, a dot in its percentile's colour (the season on show a
+// square, its BPM shown), against the league's average BPM (the dashed line; BPM is set
+// so the league averages 0 each season). The dots pop in season by season.
 function Career({ profile: p, season }) {
-  const raw = p.seasons
-    .map((x, i) => ({ season: x.season, load: p.stats.Load.vals[i], bpm: p.stats.BPM.vals[i] }))
-    .filter(x => x.load && x.bpm)
-  if (!raw.length) return <span style={{ ...label, color: FAINT }}>—</span>
-  const xs = fit(raw.map(x => x.load.n), MIN_SPAN.load)
-  const ys = fit(raw.map(x => x.bpm.n), MIN_SPAN.bpm)
-  const pts = raw.map(x => ({ season: x.season, x: px(xs, x.load.n), y: py(ys, x.bpm.n) }))
-  const d = pts.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(1)} ${q.y.toFixed(1)}`).join(' ')
-  const length = pts.reduce((a, q, i) => (i ? a + Math.hypot(q.x - pts[i - 1].x, q.y - pts[i - 1].y) : 0), 0)
+  const s = p.stats.BPM
+  const pts = p.seasons.map((x, i) => ({ season: x.season, v: s.vals[i], lg: s.lg[i] ?? 0 })).filter(x => x.v)
+  if (!pts.length) return <span style={{ ...label, color: FAINT }}>—</span>
+  const xs = [-0.5, pts.length - 0.5]
+  const ys = fit([...pts.map(x => x.v.n), ...pts.map(x => x.lg)], MIN_SPAN.bpm)
+  // The league's average across the chart (BPM's is 0 every season).
+  const lg = py(ys, pts.reduce((a, q) => a + q.lg, 0) / pts.length)
+  const yy = q => `’${q.season.slice(5)}`
   return (
-    <Frame x={xs} y={ys} splitY={0} yName="BPM">
-      {pts.length > 1 && <path className="ls-draw" d={d} fill="none" stroke={DIM} strokeWidth={1.25} style={{ strokeDasharray: length, strokeDashoffset: length }} />}
+    <Frame x={xs} y={ys} xLabels={[yy(pts[0]), 'SEASON →', yy(pts[pts.length - 1])]} yName="BPM">
+      <line x1={CM.l} x2={CW - CM.r} y1={lg} y2={lg} stroke={DIM} strokeDasharray="2 3" />
+      <text x={CW - CM.r - 2} y={lg - 3} textAnchor="end" style={tiny}>LG AVG</text>
       {pts.map((q, i) => {
         const on = q.season === season
-        const named = on || i === 0 || i === pts.length - 1
+        const [x, y] = [px(xs, i), py(ys, q.v.n)]
         return (
           <g key={q.season}>
             {on
-              ? <rect x={q.x - 3.5} y={q.y - 3.5} width={7} height={7} fill={INK} />
-              : <circle cx={q.x} cy={q.y} r={2} fill={FAINT} />}
-            {named && <text x={q.x + 5} y={q.y - 4} style={{ ...tiny, fill: on ? INK : DIM }}>’{q.season.slice(5)}</text>}
+              ? <rect className="ls-pop" x={x - 3.5} y={y - 3.5} width={7} height={7} fill={INK} style={{ animationDelay: `${i * 50}ms` }} />
+              : <circle className="ls-pop" cx={x} cy={y} r={3} fill={q.v.p === null ? FAINT : col(q.v.p)} style={{ animationDelay: `${i * 50}ms` }} />}
+            {on && <text x={x} y={y - 7} textAnchor="middle" style={{ ...tiny, fill: INK }}>{fmt(s, q.v.n)}</text>}
           </g>
         )
       })}
@@ -159,7 +160,7 @@ function Alone({ scenario: s }) {
   const length = Math.hypot(bx - ax, by - ay)
   const angle = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI
   return (
-    <Frame x={LOAD} y={NET_AXIS} splitX={40} splitY={0} yName="NET">
+    <Frame x={LOAD} y={NET_AXIS} splitX={40} splitY={0} xLabels={['0', 'LOAD →', '80']} yName="NET">
       {length > 6 && (
         <>
           <line className="ls-draw" x1={ax} y1={ay} x2={bx} y2={by} stroke={color} strokeWidth={1.25} style={{ strokeDasharray: length, strokeDashoffset: length }} />
@@ -283,7 +284,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
 
       <div style={{ display: 'grid', gridTemplateColumns: playoffs ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
         <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-          <span style={{ ...label, color: '#b8b2ab' }}>Career <span style={{ color: FAINT }}>· load × bpm</span></span>
+          <span style={{ ...label, color: '#b8b2ab' }}>Career <span style={{ color: FAINT }}>· bpm vs league</span></span>
           {profile ? <Career profile={profile} season={season} /> : <span style={{ ...label, color: FAINT, height: 96 }}>{profile === false ? 'Unavailable' : 'Loading'}</span>}
         </div>
         {!playoffs && (

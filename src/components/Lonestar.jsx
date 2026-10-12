@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, lastName, litOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
+import { STATS, centered, change, lastName, litOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
@@ -52,38 +52,48 @@ function ModeSwitch({ mode, setMode }) {
   )
 }
 
-// Load against Net on their league ranges, split into quadrants at the league medians:
-// a hollow square where he is with the stars, a filled one without them, joined in the
-// colour of his Net change.
+// Load against Net on fixed axes, the same for every player: each centred on its league
+// median with one linear scale (lib centered), a little headroom past the league's ends
+// so its extremes stay off the frame, the median lines crossing in the middle. The
+// quadrant names sit outside the frame, above and below it. A hollow square where he is
+// with the stars, a filled one without them, joined in the colour of his Net change.
+const HEADROOM = 1.08
+const roomy = r => r && [r[1] - (r[1] - r[0]) * HEADROOM, r[1], r[1] + (r[2] - r[1]) * HEADROOM]
 function Plot({ s, scale }) {
   const W = 264
-  const H = 214
-  const box = { l: 22, r: 2, t: 2, b: 26 }
+  const H = 236
+  const box = { l: 22, r: 2, t: 12, b: 38 }
   const right = W - box.r
   const bottom = H - box.b
-  const x = v => box.l + posOf(scale.load, v) * (right - box.l)
-  const y = v => box.t + (1 - posOf(scale.net, v)) * (bottom - box.t)
+  const X = roomy(centered(scale.load))
+  const Y = roomy(centered(scale.net))
+  const x = v => box.l + posOf(X, v) * (right - box.l)
+  const y = v => box.t + (1 - posOf(Y, v)) * (bottom - box.t)
   const ok = v => v !== null && v !== undefined
   const a = [s.on.load, s.on.net]
   const b = [s.off.load, s.off.net]
   const tone = toneOf(NET, s.change.net)
   const t = { fontFamily: MONO, fontSize: 7, letterSpacing: '.08em', fill: FAINT }
-  if (!scale.load || !scale.net) return null
+  if (!X || !Y) return null
+  const midX = (box.l + right) / 2
+  const midY = (box.t + bottom) / 2
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={`Load ${value(LOAD, a[0])} and Net ${value(NET, a[1])} with his stars, ${value(LOAD, b[0])} and ${value(NET, b[1])} without`} style={{ display: 'block', overflow: 'visible' }}>
       <rect x={box.l} y={box.t} width={right - box.l} height={bottom - box.t} fill="none" stroke={RULE} />
-      <line x1={x(scale.load[1])} x2={x(scale.load[1])} y1={box.t} y2={bottom} stroke={EDGE} strokeDasharray="1 3" />
-      <line x1={box.l} x2={right} y1={y(scale.net[1])} y2={y(scale.net[1])} stroke={EDGE} strokeDasharray="1 3" />
-      <text x={box.l + 6} y={box.t + 12} style={t}>LESS LOAD · BETTER</text>
-      <text x={right - 6} y={box.t + 12} textAnchor="end" style={t}>MORE LOAD · BETTER</text>
-      <text x={box.l + 6} y={bottom - 6} style={t}>LESS LOAD · WORSE</text>
-      <text x={right - 6} y={bottom - 6} textAnchor="end" style={t}>MORE LOAD · WORSE</text>
-      <text x={box.l - 5} y={box.t + 6} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(scale.net[2])}</text>
-      <text x={box.l - 5} y={bottom} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(scale.net[0])}</text>
-      <text transform={`translate(${box.l - 12} ${(box.t + bottom) / 2}) rotate(-90)`} textAnchor="middle" style={{ ...t, fill: DIM }}>NET</text>
-      <text x={box.l} y={bottom + 12} style={{ ...t, fill: DIM }}>{Math.round(scale.load[0])}</text>
-      <text x={(box.l + right) / 2} y={bottom + 12} textAnchor="middle" style={{ ...t, fill: DIM }}>LOAD</text>
-      <text x={right} y={bottom + 12} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(scale.load[2])}</text>
+      <line x1={midX} x2={midX} y1={box.t} y2={bottom} stroke={EDGE} strokeDasharray="1 3" />
+      <line x1={box.l} x2={right} y1={midY} y2={midY} stroke={EDGE} strokeDasharray="1 3" />
+      <text x={box.l} y={box.t - 5} style={t}>LESS LOAD · BETTER</text>
+      <text x={right} y={box.t - 5} textAnchor="end" style={t}>MORE LOAD · BETTER</text>
+      <text x={box.l} y={bottom + 11} style={t}>LESS LOAD · WORSE</text>
+      <text x={right} y={bottom + 11} textAnchor="end" style={t}>MORE LOAD · WORSE</text>
+      <text x={box.l - 5} y={box.t + 6} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[2])}</text>
+      <text x={box.l - 5} y={midY + 2.5} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(Y[1])}</text>
+      <text x={box.l - 5} y={bottom} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[0])}</text>
+      <text transform={`translate(${box.l - 14} ${(box.t + midY) / 2}) rotate(-90)`} textAnchor="middle" style={{ ...t, fill: DIM }}>NET</text>
+      <text x={box.l} y={bottom + 26} style={{ ...t, fill: DIM }}>{Math.round(X[0])}</text>
+      <text x={midX} y={bottom + 26} textAnchor="middle" style={{ ...t, fill: DIM }}>{Math.round(X[1])}</text>
+      <text x={(box.l + midX) / 2} y={bottom + 26} textAnchor="middle" style={{ ...t, fill: DIM }}>LOAD</text>
+      <text x={right} y={bottom + 26} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(X[2])}</text>
       {ok(a[0]) && ok(a[1]) && ok(b[0]) && ok(b[1]) && <line x1={x(a[0])} y1={y(a[1])} x2={x(b[0])} y2={y(b[1])} stroke={tone === 'neutral' ? DIM : TONES[tone]} strokeWidth="2" />}
       {ok(a[0]) && ok(a[1]) && <rect x={x(a[0]) - 4.5} y={y(a[1]) - 4.5} width="9" height="9" fill={BG} stroke={MID} strokeWidth="1.5" />}
       {ok(b[0]) && ok(b[1]) && <rect x={x(b[0]) - 5.5} y={y(b[1]) - 5.5} width="11" height="11" fill={SOFT} />}
@@ -116,18 +126,20 @@ function Portrait({ who, team, on, size }) {
 
 function Cast({ p, s }) {
   const cast = [{ who: p, on: true, size: 78 }, ...s.stars.map(t => ({ who: t, on: false, size: 58 }))]
-  const tag = (who, on) => (
-    <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <span style={{ ...label, color: on ? INK : MID, whiteSpace: 'nowrap' }}>{lastName(who.name)}</span>
+  // A tag is as wide as its portrait, a long name wrapping (at a hyphen, else anywhere),
+  // so the cast always fits the panel: GILGEOUS-ALEXANDER and two stars included.
+  const tag = (who, on, size) => (
+    <span style={{ display: 'flex', flexDirection: 'column', gap: 2, width: size }}>
+      <span style={{ ...label, color: on ? INK : MID, overflowWrap: 'anywhere', lineHeight: 1.35 }}>{lastName(who.name)}</span>
       <span style={{ ...label, color: on ? DIM : FAINT }}>{on ? 'On' : 'Off'}</span>
     </span>
   )
   return (
     <div aria-label={`${p.name} without ${starsText(s.stars)}`}
-      style={{ display: 'grid', gridTemplateRows: 'auto 80px', gridAutoFlow: 'column', justifyContent: 'start', columnGap: 16, rowGap: 6, padding: `14px ${PAD}px 0`, borderTop: `1px solid ${RULE}` }}>
+      style={{ display: 'grid', gridTemplateRows: 'auto 80px', gridAutoFlow: 'column', justifyContent: 'start', alignItems: 'start', columnGap: 12, rowGap: 6, padding: `14px ${PAD}px 0`, borderTop: `1px solid ${RULE}` }}>
       {cast.flatMap((c, i) => [
         ...(i === 1 ? [<span key="wo-tag" />, <span key="wo" style={{ ...label, color: FAINT, alignSelf: 'center' }}>W/O</span>] : []),
-        <span key={`t${i}`}>{tag(c.who, c.on)}</span>,
+        <span key={`t${i}`}>{tag(c.who, c.on, c.size)}</span>,
         <Portrait key={`p${i}`} who={c.who} team={s.team} on={c.on} size={c.size} />
       ])}
     </div>

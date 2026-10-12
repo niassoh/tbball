@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchProfile, headshotUrl } from '../api.js'
+import { fetchLonestar, fetchProfile, headshotUrl } from '../api.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
 import { pctlOf, valueOf } from '../lib/leaderboard.js'
+import { starsText } from '../lib/lonestar.js'
 import { initials } from '../lib/teams.js'
 import { useSeasonType } from '../useSeasonType.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
@@ -12,10 +13,11 @@ import FootprintGlyph from './FootprintGlyph.jsx'
 // the table is sorted by, then BPM, Load and rTS% as room allows) with their percentiles;
 // his footprint as the Footprint tab's icons, those whose swing clears the noise lit in
 // its colour (hover one for its swing); his percentiles across the profile's headline
-// stats; BPM in every season of his career, this one marked; and his best and most-used
-// two- and three-man units that season. The career and units come from his profile,
-// fetched on opening. Its charts move: the percentile bars wipe in and the seasons rise
-// in turn (index.css).
+// stats; two small charts, his career (each season on Load and BPM, joined in order) and
+// Lonestar's that season (Load and Net with both his stars on and off); and his best and
+// most-used two- and three-man units that season. The career and units come from his
+// profile, Lonestar from its own document, both fetched on opening. Its charts move: the
+// percentile bars wipe in, the career line and Lonestar's arrow draw (index.css).
 const INK = '#ece8e3'
 const DIM = '#8a847e'
 const FAINT = '#5f5a55'
@@ -27,7 +29,21 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 // The headline stats, as on his profile's percentile card: impact, offense, defense.
 const CARD_STATS = ['BPM', 'Net On/Off', 'Load', 'Box Creation', 'Pts / 75', 'rTS%', 'Passer Rating', 'cTOV%', 'DRTG On', 'Def FGA Diff%']
-const ARC_H = 48
+// The two small charts' frame (a viewBox; they scale to the card's half-width). Lonestar's
+// axes are its tab's (Load 0–80 split at 40, Net −25 to +25 split at 0); the career's run
+// over his own seasons, at least MIN_SPAN wide, BPM split at 0 when it's in view.
+const CW = 236
+const CH = 108
+const CM = { l: 20, r: 6, t: 8, b: 16 }
+const LOAD = [0, 80]
+const NET_AXIS = [-25, 25]
+const MIN_SPAN = { load: 16, bpm: 6 }
+const fit = (vs, least) => {
+  const lo = Math.min(...vs)
+  const hi = Math.max(...vs)
+  const pad = Math.max((least - (hi - lo)) / 2, (hi - lo) * 0.1)
+  return [lo - pad, hi + pad]
+}
 const UNITS = { pct: 'pct pts', pts: 'pts/100', pace: 'poss/48' }
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 
@@ -77,35 +93,84 @@ function Footprint({ doc, player: pl, group }) {
   )
 }
 
-// BPM in each season of his career, bars from zero (up for plus, down for minus), coloured
-// by its percentile that season; the season on show outlined.
-function Arc({ profile: p, season }) {
-  const s = p.stats.BPM
-  const vals = p.seasons.map((x, i) => ({ season: x.season, v: s.vals[i] }))
-  const ns = vals.filter(x => x.v).map(x => x.v.n)
-  const hi = Math.max(8, ...ns)
-  const lo = Math.min(-4, ...ns)
-  const zero = (hi / (hi - lo)) * ARC_H
+// A small chart's frame: its box, its split lines (where given and in view), each axis's
+// name and its ends' values.
+const frac = (axis, v) => Math.max(0, Math.min(1, (v - axis[0]) / (axis[1] - axis[0])))
+const px = (axis, v) => CM.l + frac(axis, v) * (CW - CM.l - CM.r)
+const py = (axis, v) => CM.t + (1 - frac(axis, v)) * (CH - CM.t - CM.b)
+const tiny = { fontFamily: MONO, fontSize: 7, letterSpacing: '.08em', fill: FAINT }
+const end = v => `${v > 0 ? '+' : ''}${Math.round(v)}`.replace('-', '−')
+function Frame({ x, y, splitX, splitY, yName, children }) {
+  const inside = (axis, v) => v !== undefined && v > axis[0] && v < axis[1]
   return (
-    <div style={{ display: 'flex', gap: 3, alignItems: 'stretch' }}>
-      {vals.map((x, i) => {
-        const n = x.v ? x.v.n : 0
-        const hgt = (Math.abs(n) / (hi - lo)) * ARC_H
-        const on = x.season === season
+    <svg viewBox={`0 0 ${CW} ${CH}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
+      <rect x={CM.l} y={CM.t} width={CW - CM.l - CM.r} height={CH - CM.t - CM.b} fill="none" stroke={RULE} />
+      {inside(x, splitX) && <line x1={px(x, splitX)} x2={px(x, splitX)} y1={CM.t} y2={CH - CM.b} stroke={EDGE} strokeDasharray="1 3" />}
+      {inside(y, splitY) && <line x1={CM.l} x2={CW - CM.r} y1={py(y, splitY)} y2={py(y, splitY)} stroke={EDGE} strokeDasharray="1 3" />}
+      <text x={CM.l} y={CH - 5} style={tiny}>{Math.round(x[0])}</text>
+      <text x={(CM.l + CW - CM.r) / 2} y={CH - 5} textAnchor="middle" style={tiny}>LOAD →</text>
+      <text x={CW - CM.r} y={CH - 5} textAnchor="end" style={tiny}>{Math.round(x[1])}</text>
+      <text x={CM.l - 4} y={CM.t + 6} textAnchor="end" style={tiny}>{end(y[1])}</text>
+      <text transform={`translate(${CM.l - 6} ${(CM.t + CH - CM.b) / 2}) rotate(-90)`} textAnchor="middle" style={tiny}>{yName}</text>
+      <text x={CM.l - 4} y={CH - CM.b} textAnchor="end" style={tiny}>{end(y[0])}</text>
+      {children}
+    </svg>
+  )
+}
+
+// His career: each season on Load and BPM, joined in order, the season on show filled
+// and named (the first and last named too).
+function Career({ profile: p, season }) {
+  const raw = p.seasons
+    .map((x, i) => ({ season: x.season, load: p.stats.Load.vals[i], bpm: p.stats.BPM.vals[i] }))
+    .filter(x => x.load && x.bpm)
+  if (!raw.length) return <span style={{ ...label, color: FAINT }}>—</span>
+  const xs = fit(raw.map(x => x.load.n), MIN_SPAN.load)
+  const ys = fit(raw.map(x => x.bpm.n), MIN_SPAN.bpm)
+  const pts = raw.map(x => ({ season: x.season, x: px(xs, x.load.n), y: py(ys, x.bpm.n) }))
+  const d = pts.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(1)} ${q.y.toFixed(1)}`).join(' ')
+  const length = pts.reduce((a, q, i) => (i ? a + Math.hypot(q.x - pts[i - 1].x, q.y - pts[i - 1].y) : 0), 0)
+  return (
+    <Frame x={xs} y={ys} splitY={0} yName="BPM">
+      {pts.length > 1 && <path className="ls-draw" d={d} fill="none" stroke={DIM} strokeWidth={1.25} style={{ strokeDasharray: length, strokeDashoffset: length }} />}
+      {pts.map((q, i) => {
+        const on = q.season === season
+        const named = on || i === 0 || i === pts.length - 1
         return (
-          <div key={x.season} style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ position: 'relative', height: ARC_H }}>
-              <div style={{ position: 'absolute', left: 0, right: 0, top: zero, height: 1, background: EDGE }} />
-              {x.v && (
-                <div className={`lb-rise${n < 0 ? ' lb-down' : ''}`} title={`${x.season.replace('-', '–')}: BPM ${fmt(s, n)}`}
-                  style={{ position: 'absolute', left: 0, right: 0, top: n >= 0 ? zero - hgt : zero + 1, height: Math.max(1, hgt), background: x.v.p === null ? FAINT : col(x.v.p), outline: on ? `1.5px solid ${INK}` : 'none', outlineOffset: 1, animationDelay: `${120 + i * 40}ms` }} />
-              )}
-            </div>
-            <span style={{ ...label, fontSize: 7.5, letterSpacing: '.02em', textAlign: 'center', color: on ? INK : FAINT, fontWeight: on ? 700 : 400 }}>’{x.season.slice(5)}</span>
-          </div>
+          <g key={q.season}>
+            {on
+              ? <rect x={q.x - 3.5} y={q.y - 3.5} width={7} height={7} fill={INK} />
+              : <circle cx={q.x} cy={q.y} r={2} fill={FAINT} />}
+            {named && <text x={q.x + 5} y={q.y - 4} style={{ ...tiny, fill: on ? INK : DIM }}>’{q.season.slice(5)}</text>}
+          </g>
         )
       })}
-    </div>
+    </Frame>
+  )
+}
+
+// Lonestar's that season: a hollow square where he is with his stars on, an arrow to
+// where he is with them off, in the colour of his Net change (blue up, orange down).
+function Alone({ scenario: s }) {
+  const ok = v => v !== null && v !== undefined
+  if (!ok(s.on.load) || !ok(s.on.net) || !ok(s.off.load) || !ok(s.off.net)) return <span style={{ ...label, color: FAINT }}>—</span>
+  const [ax, ay, bx, by] = [px(LOAD, s.on.load), py(NET_AXIS, s.on.net), px(LOAD, s.off.load), py(NET_AXIS, s.off.net)]
+  const color = s.off.net > s.on.net ? BLUE : s.off.net < s.on.net ? ORANGE : DIM
+  const length = Math.hypot(bx - ax, by - ay)
+  const angle = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI
+  return (
+    <Frame x={LOAD} y={NET_AXIS} splitX={40} splitY={0} yName="NET">
+      {length > 6 && (
+        <>
+          <line className="ls-draw" x1={ax} y1={ay} x2={bx} y2={by} stroke={color} strokeWidth={1.25} style={{ strokeDasharray: length, strokeDashoffset: length }} />
+          {/* Placed by its group: the pop's scale (a CSS transform) would undo a transform on the head itself. */}
+          <g transform={`translate(${bx} ${by}) rotate(${angle})`}>
+            <polygon className="ls-pop" points="0,0 -7,-3.5 -7,3.5" fill={color} />
+          </g>
+        </>
+      )}
+      <rect x={ax - 3.5} y={ay - 3.5} width={7} height={7} fill="#262422" stroke={INK} strokeWidth={1.25} />
+    </Frame>
   )
 }
 
@@ -136,9 +201,11 @@ function Unit({ unit, title }) {
 export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }) {
   const { playoffs, playerPath } = useSeasonType()
   const [profile, setProfile] = useState(null)
+  const [lonestar, setLonestar] = useState(null)
   useEffect(() => {
     let live = true
     fetchProfile(pl.slug, playoffs).then(d => live && setProfile(d || false), () => live && setProfile(false))
+    if (!playoffs) fetchLonestar(pl.slug).then(d => live && setLonestar(d || false), () => live && setLonestar(false))
     return () => { live = false }
   }, [pl.slug, playoffs])
   useEffect(() => {
@@ -156,6 +223,9 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
   // card) the profile's own.
   const lineups = at < 0 ? null : profile.seasons[at].card ? profile.seasons[at].card.lineups : profile.lineups && profile.lineups.season === season ? profile.lineups : null
   const units = lineups && lineups.units
+  // Lonestar's stretch that season without both his stars, or his top one alone.
+  const view = lonestar && lonestar.views.find(v => v.id === season)
+  const star = view && (view.scenarios.find(x => x.kind === 'two') || view.scenarios.find(x => x.kind === 'one'))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
@@ -166,10 +236,10 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
         <button type="button" aria-label="Close the card" onClick={onClose} style={{ width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '112px minmax(0, 1fr)', gap: 14, padding: '0 14px 12px' }}>
-        <div style={{ width: 112, height: 112, background: PORTRAIT_BG, border: `1px solid ${RULE}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DIM }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', gap: 14, padding: '0 14px 12px' }}>
+        <div style={{ width: 104, height: 104, background: PORTRAIT_BG, border: `1px solid ${RULE}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DIM }}>
           {pl.headshot
-            ? <img src={headshotUrl(pl.slug, 400, pl.headshotVersion, pl.headshot)} alt="" width={112} height={112} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 15%' }} />
+            ? <img src={headshotUrl(pl.slug, 400, pl.headshotVersion, pl.headshot)} alt="" width={104} height={104} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 15%' }} />
             : initials(pl.name)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
@@ -211,9 +281,18 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
         </div>
       </Section>
 
-      <Section title="BPM by season" right={profile && at >= 0 ? `${profile.seasons.length} seasons` : null}>
-        {profile ? <Arc profile={profile} season={season} /> : <span style={{ ...label, height: ARC_H + 14, color: FAINT }}>{profile === false ? 'Unavailable' : 'Loading'}</span>}
-      </Section>
+      <div style={{ display: 'grid', gridTemplateColumns: playoffs ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
+        <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+          <span style={{ ...label, color: '#b8b2ab' }}>Career <span style={{ color: FAINT }}>· load × bpm</span></span>
+          {profile ? <Career profile={profile} season={season} /> : <span style={{ ...label, color: FAINT, height: 96 }}>{profile === false ? 'Unavailable' : 'Loading'}</span>}
+        </div>
+        {!playoffs && (
+          <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, borderLeft: `1px solid ${RULE}` }}>
+            <span style={{ ...label, color: '#b8b2ab', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lonestar <span style={{ color: FAINT }}>· w/o {star ? starsText(star.stars) : '—'}</span></span>
+            {star ? <Alone scenario={star} /> : <span style={{ ...label, color: FAINT, height: 96 }}>{lonestar === null ? 'Loading' : 'No star stretch this season'}</span>}
+          </div>
+        )}
+      </div>
 
       <Section title="Units" right={lineups ? `${lineups.team} · with him` : null}>
         {units

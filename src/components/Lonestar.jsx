@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
 import { STATS, change, fadeOf, lastName, posOf, seasonsText, starsText, stripOf, toneOf, value, viewName } from '../lib/lonestar.js'
+import JerseyOverlay from './JerseyOverlay.jsx'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
@@ -140,19 +141,26 @@ function Plot({ s, width: W, skey }) {
 // portraits standing on the rule below (the one over the numbers), each centred in its
 // column. He's in colour (on); the stars who sit are smaller, greyscale, dim (off), and on
 // each pick fade from colour to that, as if heading to the bench (index.css .ls-bench).
-function Portrait({ who, team, on, size }) {
+// Each wears the jersey of the stretch's team where his portrait has jersey layers.
+function Portrait({ who, team, on, size, layers, jersey }) {
   const [failed, setFailed] = useState(false)
   const dim = on ? {} : { filter: 'grayscale(1)', opacity: 0.45 }
   const place = { display: 'block', alignSelf: 'end', justifySelf: 'center', ...dim }
   const bench = on ? undefined : 'ls-bench'
   return who.headshot && !failed
-    ? <img src={headshotUrl(who.slug, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)} className={bench}
-        style={{ width: size, height: size, objectFit: 'contain', objectPosition: '50% 100%', ...place }} />
+    ? (
+        <span className={bench} style={{ position: 'relative', width: size, height: size, ...place }}>
+          <img src={headshotUrl(who.slug, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)}
+            style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', objectPosition: '50% 100%' }} />
+          {who.headshot === 'jersey' && <JerseyOverlay slug={who.slug} size={400} layers={layers} id={jersey} />}
+        </span>
+      )
     : <span className={bench} style={{ width: size * 0.7, height: size * 0.7, ...place }}><TeamInitials name={who.name || '?'} team={team} fontSize={12} /></span>
 }
 
 function Cast({ p, s }) {
   const cast = [{ who: p, on: true, size: 68 }, ...s.stars.map(t => ({ who: t, on: false, size: 52 }))]
+  const layersOf = who => (p.jerseys ? p.jerseys[who.slug] : null)
   // A name is at least 76px wide (one like WESTBROOK on one line), a long one wrapping (at
   // a hyphen, else anywhere), so the cast always fits the panel: GILGEOUS-ALEXANDER and
   // two stars included. The names' row has a fixed height that holds a wrapped name, the
@@ -166,7 +174,7 @@ function Cast({ p, s }) {
       {cast.flatMap((c, i) => [
         ...(i === 1 ? [<span key="wo-tag" />, <span key="wo" style={{ ...label, color: FAINT, alignSelf: 'center' }}>W/O</span>] : []),
         <span key={`t${i}`} style={{ alignSelf: 'end', justifySelf: 'center' }}>{tag(c.who, c.on, c.size)}</span>,
-        <Portrait key={`p${i}`} who={c.who} team={s.team} on={c.on} size={c.size} />
+        <Portrait key={`p${i}`} who={c.who} team={s.team} on={c.on} size={c.size} layers={layersOf(c.who)} jersey={s.jersey} />
       ])}
     </div>
   )

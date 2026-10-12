@@ -71,11 +71,12 @@ function useWidth(fallback) {
 // 1:1 at the panel's width, its frame a little wider than tall (ASPECT) at any width, so
 // its text stays the same size. The quadrant names sit outside the frame, above and below
 // it. A hollow square where he is with the stars, a filled one without them, joined in
-// the colour of his Net change.
+// the colour of his Net change; on each pick the line draws from one to the other and
+// the filled square settles in after it (index.css .ls-draw, .ls-pop).
 const HEADROOM = 1.08
 const ASPECT = 1.15
 const roomy = r => r && [r[1] - (r[1] - r[0]) * HEADROOM, r[1], r[1] + (r[2] - r[1]) * HEADROOM]
-function Plot({ s, scale, width: W }) {
+function Plot({ s, scale, width: W, skey }) {
   const box = { l: 22, r: 2, t: 12, b: 38 }
   const H = Math.round((W - box.l - box.r) / ASPECT) + box.t + box.b
   const right = W - box.r
@@ -109,40 +110,49 @@ function Plot({ s, scale, width: W }) {
       <text x={midX} y={bottom + 26} textAnchor="middle" style={{ ...t, fill: DIM }}>{Math.round(X[1])}</text>
       <text x={(box.l + midX) / 2} y={bottom + 26} textAnchor="middle" style={{ ...t, fill: DIM }}>LOAD</text>
       <text x={right} y={bottom + 26} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(X[2])}</text>
-      {ok(a[0]) && ok(a[1]) && ok(b[0]) && ok(b[1]) && <line x1={x(a[0])} y1={y(a[1])} x2={x(b[0])} y2={y(b[1])} stroke={tone === 'neutral' ? DIM : TONES[tone]} strokeWidth="2" />}
+      {ok(a[0]) && ok(a[1]) && ok(b[0]) && ok(b[1]) && (() => {
+        const length = Math.hypot(x(b[0]) - x(a[0]), y(b[1]) - y(a[1]))
+        return <line key={skey} className="ls-draw" x1={x(a[0])} y1={y(a[1])} x2={x(b[0])} y2={y(b[1])} stroke={tone === 'neutral' ? DIM : TONES[tone]} strokeWidth="2" style={{ strokeDasharray: length, strokeDashoffset: length }} />
+      })()}
       {ok(a[0]) && ok(a[1]) && <rect x={x(a[0]) - 4.5} y={y(a[1]) - 4.5} width="9" height="9" fill={BG} stroke={MID} strokeWidth="1.5" />}
-      {ok(b[0]) && ok(b[1]) && <rect x={x(b[0]) - 5.5} y={y(b[1]) - 5.5} width="11" height="11" fill={SOFT} />}
+      {ok(b[0]) && ok(b[1]) && <rect key={`b-${skey}`} className="ls-pop" x={x(b[0]) - 5.5} y={y(b[1]) - 5.5} width="11" height="11" fill={SOFT} />}
     </svg>
   )
 }
 
-// The cast: name tags along the top, cut-out portraits standing on the rule below (the
-// one over the numbers). He's in colour; the stars who sit are smaller, greyscale, dim.
+// The cast, centred in the panel whether two or three: name tags along the top, cut-out
+// portraits standing on the rule below (the one over the numbers), each centred in its
+// column. He's in colour; the stars who sit are smaller, greyscale, dim, and on each
+// pick fade from colour to that, as if heading to the bench (index.css .ls-bench).
 function Portrait({ who, team, on, size }) {
   const [failed, setFailed] = useState(false)
   const dim = on ? {} : { filter: 'grayscale(1)', opacity: 0.45 }
+  const place = { display: 'block', alignSelf: 'end', justifySelf: 'center', ...dim }
+  const bench = on ? undefined : 'ls-bench'
   return who.headshot && !failed
-    ? <img src={headshotUrl(who.slug, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)}
-        style={{ width: size, height: size, objectFit: 'contain', objectPosition: '50% 100%', display: 'block', alignSelf: 'end', ...dim }} />
-    : <span style={{ width: size * 0.7, height: size * 0.7, display: 'block', alignSelf: 'end', ...dim }}><TeamInitials name={who.name || '?'} team={team} fontSize={12} /></span>
+    ? <img src={headshotUrl(who.slug, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)} className={bench}
+        style={{ width: size, height: size, objectFit: 'contain', objectPosition: '50% 100%', ...place }} />
+    : <span className={bench} style={{ width: size * 0.7, height: size * 0.7, ...place }}><TeamInitials name={who.name || '?'} team={team} fontSize={12} /></span>
 }
 
 function Cast({ p, s }) {
   const cast = [{ who: p, on: true, size: 78 }, ...s.stars.map(t => ({ who: t, on: false, size: 58 }))]
-  // A tag is as wide as its portrait, a long name wrapping (at a hyphen, else anywhere),
-  // so the cast always fits the panel: GILGEOUS-ALEXANDER and two stars included.
+  // A tag is at least 76px wide (a name like WESTBROOK on one line), a long name wrapping
+  // (at a hyphen, else anywhere), so the cast always fits the panel: GILGEOUS-ALEXANDER
+  // and two stars included. The tags' row has a fixed height that holds a wrapped name,
+  // the tags sitting at its foot, so the panel is the same height for every pick.
   const tag = (who, on, size) => (
-    <span style={{ display: 'flex', flexDirection: 'column', gap: 2, width: size }}>
+    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: Math.max(size, 76), textAlign: 'center' }}>
       <span style={{ ...label, color: on ? INK : MID, overflowWrap: 'anywhere', lineHeight: 1.35 }}>{lastName(who.name)}</span>
       <span style={{ ...label, color: on ? DIM : FAINT }}>{on ? 'On' : 'Off'}</span>
     </span>
   )
   return (
     <div aria-label={`${p.name} without ${starsText(s.stars)}`}
-      style={{ display: 'grid', gridTemplateRows: 'auto 80px', gridAutoFlow: 'column', justifyContent: 'start', alignItems: 'start', columnGap: 12, rowGap: 6, padding: `14px ${PAD}px 0`, borderTop: `1px solid ${RULE}` }}>
+      style={{ display: 'grid', gridTemplateRows: '40px 80px', gridAutoFlow: 'column', justifyContent: 'center', alignItems: 'start', columnGap: 12, rowGap: 6, padding: `14px ${PAD}px 0`, borderTop: `1px solid ${RULE}` }}>
       {cast.flatMap((c, i) => [
         ...(i === 1 ? [<span key="wo-tag" />, <span key="wo" style={{ ...label, color: FAINT, alignSelf: 'center' }}>W/O</span>] : []),
-        <span key={`t${i}`}>{tag(c.who, c.on, c.size)}</span>,
+        <span key={`t${i}`} style={{ alignSelf: 'end', justifySelf: 'center' }}>{tag(c.who, c.on, c.size)}</span>,
         <Portrait key={`p${i}`} who={c.who} team={s.team} on={c.on} size={c.size} />
       ])}
     </div>
@@ -151,35 +161,32 @@ function Cast({ p, s }) {
 
 // The numbers in one row, on the rule the cast stands on: the Load and Net moves (the
 // change in its colour, from → to) and the minutes with the stars and without (a side
-// too short to rank in orange); then the team and seasons behind them.
+// too short to rank in orange).
 function Numbers({ s, minRank }) {
   const cell = { display: 'flex', flexDirection: 'column', gap: 4, padding: '12px 10px', background: BG, minWidth: 0 }
   const big = { fontSize: 18, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }
   return (
-    <>
-      <div className="ls-nums" style={{ borderTop: `1px solid ${EDGE}` }}>
-        {[[LOAD, 'Load'], [NET, 'Net rtg']].map(([stat, name]) => {
-          const tone = toneOf(stat, s.change[stat.key])
-          return (
-            <div key={name} style={cell}>
-              <span style={label}>{name}</span>
-              <span style={{ ...big, color: tone === 'neutral' ? MID : TONES[tone] }}>{change(stat, s.change[stat.key])}</span>
-              <span style={{ fontSize: 9, color: DIM, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{value(stat, s.on[stat.key])} → <span style={{ color: INK }}>{value(stat, s.off[stat.key])}</span></span>
-            </div>
-          )
-        })}
-        {[['With min', s.on.minutes], ['W/O min', s.off.minutes]].map(([k, m]) => {
-          const short = !s.ranked && m < minRank
-          return (
-            <div key={k} style={cell}>
-              <span style={label}>{k}</span>
-              <span title={short ? `Under ${minRank} minutes: too few to rank` : undefined} style={{ ...big, color: short ? TONES.bad : INK }}>{Math.round(m).toLocaleString()}</span>
-            </div>
-          )
-        })}
-      </div>
-      <span style={{ ...label, color: FAINT, padding: `10px ${PAD}px`, borderTop: `1px solid ${RULE}` }}>{s.team} · {seasonsText(s.seasons)}{s.ranked ? '' : ` · under ${minRank} min a side, not ranked`}</span>
-    </>
+    <div className="ls-nums" style={{ borderTop: `1px solid ${EDGE}` }}>
+      {[[LOAD, 'Load'], [NET, 'Net rtg']].map(([stat, name]) => {
+        const tone = toneOf(stat, s.change[stat.key])
+        return (
+          <div key={name} style={cell}>
+            <span style={label}>{name}</span>
+            <span className="ls-light" style={{ ...big, color: tone === 'neutral' ? MID : TONES[tone] }}>{change(stat, s.change[stat.key])}</span>
+            <span style={{ fontSize: 9, color: DIM, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{value(stat, s.on[stat.key])} → <span style={{ color: INK }}>{value(stat, s.off[stat.key])}</span></span>
+          </div>
+        )
+      })}
+      {[['With min', s.on.minutes], ['W/O min', s.off.minutes]].map(([k, m]) => {
+        const short = !s.ranked && m < minRank
+        return (
+          <div key={k} style={cell}>
+            <span style={label}>{k}</span>
+            <span className="ls-light" title={short ? `Under ${minRank} minutes: too few to rank` : undefined} style={{ ...big, color: short ? TONES.bad : INK }}>{Math.round(m).toLocaleString()}</span>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -196,7 +203,14 @@ const stripCell = (state, color, fade = 1) => (
           : { background: CELL }
 )
 
-function Row({ stat, s, scale, mode }) {
+// On each pick the trail lights up cell by cell from where he was with the stars to
+// where he is without them, the rows a beat apart (index.css .ls-light; none with
+// reduced motion).
+const lightUp = (state, i, from, row) => (state === 'empty' || state === 'with'
+  ? {}
+  : { className: 'ls-light', style: { animationDelay: `${row * 28 + Math.abs(i - Math.max(from, 0)) * 16}ms` } })
+
+function Row({ stat, s, scale, mode, skey, index }) {
   const k = stat.key
   const d = s.change[k]
   const tone = toneOf(stat, d)
@@ -206,13 +220,17 @@ function Row({ stat, s, scale, mode }) {
   const pctl = mode === 'pctl'
   const cells = stripOf(s.on[k], s.off[k], scale)
   const fades = fadeOf(cells)
+  const from = cells.indexOf('with')
   const rank = r ? `; his change ranks #${r.rank} of ${r.of} players' (#1 the biggest increase)` : '; too few minutes to rank'
   return (
     <div className="ls-row" title={`${stat.label}: ${value(stat, s.on[k])} with his stars (${pctlText(pOn)} pctl), ${value(stat, s.off[k])} without (${pctlText(pOff)} pctl)${rank}`}>
       <span style={{ gridArea: 'stat', ...label, color: '#c9c3bc' }}>{stat.label}</span>
       <span className="ls-with" style={{ gridArea: 'with', textAlign: 'right', color: DIM }}>{pctl ? pctlText(pOn) : value(stat, s.on[k])}</span>
-      <span className="ls-strip" aria-hidden="true" style={{ gridArea: 'strip' }}>
-        {cells.map((state, i) => <span key={i} style={stripCell(state, TONES[tone], fades[i])} />)}
+      <span key={skey} className="ls-strip" aria-hidden="true" style={{ gridArea: 'strip' }}>
+        {cells.map((state, i) => {
+          const light = lightUp(state, i, from, index)
+          return <span key={i} className={light.className} style={{ ...stripCell(state, TONES[tone], fades[i]), ...light.style }} />
+        })}
       </span>
       <span style={{ gridArea: 'wo', textAlign: 'right', color: INK, fontWeight: 600 }}>{pctl ? pctlText(pOff) : value(stat, s.off[k])}</span>
       <span style={{ gridArea: 'change', textAlign: 'right', fontSize: 14, fontWeight: 600, color: TONES[tone] }}>{pctl ? signed(pOn === null || pOff === null ? null : pOff - pOn) : change(stat, d)}</span>
@@ -230,6 +248,8 @@ export default function Lonestar({ profile: p }) {
   const [plotRef, plotWidth] = useWidth(304)
   const s = ls.scenarios[Math.min(pick, ls.scenarios.length - 1)]
   const teams = new Set(ls.scenarios.map(x => x.team))
+  // The picked scenario's identity: the animated parts remount on it, so each pick replays.
+  const skey = `${s.team}-${s.stars.map(t => t.id).join()}`
   return (
     <section id="sec-lonestar" style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
       <SectionHeader title="Lonestar">
@@ -249,9 +269,9 @@ export default function Lonestar({ profile: p }) {
 
         <div className="ls-body">
           <div className="ls-side" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="ls-plot" style={{ padding: `20px ${PAD}px 12px` }}><div ref={plotRef}><Plot s={s} scale={ls.scale} width={plotWidth} /></div></div>
-            <Cast p={p} s={s} />
-            <Numbers s={s} minRank={ls.minRank} />
+            <div className="ls-plot" style={{ padding: `20px ${PAD}px 12px` }}><div ref={plotRef}><Plot s={s} scale={ls.scale} width={plotWidth} skey={skey} /></div></div>
+            <Cast key={skey} p={p} s={s} />
+            <Numbers key={`n-${skey}`} s={s} minRank={ls.minRank} />
           </div>
 
           <div className="ls-main">
@@ -262,7 +282,7 @@ export default function Lonestar({ profile: p }) {
               <span style={{ gridArea: 'wo', textAlign: 'right', ...label }}>W/O</span>
               <span style={{ gridArea: 'change', textAlign: 'right', ...label }}>Change</span>
             </div>
-            {STATS.map(stat => <Row key={stat.key} stat={stat} s={s} scale={ls.scale && ls.scale[stat.key]} mode={mode} />)}
+            {STATS.map((stat, i) => <Row key={stat.key} stat={stat} s={s} scale={ls.scale && ls.scale[stat.key]} mode={mode} skey={skey} index={i} />)}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: `12px ${PAD}px`, fontSize: 9, letterSpacing: '.1em', color: DIM }}>
               <span style={legendItem}>{swatch(stripCell('with'))}WITH</span>
               <span style={legendItem}>{swatch(stripCell('without'))}WITHOUT</span>

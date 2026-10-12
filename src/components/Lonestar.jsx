@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, lastName, namesText, posOf, seasonsText, starsText, toneOf, value } from '../lib/lonestar.js'
+import { STATS, change, lastName, namesText, posOf, seasonTag, seasonsText, starsText, toneOf, value } from '../lib/lonestar.js'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
@@ -337,7 +337,9 @@ export default function Lonestar({ profile: p }) {
           <Seasons seasons={seasons} on={on} toggle={toggle} />
           <span style={{ ...label, lineHeight: '30px', margin: '0 6px 0 14px' }}>Without</span>
           {/* Every mix's keys in one cell, only the lit mix's showing (index.css
-              .ls-keys-off). */}
+              .ls-keys-off). With more than one season lit, a stretch from fewer of them
+              (his stars changed between seasons) carries its season, so two keys with
+              the same stars from different seasons can't be mistaken for each other. */}
           <div style={{ display: 'grid', flex: '1 1 260px', minWidth: 0 }}>
             {ls.views.map(v => {
               const teams = new Set(v.scenarios.map(x => x.team))
@@ -345,7 +347,7 @@ export default function Lonestar({ profile: p }) {
                 <div key={v.id} aria-hidden={v !== view} className={v === view ? undefined : 'ls-keys-off'} style={{ gridArea: '1 / 1', display: 'flex', flexWrap: 'wrap', alignContent: 'flex-start', gap: 8 }}>
                   {v.scenarios.map((x, i) => (
                     <Key key={starsKey(x)} on={x === s} onClick={() => setPick(i)}>
-                      {namesText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}
+                      {namesText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}{x.seasons.length < v.seasons.length ? ` · ${seasonTag(x.seasons)}` : ''}
                     </Key>
                   ))}
                 </div>

@@ -50,3 +50,6 @@ export const namesText = stars => stars.map(s => s.name || '?').join(' & ')
 
 // "2024–25 and 2025–26" / "2025–26"
 export const seasonsText = seasons => seasons.map(s => s.replace('-', '–')).join(' and ')
+
+// A key's season tag, for a stretch covering fewer seasons than the lit ones: "25–26".
+export const seasonTag = seasons => seasons.map(s => s.slice(2).replace('-', '–')).join(' ')

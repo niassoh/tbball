@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, change, namesText, posOf, seasonsText, starsText, toneOf, value } from './lonestar.js'
+import { STATS, change, namesText, posOf, seasonTag, seasonsText, starsText, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -42,5 +42,6 @@ describe('lonestar', () => {
     expect(namesText([{ name: 'Jalen Williams' }, { name: 'Ajay Mitchell' }])).toBe('Jalen Williams & Ajay Mitchell')
     expect(namesText([{ name: null }])).toBe('?')
     expect(seasonsText(['2024-25', '2025-26'])).toBe('2024–25 and 2025–26')
+    expect(seasonTag(['2025-26'])).toBe('25–26')
   })
 })

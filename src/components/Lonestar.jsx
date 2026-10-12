@@ -70,11 +70,15 @@ function useWidth(fallback) {
 // so its extremes stay off the frame, the median lines crossing in the middle. Drawn
 // 1:1 at the panel's width, its frame a little wider than tall (ASPECT) at any width, so
 // its text stays the same size. The quadrant names sit outside the frame, above and below
-// it. A hollow square where he is with the stars, a filled one without them, joined in
-// the colour of his Net change; on each pick the line draws from one to the other and
-// the filled square settles in after it (index.css .ls-draw, .ls-pop).
+// it. His move is a vector: a hollow square where he is with the stars, a thin shaft
+// and a sharp head whose tip is where he is without them, in the colour of his Net
+// change; a move too short to point anywhere (under MIN_ARROW px) is a filled square
+// instead. On each pick the shaft draws and the head snaps on after it (index.css
+// .ls-draw, .ls-pop).
 const HEADROOM = 1.08
 const ASPECT = 1.15
+const MIN_ARROW = 12
+const HEAD = { len: 9, half: 4.5 }
 const roomy = r => r && [r[1] - (r[1] - r[0]) * HEADROOM, r[1], r[1] + (r[2] - r[1]) * HEADROOM]
 function Plot({ s, scale, width: W, skey }) {
   const box = { l: 22, r: 2, t: 12, b: 38 }
@@ -111,11 +115,24 @@ function Plot({ s, scale, width: W, skey }) {
       <text x={(box.l + midX) / 2} y={bottom + 26} textAnchor="middle" style={{ ...t, fill: DIM }}>LOAD</text>
       <text x={right} y={bottom + 26} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(X[2])}</text>
       {ok(a[0]) && ok(a[1]) && ok(b[0]) && ok(b[1]) && (() => {
-        const length = Math.hypot(x(b[0]) - x(a[0]), y(b[1]) - y(a[1]))
-        return <line key={skey} className="ls-draw" x1={x(a[0])} y1={y(a[1])} x2={x(b[0])} y2={y(b[1])} stroke={tone === 'neutral' ? DIM : TONES[tone]} strokeWidth="2" style={{ strokeDasharray: length, strokeDashoffset: length }} />
+        const [ax, ay, bx, by] = [x(a[0]), y(a[1]), x(b[0]), y(b[1])]
+        const length = Math.hypot(bx - ax, by - ay)
+        if (length < MIN_ARROW) return <rect key={`b-${skey}`} className="ls-pop" x={bx - 5.5} y={by - 5.5} width="11" height="11" fill={SOFT} />
+        const color = tone === 'neutral' ? MID : TONES[tone]
+        const [ux, uy] = [(bx - ax) / length, (by - ay) / length]
+        // The shaft starts clear of the hollow square and stops at the head's base.
+        const start = 6
+        const shaft = Math.max(0, length - start - HEAD.len)
+        return (
+          <g key={skey}>
+            <line className="ls-draw" x1={ax + ux * start} y1={ay + uy * start} x2={bx - ux * HEAD.len} y2={by - uy * HEAD.len} stroke={color} strokeWidth="1.5" style={{ strokeDasharray: shaft, strokeDashoffset: shaft }} />
+            <g transform={`translate(${bx} ${by}) rotate(${(Math.atan2(by - ay, bx - ax) * 180) / Math.PI})`}>
+              <polygon className="ls-pop" points={`0,0 ${-HEAD.len},${-HEAD.half} ${-HEAD.len},${HEAD.half}`} fill={color} />
+            </g>
+          </g>
+        )
       })()}
       {ok(a[0]) && ok(a[1]) && <rect x={x(a[0]) - 4.5} y={y(a[1]) - 4.5} width="9" height="9" fill={BG} stroke={MID} strokeWidth="1.5" />}
-      {ok(b[0]) && ok(b[1]) && <rect key={`b-${skey}`} className="ls-pop" x={x(b[0]) - 5.5} y={y(b[1]) - 5.5} width="11" height="11" fill={SOFT} />}
     </svg>
   )
 }

@@ -4,6 +4,7 @@ import { MONO } from '../lib/format.js'
 import { STATS, change, lastName, namesText, posOf, seasonTag, starsText, toneOf, value } from '../lib/lonestar.js'
 import { spanId, spanText } from '../lib/seasons.js'
 import JerseyOverlay from './JerseyOverlay.jsx'
+import ModeSwitch from './ModeSwitch.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
@@ -39,18 +40,6 @@ function Key({ on, onClick, children }) {
       style={{ height: 30, padding: '0 12px', background: on ? '#3a3734' : 'transparent', color: on ? INK : MID, border: `1px solid ${on ? DIM : EDGE}`, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
       {children}
     </button>
-  )
-}
-
-// RAW | PCTL: what the table's numbers read in.
-function ModeSwitch({ mode, setMode }) {
-  return (
-    <div role="group" aria-label="Show values as" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
-      {[['raw', 'Raw'], ['pctl', 'Pctl']].map(([m, name]) => (
-        <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)} className="ls-mode"
-          style={{ height: 28, padding: '0 12px', background: mode === m ? '#3a3734' : 'transparent', color: mode === m ? INK : DIM, border: 'none', fontFamily: MONO, fontSize: 9, fontWeight: mode === m ? 700 : 500, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
-      ))}
-    </div>
   )
 }
 

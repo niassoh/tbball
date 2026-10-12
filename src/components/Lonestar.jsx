@@ -141,9 +141,10 @@ function Plot({ s, width: W, skey }) {
 // column. He's in colour (on); the stars who sit are smaller, greyscale, dim (off), and on
 // each pick fade from colour to that, as if heading to the bench (index.css .ls-bench).
 // Each wears the jersey of the stretch's team where his portrait has jersey layers. The
-// art runs off its square's sides where shoulders are wide, so each bust is cut at the
-// shoulders by two 45° chamfers (CUT) instead of being sliced by the square.
-const CUT = 'polygon(0 0, 100% 0, 100% 72%, 72% 100%, 28% 100%, 0 72%)'
+// art runs off its square's sides where shoulders are wide, so the bust's lower half fades
+// out toward the sides (FADE, as the bio card's portrait fades) instead of ending in a
+// straight slice; the middle stays solid down to the rule.
+const FADE = 'linear-gradient(#000 0 50%, transparent 85%), linear-gradient(90deg, transparent 0, #000 24%, #000 76%, transparent 100%)'
 function Portrait({ who, team, on, size, layers, jersey }) {
   const [failed, setFailed] = useState(false)
   const dim = on ? {} : { filter: 'grayscale(1)', opacity: 0.45 }
@@ -151,7 +152,7 @@ function Portrait({ who, team, on, size, layers, jersey }) {
   const bench = on ? undefined : 'ls-bench'
   return who.headshot && !failed
     ? (
-        <span className={bench} style={{ position: 'relative', width: size, height: size, clipPath: CUT, ...place }}>
+        <span className={bench} style={{ position: 'relative', width: size, height: size, WebkitMaskImage: FADE, maskImage: FADE, ...place }}>
           <img src={headshotUrl(who.slug, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)}
             style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', objectPosition: '50% 100%' }} />
           {who.headshot === 'jersey' && <JerseyOverlay slug={who.slug} size={400} layers={layers} id={jersey} />}

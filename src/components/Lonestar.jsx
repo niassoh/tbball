@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, centered, change, lastName, litOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
+import { STATS, centered, change, fadeOf, lastName, litOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
@@ -168,12 +168,15 @@ function Minutes({ s, minRank }) {
 }
 
 // A row's strip cells: empty, where he is with the stars (hollow), without (filled), the
-// same either way, and the stretch between in the change's colour.
-const stripCell = (state, color) => (
+// same either way, and the stretch between in the change's colour, fading in from faint
+// beside the WITH cell to full beside the WITHOUT one (`fade`, 0–1 along the way), so the
+// trail shows which way he went.
+const trail = (color, fade) => `color-mix(in srgb, ${color} ${Math.round(22 + 78 * fade)}%, ${CELL})`
+const stripCell = (state, color, fade = 1) => (
   state === 'with' ? { boxShadow: `inset 0 0 0 1.5px ${MID}` }
     : state === 'without' ? { background: SOFT }
       : state === 'both' ? { background: SOFT, boxShadow: `inset 0 0 0 1.5px ${DIM}` }
-        : state === 'between' ? { background: color }
+        : state === 'between' ? { background: trail(color, fade) }
           : { background: CELL }
 )
 
@@ -193,12 +196,14 @@ function Row({ stat, s, scale, mode }) {
   const pOn = s.pctl.on[k]
   const pOff = s.pctl.off[k]
   const pctl = mode === 'pctl'
+  const cells = stripOf(s.on[k], s.off[k], scale)
+  const fades = fadeOf(cells)
   return (
     <div className="ls-row" title={`${stat.label}: ${value(stat, s.on[k])} with his stars (${pctlText(pOn)} pctl), ${value(stat, s.off[k])} without (${pctlText(pOff)} pctl)`}>
       <span style={{ gridArea: 'stat', ...label, color: '#c9c3bc' }}>{stat.label}</span>
       <span className="ls-with" style={{ gridArea: 'with', textAlign: 'right', color: DIM }}>{pctl ? pctlText(pOn) : value(stat, s.on[k])}</span>
       <span className="ls-strip" aria-hidden="true" style={{ gridArea: 'strip' }}>
-        {stripOf(s.on[k], s.off[k], scale).map((state, i) => <span key={i} style={stripCell(state, TONES[tone])} />)}
+        {cells.map((state, i) => <span key={i} style={stripCell(state, TONES[tone], fades[i])} />)}
       </span>
       <span style={{ gridArea: 'wo', textAlign: 'right', color: INK, fontWeight: 600 }}>{pctl ? pctlText(pOff) : value(stat, s.off[k])}</span>
       <span style={{ gridArea: 'change', textAlign: 'right', fontSize: 15, fontWeight: 600, color: TONES[tone] }}>{pctl ? signed(pOn === null || pOff === null ? null : pOff - pOn) : change(stat, d)}</span>
@@ -262,8 +267,9 @@ export default function Lonestar({ profile: p }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: `14px ${PAD}px`, fontSize: 9, letterSpacing: '.1em', color: DIM }}>
               <span style={legendItem}>{swatch(stripCell('with'))}WITH</span>
               <span style={legendItem}>{swatch(stripCell('without'))}WITHOUT</span>
-              <span style={legendItem}>{swatch({ background: TONES.good })}BETTER W/O</span>
-              <span style={legendItem}>{swatch({ background: TONES.bad })}WORSE W/O</span>
+              <span style={legendItem}>{swatch({ width: 22, background: `linear-gradient(90deg, ${trail(TONES.good, 0)}, ${TONES.good})` })}BETTER W/O</span>
+              <span style={legendItem}>{swatch({ width: 22, background: `linear-gradient(90deg, ${trail(TONES.bad, 0)}, ${TONES.bad})` })}WORSE W/O</span>
+              <span>TRAIL FADES IN TOWARD W/O</span>
               <span>VOLUME STATS: BLUE MORE, ORANGE LESS</span>
               <span>1 CELL = 2% OF THE STAT&apos;S LEAGUE RANGE</span>
               <span>#RANK · AMONG EVERY PLAYER&apos;S CHANGE ({ls.minRank}+ MIN EACH WAY)</span>

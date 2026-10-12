@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, centered, change, litOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
+import { STATS, centered, change, fadeOf, litOf, posOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -66,6 +66,13 @@ describe('lonestar', () => {
     expect(stripOf(120, 130, scale)[49]).toBe('both')
     // A missing side marks only the other.
     expect(stripOf(null, 40, scale).filter(c => c !== 'empty')).toEqual(['without'])
+  })
+
+  test('a trail fades in from where he was with his stars to where he is without them', () => {
+    expect(fadeOf(['empty', 'with', 'between', 'between', 'between', 'without'])).toEqual([null, null, 0.25, 0.5, 0.75, null])
+    // Moving down: the WITH cell is on the right.
+    expect(fadeOf(['without', 'between', 'between', 'between', 'with'])).toEqual([null, 0.75, 0.5, 0.25, null])
+    expect(fadeOf(['empty', 'both', 'empty'])).toEqual([null, null, null])
   })
 
   test('stars and seasons as words', () => {

@@ -69,6 +69,15 @@ export const stripOf = (on, off, scale, n = 50) => {
   })
 }
 
+// How far each of a strip's 'between' cells is along the way from the WITH cell to the
+// WITHOUT cell (0–1, the ends excluded), so the trail can fade in toward where he ends
+// up; null for every other cell.
+export const fadeOf = states => {
+  const a = states.indexOf('with')
+  const b = states.indexOf('without')
+  return states.map((state, i) => (state === 'between' && a >= 0 && b >= 0 ? Math.abs(i - a) / Math.abs(b - a) : null))
+}
+
 // How many of a 10-segment meter a rank lights: all for #1, none for the last.
 export const litOf = r => (r && r.of > 1 ? Math.round(10 * (1 - (r.rank - 1) / (r.of - 1))) : 0)
 

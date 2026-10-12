@@ -24,6 +24,8 @@ const FAINT = '#5f5a55'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
 const PAD = 18
+// The space a popover keeps from the screen's edges.
+const GUTTER = 16
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 const LOAD = STATS.find(x => x.key === 'load')
 const NET = STATS.find(x => x.key === 'net')
@@ -290,6 +292,9 @@ const legendArrow = (color, dir) => {
 // stretch). The span's cells are lit with a bar under them, like a loop region. Pointer
 // events on the strip, not its cells, so a drag works by touch too.
 function YearRange({ seasons, from, to, pick }) {
+  // It opens in the picker's panel, ready for the arrow keys.
+  const root = useRef(null)
+  useEffect(() => { root.current.focus({ preventScroll: true }) }, [])
   const all = seasonsBetween(seasons[0], seasons[seasons.length - 1])
   const has = new Set(seasons)
   const anchor = useRef(from)
@@ -323,7 +328,7 @@ function YearRange({ seasons, from, to, pick }) {
     pick(next, next)
   }
   return (
-    <div role="group" aria-label={`Seasons: ${spanText(from, to)}`} tabIndex={0} className="ls-years" onPointerDown={down} onPointerMove={move}
+    <div ref={root} role="group" aria-label={`Seasons: ${spanText(from, to)}`} tabIndex={0} className="ls-years" onPointerDown={down} onPointerMove={move}
       onPointerUp={() => { dragging.current = false }} onKeyDown={key}
       style={{ display: 'flex', border: `1px solid ${EDGE}`, touchAction: 'none', userSelect: 'none', minWidth: 0 }}>
       {all.map((season, i) => {
@@ -338,6 +343,55 @@ function YearRange({ seasons, from, to, pick }) {
         )
       })}
     </div>
+  )
+}
+
+// The span picker: a box giving the span on show ("2025–26", or "’18–’26 · 9" for a span)
+// that opens the year strip in a panel under it, the strip taking the arrow keys at once;
+// a pick shows behind it as it's made, and the panel closes on a press outside or Escape.
+// The strip sets the panel's width (the readout wraps inside it, so a pick never resizes
+// it), and on a phone the panel shifts left to stay on screen. With one season there's
+// nothing to pick.
+function SeasonPicker({ seasons, from, to, n, pick }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const panel = useRef(null)
+  const [nudge, setNudge] = useState(0)
+  useLayoutEffect(() => {
+    if (!open) return
+    const room = document.documentElement.clientWidth - GUTTER
+    setNudge(Math.min(0, room - ref.current.getBoundingClientRect().left - panel.current.offsetWidth))
+  }, [open])
+  useEffect(() => {
+    if (!open) return
+    const outside = e => { if (!ref.current.contains(e.target)) setOpen(false) }
+    const escape = e => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('pointerdown', outside)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [open])
+  const one = seasons.length < 2
+  return (
+    <span ref={ref} style={{ position: 'relative', flex: 'none' }}>
+      <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-label={`Seasons: ${spanText(from, to)}`} disabled={one} onClick={() => setOpen(o => !o)}
+        style={{ height: 30, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 10, border: `1px solid ${open ? DIM : EDGE}`, background: open ? '#3a3734' : 'transparent', color: INK, fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.08em', cursor: one ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+        <span style={{ ...label, fontWeight: 400 }}>Seasons</span>
+        {from === to ? from.replace('-', '–') : `${shortSeason(from)}–${shortSeason(to)} · ${n}`}
+        {!one && <span aria-hidden="true" style={{ fontSize: 7, color: DIM }}>{open ? '▲' : '▼'}</span>}
+      </button>
+      {open && (
+        <div ref={panel} role="dialog" aria-label="Pick a season or a span" style={{ position: 'absolute', left: nudge, top: 'calc(100% + 6px)', zIndex: 20, width: 'max-content', minWidth: 240, maxWidth: `calc(100vw - ${2 * GUTTER}px)`, display: 'flex', flexDirection: 'column', gap: 10, padding: 12, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)' }}>
+          <YearRange seasons={seasons} from={from} to={to} pick={pick} />
+          <div style={{ contain: 'inline-size', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ ...label, color: MID }}>{spanText(from, to)}{n > 1 ? ` · ${n} seasons` : ''}</span>
+            <span style={{ ...label, color: FAINT }}>Click a season · drag for a span</span>
+          </div>
+        </div>
+      )}
+    </span>
   )
 }
 
@@ -388,24 +442,23 @@ function Frame({ p, ls }) {
   const n = view.seasons.length
   return (
     <div className="ls-frame" style={{ border: `1px solid ${RULE}`, fontFamily: MONO }}>
-      {/* Two rows of fixed height, so the module's never changes: the span, then the
-          stars (on one line, scrolling sideways when a span has many teams). A stretch
-          from fewer of the span's seasons (his stars changed) carries its seasons. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
-        <span style={{ ...label, marginRight: 6 }}>Seasons</span>
-        <YearRange seasons={ls.seasons} from={span.from} to={span.to} pick={choose} />
-        <span style={{ ...label, color: MID, marginLeft: 6, whiteSpace: 'nowrap' }}>{spanText(span.from, span.to)}{n > 1 ? ` · ${n} seasons` : ''}</span>
-        <span style={{ marginLeft: 'auto' }}><ModeSwitch mode={mode} setMode={setMode} /></span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
-        <span style={{ ...label, marginRight: 6 }}>Without</span>
-        <div className="ls-keys" style={{ display: 'flex', gap: 8, overflowX: 'auto', minWidth: 0, flex: 1 }}>
-          {scenarios.map((x, i) => (
-            <Key key={starsKey(x)} on={x === s} onClick={() => setPick(i)}>
-              {namesText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}{x.seasons.length < n ? ` · ${seasonTag(x.seasons)}` : ''}
-            </Key>
-          ))}
+      {/* One row of fixed height, so the module's never changes: the span (its strip in a
+          panel), the stars (on one line, scrolling sideways when a span has many teams),
+          RAW | PCTL. A stretch from fewer of the span's seasons carries its seasons.
+          Narrow, the stars take a row of their own (index.css .ls-bar). */}
+      <div className="ls-bar" style={{ padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
+        <SeasonPicker seasons={ls.seasons} from={span.from} to={span.to} n={n} pick={choose} />
+        <div className="ls-without">
+          <span style={{ ...label, margin: '0 6px 0 10px' }}>Without</span>
+          <div className="ls-keys" style={{ display: 'flex', gap: 8, overflowX: 'auto', minWidth: 0, flex: 1 }}>
+            {scenarios.map((x, i) => (
+              <Key key={starsKey(x)} on={x === s} onClick={() => setPick(i)}>
+                {namesText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}{x.seasons.length < n ? ` · ${seasonTag(x.seasons)}` : ''}
+              </Key>
+            ))}
+          </div>
         </div>
+        <span style={{ marginLeft: 'auto', flex: 'none' }}><ModeSwitch mode={mode} setMode={setMode} /></span>
       </div>
 
       <div className="ls-body">

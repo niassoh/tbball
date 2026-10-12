@@ -93,6 +93,10 @@ html { scroll-behavior: smooth; }
 .ls-keys { scrollbar-width: none; }
 .ls-keys::-webkit-scrollbar { display: none; }
 .ls-keys > * { flex: none; }
+/* The bar over the module: span picker, the stars, RAW | PCTL on one line; narrow, the
+   stars wrap to a line of their own under the other two. */
+.ls-bar { display: flex; align-items: center; gap: 8px; }
+.ls-without { display: flex; align-items: center; gap: 8px; flex: 1 1 0; min-width: 0; }
 @container (max-width: 900px) {
   .ls-body { grid-template-columns: minmax(0, 1fr); }
   .ls-side { border-right: none; border-bottom: 1px solid #3d3a37; }
@@ -100,6 +104,9 @@ html { scroll-behavior: smooth; }
 @container (max-width: 560px) {
   .ls-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ls-years > span { min-width: 22px !important; padding: 0 2px !important; }
+  .ls-bar { flex-wrap: wrap; }
+  .ls-without { order: 3; flex-basis: 100%; }
+  .ls-without > span:first-child { margin-left: 0 !important; }
 }
 .ls-row { display: grid; grid-template-columns: 112px 52px minmax(150px, 1fr) 52px 64px; grid-template-areas: "stat with strip wo change"; align-items: center; column-gap: 14px; min-height: 34px; padding: 0 18px; border-bottom: 1px solid #3d3a37; font-size: 12px; font-variant-numeric: tabular-nums; }
 .ls-row.ls-head { min-height: 34px; }

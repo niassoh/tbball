@@ -7,7 +7,7 @@ import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
 // The Lonestar tab: how he plays when his team's stars sit (thinking-bball
-// lib/lonestar.js). Keys pick the stars: his top-Load teammate, or his top two. On the
+// lib/lonestar.js). Keys pick the stars: his top star teammate, or his top two. On the
 // left, one continuous panel: Load against Net with the stars and without, who's on and
 // off, then the two moves and the minutes each way in one row. On the right, every stat:
 // with, a strip across the stat's league range (where he is with them, without them, and

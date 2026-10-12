@@ -242,7 +242,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
         <span aria-hidden="true" style={{ width: 7, height: 7, background: 'var(--accent)' }} />
-        <span style={{ ...label, color: INK }}>Player card · {season.replace('-', '–')}{playoffs ? ' playoffs' : ''}</span>
+        <span style={{ ...label, color: INK }}>Player card · {season.replace('-', '–')}{doc.type === 'delta' ? ' playoffs − reg' : playoffs ? ' playoffs' : ''}</span>
         <Link to={playerPath(pl.slug)} state={{ season }} style={{ ...label, marginLeft: 'auto', color: INK, border: `1px solid ${EDGE}`, padding: '5px 8px' }}>Full profile →</Link>
         <button type="button" aria-label="Close the card" onClick={onClose} style={{ width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
@@ -267,7 +267,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
               const pc = pctlOf(doc, pl, l)
               return (
                 <div key={l} style={{ background: '#262422', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                  <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}{l === sortLabel && rank ? ` · #${rank}` : ''}</span>
+                  <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}{doc.type === 'delta' ? ' Δ' : ''}{l === sortLabel && rank ? ` · #${rank}` : ''}</span>
                   <span style={{ fontSize: 19, fontWeight: 600, lineHeight: 1, color: INK }}>{fmt(doc.stats[l], v)}</span>
                   <span style={{ fontSize: 9, color: pc === null ? FAINT : col(pc) }}>{pc === null ? '—' : `${ord(pc)} pctl`}</span>
                 </div>
@@ -278,7 +278,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
       </div>
 
 
-      <Section title="Percentiles" right={season.replace('-', '–')}>
+      <Section title={doc.type === 'delta' ? 'Δ percentiles' : 'Percentiles'} right={doc.type === 'delta' ? 'among playoff players' : season.replace('-', '–')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 16, rowGap: 5 }}>
           {rows.map((l, i) => {
             const pc = pctlOf(doc, pl, l)

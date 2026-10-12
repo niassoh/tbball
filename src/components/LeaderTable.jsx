@@ -12,7 +12,8 @@ import WindowTag from './WindowTag.jsx'
 // window's tag in the corner, the sorted one marked by colour and a rule (not weight),
 // with room kept for its arrow. A cell is shaded by its percentile as the profile's stat tables are (lib/format.js heat:
 // blue above the middle, orange below; a style stat, neither, in grey), and a Footprint
-// swing that clears the noise carries a small square. The rank and player stay put when
+// swing that clears the noise carries a small square. `pct`: each cell shows its percentile
+// instead of its value. The rank and player stay put when
 // the stats scroll sideways. Rows carry their player (data-slug), so the page can light
 // the one under the pointer in the scatter.
 const INK = '#ece8e3'
@@ -42,7 +43,7 @@ function Face({ p }) {
   )
 }
 
-function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picked, onPick }) {
+function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picked, onPick, pct = false }) {
   const cell = { height: 26, padding: '0 7px', borderBottom: `1px solid ${RULE}`, whiteSpace: 'nowrap' }
   const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 7px 6px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', verticalAlign: 'bottom' }
   const stick = left => ({ position: 'sticky', left, zIndex: 1 })
@@ -90,7 +91,7 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
                 return (
                   <td key={l} style={{ ...cell, textAlign: 'right', borderLeft: i ? 0 : `1px solid ${RULE}`, background: shade, color: v === null ? FAINT : INK, fontWeight: sortLabel === l ? 600 : 400 }}>
                     {lit.has(k) && <span aria-label="clears the noise" style={{ display: 'inline-block', width: 4, height: 4, marginRight: 5, verticalAlign: 2, background: INK }} />}
-                    {fmt(stat, v)}
+                    {pct ? (v === null || pc === null ? '—' : pc) : fmt(stat, v)}
                   </td>
                 )
               })}

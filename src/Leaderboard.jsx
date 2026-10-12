@@ -6,6 +6,7 @@ import { ranked, valueOf } from './lib/leaderboard.js'
 import { useSeasonType } from './useSeasonType.js'
 import LeaderScatter from './components/LeaderScatter.jsx'
 import LeaderTable from './components/LeaderTable.jsx'
+import ModeSwitch from './components/ModeSwitch.jsx'
 import PlayerCard from './components/PlayerCard.jsx'
 import Popover from './components/Popover.jsx'
 import SeasonPicker from './components/SeasonPicker.jsx'
@@ -15,7 +16,9 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // lib/profile.js leaderboard), a stat group's stats as a table and any two stats as a
 // scatter beside it; a row or a dot opens the player's card in the scatter's place. One
 // screen on a laptop (index.css .lb): the table scrolls in its box. Filters (a team, a
-// name) narrow the table and fade the scatter's other dots; the row under the pointer,
+// name) narrow the table and fade the scatter's other dots. In the playoffs a small Δ
+// toggle turns it to each player's playoffs minus regular season; RAW | PCTL sets what the
+// table's cells read in; the row under the pointer,
 // as it moves or as the table scrolls beneath it, lights its player's dot.
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -52,6 +55,18 @@ function Groups({ groups, active, pick }) {
   )
 }
 
+// Playoffs minus regular season: a small switch beside the season toggle, there only in
+// the playoffs, so the toggle stays the choice that matters.
+function DeltaToggle({ on, set }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={() => set(!on)} title="Each player's playoffs minus his regular season"
+      style={{ height: 22, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 7px', border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, fontFamily: MONO, fontSize: 9, fontWeight: on ? 700 : 400, letterSpacing: '.08em', cursor: 'pointer' }}>
+      <span aria-hidden="true" style={{ width: 6, height: 6, border: '1px solid currentColor', background: on ? 'currentColor' : 'transparent' }} />
+      Δ VS REG
+    </button>
+  )
+}
+
 function Teams({ teams, team, set }) {
   return (
     <Popover name={`Team: ${team || 'all'}`} minWidth={280} trigger={<><span style={{ ...label, fontWeight: 400 }}>Team</span>{team || 'All'}</>}>
@@ -80,6 +95,8 @@ export default function Leaderboard() {
   const [team, setTeam] = useState(null)
   const [find, setFind] = useState('')
   const [picked, setPicked] = useState(null)
+  const [delta, setDelta] = useState(false)
+  const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
   const close = useCallback(() => setPicked(null), [])
   const wrap = useRef(null)
@@ -113,9 +130,9 @@ export default function Leaderboard() {
   useEffect(() => {
     if (!season) return
     let live = true
-    fetchLeaderboard(season, playoffs).then(d => live && setDoc(d || false), () => live && setDoc(false))
+    fetchLeaderboard(season, playoffs, delta).then(d => live && setDoc(d || false), () => live && setDoc(false))
     return () => { live = false }
-  }, [season, playoffs])
+  }, [season, playoffs, delta])
 
   // A group the season type lacks (Footprint in the playoffs) falls back to the first;
   // a sort or axis the document lacks, to the group's own.
@@ -159,7 +176,10 @@ export default function Leaderboard() {
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}` }}>
         <Link to="/" style={{ ...label, fontSize: 10, color: '#a8a29c' }}>← All players</Link>
         <span style={{ ...label, fontSize: 10, color: INK, fontWeight: 700, border: `1px solid ${EDGE}`, padding: '5px 9px' }}>Leaderboard</span>
-        <span style={{ marginLeft: 'auto' }}><SeasonToggle /></span>
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <SeasonToggle />
+          {playoffs && <DeltaToggle on={delta} set={setDelta} />}
+        </span>
       </header>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>
@@ -167,12 +187,13 @@ export default function Leaderboard() {
         {doc && <Teams teams={teams} team={team} set={setTeam} />}
         {doc && <Groups groups={doc.groups} active={g.id} pick={choose} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+          <ModeSwitch mode={mode} setMode={setMode} height={28} />
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${EDGE}` }}>
             <span aria-hidden="true" style={{ ...label, color: FAINT }}>Find</span>
             <input value={find} onChange={e => setFind(e.target.value)} aria-label="Find a player" spellCheck={false}
               style={{ width: 120, background: 'transparent', border: 0, outline: 'none', color: INK, fontFamily: MONO, fontSize: 11, caretColor: 'var(--accent)' }} />
           </label>
-          {doc && <span style={label}><span style={{ color: INK, fontWeight: 700 }}>{rows.length}</span> players</span>}
+          {doc && <span style={label}><span style={{ color: INK, fontWeight: 700 }}>{rows.length}</span> players{doc.type === 'delta' ? ' · playoffs − reg' : ''}</span>}
         </span>
       </div>
 
@@ -180,7 +201,7 @@ export default function Leaderboard() {
       {doc && (
         <div className="lb-body">
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
-            <LeaderTable doc={doc} group={g} rows={rows} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort}
+            <LeaderTable doc={doc} group={g} rows={rows} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
               picked={picked} onPick={setPicked} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>No players match</div>}
           </div>

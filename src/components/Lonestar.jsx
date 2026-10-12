@@ -68,15 +68,14 @@ function useWidth(fallback) {
 // Load against Net on fixed axes, the same for every player: each centred on its league
 // median with one linear scale (lib centered), a little headroom past the league's ends
 // so its extremes stay off the frame, the median lines crossing in the middle. Drawn
-// 1:1 at the panel's width, its frame a little wider than tall (ASPECT) at any width, so
-// its text stays the same size. The quadrant names sit outside the frame, above and below
-// it. His move is a vector: a hollow square where he is with the stars, a thin shaft
+// 1:1 at the panel's width, its frame square (ASPECT) at any width, so its text stays the
+// same size. The quadrant names sit outside the frame, above and below it. His move is a vector: a hollow square where he is with the stars, a thin shaft
 // and a sharp head whose tip is where he is without them, in the colour of his Net
 // change; a move too short to point anywhere (under MIN_ARROW px) is a filled square
 // instead. On each pick the shaft draws and the head snaps on after it (index.css
 // .ls-draw, .ls-pop).
 const HEADROOM = 1.08
-const ASPECT = 1.15
+const ASPECT = 1
 const MIN_ARROW = 12
 const HEAD = { len: 9, half: 4.5 }
 const roomy = r => r && [r[1] - (r[1] - r[0]) * HEADROOM, r[1], r[1] + (r[2] - r[1]) * HEADROOM]
@@ -93,7 +92,7 @@ function Plot({ s, scale, width: W, skey }) {
   const a = [s.on.load, s.on.net]
   const b = [s.off.load, s.off.net]
   const tone = toneOf(NET, s.change.net)
-  const t = { fontFamily: MONO, fontSize: 7, letterSpacing: '.08em', fill: FAINT }
+  const t = { fontFamily: MONO, fontSize: 7.5, letterSpacing: '.08em', fill: DIM }
   if (!X || !Y) return null
   const midX = (box.l + right) / 2
   const midY = (box.t + bottom) / 2
@@ -137,10 +136,10 @@ function Plot({ s, scale, width: W, skey }) {
   )
 }
 
-// The cast, centred in the panel whether two or three: name tags along the top, cut-out
+// The cast, centred in the panel whether two or three: names along the top, cut-out
 // portraits standing on the rule below (the one over the numbers), each centred in its
-// column. He's in colour; the stars who sit are smaller, greyscale, dim, and on each
-// pick fade from colour to that, as if heading to the bench (index.css .ls-bench).
+// column. He's in colour (on); the stars who sit are smaller, greyscale, dim (off), and on
+// each pick fade from colour to that, as if heading to the bench (index.css .ls-bench).
 function Portrait({ who, team, on, size }) {
   const [failed, setFailed] = useState(false)
   const dim = on ? {} : { filter: 'grayscale(1)', opacity: 0.45 }
@@ -153,20 +152,17 @@ function Portrait({ who, team, on, size }) {
 }
 
 function Cast({ p, s }) {
-  const cast = [{ who: p, on: true, size: 78 }, ...s.stars.map(t => ({ who: t, on: false, size: 58 }))]
-  // A tag is at least 76px wide (a name like WESTBROOK on one line), a long name wrapping
-  // (at a hyphen, else anywhere), so the cast always fits the panel: GILGEOUS-ALEXANDER
-  // and two stars included. The tags' row has a fixed height that holds a wrapped name,
-  // the tags sitting at its foot, so the panel is the same height for every pick.
+  const cast = [{ who: p, on: true, size: 68 }, ...s.stars.map(t => ({ who: t, on: false, size: 52 }))]
+  // A name is at least 76px wide (one like WESTBROOK on one line), a long one wrapping (at
+  // a hyphen, else anywhere), so the cast always fits the panel: GILGEOUS-ALEXANDER and
+  // two stars included. The names' row has a fixed height that holds a wrapped name, the
+  // names sitting at its foot, so the panel is the same height for every pick.
   const tag = (who, on, size) => (
-    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: Math.max(size, 76), textAlign: 'center' }}>
-      <span style={{ ...label, color: on ? INK : MID, overflowWrap: 'anywhere', lineHeight: 1.35 }}>{lastName(who.name)}</span>
-      <span style={{ ...label, color: on ? DIM : FAINT }}>{on ? 'On' : 'Off'}</span>
-    </span>
+    <span style={{ display: 'block', width: Math.max(size, 76), textAlign: 'center', ...label, color: on ? INK : MID, overflowWrap: 'anywhere', lineHeight: 1.35 }}>{lastName(who.name)}</span>
   )
   return (
-    <div aria-label={`${p.name} without ${starsText(s.stars)}`}
-      style={{ display: 'grid', gridTemplateRows: '40px 80px', gridAutoFlow: 'column', justifyContent: 'center', alignItems: 'start', columnGap: 12, rowGap: 6, padding: `14px ${PAD}px 0`, borderTop: `1px solid ${RULE}` }}>
+    <div aria-label={`${p.name} on, without ${starsText(s.stars)}`}
+      style={{ display: 'grid', gridTemplateRows: '26px 68px', gridAutoFlow: 'column', justifyContent: 'center', alignItems: 'start', columnGap: 12, rowGap: 4, padding: `12px ${PAD}px 0`, borderTop: `1px solid ${RULE}` }}>
       {cast.flatMap((c, i) => [
         ...(i === 1 ? [<span key="wo-tag" />, <span key="wo" style={{ ...label, color: FAINT, alignSelf: 'center' }}>W/O</span>] : []),
         <span key={`t${i}`} style={{ alignSelf: 'end', justifySelf: 'center' }}>{tag(c.who, c.on, c.size)}</span>,
@@ -180,7 +176,7 @@ function Cast({ p, s }) {
 // change in its colour, from → to) and the minutes with the stars and without (a side
 // too short to rank in orange).
 function Numbers({ s, minRank }) {
-  const cell = { display: 'flex', flexDirection: 'column', gap: 4, padding: '12px 10px', background: BG, minWidth: 0 }
+  const cell = { display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 10px', background: BG, minWidth: 0 }
   const big = { fontSize: 18, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }
   return (
     <div className="ls-nums" style={{ borderTop: `1px solid ${EDGE}` }}>

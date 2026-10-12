@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, fadeOf, lastName, namesText, posOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
+import { STATS, change, lastName, namesText, posOf, seasonsText, starsText, toneOf, value } from '../lib/lonestar.js'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
@@ -10,10 +10,10 @@ import TeamInitials from './TeamInitials.jsx'
 // lib/lonestar.js). Keys pick the stars: his top star teammate, or his top two. On the
 // left, one continuous panel: Load against Net with the stars and without, who's on and
 // off, then the two moves and the minutes each way in one row. On the right, every stat:
-// with, a strip across the stat's league range (where he is with them, without them, and
-// the stretch between in the change's colour), without, and the change (its rank among
-// every player's in the row's tooltip). Positions are on each stat's league range, not
-// its percentile, so a big change near the top still reads as big.
+// with, a slider across the stat's league range (where he is with them, and an arrow to
+// where he is without them in the change's colour), without, and the change (its rank
+// among every player's in the row's tooltip). Positions are on each stat's league range,
+// not its percentile, so a big change near the top still reads as big.
 const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#5f5a55' }
 const BG = '#262422'
 const INK = '#ece8e3'
@@ -23,7 +23,6 @@ const DIM = '#8a847e'
 const FAINT = '#5f5a55'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
-const CELL = '#34312e'
 const PAD = 18
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 const LOAD = STATS.find(x => x.key === 'load')
@@ -214,25 +213,49 @@ function Numbers({ s, minRank }) {
   )
 }
 
-// A row's strip cells: empty, where he is with the stars (hollow), without (filled), the
-// same either way, and the stretch between in the change's colour, fading in from faint
-// beside the WITH cell to full beside the WITHOUT one (`fade`, 0–1 along the way), so the
-// trail shows which way he went.
-const trail = (color, fade) => `color-mix(in srgb, ${color} ${Math.round(22 + 78 * fade)}%, ${CELL})`
-const stripCell = (state, color, fade = 1) => (
-  state === 'with' ? { boxShadow: `inset 0 0 0 1.5px ${MID}` }
-    : state === 'without' ? { background: SOFT }
-      : state === 'both' ? { background: SOFT, boxShadow: `inset 0 0 0 1.5px ${DIM}` }
-        : state === 'between' ? { background: trail(color, fade) }
-          : { background: CELL }
-)
+// A row's slider, the plot's vector in one dimension: a hairline ruler across the stat's
+// league range (ticks at the quarters, longer at the ends), a hollow square where he is
+// with the stars and a sharp head where he is without them, joined by a shaft in the
+// change's colour (grey when it shows as 0.0). Placed in percentages, so it fits any
+// column width. On each pick the shaft grows from the square and the head snaps on, the
+// rows a beat apart (index.css .ls-grow, .ls-pop; none with reduced motion).
+const SQUARE = 9
+const TICKS = [0, 25, 50, 75, 100]
+const head = (dir, color) => ({ width: HEAD.len, height: HEAD.half * 2, flex: 'none', background: color, clipPath: dir > 0 ? 'polygon(0 0, 100% 50%, 0 100%)' : 'polygon(100% 0, 0 50%, 100% 100%)' })
+const at = (left, size) => ({ position: 'absolute', left, top: `calc(50% - ${size / 2}px)` })
+const pct = x => `${+(x * 100).toFixed(2)}%`
 
-// On each pick the trail lights up cell by cell from where he was with the stars to
-// where he is without them, the rows a beat apart (index.css .ls-light; none with
-// reduced motion).
-const lightUp = (state, i, from, row) => (state === 'empty' || state === 'with'
-  ? {}
-  : { className: 'ls-light', style: { animationDelay: `${row * 28 + Math.abs(i - Math.max(from, 0)) * 16}ms` } })
+function Slider({ on, off, scale, color, index }) {
+  const a = posOf(scale, on)
+  const b = posOf(scale, off)
+  const dir = a !== null && b !== null && b < a ? -1 : 1
+  const delay = s => ({ animationDelay: `${(s + index * 0.028).toFixed(3)}s` })
+  // From the square's edge to the head's base, never negative.
+  const gap = SQUARE / 2 + HEAD.len
+  // The head's tip at where he is without them; a move too short to clear the square puts
+  // the head against the square's side instead of over it, still pointing the way he went.
+  const headLeft = a === null ? `calc(${pct(b)} - ${HEAD.len / 2}px)`
+    : dir > 0 ? `max(calc(${pct(b)} - ${HEAD.len}px), calc(${pct(a)} + ${SQUARE / 2}px))`
+      : `min(${pct(b)}, calc(${pct(a)} - ${gap}px))`
+  return (
+    <span className="ls-slider" aria-hidden="true" style={{ gridArea: 'strip' }}>
+      <span style={{ ...at(0, 1), right: 0, height: 1, background: EDGE }} />
+      {TICKS.map(t => {
+        const end = t === 0 || t === 100
+        return <span key={t} style={{ ...at(`calc(${t}% - 0.5px)`, end ? 9 : 5), width: 1, height: end ? 9 : 5, background: EDGE }} />
+      })}
+      {a !== null && b !== null && (
+        <span className="ls-grow" style={{
+          ...at(dir > 0 ? `calc(${pct(a)} + ${SQUARE / 2}px)` : `calc(${pct(b)} + ${HEAD.len}px)`, 2),
+          width: `max(0px, calc(${pct(Math.abs(b - a))} - ${gap}px))`, height: 2, background: color,
+          transformOrigin: dir > 0 ? 'left' : 'right', ...delay(0.1)
+        }} />
+      )}
+      {a !== null && <span style={{ ...at(`calc(${pct(a)} - ${SQUARE / 2}px)`, SQUARE), width: SQUARE, height: SQUARE, boxSizing: 'border-box', border: `1.5px solid ${MID}`, background: BG }} />}
+      {b !== null && <span className="ls-pop" style={{ ...at(headLeft, HEAD.half * 2), ...head(dir, color), ...delay(0.45) }} />}
+    </span>
+  )
+}
 
 function Row({ stat, s, scale, mode, skey, index }) {
   const k = stat.key
@@ -242,28 +265,20 @@ function Row({ stat, s, scale, mode, skey, index }) {
   const pOn = s.pctl.on[k]
   const pOff = s.pctl.off[k]
   const pctl = mode === 'pctl'
-  const cells = stripOf(s.on[k], s.off[k], scale)
-  const fades = fadeOf(cells)
-  const from = cells.indexOf('with')
   const rank = r ? `; his change ranks #${r.rank} of ${r.of} players' (#1 the biggest increase)` : '; too few minutes to rank'
   return (
     <div className="ls-row" title={`${stat.label}: ${value(stat, s.on[k])} with his stars (${pctlText(pOn)} pctl), ${value(stat, s.off[k])} without (${pctlText(pOff)} pctl)${rank}`}>
       <span style={{ gridArea: 'stat', ...label, color: '#c9c3bc' }}>{stat.label}</span>
       <span className="ls-with" style={{ gridArea: 'with', textAlign: 'right', color: DIM }}>{pctl ? pctlText(pOn) : value(stat, s.on[k])}</span>
-      <span key={skey} className="ls-strip" aria-hidden="true" style={{ gridArea: 'strip' }}>
-        {cells.map((state, i) => {
-          const light = lightUp(state, i, from, index)
-          return <span key={i} className={light.className} style={{ ...stripCell(state, TONES[tone], fades[i]), ...light.style }} />
-        })}
-      </span>
+      <Slider key={skey} on={s.on[k]} off={s.off[k]} scale={scale} color={tone === 'neutral' ? MID : TONES[tone]} index={index} />
       <span style={{ gridArea: 'wo', textAlign: 'right', color: INK, fontWeight: 600 }}>{pctl ? pctlText(pOff) : value(stat, s.off[k])}</span>
       <span style={{ gridArea: 'change', textAlign: 'right', fontSize: 14, fontWeight: 600, color: TONES[tone] }}>{pctl ? signed(pOn === null || pOff === null ? null : pOff - pOn) : change(stat, d)}</span>
     </div>
   )
 }
 
-const swatch = style => <span style={{ width: 7, height: 11, flex: 'none', ...style }} />
 const legendItem = { display: 'inline-flex', gap: 6, alignItems: 'center' }
+const legendArrow = color => <span style={{ display: 'inline-flex', alignItems: 'center' }}><span style={{ width: 12, height: 2, background: color }} /><span style={head(1, color)} /></span>
 
 // The seasons he has stretches in, oldest first, side by side like RAW | PCTL, each with a
 // lamp lit while it counts: the stretches pool over whichever are lit. One always stays
@@ -357,10 +372,10 @@ export default function Lonestar({ profile: p }) {
             </div>
             {STATS.map((stat, i) => <Row key={stat.key} stat={stat} s={s} scale={ls.scale && ls.scale[stat.key]} mode={mode} skey={skey} index={i} />)}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: `12px ${PAD}px`, fontSize: 9, letterSpacing: '.1em', color: DIM }}>
-              <span style={legendItem}>{swatch(stripCell('with'))}WITH</span>
-              <span style={legendItem}>{swatch(stripCell('without'))}WITHOUT</span>
-              <span style={legendItem}>{swatch({ width: 22, background: `linear-gradient(90deg, ${trail(TONES.good, 0)}, ${TONES.good})` })}BETTER W/O</span>
-              <span style={legendItem}>{swatch({ width: 22, background: `linear-gradient(90deg, ${trail(TONES.bad, 0)}, ${TONES.bad})` })}WORSE W/O</span>
+              <span style={legendItem}><span style={{ width: SQUARE, height: SQUARE, flex: 'none', boxSizing: 'border-box', border: `1.5px solid ${MID}` }} />WITH</span>
+              <span style={legendItem}><span style={head(1, MID)} />WITHOUT</span>
+              <span style={legendItem}>{legendArrow(TONES.good)}BETTER W/O</span>
+              <span style={legendItem}>{legendArrow(TONES.bad)}WORSE W/O</span>
             </div>
           </div>
         </div>

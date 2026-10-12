@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, change, fadeOf, namesText, posOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
+import { STATS, change, namesText, posOf, seasonsText, starsText, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -34,31 +34,6 @@ describe('lonestar', () => {
     expect(posOf(scale, 99)).toBe(1)
     expect(posOf(scale, null)).toBe(null)
     expect(posOf(null, 30)).toBe(null)
-  })
-
-  test('a strip marks where he is with and without his stars, and the cells between', () => {
-    // On a 0–100 range: 40 with them (cell 20), 52 without (cell 26).
-    const scale = [0, 50, 100]
-    const up = stripOf(40, 52, scale)
-    expect(up).toHaveLength(50)
-    expect([up[20], up[26]]).toEqual(['with', 'without'])
-    expect(up.slice(21, 26)).toEqual(['between', 'between', 'between', 'between', 'between'])
-    expect(up.filter(c => c === 'empty')).toHaveLength(43)
-    // The other way round.
-    const down = stripOf(52, 40, scale)
-    expect([down[26], down[20], down[23]]).toEqual(['with', 'without', 'between'])
-    // The same cell either way; past the top in the last cell.
-    expect(stripOf(50, 51, scale)[25]).toBe('both')
-    expect(stripOf(120, 130, scale)[49]).toBe('both')
-    // A missing side marks only the other.
-    expect(stripOf(null, 40, scale).filter(c => c !== 'empty')).toEqual(['without'])
-  })
-
-  test('a trail fades in from where he was with his stars to where he is without them', () => {
-    expect(fadeOf(['empty', 'with', 'between', 'between', 'between', 'without'])).toEqual([null, null, 0.25, 0.5, 0.75, null])
-    // Moving down: the WITH cell is on the right.
-    expect(fadeOf(['without', 'between', 'between', 'between', 'with'])).toEqual([null, 0.75, 0.5, 0.25, null])
-    expect(fadeOf(['empty', 'both', 'empty'])).toEqual([null, null, null])
   })
 
   test('stars and seasons as words', () => {

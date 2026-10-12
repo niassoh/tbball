@@ -41,34 +41,6 @@ export const posOf = (scale, v) => {
   return hi > lo ? Math.max(0, Math.min(1, (v - lo) / (hi - lo))) : 0.5
 }
 
-// A row's strip across the stat's league range: `n` cells (2% of the range each at 50),
-// the cell he's in with the stars ('with'), without them ('without'), the same one
-// either way ('both'), the cells between ('between'), and the rest ('empty').
-export const stripOf = (on, off, scale, n = 50) => {
-  const at = v => {
-    const x = posOf(scale, v)
-    return x === null ? null : Math.min(n - 1, Math.floor(x * n))
-  }
-  const a = at(on)
-  const b = at(off)
-  return Array.from({ length: n }, (_, i) => {
-    if (i === a && i === b) return 'both'
-    if (i === a) return 'with'
-    if (i === b) return 'without'
-    if (a !== null && b !== null && i > Math.min(a, b) && i < Math.max(a, b)) return 'between'
-    return 'empty'
-  })
-}
-
-// How far each of a strip's 'between' cells is along the way from the WITH cell to the
-// WITHOUT cell (0–1, the ends excluded), so the trail can fade in toward where he ends
-// up; null for every other cell.
-export const fadeOf = states => {
-  const a = states.indexOf('with')
-  const b = states.indexOf('without')
-  return states.map((state, i) => (state === 'between' && a >= 0 && b >= 0 ? Math.abs(i - a) / Math.abs(b - a) : null))
-}
-
 // The stars of a scenario as words: "Murray", "Murray & Valančiūnas".
 const last = name => (name || '?').split(' ').slice(1).join(' ') || name || '?'
 export const lastName = last

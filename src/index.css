@@ -52,27 +52,29 @@ html { scroll-behavior: smooth; }
    catalogue tiles lift a shade and their portrait leans in, parts-list lines highlight. */
 .ls-key { transition: border-color .12s, color .12s; }
 .ls-key[aria-pressed="false"]:hover { border-color: #ece8e3 !important; color: #ece8e3 !important; }
-/* Lonestar's pick animation, replayed on each scenario: strip cells and numbers light
-   up (staggered inline), the plot's line draws from with to without and the without
-   square settles in after it, the sitting stars fade from colour to the bench. None with
-   reduced motion. */
+/* Lonestar's pick animation, replayed on each scenario: the numbers light up, the plot's
+   line draws from with to without and its head settles in after it, each slider's shaft
+   grows from the square and its head snaps on (rows staggered inline), the sitting stars
+   fade from colour to the bench. None with reduced motion. */
 @keyframes ls-light { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ls-draw { to { stroke-dashoffset: 0; } }
+@keyframes ls-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes ls-pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
 @keyframes ls-bench { from { filter: grayscale(0); opacity: 1; } to { filter: grayscale(1); opacity: .45; } }
 .ls-light { animation: ls-light .3s ease-out both; }
 .ls-draw { animation: ls-draw .6s cubic-bezier(.2, .8, .2, 1) .1s forwards; }
+.ls-grow { animation: ls-grow .4s cubic-bezier(.2, .8, .2, 1) both; }
 .ls-pop { transform-box: fill-box; transform-origin: center; animation: ls-pop .35s cubic-bezier(.2, .8, .2, 1) .62s both; }
 .ls-bench { animation: ls-bench .8s ease .25s both; }
 @media (prefers-reduced-motion: reduce) {
-  .ls-light, .ls-draw, .ls-pop, .ls-bench { animation: none; }
+  .ls-light, .ls-draw, .ls-grow, .ls-pop, .ls-bench { animation: none; }
   .ls-draw { stroke-dashoffset: 0 !important; }
 }
 /* Lonestar: one continuous panel at the left, the stats at the right; one column (the
    panel first) when narrow. The panel's numbers sit
    in one row of four (two by two when narrow), split by 1px rules. The stats: stat |
-   with | strip | without | change, compact rows, the strip 50 small cells; in a narrow
-   column with drops (!important over its inline display) and the cells close up. */
+   with | slider | without | change, compact rows; in a narrow column with drops
+   (!important over its inline display). */
 .ls-frame { container-type: inline-size; }
 .ls-body { display: grid; grid-template-columns: 340px minmax(0, 1fr); }
 .ls-side { border-right: 1px solid #3d3a37; }
@@ -98,13 +100,11 @@ html { scroll-behavior: smooth; }
 .ls-row { display: grid; grid-template-columns: minmax(110px, 1fr) 52px minmax(150px, 460px) 52px 64px; grid-template-areas: "stat with strip wo change"; align-items: center; column-gap: 14px; min-height: 34px; padding: 0 18px; border-bottom: 1px solid #3d3a37; font-size: 12px; font-variant-numeric: tabular-nums; }
 .ls-row.ls-head { min-height: 34px; }
 .ls-row:not(.ls-head):hover { background: #2a2826; }
-.ls-strip { display: flex; gap: 2px; }
-.ls-strip > span { flex: 1 1 0; min-width: 1px; max-width: 8px; height: 12px; }
+.ls-slider { position: relative; display: block; height: 16px; }
 @container (max-width: 560px) {
   .ls-row { grid-template-columns: minmax(0, 1fr) minmax(110px, 1.6fr) 44px 50px; grid-template-areas: "stat strip wo change"; column-gap: 8px; padding: 0 12px; }
   .ls-row .ls-with { display: none !important; }
   .ls-head .ls-range-word { display: none; }
-  .ls-strip { gap: 1px; }
 }
 .idx-logos-wrap { container-type: inline-size; }
 .idx-logos { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }

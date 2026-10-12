@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { GROUPS, STATS, cellsOf, change, litOf, seasonsText, segmentsOf, shiftsOf, starsText, tintOf, toneOf, value } from './lonestar.js'
+import { STATS, change, litOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -21,6 +21,9 @@ describe('lonestar', () => {
     expect(toneOf(stat('load'), 5)).toBe('good')
     expect(toneOf(stat('load'), -2)).toBe('bad')
     expect(toneOf(stat('load'), 0)).toBe('neutral')
+    // A change that shows as 0.0 is neither.
+    expect(toneOf(stat('pa3_75'), -0.03)).toBe('neutral')
+    expect(toneOf(stat('rts'), 0.0004)).toBe('neutral')
     expect(toneOf(stat('net'), null)).toBe('neutral')
   })
 
@@ -31,35 +34,21 @@ describe('lonestar', () => {
     expect(litOf(null)).toBe(0)
   })
 
-  test("a column's colour strengthens with the size of the change", () => {
-    expect(tintOf(0)).toBe(20)
-    expect(tintOf(66)).toBe(66)
-    expect(tintOf(100)).toBe(90)
-    expect(tintOf(null)).toBe(45)
-  })
-
-  test('a column lights a segment per 10 percentile points', () => {
-    expect(segmentsOf(0)).toBe(0)
-    expect(segmentsOf(46)).toBe(5)
-    expect(segmentsOf(100)).toBe(10)
-    expect(segmentsOf(null)).toBe(0)
-  })
-
-  test('a column shows what he holds, gains and loses without his stars', () => {
-    // 40th with them, 70th without: four held, three gained.
-    expect(cellsOf(40, 70)).toEqual(['held', 'held', 'held', 'held', 'gained', 'gained', 'gained', 'empty', 'empty', 'empty'])
-    // 60th with them, 30th without: three held, three lost.
-    expect(cellsOf(60, 30)).toEqual(['held', 'held', 'held', 'lost', 'lost', 'lost', 'empty', 'empty', 'empty', 'empty'])
-  })
-
-  test('the biggest shifts are the stats whose percentile moves most, either way', () => {
-    const pctl = { on: { load: 80, passerRating: 51, rts: 43, pct3: 40, net: null }, off: { load: 98, passerRating: 96, rts: 18, pct3: 12, net: 70 } }
-    expect(shiftsOf(pctl).map(x => [x.stat.key, x.delta])).toEqual([['passerRating', 45], ['pct3', -28], ['rts', -25]])
-  })
-
-  test('the stats fall in four groups, in order', () => {
-    expect(GROUPS.map(g => g.name)).toEqual(['Role', 'Shot diet', 'Efficiency', 'Team'])
-    expect(GROUPS.flatMap(g => g.stats)).toEqual(STATS)
+  test('a strip marks where he is with and without his stars, and the cells between', () => {
+    // 40th with them (cell 8), 70th without (cell 14).
+    const up = stripOf(40, 70)
+    expect(up[8]).toBe('with')
+    expect(up[14]).toBe('without')
+    expect(up.slice(9, 14)).toEqual(['between', 'between', 'between', 'between', 'between'])
+    expect(up.filter(c => c === 'empty')).toHaveLength(13)
+    // The other way round.
+    const down = stripOf(70, 40)
+    expect([down[14], down[8], down[11]]).toEqual(['with', 'without', 'between'])
+    // The same cell either way; the 100th in the last cell.
+    expect(stripOf(50, 52)[10]).toBe('both')
+    expect(stripOf(100, 100)[19]).toBe('both')
+    // A missing side marks only the other.
+    expect(stripOf(null, 40).filter(c => c !== 'empty')).toEqual(['without'])
   })
 
   test('stars and seasons as words', () => {

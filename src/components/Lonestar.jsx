@@ -1,159 +1,204 @@
 import { useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { GROUPS, cellsOf, change, litOf, seasonsText, segmentsOf, shiftsOf, starsText, tintOf, toneOf, value } from '../lib/lonestar.js'
+import { STATS, change, lastName, litOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
 // The Lonestar tab: how he plays when his team's stars sit (thinking-bball
-// lib/lonestar.js). Keys pick the stars: his top-Load teammate, or his top two. The
-// shape up top gives the feel of the change: a column per stat filled to his league
-// percentile without the stars, a tick where it reached with them, grouped by role,
-// shot diet, efficiency and team, with his number without them and the change (raw or
-// in percentiles). The table under it has the numbers: with, without, the change, and
-// where the change ranks among every player's (#1 the biggest increase) on a meter.
-const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#ece8e3' }
+// lib/lonestar.js). Keys pick the stars: his top-Load teammate, or his top two. On the
+// left, the shape of the change: Load against Net (league percentiles) with the stars and
+// without, the two moves in numbers, who's on and off, and the minutes each way. On the
+// right, every stat: with, a strip of league percentile (where he is with them, without
+// them, and the stretch between in the change's colour), without, the change, and its
+// rank among every player's (#1 the biggest increase).
+const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#5f5a55' }
+const BG = '#262422'
 const INK = '#ece8e3'
+const SOFT = '#d9d3cc'
+const MID = '#b8b2ab'
 const DIM = '#8a847e'
 const FAINT = '#5f5a55'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
-const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
-const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
+const CELL = '#34312e'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
+const LOAD = STATS.find(x => x.key === 'load')
+const NET = STATS.find(x => x.key === 'net')
+const pctlText = p => (p === null || p === undefined ? '—' : String(p))
+const signed = n => (n === null ? '—' : `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`)
 
-// A star on a key: his face cropped close, in greyscale (he's the one sitting), in a
-// slot the key's full height (index.css lifts it on hover and when picked).
-function Slot({ who, team }) {
-  const [failed, setFailed] = useState(false)
-  return (
-    <span className="ls-face" style={{ width: 32, height: 32, flex: 'none', overflow: 'hidden', background: PORTRAIT_BG, borderRight: `1px solid ${RULE}` }}>
-      {who.headshot && !failed
-        ? <img src={headshotUrl(who.slug, 100, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 18%', transform: 'scale(1.4)', transformOrigin: '50% 26%', display: 'block' }} />
-        : <TeamInitials name={who.name || '?'} team={team} fontSize={9} />}
-    </span>
-  )
-}
-
-function Key({ on, onClick, stars, team, children }) {
+function Key({ on, onClick, children }) {
   return (
     <button type="button" aria-pressed={on} onClick={onClick} className="ls-key"
-      style={{ display: 'flex', alignItems: 'center', gap: 10, height: 34, padding: '0 12px 0 0', background: on ? INK : 'transparent', color: on ? '#1f1d1c' : '#b8b2ab', border: `1px solid ${on ? INK : EDGE}`, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-      <span style={{ display: 'flex' }}>{stars.map(t => <Slot key={t.id} who={t} team={team} />)}</span>
+      style={{ height: 30, padding: '0 12px', background: on ? '#3a3734' : 'transparent', color: on ? INK : MID, border: `1px solid ${on ? DIM : EDGE}`, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
       {children}
     </button>
   )
 }
 
-function Meter({ n }) {
-  return (
-    <span className="ls-meter" aria-hidden="true" style={{ display: 'flex', gap: 2 }}>
-      {Array.from({ length: 10 }, (_, i) => <span key={i} style={{ width: 5, height: 8, background: i < n ? INK : RULE }} />)}
-    </span>
-  )
-}
-
-// A column fills to his league percentile without the stars, a segment per 10 points,
-// in the change's colour: what he had with them too tinted by how big the change is
-// (so a big change shows even when he's already at the top), what he gains without them
-// at full strength. A tick marks where it reached with them, so a drop is the column
-// standing short of its tick: the segments it gave up stay as a faint wash of the
-// change's colour, and the tick takes that colour.
-const HELD = '#6b655f'
-const TICK = '#b8b2ab'
-const EMPTY = '#2f2c2a'
-const SEG = 7
-const GAP = 3
-const cell = (state, color, tint) => ({
-  background: state === 'held' ? (tint ? `color-mix(in srgb, ${color} ${tint}%, ${HELD})` : HELD) : state === 'gained' ? color : state === 'lost' ? `color-mix(in srgb, ${color} 24%, ${EMPTY})` : EMPTY
-})
-const toneColor = tone => TONES[tone]
-const signed = n => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`
-const pctlText = p => (p === null || p === undefined ? '—' : String(p))
-
-function Column({ stat, s, mode }) {
-  const pOn = s.pctl.on[stat.key]
-  const pOff = s.pctl.off[stat.key]
-  const tone = toneOf(stat, s.change[stat.key])
-  const tick = segmentsOf(pOn)
-  const dropped = segmentsOf(pOff) < tick
-  const pctl = mode === 'pctl'
-  return (
-    <div title={`${stat.label}: ${value(stat, s.on[stat.key])} with his stars (${pctlText(pOn)} pctl), ${value(stat, s.off[stat.key])} without (${pctlText(pOff)} pctl)`}
-      style={{ width: 44, flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-      <div aria-hidden="true" style={{ position: 'relative', display: 'flex', flexDirection: 'column-reverse', gap: GAP, width: 22, marginBottom: 2 }}>
-        {cellsOf(pOn, pOff).map((state, i) => <span key={i} style={{ height: SEG, ...cell(state, toneColor(tone), tone === 'neutral' ? 0 : tintOf(s.size && s.size[stat.key])) }} />)}
-        {tick > 0 && <span style={{ position: 'absolute', left: -4, right: -4, bottom: tick * (SEG + GAP) - GAP / 2 - 1, height: 2, background: dropped ? toneColor(tone) : TICK }} />}
-      </div>
-      <span style={{ ...label, color: '#c9c3bc', textAlign: 'center', whiteSpace: 'nowrap' }}>{stat.short}</span>
-      <span style={{ fontSize: 12, fontWeight: 600, color: INK, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{pctl ? pctlText(pOff) : value(stat, s.off[stat.key])}</span>
-      <span style={{ fontSize: 10, color: TONES[tone], whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', marginTop: -3 }}>{pctl ? (pOn === null || pOff === null ? '—' : signed(pOff - pOn)) : change(stat, s.change[stat.key])}</span>
-    </div>
-  )
-}
-
-// The three stats whose league percentile moves most without his stars: where he goes
-// from and to and by how much, always in percentiles (the only scale the stats share),
-// in the change's colour.
-function Shifts({ s }) {
-  return (
-    <div style={{ flex: '0 1 320px', minWidth: 220, display: 'flex', flexDirection: 'column', gap: 12, paddingLeft: 24, borderLeft: `1px solid ${RULE}` }}>
-      <span style={{ ...label, color: '#c9c3bc' }}>Biggest shifts · pctl</span>
-      {shiftsOf(s.pctl).map(x => (
-        <div key={x.stat.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', alignItems: 'baseline', gap: 14, fontVariantNumeric: 'tabular-nums' }}>
-          <span style={{ ...label, color: '#b8b2ab' }}>{x.stat.label}</span>
-          <span style={{ fontSize: 11, color: DIM }}>{x.on}<span style={{ color: FAINT }}> → </span><span style={{ color: INK }}>{x.off}</span></span>
-          <span style={{ fontSize: 20, fontWeight: 600, minWidth: 56, textAlign: 'right', color: toneColor(toneOf(x.stat, s.change[x.stat.key])) }}>{signed(x.delta)}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// RAW | PCTL: what the columns' numbers read in.
+// RAW | PCTL: what the table's numbers read in.
 function ModeSwitch({ mode, setMode }) {
   return (
     <div role="group" aria-label="Show values as" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
       {[['raw', 'Raw'], ['pctl', 'Pctl']].map(([m, name]) => (
         <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)} className="ls-mode"
-          style={{ height: 22, padding: '0 10px', background: mode === m ? '#3d3a37' : 'transparent', color: mode === m ? INK : DIM, border: 'none', fontFamily: MONO, fontSize: 9, fontWeight: mode === m ? 700 : 500, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
+          style={{ height: 28, padding: '0 12px', background: mode === m ? '#3a3734' : 'transparent', color: mode === m ? INK : DIM, border: 'none', fontFamily: MONO, fontSize: 9, fontWeight: mode === m ? 700 : 500, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
       ))}
     </div>
   )
 }
 
-// One stat's numbers: with the stars, without, the change, and the change's rank among
-// every player's on the meter.
-function Row({ stat, s }) {
-  const d = s.change[stat.key]
-  const tone = toneOf(stat, d)
-  const r = s.ranks && s.ranks[stat.key]
+// Load against Net, both as league percentiles: a hollow square where he is with the
+// stars, a filled one without them, joined in the colour of his Net change.
+function Plot({ s }) {
+  const W = 264
+  const H = 236
+  const box = { l: 18, r: 4, t: 16, b: 30 }
+  const x = p => box.l + (p / 100) * (W - box.l - box.r)
+  const y = p => box.t + (1 - p / 100) * (H - box.t - box.b)
+  const a = [s.pctl.on.load, s.pctl.on.net]
+  const b = [s.pctl.off.load, s.pctl.off.net]
+  const has = pt => pt.every(v => v !== null && v !== undefined)
+  const tone = toneOf(NET, s.change.net)
+  const corner = { fontFamily: MONO, fontSize: 7, letterSpacing: '.08em', fill: FAINT }
+  const right = x(100)
+  const bottom = y(0)
   return (
-    <div className="ls-row">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <span style={label}>Load × Net · with → without</span>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={`Load and Net percentiles: ${pctlText(a[0])} and ${pctlText(a[1])} with his stars, ${pctlText(b[0])} and ${pctlText(b[1])} without`} style={{ display: 'block', overflow: 'visible' }}>
+        <rect x={box.l} y={box.t} width={right - box.l} height={bottom - box.t} fill="none" stroke={RULE} />
+        <line x1={x(50)} x2={x(50)} y1={box.t} y2={bottom} stroke={EDGE} strokeDasharray="1 3" />
+        <line x1={box.l} x2={right} y1={y(50)} y2={y(50)} stroke={EDGE} strokeDasharray="1 3" />
+        <text x={box.l + 5} y={box.t + 11} style={corner}>LESS LOAD · BETTER</text>
+        <text x={right - 5} y={box.t + 11} textAnchor="end" style={corner}>MORE LOAD · BETTER</text>
+        <text x={box.l + 5} y={bottom - 6} style={corner}>LESS LOAD · WORSE</text>
+        <text x={right - 5} y={bottom - 6} textAnchor="end" style={corner}>MORE LOAD · WORSE</text>
+        <text x={box.l - 5} y={box.t + 3} textAnchor="end" style={{ ...corner, fill: DIM }}>100</text>
+        <text x={box.l - 5} y={bottom + 3} textAnchor="end" style={{ ...corner, fill: DIM }}>0</text>
+        <text x={right} y={bottom + 12} textAnchor="end" style={{ ...corner, fill: DIM }}>100</text>
+        <text transform={`translate(${box.l - 11} ${(box.t + bottom) / 2}) rotate(-90)`} textAnchor="middle" style={{ ...corner, fill: DIM }}>NET PCTL</text>
+        <text x={(box.l + right) / 2} y={bottom + 24} textAnchor="middle" style={{ ...corner, fill: DIM }}>LOAD PCTL</text>
+        {has(a) && has(b) && <line x1={x(a[0])} y1={y(a[1])} x2={x(b[0])} y2={y(b[1])} stroke={TONES[tone] || DIM} strokeWidth="2" />}
+        {has(a) && <rect x={x(a[0]) - 4.5} y={y(a[1]) - 4.5} width="9" height="9" fill={BG} stroke={MID} strokeWidth="1.5" />}
+        {has(b) && <rect x={x(b[0]) - 5.5} y={y(b[1]) - 5.5} width="11" height="11" fill={SOFT} />}
+      </svg>
+    </div>
+  )
+}
+
+// A move in numbers: the change in its colour, and from → to.
+function Move({ stat, name, s }) {
+  const tone = toneOf(stat, s.change[stat.key])
+  return (
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 12px' }}>
+      <span style={label}>{name}</span>
+      <span style={{ fontSize: 18, fontWeight: 600, color: TONES[tone] === FAINT ? MID : TONES[tone], fontVariantNumeric: 'tabular-nums' }}>{change(stat, s.change[stat.key])}</span>
+      <span style={{ fontSize: 10, color: DIM, fontVariantNumeric: 'tabular-nums' }}>{value(stat, s.on[stat.key])} → <span style={{ color: INK }}>{value(stat, s.off[stat.key])}</span></span>
+    </div>
+  )
+}
+
+// One of the cast: his cut-out portrait standing on the shared rule, his name and
+// whether he's on or off under it. The stars who sit are smaller, greyscale and dim.
+function Figure({ who, team, on, size }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+      <div style={{ height: 82, display: 'flex', alignItems: 'flex-end', paddingRight: 12 }}>
+        {who.headshot && !failed
+          ? <img src={headshotUrl(who.slug, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)}
+              style={{ width: size, height: size, objectFit: 'contain', objectPosition: '50% 100%', display: 'block', ...(on ? {} : { filter: 'grayscale(1)', opacity: 0.45 }) }} />
+          : <span style={{ width: size * 0.7, height: size * 0.7, display: 'block', opacity: on ? 1 : 0.45 }}><TeamInitials name={who.name || '?'} team={team} fontSize={12} /></span>}
+      </div>
+      <div style={{ alignSelf: 'stretch', borderTop: `1px solid ${EDGE}`, paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ ...label, color: on ? INK : MID, whiteSpace: 'nowrap' }}>{lastName(who.name)}</span>
+        <span style={{ ...label, color: on ? DIM : FAINT }}>{on ? 'On' : 'Off'}</span>
+      </div>
+    </div>
+  )
+}
+
+function Cast({ p, s }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'stretch' }} aria-label={`${p.name} without ${starsText(s.stars)}`}>
+      <Figure who={p} team={s.team} on size={82} />
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ ...label, height: 82, display: 'flex', alignItems: 'center', paddingRight: 12, color: FAINT }}>W/O</span>
+        <div style={{ borderTop: `1px solid ${EDGE}` }} />
+      </div>
+      {s.stars.map(t => <Figure key={t.id} who={t} team={s.team} size={60} />)}
+    </div>
+  )
+}
+
+// Minutes with the stars and without (a side too short to rank shows orange), and the
+// team and seasons behind them.
+function Minutes({ s, minRank }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
+        {[['With · min', s.on.minutes], ['W/O · min', s.off.minutes]].map(([k, m], i) => {
+          const short = !s.ranked && m < minRank
+          return (
+            <div key={k} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 12px', borderLeft: i ? `1px solid ${EDGE}` : 'none' }}>
+              <span style={label}>{k}</span>
+              <span title={short ? `Under ${minRank} minutes: too few to rank` : undefined} style={{ fontSize: 22, fontWeight: 600, color: short ? TONES.bad : INK, fontVariantNumeric: 'tabular-nums' }}>{Math.round(m).toLocaleString()}</span>
+            </div>
+          )
+        })}
+      </div>
+      <span style={{ ...label, color: FAINT }}>{s.team} · {seasonsText(s.seasons)}{s.ranked ? '' : ` · under ${minRank} min a side, not ranked`}</span>
+    </div>
+  )
+}
+
+// A row's strip cells: empty, where he is with the stars (hollow), without (filled), the
+// same either way, and the stretch between in the change's colour.
+const stripCell = (state, color) => (
+  state === 'with' ? { boxShadow: `inset 0 0 0 1.5px ${MID}` }
+    : state === 'without' ? { background: SOFT }
+      : state === 'both' ? { background: SOFT, boxShadow: `inset 0 0 0 1.5px ${DIM}` }
+        : state === 'between' ? { background: color }
+          : { background: CELL }
+)
+
+function Meter({ n }) {
+  return (
+    <span aria-hidden="true" style={{ display: 'flex', gap: 2 }}>
+      {Array.from({ length: 10 }, (_, i) => <span key={i} style={{ width: 4, height: 9, background: i < n ? MID : CELL }} />)}
+    </span>
+  )
+}
+
+function Row({ stat, s, mode }) {
+  const k = stat.key
+  const d = s.change[k]
+  const tone = toneOf(stat, d)
+  const r = s.ranks && s.ranks[k]
+  const pOn = s.pctl.on[k]
+  const pOff = s.pctl.off[k]
+  const pctl = mode === 'pctl'
+  return (
+    <div className="ls-row" title={`${stat.label}: ${value(stat, s.on[k])} with his stars (${pctlText(pOn)} pctl), ${value(stat, s.off[k])} without (${pctlText(pOff)} pctl)`}>
       <span style={{ gridArea: 'stat', ...label, color: '#c9c3bc' }}>{stat.label}</span>
-      <span style={{ gridArea: 'with', textAlign: 'right', color: '#b8b2ab' }}>{value(stat, s.on[stat.key])}</span>
-      <span style={{ gridArea: 'wo', textAlign: 'right', color: INK, fontWeight: 600 }}>{value(stat, s.off[stat.key])}</span>
-      <span style={{ gridArea: 'change', textAlign: 'right', fontWeight: 600, color: TONES[tone] }}>{change(stat, d)}</span>
-      <span style={{ gridArea: 'rank', display: 'flex', alignItems: 'center', gap: 10 }} title={r ? `His change ranks #${r.rank} of ${r.of} players' (#1 the biggest increase)` : 'Too few minutes to rank'}>
-        <span style={{ fontSize: 11, color: r ? INK : FAINT, whiteSpace: 'nowrap' }}>{r ? `#${r.rank}` : '—'}<span className="ls-of" style={{ color: DIM, fontSize: 10 }}>{r ? ` / ${r.of}` : ''}</span></span>
+      <span className="ls-with" style={{ gridArea: 'with', textAlign: 'right', color: DIM }}>{pctl ? pctlText(pOn) : value(stat, s.on[k])}</span>
+      <span aria-hidden="true" style={{ gridArea: 'strip', display: 'flex', gap: 2 }}>
+        {stripOf(pOn, pOff).map((state, i) => <span key={i} style={{ flex: 1, height: 13, ...stripCell(state, TONES[tone]) }} />)}
+      </span>
+      <span style={{ gridArea: 'wo', textAlign: 'right', color: INK, fontWeight: 600 }}>{pctl ? pctlText(pOff) : value(stat, s.off[k])}</span>
+      <span style={{ gridArea: 'change', textAlign: 'right', fontSize: 15, fontWeight: 600, color: TONES[tone] }}>{pctl ? signed(pOn === null || pOff === null ? null : pOff - pOn) : change(stat, d)}</span>
+      <span className="ls-rank" style={{ gridArea: 'rank', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }} title={r ? `His change ranks #${r.rank} of ${r.of} players' (#1 the biggest increase)` : 'Too few minutes to rank'}>
+        <span style={{ fontSize: 10, color: r ? MID : FAINT }}>{r ? `#${r.rank}` : '—'}</span>
         <Meter n={litOf(r)} />
       </span>
     </div>
   )
 }
 
-// One figure beside the keys: its label over its value, set off by a rule, the keys' height.
-function Readout({ k, v, small, short, minRank }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, height: 34, padding: '0 14px', borderLeft: `1px solid ${RULE}` }}>
-      <span style={label}>{k}</span>
-      <span title={short ? `Under ${minRank} minutes: too few to rank` : undefined}
-        style={{ fontSize: small ? 11 : 15, fontWeight: small ? 500 : 600, color: short ? TONES.bad : INK, letterSpacing: small ? '.04em' : 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{v}</span>
-    </div>
-  )
-}
-
-const swatch = style => <span style={{ width: 10, height: 6, flex: 'none', ...style }} />
+const swatch = style => <span style={{ width: 10, height: 10, flex: 'none', ...style }} />
+const legendItem = { display: 'inline-flex', gap: 6, alignItems: 'center' }
 
 export default function Lonestar({ profile: p }) {
   const ls = p.lonestar
@@ -166,65 +211,51 @@ export default function Lonestar({ profile: p }) {
       <SectionHeader title="Lonestar">
         <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, letterSpacing: '.08em', textTransform: 'uppercase' }}>{p.name} · {seasonsText(ls.seasons)} REG</span>
       </SectionHeader>
-      <p style={{ margin: 0, fontFamily: MONO, fontSize: 12, lineHeight: 1.6, color: '#a8a29c' }}>{lastName(p.name)} with his team&apos;s stars OFF the floor, against ON</p>
 
-      {/* The keys, and at their right the picked one's team, seasons and minutes each way
-          (a side too short to rank shows orange). */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      <div className="ls-frame" style={{ border: `1px solid ${RULE}`, fontFamily: MONO }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: '12px 18px', borderBottom: `1px solid ${RULE}` }}>
+          <span style={{ ...label, marginRight: 6 }}>Without</span>
           {ls.scenarios.map((x, i) => (
-            <Key key={`${x.team}-${x.stars.map(t => t.id).join()}`} on={x === s} onClick={() => setPick(i)} stars={x.stars} team={x.team}>
+            <Key key={`${x.team}-${x.stars.map(t => t.id).join()}`} on={x === s} onClick={() => setPick(i)}>
               W/O {starsText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}
             </Key>
           ))}
+          <span style={{ marginLeft: 'auto' }}><ModeSwitch mode={mode} setMode={setMode} /></span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
-          <Readout k={s.team} v={seasonsText(s.seasons)} small />
-          {[['W/O · min', s.off.minutes], ['With · min', s.on.minutes]].map(([k, m]) => (
-            <Readout key={k} k={k} v={Math.round(m).toLocaleString()} short={!s.ranked && m < ls.minRank} minRank={ls.minRank} />
-          ))}
-        </div>
-      </div>
 
-      {/* The shape: a column per stat at his league percentile without the stars, a tick
-          where it reached with them; beside it, the stats that move most. RAW | PCTL sets
-          what the columns' numbers read in. */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: -8 }}><ModeSwitch mode={mode} setMode={setMode} /></div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', gap: '24px 40px', padding: '6px 0 4px', fontFamily: MONO }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px 24px' }}>
-          {GROUPS.map(g => (
-            <div key={g.name} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ ...label, color: '#c9c3bc' }}>{g.name}</span>
-                <span style={{ flex: 1, height: 1, background: RULE }} />
-              </div>
-              <div style={{ display: 'flex', gap: 4 }}>{g.stats.map(stat => <Column key={stat.key} stat={stat} s={s} mode={mode} />)}</div>
+        <div className="ls-body">
+          <div className="ls-side" style={{ display: 'flex', flexDirection: 'column', gap: 22, padding: 18 }}>
+            <Plot s={s} />
+            <div style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
+              <Move stat={LOAD} name="Load" s={s} />
+              <div style={{ width: 1, background: EDGE }} />
+              <Move stat={NET} name="Net rtg" s={s} />
             </div>
-          ))}
-        </div>
-        <Shifts s={s} />
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{swatch({ width: 14, height: 2, background: TICK })}WITH HIS STARS</span>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{swatch(cell('held', TONES.good, 30))}{swatch(cell('held', TONES.good, 80))}WITHOUT · STRONGER THE BIGGER THE CHANGE</span>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{swatch({ background: TONES.good })}{swatch({ background: TONES.bad })}GAINED W/O STARS · BLUE BETTER, ORANGE WORSE (VOLUME STATS: MORE, LESS)</span>
-        <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{swatch(cell('lost', TONES.bad))}{swatch({ width: 14, height: 2, background: TONES.bad })}GIVEN UP W/O STARS</span>
-        <span>COLUMN · LEAGUE PERCENTILE · NUMBERS · WITHOUT, AND THE CHANGE</span>
-      </div>
+            <Cast p={p} s={s} />
+            <Minutes s={s} minRank={ls.minRank} />
+          </div>
 
-      {/* The numbers, in the shape's order. */}
-      <div className="ls-table" style={{ fontFamily: MONO, marginTop: 8 }}>
-        <div className="ls-row ls-head">
-          <span style={{ gridArea: 'with', textAlign: 'right', ...label }}>With stars</span>
-          <span style={{ gridArea: 'wo', textAlign: 'right', ...label }}>Without</span>
-          <span style={{ gridArea: 'change', textAlign: 'right', ...label }}>Change</span>
-          <span style={{ gridArea: 'rank', ...label }}>Rank</span>
+          <div className="ls-main">
+            <div className="ls-row ls-head">
+              <span style={{ gridArea: 'stat', ...label }}>Stat</span>
+              <span className="ls-with" style={{ gridArea: 'with', textAlign: 'right', ...label }}>With</span>
+              <span style={{ gridArea: 'strip', display: 'flex', justifyContent: 'space-between', ...label, color: FAINT }}><span>0</span><span className="ls-pctl-word" style={{ color: DIM }}>League pctl</span><span>100</span></span>
+              <span style={{ gridArea: 'wo', textAlign: 'right', ...label }}>W/O</span>
+              <span style={{ gridArea: 'change', textAlign: 'right', ...label }}>Change</span>
+              <span className="ls-rank" style={{ gridArea: 'rank', textAlign: 'right', ...label }}>Rank</span>
+            </div>
+            {STATS.map(stat => <Row key={stat.key} stat={stat} s={s} mode={mode} />)}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: '14px 18px', fontSize: 9, letterSpacing: '.1em', color: DIM }}>
+              <span style={legendItem}>{swatch(stripCell('with'))}WITH</span>
+              <span style={legendItem}>{swatch(stripCell('without'))}WITHOUT</span>
+              <span style={legendItem}>{swatch({ background: TONES.good })}BETTER W/O</span>
+              <span style={legendItem}>{swatch({ background: TONES.bad })}WORSE W/O</span>
+              <span>VOLUME STATS: BLUE MORE, ORANGE LESS</span>
+              <span>1 CELL = 5 PCTL</span>
+              <span>#RANK · AMONG EVERY PLAYER&apos;S CHANGE ({ls.minRank}+ MIN EACH WAY)</span>
+            </div>
+          </div>
         </div>
-        {GROUPS.flatMap(g => g.stats).map(stat => <Row key={stat.key} stat={stat} s={s} />)}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
-        <span>CHANGE · W/O − WITH</span>
-        <span>#RANK · AMONG EVERY PLAYER&apos;S CHANGE ({ls.minRank}+ MIN EACH WAY), #1 THE BIGGEST INCREASE</span>
       </div>
     </section>
   )

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, change, fadeOf, posOf, seasonsText, starsText, stripOf, toneOf, value, viewName } from './lonestar.js'
+import { STATS, change, fadeOf, namesText, posOf, seasonsText, starsText, stripOf, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -64,11 +64,8 @@ describe('lonestar', () => {
   test('stars and seasons as words', () => {
     expect(starsText([{ name: 'Jamal Murray' }, { name: 'Jonas Valančiūnas' }])).toBe('Murray & Valančiūnas')
     expect(starsText([{ name: null }])).toBe('?')
+    expect(namesText([{ name: 'Jalen Williams' }, { name: 'Ajay Mitchell' }])).toBe('Jalen Williams & Ajay Mitchell')
+    expect(namesText([{ name: null }])).toBe('?')
     expect(seasonsText(['2024-25', '2025-26'])).toBe('2024–25 and 2025–26')
-  })
-
-  test('the season menu names a season, or the span of both pooled', () => {
-    expect(viewName({ id: '2025-26', seasons: ['2025-26'] })).toBe('2025–26')
-    expect(viewName({ id: 'both', seasons: ['2024-25', '2025-26'] })).toBe('2024–26 · both')
   })
 })

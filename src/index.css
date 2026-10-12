@@ -83,9 +83,14 @@ html { scroll-behavior: smooth; }
 .ls-main { display: flex; flex-direction: column; }
 .ls-main > .ls-row:not(.ls-head) { flex: 1 0 auto; }
 .ls-plot { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
+/* The keys of the season mixes not lit: hidden in place, so the row is as tall as the
+   most keys and the module's height holds as seasons switch; gone once the panel stacks,
+   where the empty space would cost more (!important over their inline display). */
+.ls-keys-off { visibility: hidden; }
 @container (max-width: 900px) {
   .ls-body { grid-template-columns: minmax(0, 1fr); }
   .ls-side { border-right: none; border-bottom: 1px solid #3d3a37; }
+  .ls-keys-off { display: none !important; }
 }
 @container (max-width: 560px) {
   .ls-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, fadeOf, lastName, posOf, seasonsText, starsText, stripOf, toneOf, value, viewName } from '../lib/lonestar.js'
+import { STATS, change, fadeOf, lastName, namesText, posOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
@@ -262,41 +262,24 @@ function Row({ stat, s, scale, mode, skey, index }) {
 const swatch = style => <span style={{ width: 7, height: 11, flex: 'none', ...style }} />
 const legendItem = { display: 'inline-flex', gap: 6, alignItems: 'center' }
 
-// The season menu: each of his seasons, or both pooled (lib viewName), in a box the keys'
-// height with a menu like the site's others; it closes on a pick, a click outside or
-// Escape. With one season there's nothing to pick, so it's a plain label.
-function SeasonMenu({ views, value, onChange }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-  useEffect(() => {
-    if (!open) return
-    const outside = e => { if (!ref.current.contains(e.target)) setOpen(false) }
-    const escape = e => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('mousedown', outside)
-    document.addEventListener('keydown', escape)
-    return () => {
-      document.removeEventListener('mousedown', outside)
-      document.removeEventListener('keydown', escape)
-    }
-  }, [open])
-  const box = { height: 30, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 8, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }
-  if (views.length < 2) return <span style={box}>{viewName(value)}</span>
+// The seasons he has stretches in, oldest first, side by side like RAW | PCTL, each with a
+// lamp lit while it counts: the stretches pool over whichever are lit. One always stays
+// lit, so the last lit one doesn't switch off.
+function Seasons({ seasons, on, toggle }) {
   return (
-    <span ref={ref} style={{ position: 'relative' }}>
-      <button type="button" aria-haspopup="true" aria-expanded={open} aria-label="Season" onClick={() => setOpen(o => !o)} className="ls-key" style={{ ...box, cursor: 'pointer' }}>
-        {viewName(value)}<span aria-hidden="true" style={{ fontSize: 7, color: DIM }}>▼</span>
-      </button>
-      {open && (
-        <span style={{ position: 'absolute', left: 0, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', minWidth: '100%' }}>
-          {views.map(v => (
-            <button key={v.id} type="button" aria-pressed={v.id === value.id} onClick={() => { onChange(v.id); setOpen(false) }}
-              style={{ textAlign: 'left', background: v.id === value.id ? RULE : 'transparent', border: 'none', borderBottom: `1px solid ${RULE}`, color: v.id === value.id ? INK : MID, fontFamily: MONO, fontSize: 10, fontWeight: v.id === value.id ? 600 : 400, letterSpacing: '.08em', textTransform: 'uppercase', padding: '8px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              {viewName(v)}
-            </button>
-          ))}
-        </span>
-      )}
-    </span>
+    <div role="group" aria-label="Seasons" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
+      {seasons.map((season, i) => {
+        const lit = on.includes(season)
+        const last = lit && on.length === 1
+        return (
+          <button key={season} type="button" aria-pressed={lit} onClick={() => toggle(season)}
+            style={{ height: 28, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 8, background: lit ? '#3a3734' : 'transparent', color: lit ? INK : DIM, border: 'none', borderLeft: i ? `1px solid ${EDGE}` : 'none', fontFamily: MONO, fontSize: 10, fontWeight: lit ? 700 : 500, letterSpacing: '.08em', cursor: last ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+            <span aria-hidden="true" style={{ width: 6, height: 6, flex: 'none', background: lit ? SOFT : 'transparent', boxShadow: `inset 0 0 0 1px ${lit ? SOFT : FAINT}`, transition: 'background .12s' }} />
+            {season.replace('-', '–')}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -304,20 +287,23 @@ const starsKey = x => `${x.team}-${x.stars.map(t => t.id).join()}`
 
 export default function Lonestar({ profile: p }) {
   const ls = p.lonestar
-  // The season first (his latest), then the scenario within it.
-  const [viewId, setViewId] = useState(ls.views[0].id)
+  // The seasons first (his latest alone), then the scenario within them: the API's view
+  // for each mix of his seasons.
+  const seasons = ls.views.filter(v => v.seasons.length === 1).map(v => v.seasons[0]).sort()
+  const viewOf = on => ls.views.find(v => v.seasons.length === on.length && v.seasons.every(x => on.includes(x)))
+  const [on, setOn] = useState(ls.views[0].seasons)
   const [pick, setPick] = useState(0)
   const [mode, setMode] = useState('raw')
   const [plotRef, plotWidth] = useWidth(304)
-  const view = ls.views.find(v => v.id === viewId) || ls.views[0]
+  const view = viewOf(on)
   const scenarios = view.scenarios
   const s = scenarios[Math.min(pick, scenarios.length - 1)]
-  const teams = new Set(scenarios.map(x => x.team))
-  // Another season keeps the same stars picked when it has them.
-  const chooseView = id => {
-    const next = ls.views.find(v => v.id === id)
-    setViewId(id)
-    setPick(Math.max(0, next.scenarios.findIndex(x => starsKey(x) === starsKey(s))))
+  // Another mix keeps the same stars picked when it has them.
+  const toggle = season => {
+    const next = on.includes(season) ? on.filter(x => x !== season) : [...on, season]
+    if (!next.length) return
+    setOn(next)
+    setPick(Math.max(0, viewOf(next).scenarios.findIndex(x => starsKey(x) === starsKey(s))))
   }
   // The picked season and scenario: the animated parts remount on it, so each pick replays.
   const skey = `${view.id}-${starsKey(s)}`
@@ -328,15 +314,26 @@ export default function Lonestar({ profile: p }) {
       </SectionHeader>
 
       <div className="ls-frame" style={{ border: `1px solid ${RULE}`, fontFamily: MONO }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
-          <span style={{ ...label, marginRight: 6 }}>Season</span>
-          <SeasonMenu views={ls.views} value={view} onChange={chooseView} />
-          <span style={{ ...label, margin: '0 6px 0 14px' }}>Without</span>
-          {scenarios.map((x, i) => (
-            <Key key={starsKey(x)} on={x === s} onClick={() => setPick(i)}>
-              W/O {starsText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}
-            </Key>
-          ))}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
+          <span style={{ ...label, lineHeight: '30px', marginRight: 6 }}>Seasons</span>
+          <Seasons seasons={seasons} on={on} toggle={toggle} />
+          <span style={{ ...label, lineHeight: '30px', margin: '0 6px 0 14px' }}>Without</span>
+          {/* Every mix's keys in one cell, only the lit mix's showing (index.css
+              .ls-keys-off). */}
+          <div style={{ display: 'grid', flex: '1 1 260px', minWidth: 0 }}>
+            {ls.views.map(v => {
+              const teams = new Set(v.scenarios.map(x => x.team))
+              return (
+                <div key={v.id} aria-hidden={v !== view} className={v === view ? undefined : 'ls-keys-off'} style={{ gridArea: '1 / 1', display: 'flex', flexWrap: 'wrap', alignContent: 'flex-start', gap: 8 }}>
+                  {v.scenarios.map((x, i) => (
+                    <Key key={starsKey(x)} on={x === s} onClick={() => setPick(i)}>
+                      {namesText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}
+                    </Key>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
           <span style={{ marginLeft: 'auto' }}><ModeSwitch mode={mode} setMode={setMode} /></span>
         </div>
 

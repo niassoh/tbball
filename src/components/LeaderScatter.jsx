@@ -90,11 +90,13 @@ function Tip({ doc, d, x, y, left, top }) {
   )
 }
 
-// The table's row under the pointer, at its dot: his face and surname, no more.
+// The table's row under the pointer, at its dot: his face and surname, no more. Beside the
+// dot on its right, or, near the chart's right edge, on its left (`flip`: placed by its
+// right edge, so it sits as close whatever the name's length).
 const MINI_W = 160
-function Mini({ p, left, top }) {
+function Mini({ p, left, top, flip }) {
   return (
-    <div style={{ position: 'absolute', left, top, maxWidth: MINI_W, pointerEvents: 'none', zIndex: 5, display: 'flex', alignItems: 'center', gap: 5, padding: '2px 7px 2px 2px', background: 'rgba(31, 29, 28, .92)', border: '1px solid #6b655f', borderRadius: 12 }}>
+    <div style={{ position: 'absolute', left, top, maxWidth: MINI_W, transform: flip ? 'translateX(-100%)' : 'none', pointerEvents: 'none', zIndex: 5, display: 'flex', alignItems: 'center', gap: 5, padding: '2px 7px 2px 2px', background: 'rgba(31, 29, 28, .94)', border: '1px solid #6b655f' }}>
       <span style={{ width: 18, height: 18, flex: 'none', borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 7, color: DIM }}>
         {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={18} height={18} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(p.name)}
       </span>
@@ -185,9 +187,10 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         {hv && hover && <Tip doc={doc} d={hv} x={x} y={y}
           left={px(hv.vx) + 16 + TIP_W < w ? px(hv.vx) + 16 : px(hv.vx) - 16 - TIP_W}
           top={Math.max(4, Math.min(h - TIP_H - 4, py(hv.vy) - TIP_H / 2))} />}
-        {hv && !hover && <Mini p={hv.p}
-          left={px(hv.vx) + radius(hv.p) + 6 + MINI_W < w ? px(hv.vx) + radius(hv.p) + 6 : Math.max(0, px(hv.vx) - radius(hv.p) - 6 - MINI_W)}
-          top={Math.max(2, py(hv.vy) - 12)} />}
+        {hv && !hover && (() => {
+          const flip = px(hv.vx) + radius(hv.p) + 6 + MINI_W > w
+          return <Mini p={hv.p} flip={flip} left={flip ? px(hv.vx) - radius(hv.p) - 6 : px(hv.vx) + radius(hv.p) + 6} top={Math.max(2, py(hv.vy) - 12)} />
+        })()}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
         <div style={{ ...cell, borderLeft: 0 }}><span style={cap}>League</span><span style={big}>{seasonLabel}</span></div>

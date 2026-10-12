@@ -68,14 +68,16 @@ function useWidth(fallback) {
 // Load against Net on fixed axes, the same for every player: each centred on its league
 // median with one linear scale (lib centered), a little headroom past the league's ends
 // so its extremes stay off the frame, the median lines crossing in the middle. Drawn
-// 1:1 at the panel's width and a fixed height, so it reads the same at any width. The
-// quadrant names sit outside the frame, above and below it. A hollow square where he is
-// with the stars, a filled one without them, joined in the colour of his Net change.
+// 1:1 at the panel's width, its frame a little wider than tall (ASPECT) at any width, so
+// its text stays the same size. The quadrant names sit outside the frame, above and below
+// it. A hollow square where he is with the stars, a filled one without them, joined in
+// the colour of his Net change.
 const HEADROOM = 1.08
+const ASPECT = 1.15
 const roomy = r => r && [r[1] - (r[1] - r[0]) * HEADROOM, r[1], r[1] + (r[2] - r[1]) * HEADROOM]
 function Plot({ s, scale, width: W }) {
-  const H = 210
   const box = { l: 22, r: 2, t: 12, b: 38 }
+  const H = Math.round((W - box.l - box.r) / ASPECT) + box.t + box.b
   const right = W - box.r
   const bottom = H - box.b
   const X = roomy(centered(scale.load))
@@ -151,7 +153,7 @@ function Cast({ p, s }) {
 // change in its colour, from → to) and the minutes with the stars and without (a side
 // too short to rank in orange); then the team and seasons behind them.
 function Numbers({ s, minRank }) {
-  const cell = { display: 'flex', flexDirection: 'column', gap: 4, padding: '12px 14px', background: BG, minWidth: 0 }
+  const cell = { display: 'flex', flexDirection: 'column', gap: 4, padding: '12px 10px', background: BG, minWidth: 0 }
   const big = { fontSize: 18, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }
   return (
     <>
@@ -162,11 +164,11 @@ function Numbers({ s, minRank }) {
             <div key={name} style={cell}>
               <span style={label}>{name}</span>
               <span style={{ ...big, color: tone === 'neutral' ? MID : TONES[tone] }}>{change(stat, s.change[stat.key])}</span>
-              <span style={{ fontSize: 10, color: DIM, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{value(stat, s.on[stat.key])} → <span style={{ color: INK }}>{value(stat, s.off[stat.key])}</span></span>
+              <span style={{ fontSize: 9, color: DIM, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{value(stat, s.on[stat.key])} → <span style={{ color: INK }}>{value(stat, s.off[stat.key])}</span></span>
             </div>
           )
         })}
-        {[['With · min', s.on.minutes], ['W/O · min', s.off.minutes]].map(([k, m]) => {
+        {[['With min', s.on.minutes], ['W/O min', s.off.minutes]].map(([k, m]) => {
           const short = !s.ranked && m < minRank
           return (
             <div key={k} style={cell}>
@@ -225,7 +227,7 @@ export default function Lonestar({ profile: p }) {
   const ls = p.lonestar
   const [pick, setPick] = useState(0)
   const [mode, setMode] = useState('raw')
-  const [plotRef, plotWidth] = useWidth(384)
+  const [plotRef, plotWidth] = useWidth(304)
   const s = ls.scenarios[Math.min(pick, ls.scenarios.length - 1)]
   const teams = new Set(ls.scenarios.map(x => x.team))
   return (

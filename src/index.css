@@ -58,7 +58,7 @@ html { scroll-behavior: smooth; }
    with | strip | without | change, compact rows, the strip 50 small cells; in a narrow
    column with drops (!important over its inline display) and the cells close up. */
 .ls-frame { container-type: inline-size; }
-.ls-body { display: grid; grid-template-columns: 420px minmax(0, 1fr); }
+.ls-body { display: grid; grid-template-columns: 340px minmax(0, 1fr); }
 .ls-side { border-right: 1px solid #3d3a37; }
 .ls-side-head { height: 34px; flex: none; }
 .ls-main { container-type: inline-size; min-width: 0; }
@@ -68,7 +68,7 @@ html { scroll-behavior: smooth; }
 .ls-main { display: flex; flex-direction: column; }
 .ls-main > .ls-row:not(.ls-head) { flex: 1 0 auto; }
 .ls-plot { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
-@container (max-width: 980px) {
+@container (max-width: 900px) {
   .ls-body { grid-template-columns: minmax(0, 1fr); }
   .ls-side { border-right: none; border-bottom: 1px solid #3d3a37; }
 }

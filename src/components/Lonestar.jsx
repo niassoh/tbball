@@ -71,8 +71,8 @@ function useWidth(fallback) {
 // Load 0 to 80 split at 40 (about where a team's primary option starts; nothing below 0,
 // and the league's heaviest stretches fit), Net −25 to +25 split at 0 (better and worse
 // on one scale; the rare stretch past ±25 sits on the edge). Drawn 1:1 at the panel's
-// width, its frame square (ASPECT) at any width, so its text stays the same size. The
-// quadrant names sit outside the frame, above and below it; each axis has its ends'
+// width, its frame square (ASPECT) at any width, so its text stays the same size. Each
+// quadrant's name sits in its corner of the frame, in two lines; each axis has its ends'
 // values and its name at the split. His move is a vector: a
 // hollow square where he is with the stars, a thin shaft and a sharp head whose tip is
 // where he is without them, in the colour of his Net change; a move too short to point
@@ -85,10 +85,13 @@ const ASPECT = 1
 const MIN_ARROW = 12
 const HEAD = { len: 9, half: 4.5 }
 // Left to right, top to bottom.
-const QUADRANTS = ['LESS LOAD · BETTER NET', 'MORE LOAD · BETTER NET', 'LESS LOAD · WORSE NET', 'MORE LOAD · WORSE NET']
+const QUADRANTS = [['LESS LOAD', 'BETTER NET'], ['MORE LOAD', 'BETTER NET'], ['LESS LOAD', 'WORSE NET'], ['MORE LOAD', 'WORSE NET']]
+// A quadrant name's distance from its corner, and its line spacing.
+const INSET = 7
+const LINE = 11
 function Plot({ s, width: W, skey }) {
   const [lit, setLit] = useState(null)
-  const box = { l: 22, r: 2, t: 12, b: 38 }
+  const box = { l: 28, r: 2, t: 6, b: 22 }
   const H = Math.round((W - box.l - box.r) / ASPECT) + box.t + box.b
   const right = W - box.r
   const bottom = H - box.b
@@ -100,28 +103,33 @@ function Plot({ s, width: W, skey }) {
   const a = [s.on.load, s.on.net]
   const b = [s.off.load, s.off.net]
   const tone = toneOf(NET, s.change.net)
-  const t = { fontFamily: MONO, fontSize: 7.5, letterSpacing: '.08em', fill: DIM }
+  const t = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', fill: DIM }
   const midX = (box.l + right) / 2
   const midY = (box.t + bottom) / 2
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={`Load ${value(LOAD, a[0])} and Net ${value(NET, a[1])} with his stars, ${value(LOAD, b[0])} and ${value(NET, b[1])} without`} style={{ display: 'block', overflow: 'visible' }}>
       {QUADRANTS.map((name, i) => (
-        <rect key={name} x={i % 2 ? midX : box.l} y={i > 1 ? midY : box.t} width={midX - box.l} height={midY - box.t} fill={INK} fillOpacity={0.05} stroke={EDGE}
+        <rect key={name.join()} x={i % 2 ? midX : box.l} y={i > 1 ? midY : box.t} width={midX - box.l} height={midY - box.t} fill={INK} fillOpacity={0.05} stroke={EDGE}
           style={{ opacity: lit === i ? 1 : 0, transition: 'opacity .15s' }} />
       ))}
       <rect x={box.l} y={box.t} width={right - box.l} height={bottom - box.t} fill="none" stroke={RULE} />
       <line x1={midX} x2={midX} y1={box.t} y2={bottom} stroke={EDGE} strokeDasharray="1 3" />
       <line x1={box.l} x2={right} y1={midY} y2={midY} stroke={EDGE} strokeDasharray="1 3" />
-      {QUADRANTS.map((name, i) => (
-        <text key={name} x={i % 2 ? right : box.l} y={i > 1 ? bottom + 11 : box.t - 5} textAnchor={i % 2 ? 'end' : 'start'}
-          style={{ ...t, fill: lit === null ? DIM : lit === i ? INK : FAINT, fontWeight: lit === i ? 700 : 400, transition: 'fill .15s' }}>{name}</text>
-      ))}
-      <text x={box.l - 5} y={box.t + 6} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[2])}</text>
-      <text x={box.l - 5} y={midY + 2.5} textAnchor="end" style={{ ...t, fill: DIM }}>NET</text>
+      {QUADRANTS.map((name, i) => {
+        const tx = i % 2 ? right - INSET : box.l + INSET
+        return (
+          <text key={name.join()} x={tx} y={i > 1 ? bottom - INSET - LINE : box.t + INSET + 6.5} textAnchor={i % 2 ? 'end' : 'start'}
+            style={{ ...t, fill: lit === null ? DIM : lit === i ? INK : FAINT, fontWeight: lit === i ? 700 : 400, transition: 'fill .15s' }}>
+            {name.map((line, k) => <tspan key={line} x={tx} dy={k ? LINE : 0}>{line}</tspan>)}
+          </text>
+        )
+      })}
+      <text x={box.l - 5} y={box.t + 6.5} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[2])}</text>
+      <text x={box.l - 5} y={midY + 3} textAnchor="end" style={{ ...t, fill: DIM }}>NET</text>
       <text x={box.l - 5} y={bottom} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[0])}</text>
-      <text x={box.l} y={bottom + 26} style={{ ...t, fill: DIM }}>{Math.round(X[0])}</text>
-      <text x={midX} y={bottom + 26} textAnchor="middle" style={{ ...t, fill: DIM }}>LOAD</text>
-      <text x={right} y={bottom + 26} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(X[2])}</text>
+      <text x={box.l} y={bottom + 15} style={{ ...t, fill: DIM }}>{Math.round(X[0])}</text>
+      <text x={midX} y={bottom + 15} textAnchor="middle" style={{ ...t, fill: DIM }}>LOAD</text>
+      <text x={right} y={bottom + 15} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(X[2])}</text>
       {ok(a[0]) && ok(a[1]) && ok(b[0]) && ok(b[1]) && (() => {
         const [ax, ay, bx, by] = [x(a[0]), y(a[1]), x(b[0]), y(b[1])]
         const length = Math.hypot(bx - ax, by - ay)

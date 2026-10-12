@@ -1,14 +1,17 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
-import { along, median, pctlOf, quadrantOf, radiusOf, valueOf } from '../lib/leaderboard.js'
+import { halves, median, pctlOf, quadrantOf, quantile, radiusOf, valueOf } from '../lib/leaderboard.js'
 import { initials } from '../lib/teams.js'
 import Popover from './Popover.jsx'
 
 // The Leaderboard's scatter: any two stats of the season against each other, each axis
-// running better toward the top and right (a lower-is-better stat reversed) and centred
-// on the league's median, as far either way as the furthest player, so the medians split
-// it into four equal quadrants. A dot is a player, its size his minutes (from the pool's
+// running better toward the top and right (a lower-is-better stat reversed), split at the
+// league's median into four equal quadrants: each half of an axis scaled on its own, from
+// the median out to its end (the 0.5th or 99.5th percentile, so one far-out player
+// doesn't squeeze the rest; those past it sit on the edge), so a lopsided stat like
+// drives fills the chart, though neither half spans less than half the other (SKEW), so
+// a thin side isn't blown up to match a long one. A dot is a player, its size his minutes (from the pool's
 // fewest to its most), its colour how far toward the top right (blue) or bottom left
 // (orange) he sits, grey between, on the site's percentile scale; players the table's
 // filters leave out stay as faint dots. Dots glide to their new places when an axis or
@@ -27,6 +30,10 @@ const TIP_W = 228
 const TIP_H = 138
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM, textTransform: 'uppercase' }
 const M = { l: 30, r: 14, t: 16, b: 30 }
+// The share of players past each end of an axis, held at its edge, and how many times
+// longer one half of an axis may run than the other.
+const TAIL = 0.005
+const SKEW = 2
 
 function AxisPicker({ doc, axis, value, set }) {
   return (
@@ -119,15 +126,21 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const pts = doc.players.map(p => ({ p, vx: valueOf(doc, p, x), vy: valueOf(doc, p, y) })).filter(d => d.vx !== null && d.vy !== null)
   const mx = median(pts.map(d => d.vx))
   const my = median(pts.map(d => d.vy))
-  const around = (vs, m) => {
-    const d = Math.max(...vs.map(v => Math.abs(v - m))) * 1.05 || 1
-    return [m - d, m + d]
+  // Each half's end: its tail percentile, a little past it, and no nearer the median than
+  // half the other half's reach.
+  const reach = (vs, m) => {
+    const down = (m - quantile(vs, TAIL)) * 1.06
+    const up = (quantile(vs, 1 - TAIL) - m) * 1.06
+    const most = Math.max(down, up) || 1
+    return [m - Math.max(down, most / SKEW), m + Math.max(up, most / SKEW)]
   }
-  const [x0, x1] = pts.length ? around(pts.map(d => d.vx), mx) : [0, 1]
-  const [y0, y1] = pts.length ? around(pts.map(d => d.vy), my) : [0, 1]
+  const [x0, x1] = pts.length ? reach(pts.map(d => d.vx), mx) : [0, 1]
+  const [y0, y1] = pts.length ? reach(pts.map(d => d.vy), my) : [0, 1]
+  const ax = v => halves(v, x0, mx, x1, sx.lowerBetter)
+  const ay = v => halves(v, y0, my, y1, sy.lowerBetter)
   const { w, h } = size
-  const px = v => M.l + along(v, x0, x1, sx.lowerBetter) * (w - M.l - M.r)
-  const py = v => M.t + (1 - along(v, y0, y1, sy.lowerBetter)) * (h - M.t - M.b)
+  const px = v => M.l + ax(v) * (w - M.l - M.r)
+  const py = v => M.t + (1 - ay(v)) * (h - M.t - M.b)
   const cx = (M.l + w - M.r) / 2
   const cy = (M.t + h - M.b) / 2
   const most = Math.max(...doc.players.map(p => p.mp || 0))
@@ -135,7 +148,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const radius = p => radiusOf(p.mp || 0, most, 2, 11, least)
   // Toward the top right, bluer; toward the bottom left, more orange (the percentile scale,
   // from how far up and right he sits, each axis 0 to 1 with its median at the middle).
-  const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (along(d.vx, x0, x1, sx.lowerBetter) + along(d.vy, y0, y1, sy.lowerBetter) - 1))))
+  const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (ax(d.vx) + ay(d.vy) - 1))))
   // Big dots first, so small ones stay on top; the filters' players over the rest.
   const order = [...pts].sort((a, b) => (shown.has(a.p.slug) - shown.has(b.p.slug)) || (b.p.mp || 0) - (a.p.mp || 0))
   const quad = d => quadrantOf(d.vx, d.vy, mx, my, sx.lowerBetter, sy.lowerBetter)

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { along, median, pctlOf, quadrantOf, radiusOf, ranked, valueOf } from './leaderboard.js'
+import { halves, median, pctlOf, quadrantOf, quantile, radiusOf, ranked, valueOf } from './leaderboard.js'
 
 const doc = {
   labels: ['BPM', 'cTOV%'],
@@ -36,15 +36,30 @@ describe('leaderboard', () => {
     expect(quadrantOf(0, 12, 0, 12, false, true)).toBe('both')
   })
 
-  test('dots grow by area with minutes; axes run better up and right', () => {
+  test('quantiles of the values there are', () => {
+    expect(quantile([4, 1, null, 3, 2, 5], 0.5)).toBe(3)
+    expect(quantile([1, 2, 3, 4, 5], 0.25)).toBe(2)
+    expect(quantile([0, 10], 0.99)).toBeCloseTo(9.9)
+    expect(quantile([null], 0.5)).toBe(null)
+  })
+
+  test('an axis split at the median: each half fills half, whatever its spread', () => {
+    // Drives: most players 0–4, a few out to 20.
+    expect(halves(4, 0, 4, 20, false)).toBe(0.5)
+    expect(halves(2, 0, 4, 20, false)).toBe(0.25)
+    expect(halves(12, 0, 4, 20, false)).toBe(0.75)
+    // Past an end, held at it.
+    expect(halves(30, 0, 4, 20, false)).toBe(1)
+    // Lower is better: reversed.
+    expect(halves(2, 0, 4, 20, true)).toBe(0.75)
+  })
+
+  test('dots grow by area with minutes', () => {
     expect(radiusOf(0, 3000)).toBe(3)
     expect(radiusOf(3000, 3000)).toBe(11)
     expect(radiusOf(750, 3000)).toBe(7)
     // From the fewest minutes in the pool, not from none.
     expect(radiusOf(800, 3000, 2, 11, 800)).toBe(2)
     expect(radiusOf(3000, 3000, 2, 11, 800)).toBe(11)
-    expect(along(5, 0, 10, false)).toBe(0.5)
-    expect(along(2, 0, 10, true)).toBe(0.8)
-    expect(along(20, 0, 10, false)).toBe(1)
   })
 })

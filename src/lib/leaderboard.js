@@ -41,9 +41,22 @@ export const quadrantOf = (x, y, mx, my, xLow, yLow) => {
 // for the most.
 export const radiusOf = (minutes, most, lo = 3, hi = 11, least = 0) => lo + (hi - lo) * Math.sqrt(Math.max(0, minutes - least) / ((most - least) || 1))
 
-// Where a value sits on an axis from lo to hi, 0–1 (lower-is-better stats run reversed,
-// so better is always up and right), clamped.
-export const along = (v, lo, hi, low) => {
-  const t = hi > lo ? (v - lo) / (hi - lo) : 0.5
-  return Math.max(0, Math.min(1, low ? 1 - t : t))
+// The value a share `q` of the way up the values there are (linear between them).
+export const quantile = (values, q) => {
+  const s = values.filter(v => v !== null).sort((a, b) => a - b)
+  if (!s.length) return null
+  const i = (s.length - 1) * q
+  const k = Math.floor(i)
+  return k + 1 < s.length ? s[k] + (s[k + 1] - s[k]) * (i - k) : s[k]
+}
+
+// Where a value sits on an axis split at the median, 0–1: from `lo` to the median fills
+// the first half and from the median to `hi` the second, each linear, so a lopsided stat
+// (most players low, a few far out) fills both halves and the median stays at the
+// centre; past an end it's held there. Lower-is-better stats run reversed, so better is
+// always up and right.
+export const halves = (v, lo, mid, hi, low) => {
+  const t = v <= mid ? (mid > lo ? 0.5 * ((v - lo) / (mid - lo)) : 0.5) : hi > mid ? 0.5 + 0.5 * ((v - mid) / (hi - mid)) : 0.5
+  const c = Math.max(0, Math.min(1, t))
+  return low ? 1 - c : c
 }

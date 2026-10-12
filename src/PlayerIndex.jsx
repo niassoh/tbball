@@ -7,7 +7,8 @@ import { asset } from './lib/static.js'
 import TeamInitials from './components/TeamInitials.jsx'
 import { useSeasonType } from './useSeasonType.js'
 
-// The player index: a search line and the 30 teams' logos to filter by, then the
+// The player index: a search line (and the way to the Leaderboard) and the 30 teams'
+// logos to filter by, then the
 // illustrated portraits as a catalogue and everyone else as a parts list. The accent
 // lights what's on. It has no playoffs switch (lib/mode.js modeless); its links open
 // player pages in the reader's last mode.
@@ -231,6 +232,7 @@ export default function PlayerIndex() {
         </svg>
         <input className="idx-input" autoFocus aria-label="Search players" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search" spellCheck={false}
           style={{ flex: 1, minWidth: 0, padding: '18px 0', background: 'transparent', border: 'none', color: INK, fontFamily: MONO, fontSize: 'clamp(16px, 2vw, 22px)', letterSpacing: '.02em', outline: 'none', caretColor: 'var(--accent)' }} />
+        <Link to="/leaderboard" style={{ ...label, flex: 'none', color: INK, border: `1px solid ${EDGE}`, padding: '7px 10px' }}>Leaderboard →</Link>
       </div>
       <div className="idx-logos-wrap" style={{ padding: '12px 0 4px' }}>
         <div role="group" aria-label="Filter by team" className="idx-logos">

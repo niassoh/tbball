@@ -231,3 +231,41 @@ a:hover > .lineup-tile > * { filter: none; }
   .dist-bar, .dist-mark { transition: none; }
   .team-cell .team-cell-logo { transition: none; }
 }
+
+/* The Leaderboard: one screen on a laptop. The page is the viewport's height; the table
+   scrolls inside its box and the scatter (or a player's card) fills the side. Narrow or
+   short, it stacks and the page scrolls, and a card covers the screen. */
+.lb { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+.lb-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(400px, 1fr); gap: 12px; padding-bottom: 16px; }
+.lb-table-wrap { min-height: 0; overflow: auto; border: 1px solid #3d3a37; scrollbar-width: thin; scrollbar-color: #544f4b transparent; }
+.lb-side { min-height: 0; display: flex; flex-direction: column; border: 1px solid #3d3a37; background: #262422; }
+.lb-table th, .lb-table td { background-color: #262422; }
+/* Stat cells carry their percentile shade; hover and the open card's row lay a light wash
+   over every cell, shade or not. */
+.lb-row { cursor: pointer; }
+.lb-row:hover td { box-shadow: inset 0 0 0 100px rgba(236, 232, 227, .05); }
+.lb-row[aria-selected="true"] td { box-shadow: inset 0 0 0 100px rgba(236, 232, 227, .09); }
+.lb-row[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--accent), inset 0 0 0 100px rgba(236, 232, 227, .09); }
+.lb-group:hover, .lb-head-cell:hover { color: #ece8e3 !important; }
+.lb-chip:hover { border-color: #8a847e !important; color: #ece8e3 !important; }
+@media (max-width: 1000px), (max-height: 600px) {
+  .lb { height: auto; }
+  .lb-body { grid-template-columns: minmax(0, 1fr); }
+  .lb-table-wrap { max-height: 70vh; }
+  .lb-side { min-height: 560px; }
+  .lb-side.lb-carded { position: fixed; inset: 0; z-index: 30; overflow: auto; }
+}
+/* Its motion is the charts': the scatter's dots glide to a new place and pop in when new;
+   a card's percentile bars wipe in, in steps, and its seasons rise in turn. */
+@keyframes lb-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes lb-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes lb-pop { from { opacity: 0; } to { opacity: 1; } }
+.lb-dot { transition: transform .55s cubic-bezier(.2, .8, .2, 1), fill .3s, opacity .3s; }
+.lb-dot-in { animation: lb-pop .45s ease-out both; }
+.lb-bar-in { animation: lb-wipe .45s steps(10, end) both; }
+.lb-rise { transform-box: fill-box; transform-origin: bottom; animation: lb-rise .35s steps(5, end) both; }
+.lb-rise.lb-down { transform-origin: top; }
+@media (prefers-reduced-motion: reduce) {
+  .lb-dot-in, .lb-bar-in, .lb-rise { animation: none; }
+  .lb-dot { transition: none; }
+}

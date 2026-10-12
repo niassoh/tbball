@@ -20,5 +20,6 @@ describe('playoffs mode', () => {
   it('only means something on a player page', () => {
     expect(modeless('/')).toBe(true)
     expect(modeless('/player/nikola-jokic')).toBe(false)
+    expect(modeless('/leaderboard')).toBe(false)
   })
 })

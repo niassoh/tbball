@@ -24,6 +24,9 @@ const pre = playoffs => (playoffs ? 'playoffs/' : '')
 
 export const fetchProfile = (slug, playoffs = false) => getJson(api(`${pre(playoffs)}profile/${encodeURIComponent(slug)}`, `${pre(playoffs)}profile/${encodeURIComponent(slug)}.json`))
 export const fetchPlayers = () => getJson(api('profiles', 'profiles.json'))
+// The Leaderboard page's seasons, and one season's players with every stat.
+export const fetchLeaderboardSeasons = (playoffs = false) => getJson(api(`${pre(playoffs)}leaderboard`, `${pre(playoffs)}leaderboard/index.json`))
+export const fetchLeaderboard = (season, playoffs = false) => getJson(api(`${pre(playoffs)}leaderboard/${season}`, `${pre(playoffs)}leaderboard/${season}.json`))
 // The Footprint and Lonestar tabs' views (every season and span), fetched when the tab opens.
 export const fetchFootprint = slug => getJson(api(`footprint/${encodeURIComponent(slug)}`, `footprint/${encodeURIComponent(slug)}.json`))
 export const fetchLonestar = slug => getJson(api(`lonestar/${encodeURIComponent(slug)}`, `lonestar/${encodeURIComponent(slug)}.json`))

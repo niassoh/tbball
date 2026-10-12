@@ -77,13 +77,17 @@ function useWidth(fallback) {
 // hollow square where he is with the stars, a thin shaft and a sharp head whose tip is
 // where he is without them, in the colour of his Net change; a move too short to point
 // anywhere (under MIN_ARROW px) is a filled square instead. On each pick the shaft draws
-// and the head snaps on after it (index.css .ls-draw, .ls-pop).
+// and the head snaps on after it (index.css .ls-draw, .ls-pop). The quadrant under the
+// pointer lights up, outlined, its name bright and the other three's dimmed.
 const LOAD_AXIS = [0, 40, 80]
 const NET_AXIS = [-25, 0, 25]
 const ASPECT = 1
 const MIN_ARROW = 12
 const HEAD = { len: 9, half: 4.5 }
+// Left to right, top to bottom.
+const QUADRANTS = ['LESS LOAD · BETTER NET', 'MORE LOAD · BETTER NET', 'LESS LOAD · WORSE NET', 'MORE LOAD · WORSE NET']
 function Plot({ s, width: W, skey }) {
+  const [lit, setLit] = useState(null)
   const box = { l: 22, r: 2, t: 12, b: 38 }
   const H = Math.round((W - box.l - box.r) / ASPECT) + box.t + box.b
   const right = W - box.r
@@ -101,13 +105,17 @@ function Plot({ s, width: W, skey }) {
   const midY = (box.t + bottom) / 2
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={`Load ${value(LOAD, a[0])} and Net ${value(NET, a[1])} with his stars, ${value(LOAD, b[0])} and ${value(NET, b[1])} without`} style={{ display: 'block', overflow: 'visible' }}>
+      {QUADRANTS.map((name, i) => (
+        <rect key={name} x={i % 2 ? midX : box.l} y={i > 1 ? midY : box.t} width={midX - box.l} height={midY - box.t} fill={INK} fillOpacity={0.05} stroke={EDGE}
+          style={{ opacity: lit === i ? 1 : 0, transition: 'opacity .15s' }} />
+      ))}
       <rect x={box.l} y={box.t} width={right - box.l} height={bottom - box.t} fill="none" stroke={RULE} />
       <line x1={midX} x2={midX} y1={box.t} y2={bottom} stroke={EDGE} strokeDasharray="1 3" />
       <line x1={box.l} x2={right} y1={midY} y2={midY} stroke={EDGE} strokeDasharray="1 3" />
-      <text x={box.l} y={box.t - 5} style={t}>LESS LOAD · BETTER NET</text>
-      <text x={right} y={box.t - 5} textAnchor="end" style={t}>MORE LOAD · BETTER NET</text>
-      <text x={box.l} y={bottom + 11} style={t}>LESS LOAD · WORSE NET</text>
-      <text x={right} y={bottom + 11} textAnchor="end" style={t}>MORE LOAD · WORSE NET</text>
+      {QUADRANTS.map((name, i) => (
+        <text key={name} x={i % 2 ? right : box.l} y={i > 1 ? bottom + 11 : box.t - 5} textAnchor={i % 2 ? 'end' : 'start'}
+          style={{ ...t, fill: lit === null ? DIM : lit === i ? INK : FAINT, fontWeight: lit === i ? 700 : 400, transition: 'fill .15s' }}>{name}</text>
+      ))}
       <text x={box.l - 5} y={box.t + 6} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[2])}</text>
       <text x={box.l - 5} y={midY + 2.5} textAnchor="end" style={{ ...t, fill: DIM }}>NET</text>
       <text x={box.l - 5} y={bottom} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[0])}</text>
@@ -133,6 +141,12 @@ function Plot({ s, width: W, skey }) {
         )
       })()}
       {ok(a[0]) && ok(a[1]) && <rect x={x(a[0]) - 4.5} y={y(a[1]) - 4.5} width="9" height="9" fill={BG} stroke={MID} strokeWidth="1.5" />}
+      {/* On top, so the arrow and lines under the pointer don't break the hover. */}
+      <rect x={box.l} y={box.t} width={right - box.l} height={bottom - box.t} fill="transparent" onPointerLeave={() => setLit(null)}
+        onPointerMove={e => {
+          const r = e.currentTarget.getBoundingClientRect()
+          setLit((e.clientY - r.top > r.height / 2 ? 2 : 0) + (e.clientX - r.left > r.width / 2 ? 1 : 0))
+        }} />
     </svg>
   )
 }

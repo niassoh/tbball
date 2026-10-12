@@ -76,3 +76,9 @@ export const starsText = stars => stars.map(s => last(s.name)).join(' & ')
 
 // "2024–25 and 2025–26" / "2025–26"
 export const seasonsText = seasons => seasons.map(s => s.replace('-', '–')).join(' and ')
+
+// A view's name in the season menu: its season ("2025–26"), or for the two pooled, the
+// span they cover ("2024–26 · both").
+export const viewName = view => (view.id === 'both'
+  ? `${view.seasons[0].slice(0, 4)}–${view.seasons[view.seasons.length - 1].slice(5)} · both`
+  : view.id.replace('-', '–'))

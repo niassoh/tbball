@@ -1,7 +1,7 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, fadeOf, lastName, posOf, seasonsText, starsText, stripOf, toneOf, value } from '../lib/lonestar.js'
+import { STATS, change, fadeOf, lastName, posOf, seasonsText, starsText, stripOf, toneOf, value, viewName } from '../lib/lonestar.js'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
 
@@ -254,15 +254,65 @@ function Row({ stat, s, scale, mode, skey, index }) {
 const swatch = style => <span style={{ width: 7, height: 11, flex: 'none', ...style }} />
 const legendItem = { display: 'inline-flex', gap: 6, alignItems: 'center' }
 
+// The season menu: each of his seasons, or both pooled (lib viewName), in a box the keys'
+// height with a menu like the site's others; it closes on a pick, a click outside or
+// Escape. With one season there's nothing to pick, so it's a plain label.
+function SeasonMenu({ views, value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const outside = e => { if (!ref.current.contains(e.target)) setOpen(false) }
+    const escape = e => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', outside)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('mousedown', outside)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [open])
+  const box = { height: 30, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 8, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }
+  if (views.length < 2) return <span style={box}>{viewName(value)}</span>
+  return (
+    <span ref={ref} style={{ position: 'relative' }}>
+      <button type="button" aria-haspopup="true" aria-expanded={open} aria-label="Season" onClick={() => setOpen(o => !o)} className="ls-key" style={{ ...box, cursor: 'pointer' }}>
+        {viewName(value)}<span aria-hidden="true" style={{ fontSize: 7, color: DIM }}>▼</span>
+      </button>
+      {open && (
+        <span style={{ position: 'absolute', left: 0, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', minWidth: '100%' }}>
+          {views.map(v => (
+            <button key={v.id} type="button" aria-pressed={v.id === value.id} onClick={() => { onChange(v.id); setOpen(false) }}
+              style={{ textAlign: 'left', background: v.id === value.id ? RULE : 'transparent', border: 'none', borderBottom: `1px solid ${RULE}`, color: v.id === value.id ? INK : MID, fontFamily: MONO, fontSize: 10, fontWeight: v.id === value.id ? 600 : 400, letterSpacing: '.08em', textTransform: 'uppercase', padding: '8px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {viewName(v)}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
+  )
+}
+
+const starsKey = x => `${x.team}-${x.stars.map(t => t.id).join()}`
+
 export default function Lonestar({ profile: p }) {
   const ls = p.lonestar
+  // The season first (his latest), then the scenario within it.
+  const [viewId, setViewId] = useState(ls.views[0].id)
   const [pick, setPick] = useState(0)
   const [mode, setMode] = useState('raw')
   const [plotRef, plotWidth] = useWidth(304)
-  const s = ls.scenarios[Math.min(pick, ls.scenarios.length - 1)]
-  const teams = new Set(ls.scenarios.map(x => x.team))
-  // The picked scenario's identity: the animated parts remount on it, so each pick replays.
-  const skey = `${s.team}-${s.stars.map(t => t.id).join()}`
+  const view = ls.views.find(v => v.id === viewId) || ls.views[0]
+  const scenarios = view.scenarios
+  const s = scenarios[Math.min(pick, scenarios.length - 1)]
+  const teams = new Set(scenarios.map(x => x.team))
+  // Another season keeps the same stars picked when it has them.
+  const chooseView = id => {
+    const next = ls.views.find(v => v.id === id)
+    setViewId(id)
+    setPick(Math.max(0, next.scenarios.findIndex(x => starsKey(x) === starsKey(s))))
+  }
+  // The picked season and scenario: the animated parts remount on it, so each pick replays.
+  const skey = `${view.id}-${starsKey(s)}`
   return (
     <section id="sec-lonestar" style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
       <SectionHeader title="Lonestar">
@@ -271,9 +321,11 @@ export default function Lonestar({ profile: p }) {
 
       <div className="ls-frame" style={{ border: `1px solid ${RULE}`, fontFamily: MONO }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
-          <span style={{ ...label, marginRight: 6 }}>Without</span>
-          {ls.scenarios.map((x, i) => (
-            <Key key={`${x.team}-${x.stars.map(t => t.id).join()}`} on={x === s} onClick={() => setPick(i)}>
+          <span style={{ ...label, marginRight: 6 }}>Season</span>
+          <SeasonMenu views={ls.views} value={view} onChange={chooseView} />
+          <span style={{ ...label, margin: '0 6px 0 14px' }}>Without</span>
+          {scenarios.map((x, i) => (
+            <Key key={starsKey(x)} on={x === s} onClick={() => setPick(i)}>
               W/O {starsText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}
             </Key>
           ))}

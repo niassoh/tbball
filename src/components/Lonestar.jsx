@@ -71,7 +71,8 @@ function useWidth(fallback) {
 // and the league's heaviest stretches fit), Net −25 to +25 split at 0 (better and worse
 // on one scale; the rare stretch past ±25 sits on the edge). Drawn 1:1 at the panel's
 // width, its frame square (ASPECT) at any width, so its text stays the same size. The
-// quadrant names sit outside the frame, above and below it. His move is a vector: a
+// quadrant names sit outside the frame, above and below it; each axis has its ends'
+// values and its name at the split. His move is a vector: a
 // hollow square where he is with the stars, a thin shaft and a sharp head whose tip is
 // where he is without them, in the colour of his Net change; a move too short to point
 // anywhere (under MIN_ARROW px) is a filled square instead. On each pick the shaft draws
@@ -107,12 +108,10 @@ function Plot({ s, width: W, skey }) {
       <text x={box.l} y={bottom + 11} style={t}>LESS LOAD · WORSE NET</text>
       <text x={right} y={bottom + 11} textAnchor="end" style={t}>MORE LOAD · WORSE NET</text>
       <text x={box.l - 5} y={box.t + 6} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[2])}</text>
-      <text x={box.l - 5} y={midY + 2.5} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(Y[1])}</text>
+      <text x={box.l - 5} y={midY + 2.5} textAnchor="end" style={{ ...t, fill: DIM }}>NET</text>
       <text x={box.l - 5} y={bottom} textAnchor="end" style={{ ...t, fill: DIM }}>{rounded(Y[0])}</text>
-      <text transform={`translate(${box.l - 14} ${(box.t + midY) / 2}) rotate(-90)`} textAnchor="middle" style={{ ...t, fill: DIM }}>NET</text>
       <text x={box.l} y={bottom + 26} style={{ ...t, fill: DIM }}>{Math.round(X[0])}</text>
-      <text x={midX} y={bottom + 26} textAnchor="middle" style={{ ...t, fill: DIM }}>{Math.round(X[1])}</text>
-      <text x={(box.l + midX) / 2} y={bottom + 26} textAnchor="middle" style={{ ...t, fill: DIM }}>LOAD</text>
+      <text x={midX} y={bottom + 26} textAnchor="middle" style={{ ...t, fill: DIM }}>LOAD</text>
       <text x={right} y={bottom + 26} textAnchor="end" style={{ ...t, fill: DIM }}>{Math.round(X[2])}</text>
       {ok(a[0]) && ok(a[1]) && ok(b[0]) && ok(b[1]) && (() => {
         const [ax, ay, bx, by] = [x(a[0]), y(a[1]), x(b[0]), y(b[1])]

@@ -50,13 +50,34 @@ export const quantile = (values, q) => {
   return k + 1 < s.length ? s[k] + (s[k + 1] - s[k]) * (i - k) : s[k]
 }
 
-// Where a value sits on an axis split at the median, 0–1: from `lo` to the median fills
-// the first half and from the median to `hi` the second, each linear, so a lopsided stat
-// (most players low, a few far out) fills both halves and the median stays at the
-// centre; past an end it's held there. Lower-is-better stats run reversed, so better is
-// always up and right.
-export const halves = (v, lo, mid, hi, low) => {
-  const t = v <= mid ? (mid > lo ? 0.5 * ((v - lo) / (mid - lo)) : 0.5) : hi > mid ? 0.5 + 0.5 * ((v - mid) / (hi - mid)) : 0.5
-  const c = Math.max(0, Math.min(1, t))
-  return low ? 1 - c : c
+// A scatter axis for a stat's values, its median at the middle: the lower half runs from
+// the median down to the lowest value and the upper half up to the highest, each with a
+// small margin, so every player is inside the frame and neither side is left empty. A
+// stat that's never negative and whose top runs at least twice as far from the median
+// as its bottom (drives, time of possession, attempts; judged on its 5th and 95th
+// percentiles) goes on a square-root scale first, which evens its two sides, so neither
+// half is stretched much past the other. `pos(v)` is where a value sits, 0–1, better up
+// and right (a lower-is-better stat reversed); `lo` and `hi` are its ends, in the stat's
+// own units.
+export const axisOf = (values, lowerBetter = false) => {
+  const vs = values.filter(v => v !== null)
+  const mid = median(vs)
+  const root = Math.min(...vs) >= 0 && quantile(vs, 0.95) - mid >= 2 * (mid - quantile(vs, 0.05))
+  const f = v => (root ? Math.sqrt(Math.max(0, v)) : v)
+  const back = t => (root ? Math.max(0, t) ** 2 : t)
+  const m = f(mid)
+  const reach = (m - f(Math.min(...vs))) * 1.06
+  const top = (f(Math.max(...vs)) - m) * 1.06
+  const down = reach || top || 1
+  const up = top || reach || 1
+  return {
+    root,
+    lo: back(m - down),
+    hi: back(m + up),
+    pos: v => {
+      const t = f(v) <= m ? 0.5 - (0.5 * (m - f(v))) / down : 0.5 + (0.5 * (f(v) - m)) / up
+      const c = Math.max(0, Math.min(1, t))
+      return lowerBetter ? 1 - c : c
+    }
+  }
 }

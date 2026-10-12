@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { halves, median, pctlOf, quadrantOf, quantile, radiusOf, ranked, valueOf } from './leaderboard.js'
+import { axisOf, median, pctlOf, quadrantOf, quantile, radiusOf, ranked, valueOf } from './leaderboard.js'
 
 const doc = {
   labels: ['BPM', 'cTOV%'],
@@ -43,15 +43,26 @@ describe('leaderboard', () => {
     expect(quantile([null], 0.5)).toBe(null)
   })
 
-  test('an axis split at the median: each half fills half, whatever its spread', () => {
-    // Drives: most players 0–4, a few out to 20.
-    expect(halves(4, 0, 4, 20, false)).toBe(0.5)
-    expect(halves(2, 0, 4, 20, false)).toBe(0.25)
-    expect(halves(12, 0, 4, 20, false)).toBe(0.75)
-    // Past an end, held at it.
-    expect(halves(30, 0, 4, 20, false)).toBe(1)
+  test('a scatter axis: the median at its middle, every player inside, a long tail on a square root', () => {
+    // A spread-out stat around 0: linear, the median in the middle, the ends inside.
+    const evenVals = [-6, -3, -1, 0, 1, 2, 5]
+    const even = axisOf(evenVals)
+    expect(even.root).toBe(false)
+    expect(even.pos(0)).toBe(0.5)
+    for (const v of evenVals) expect(even.pos(v) > 0 && even.pos(v) < 1).toBe(true)
+    // Drives: most players low, one far out. On a square root, the median still in the
+    // middle; nobody on an edge, and the low end not below zero.
+    const drivesVals = [1, 2, 3, 4, 4, 5, 6, 25]
+    const drives = axisOf(drivesVals)
+    expect(drives.root).toBe(true)
+    expect(drives.pos(4)).toBe(0.5)
+    expect(drives.lo).toBeGreaterThanOrEqual(0)
+    for (const v of drivesVals) expect(drives.pos(v) > 0 && drives.pos(v) < 1).toBe(true)
+    // The lowest and highest sit just inside their ends: no empty side.
+    expect(drives.pos(1)).toBeLessThan(0.05)
+    expect(drives.pos(25)).toBeGreaterThan(0.95)
     // Lower is better: reversed.
-    expect(halves(2, 0, 4, 20, true)).toBe(0.75)
+    expect(axisOf(evenVals, true).pos(5)).toBeLessThan(0.5)
   })
 
   test('dots grow by area with minutes', () => {

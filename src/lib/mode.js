@@ -13,6 +13,10 @@ export const readMode = (search, stored) => {
 // A path in the given mode.
 export const withMode = (path, playoffs) => (playoffs ? `${path}?${PARAM}` : path)
 
+// Pages the mode means nothing on (the players index): no switch, no playoffs styling,
+// no ?playoffs in their URL. The remembered choice still opens player pages in it.
+export const modeless = pathname => !pathname.startsWith('/player/')
+
 // Browser storage can be missing or blocked (private windows); the mode then lasts as
 // long as the URL carries it.
 export const storedMode = () => {

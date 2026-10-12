@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readMode, withMode } from './mode.js'
+import { modeless, readMode, withMode } from './mode.js'
 
 describe('playoffs mode', () => {
   it('follows the URL first, then the stored choice', () => {
@@ -15,5 +15,10 @@ describe('playoffs mode', () => {
   it('keeps a path in the mode', () => {
     expect(withMode('/player/nikola-jokic', true)).toBe('/player/nikola-jokic?playoffs')
     expect(withMode('/player/nikola-jokic', false)).toBe('/player/nikola-jokic')
+  })
+
+  it('only means something on a player page', () => {
+    expect(modeless('/')).toBe(true)
+    expect(modeless('/player/nikola-jokic')).toBe(false)
   })
 })

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardSeasons } from './api.js'
+import { combined, combinedDelta, eachSeason, qualified } from './lib/board.js'
 import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
+import { seasonsBetween } from './lib/seasons.js'
 import { useSeasonType } from './useSeasonType.js'
 import LeaderScatter from './components/LeaderScatter.jsx'
 import LeaderTable from './components/LeaderTable.jsx'
@@ -55,6 +57,40 @@ function Groups({ groups, active, pick }) {
   )
 }
 
+// A span's rows: each player-season, or one per player combined over the span (the
+// profile's span averages). In the season picker's panel.
+function Each({ each, set }) {
+  return (
+    <div role="group" aria-label="Rows" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
+      {[[true, 'Each season'], [false, 'Combined']].map(([on, name]) => (
+        <button key={name} type="button" aria-pressed={each === on} onClick={() => set(on)}
+          style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: on ? 0 : `1px solid ${EDGE}`, background: each === on ? '#3a3734' : 'transparent', color: each === on ? INK : DIM, fontFamily: MONO, fontSize: 9, fontWeight: each === on ? 700 : 400, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
+      ))}
+    </div>
+  )
+}
+
+// The minutes qualifier: everyone, or the top three-quarters, half or quarter of the rows
+// by minutes (playoff minutes in the playoffs).
+const TOPS = [[1, 'All'], [0.75, 'Top 75%'], [0.5, 'Top 50%'], [0.25, 'Top 25%']]
+function Minutes({ top, set, playoffs }) {
+  return (
+    <Popover name={`Minutes: ${top === 1 ? 'all' : `top ${top * 100}%`}`} minWidth={220} trigger={<><span style={{ ...label, fontWeight: 400 }}>Min</span>{TOPS.find(([t]) => t === top)[1]}</>}>
+      {close => (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: `1px solid ${EDGE}` }}>
+            {TOPS.map(([t, name], i) => (
+              <button key={t} type="button" className="lb-group" onClick={() => { set(t); close() }}
+                style={{ height: 28, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: t === top ? '#3a3734' : 'transparent', color: t === top ? INK : DIM, fontFamily: MONO, fontSize: 9.5, fontWeight: t === top ? 700 : 400, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', padding: '0 8px' }}>{name}</button>
+            ))}
+          </div>
+          <span style={{ ...label, color: FAINT }}>By {playoffs ? 'playoff ' : ''}minutes, among the rows on show</span>
+        </>
+      )}
+    </Popover>
+  )
+}
+
 // Playoffs minus regular season: a small switch beside the season toggle, there only in
 // the playoffs, so the toggle stays the choice that matters.
 function DeltaToggle({ on, set }) {
@@ -87,8 +123,13 @@ function Teams({ teams, team, set }) {
 export default function Leaderboard() {
   const { playoffs } = useSeasonType()
   const [seasons, setSeasons] = useState(null)
-  const [season, setSeason] = useState(null)
-  const [doc, setDoc] = useState(null)
+  // The span on show; with more than one season, a row per player-season (`each`) or one
+  // per player over the span; the minutes qualifier (`top`: the top share by minutes).
+  const [span, setSpan] = useState(null)
+  const [each, setEach] = useState(false)
+  const [top, setTop] = useState(1)
+  // Season documents fetched so far, by kind and season (false: none for it).
+  const [cache, setCache] = useState({})
   const [group, setGroup] = useState('impact')
   const [sort, setSort] = useState({ label: 'BPM', reverse: false })
   const [axes, setAxes] = useState({ x: AXES.impact[0], y: AXES.impact[1] })
@@ -105,8 +146,8 @@ export default function Leaderboard() {
   const pointer = useRef(null)
   const under = () => {
     const at = pointer.current
-    const row = at && document.elementFromPoint(at.x, at.y)?.closest('tr[data-slug]')
-    setHot(row ? row.dataset.slug : null)
+    const row = at && document.elementFromPoint(at.x, at.y)?.closest('tr[data-id]')
+    setHot(row ? row.dataset.id : null)
   }
   const track = e => {
     pointer.current = { x: e.clientX, y: e.clientY }
@@ -123,16 +164,45 @@ export default function Leaderboard() {
       if (!live) return
       const list = d ? d.seasons : []
       setSeasons(list)
-      setSeason(s => (list.includes(s) ? s : list[list.length - 1] || null))
+      const last = list[list.length - 1] || null
+      setSpan(s => (s && list.includes(s.from) && list.includes(s.to) ? s : last && { from: last, to: last }))
     })
     return () => { live = false }
   }, [playoffs])
+
+  // The documents the board is built from: each season's of the mode on show, or, for a
+  // combined span of playoffs minus regular season, both kinds for every season. Keys are
+  // kind|season; the effects follow them as strings.
+  const inSpan = useMemo(() => (span && seasons ? seasonsBetween(span.from, span.to).filter(x => seasons.includes(x)) : []), [span, seasons])
+  const many = inSpan.length > 1
+  const kinds = !playoffs ? ['regular'] : !delta ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
+  const wantedKey = kinds.flatMap(kind => inSpan.map(x => `${kind}|${x}`)).join()
+  const missingKey = wantedKey ? wantedKey.split(',').filter(k => !(k in cache)).join() : ''
   useEffect(() => {
-    if (!season) return
+    if (!missingKey) return
     let live = true
-    fetchLeaderboard(season, playoffs, delta).then(d => live && setDoc(d || false), () => live && setDoc(false))
+    for (const key of missingKey.split(',')) {
+      const [kind, x] = key.split('|')
+      fetchLeaderboard(x, kind !== 'regular', kind === 'delta').then(d => live && setCache(c => ({ ...c, [key]: d || false })), () => live && setCache(c => ({ ...c, [key]: false })))
+    }
     return () => { live = false }
-  }, [season, playoffs, delta])
+  }, [missingKey])
+  const doc = useMemo(() => {
+    const wanted = wantedKey ? wantedKey.split(',') : []
+    if (!wanted.length || wanted.some(k => !(k in cache))) return null
+    const docsOf = kind => wanted.filter(k => k.startsWith(`${kind}|`)).map(k => cache[k]).filter(Boolean)
+    if (wanted.some(k => k.startsWith('regular|')) && wanted.some(k => k.startsWith('playoffs|'))) {
+      const po = docsOf('playoffs')
+      const rs = docsOf('regular')
+      if (!po.length || !rs.length) return false
+      const board = combinedDelta(po, rs)
+      return { ...board, players: qualified(board.players, top) }
+    }
+    const docs = docsOf(wanted[0].split('|')[0])
+    if (!docs.length) return false
+    const board = each || docs.length === 1 ? eachSeason(docs) : combined(docs)
+    return { ...board, players: qualified(board.players, top) }
+  }, [cache, wantedKey, each, top])
 
   // A group the season type lacks (Footprint in the playoffs) falls back to the first;
   // a sort or axis the document lacks, to the group's own.
@@ -152,7 +222,7 @@ export default function Leaderboard() {
   const onSort = useCallback(l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false })), [])
   // A new season, group or sort starts the table at its top-left corner.
   const gid = g ? g.id : null
-  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0, left: 0 }) }, [season, playoffs, gid, sortLabel, sort.reverse])
+  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0, left: 0 }) }, [span, playoffs, delta, each, top, gid, sortLabel, sort.reverse])
 
   const q = fold(find.trim())
   // Kept between renders so lighting a dot doesn't redraw the table (LeaderTable is memo).
@@ -162,14 +232,14 @@ export default function Leaderboard() {
     const keep = p => (!team || p.team === team || (p.teams || []).includes(team)) && (!q || fold(p.name).includes(q))
     const list = (sort.reverse ? ranked(doc, doc.players, sortLabel, true) : best).filter(keep)
     return {
-      rank: new Map(best.map((p, i) => [p.slug, valueOf(doc, p, sortLabel) === null ? null : i + 1])),
+      rank: new Map(best.map((p, i) => [p.id, valueOf(doc, p, sortLabel) === null ? null : i + 1])),
       rows: list,
-      shown: new Set(list.map(p => p.slug))
+      shown: new Set(list.map(p => p.id))
     }
   }, [doc, sortLabel, sort.reverse, team, q])
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
-  const player = doc && picked ? doc.players.find(p => p.slug === picked) : null
-  const seasonLabel = season ? season.replace('-', '–') : ''
+  const player = doc && picked ? doc.players.find(p => p.id === picked) : null
+  const spanText = !span ? '' : span.from === span.to ? span.from.replace('-', '–') : `${span.from.slice(0, 4)}–${span.to.slice(5)}`
 
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
@@ -183,17 +253,21 @@ export default function Leaderboard() {
       </header>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>
-        {seasons && season && <SeasonPicker single seasons={seasons} from={season} to={season} n={1} pick={s => setSeason(s)} />}
+        {seasons && span && (
+          <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} pick={(from, to) => setSpan({ from, to })}
+            extra={many && <Each each={each} set={setEach} />} />
+        )}
         {doc && <Teams teams={teams} team={team} set={setTeam} />}
+        {doc && <Minutes top={top} set={setTop} playoffs={playoffs} />}
         {doc && <Groups groups={doc.groups} active={g.id} pick={choose} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
           <ModeSwitch mode={mode} setMode={setMode} height={28} />
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${EDGE}` }}>
             <span aria-hidden="true" style={{ ...label, color: FAINT }}>Find</span>
             <input value={find} onChange={e => setFind(e.target.value)} aria-label="Find a player" spellCheck={false}
-              style={{ width: 120, background: 'transparent', border: 0, outline: 'none', color: INK, fontFamily: MONO, fontSize: 11, caretColor: 'var(--accent)' }} />
+              style={{ width: 96, background: 'transparent', border: 0, outline: 'none', color: INK, fontFamily: MONO, fontSize: 11, caretColor: 'var(--accent)' }} />
           </label>
-          {doc && <span style={label}><span style={{ color: INK, fontWeight: 700 }}>{rows.length}</span> players{doc.type === 'delta' ? ' · playoffs − reg' : ''}</span>}
+          {doc && <span style={label}><span style={{ color: INK, fontWeight: 700 }}>{rows.length}</span> {doc.many ? 'seasons' : 'players'}</span>}
         </span>
       </div>
 
@@ -207,8 +281,8 @@ export default function Leaderboard() {
           </div>
           <div className={`lb-side${player ? ' lb-carded' : ''}`}>
             {player
-              ? <PlayerCard key={`${player.slug}|${doc.season}|${doc.type}`} doc={doc} player={player} rank={rank.get(player.slug)} sortLabel={sortLabel} onClose={close} />
-              : <LeaderScatter doc={doc} shown={shown} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={seasonLabel} />}
+              ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={spanText} />
+              : <LeaderScatter doc={doc} shown={shown} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />}
           </div>
         </div>
       )}

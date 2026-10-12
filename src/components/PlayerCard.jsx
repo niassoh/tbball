@@ -206,7 +206,10 @@ function Unit({ unit, title }) {
   )
 }
 
-export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }) {
+// `doc` is the board (lib/board.js): its row's numbers are its season's, or, for a
+// combined row, its span's (`spanText`); the parts from his profile (career, Lonestar,
+// units) are for the row's season, the span's last for a combined row, and say so.
+export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, spanText = null }) {
   const { playoffs, playerPath } = useSeasonType()
   const [profile, setProfile] = useState(null)
   const [lonestar, setLonestar] = useState(null)
@@ -223,7 +226,8 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
     return () => document.removeEventListener('keydown', escape)
   }, [onClose])
 
-  const season = doc.season
+  const season = pl.season
+  const yy = `’${season.slice(5)}`
   const at = profile ? profile.seasons.findIndex(s => s.season === season) : -1
   const heroes = [...new Set([sortLabel, 'BPM', 'Load', 'rTS%'])].filter(l => doc.labels.includes(l)).slice(0, 3)
   const rows = CARD_STATS.filter(l => doc.labels.includes(l))
@@ -242,7 +246,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
         <span aria-hidden="true" style={{ width: 7, height: 7, background: 'var(--accent)' }} />
-        <span style={{ ...label, color: INK }}>Player card · {season.replace('-', '–')}{doc.type === 'delta' ? ' playoffs − reg' : playoffs ? ' playoffs' : ''}</span>
+        <span style={{ ...label, color: INK }}>Player card · {doc.combined && spanText ? `${spanText} combined` : season.replace('-', '–')}{doc.type === 'delta' ? ' playoffs − reg' : playoffs ? ' playoffs' : ''}</span>
         <Link to={playerPath(pl.slug)} state={{ season }} style={{ ...label, marginLeft: 'auto', color: INK, border: `1px solid ${EDGE}`, padding: '5px 8px' }}>Full profile →</Link>
         <button type="button" aria-label="Close the card" onClick={onClose} style={{ width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
@@ -303,13 +307,13 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose }
         </div>
         {!playoffs && (
           <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, borderLeft: `1px solid ${RULE}` }}>
-            <span style={{ ...label, color: '#b8b2ab', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lonestar <span style={{ color: FAINT }}>· w/o {star ? starsText(star.stars) : '—'}</span></span>
+            <span style={{ ...label, color: '#b8b2ab', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lonestar <span style={{ color: FAINT }}>{doc.combined ? `· ${yy} ` : ''}· w/o {star ? starsText(star.stars) : '—'}</span></span>
             {star ? <Alone scenario={star} /> : <span style={{ ...label, color: FAINT, height: 168 }}>{lonestar === null ? 'Loading' : 'No star stretch this season'}</span>}
           </div>
         )}
       </div>
 
-      <Section title="Units" right={lineups ? `${lineups.team} · with him` : null}>
+      <Section title="Units" right={lineups ? `${lineups.team}${doc.combined ? ` · ${yy}` : ''} · with him` : null}>
         {units
           ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 16, rowGap: 10 }}>

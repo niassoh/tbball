@@ -81,7 +81,7 @@ function Tip({ doc, d, x, y, left, top }) {
         </span>
         <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
           <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.005em', color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
-          <span style={{ ...label, fontSize: 8 }}>{[p.team, p.pos, p.age !== null && `age ${Math.floor(p.age)}`, p.mp !== null && `${p.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>
+          <span style={{ ...label, fontSize: 8 }}>{[doc.many && `’${p.season.slice(5)}`, p.team, p.pos, p.age !== null && `age ${Math.floor(p.age)}`, p.mp !== null && `${p.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>
         </span>
       </div>
       <span style={{ height: 1, background: RULE }} />
@@ -137,10 +137,10 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   // from how far up and right he sits, each axis 0 to 1 with its median at the middle).
   const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (ax(d.vx) + ay(d.vy) - 1))))
   // Big dots first, so small ones stay on top; the filters' players over the rest.
-  const order = [...pts].sort((a, b) => (shown.has(a.p.slug) - shown.has(b.p.slug)) || (b.p.mp || 0) - (a.p.mp || 0))
+  const order = [...pts].sort((a, b) => (shown.has(a.p.id) - shown.has(b.p.id)) || (b.p.mp || 0) - (a.p.mp || 0))
   const quad = d => quadrantOf(d.vx, d.vy, mx, my, sx.lowerBetter, sy.lowerBetter)
   const top = pts.filter(d => quad(d) === 'both').length
-  const hv = (hover || hot) && pts.find(d => d.p.slug === (hover || hot))
+  const hv = (hover || hot) && pts.find(d => d.p.id === (hover || hot))
   // An axis's worse end on the left (or bottom), its better end on the right (or top).
   const ends = (stat, lo, hi) => (stat.lowerBetter ? [hi, lo] : [lo, hi])
   const [xl, xr] = ends(sx, x0, x1)
@@ -167,12 +167,12 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           <text x={w - M.r - 6} y={M.t + 12} textAnchor="end" style={{ ...label, fontSize: 9, fill: TONE.both }}>+ +</text>
           <text x={M.l + 6} y={h - M.b - 6} style={{ ...label, fontSize: 9, fill: TONE.neither }}>− −</text>
           {order.map(d => {
-            const on = shown.has(d.p.slug)
+            const on = shown.has(d.p.id)
             return (
-              <circle key={d.p.slug} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
+              <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
                 fill={tint(d)} fillOpacity={on ? 0.82 : 0.08}
                 style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: on ? 'pointer' : 'default', pointerEvents: on ? 'auto' : 'none' }}
-                onMouseEnter={() => setHover(d.p.slug)} onClick={() => onPick(d.p.slug)} />
+                onMouseEnter={() => setHover(d.p.id)} onClick={() => onPick(d.p.id)} />
             )
           })}
           {hv && <circle cx={px(hv.vx)} cy={py(hv.vy)} r={radius(hv.p) + 2.5} fill="none" stroke={INK} strokeWidth={1.5} pointerEvents="none" />}

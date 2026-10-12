@@ -14,8 +14,9 @@ import WindowTag from './WindowTag.jsx'
 // blue above the middle, orange below; a style stat, neither, in grey), and a Footprint
 // swing that clears the noise carries a small square. `pct`: each cell shows its percentile
 // instead of its value. The rank and player stay put when
-// the stats scroll sideways. Rows carry their player (data-slug), so the page can light
-// the one under the pointer in the scatter.
+// the stats scroll sideways. A row is a player, or a player-season when the board has a
+// row per season (`doc.many`, with a season column); rows carry their id (data-id), so
+// the page can light the one under the pointer in the scatter.
 const INK = '#ece8e3'
 const DIM = '#8a847e'
 const FAINT = '#5f5a55'
@@ -53,6 +54,7 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
         <tr>
           <th style={{ ...head, ...stick(0), zIndex: 3, paddingLeft: 0, paddingRight: 0, textAlign: 'center' }}><span style={{ ...label, display: 'inline-block', width: RANK_W }}>#</span></th>
           <th style={{ ...head, ...stick(RANK_W), zIndex: 3, width: '1%', textAlign: 'left', borderRight: `1px solid ${RULE}` }}><span style={label}>Player</span></th>
+          {doc.many && <th style={{ ...head, width: '1%', textAlign: 'left' }}><span style={label}>Yr</span></th>}
           {BIO.map(([name], i) => <th key={name} style={{ ...head, width: '1%', textAlign: i < 2 ? 'left' : 'right' }}><span style={label}>{name}</span></th>)}
           {group.stats.map((l, i) => {
             const on = sortLabel === l
@@ -73,14 +75,15 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
         {rows.map(p => {
           const lit = new Set(p.lit || [])
           return (
-            <tr key={p.slug} data-slug={p.slug} className="lb-row" aria-selected={picked === p.slug} onClick={() => onPick(p.slug)}>
-              <td style={{ ...cell, ...stick(0), padding: 0, textAlign: 'center', color: DIM, fontSize: 10.5 }}><span style={{ display: 'inline-block', width: RANK_W }}>{rank.get(p.slug) ?? '—'}</span></td>
+            <tr key={p.id} data-id={p.id} className="lb-row" aria-selected={picked === p.id} onClick={() => onPick(p.id)}>
+              <td style={{ ...cell, ...stick(0), padding: 0, textAlign: 'center', color: DIM, fontSize: 10.5 }}><span style={{ display: 'inline-block', width: RANK_W }}>{rank.get(p.id) ?? '—'}</span></td>
               <td style={{ ...cell, ...stick(RANK_W), padding: '0 8px 0 4px', borderRight: `1px solid ${RULE}` }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <Face p={p} />
                   <span title={p.name} style={{ maxWidth: 130, fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{short(p.name)}</span>
                 </span>
               </td>
+              {doc.many && <td style={{ ...cell, color: '#b8b2ab', fontSize: 10.5 }}>’{p.season.slice(5)}</td>}
               {BIO.map(([name, of], i) => <td key={name} style={{ ...cell, textAlign: i < 2 ? 'left' : 'right', color: i < 2 ? '#b8b2ab' : DIM, fontSize: i < 2 ? 10.5 : 11.5 }}>{of(p)}</td>)}
               {group.stats.map((l, i) => {
                 const k = doc.labels.indexOf(l)

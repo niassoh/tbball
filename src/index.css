@@ -97,7 +97,7 @@ html { scroll-behavior: smooth; }
 @container (max-width: 560px) {
   .ls-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.ls-row { display: grid; grid-template-columns: minmax(110px, 1fr) 52px minmax(150px, 460px) 52px 64px; grid-template-areas: "stat with strip wo change"; align-items: center; column-gap: 14px; min-height: 34px; padding: 0 18px; border-bottom: 1px solid #3d3a37; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ls-row { display: grid; grid-template-columns: 112px 52px minmax(150px, 1fr) 52px 64px; grid-template-areas: "stat with strip wo change"; align-items: center; column-gap: 14px; min-height: 34px; padding: 0 18px; border-bottom: 1px solid #3d3a37; font-size: 12px; font-variant-numeric: tabular-nums; }
 .ls-row.ls-head { min-height: 34px; }
 .ls-row:not(.ls-head):hover { background: #2a2826; }
 .ls-slider { position: relative; display: block; height: 16px; }

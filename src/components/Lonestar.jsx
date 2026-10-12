@@ -278,7 +278,11 @@ function Row({ stat, s, scale, mode, skey, index }) {
 }
 
 const legendItem = { display: 'inline-flex', gap: 6, alignItems: 'center' }
-const legendArrow = color => <span style={{ display: 'inline-flex', alignItems: 'center' }}><span style={{ width: 12, height: 2, background: color }} /><span style={head(1, color)} /></span>
+// Better points right and worse left, as most stats move.
+const legendArrow = (color, dir) => {
+  const shaft = <span style={{ width: 12, height: 2, background: color }} />
+  return <span style={{ display: 'inline-flex', alignItems: 'center' }}>{dir < 0 && <span style={head(-1, color)} />}{shaft}{dir > 0 && <span style={head(1, color)} />}</span>
+}
 
 // The seasons he has stretches in, oldest first, side by side like RAW | PCTL, each with a
 // lamp lit while it counts: the stretches pool over whichever are lit. One always stays
@@ -376,8 +380,8 @@ export default function Lonestar({ profile: p }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: `12px ${PAD}px`, fontSize: 9, letterSpacing: '.1em', color: DIM }}>
               <span style={legendItem}><span style={{ width: SQUARE, height: SQUARE, flex: 'none', boxSizing: 'border-box', border: `1.5px solid ${MID}` }} />WITH</span>
               <span style={legendItem}><span style={head(1, MID)} />WITHOUT</span>
-              <span style={legendItem}>{legendArrow(TONES.good)}BETTER W/O</span>
-              <span style={legendItem}>{legendArrow(TONES.bad)}WORSE W/O</span>
+              <span style={legendItem}>{legendArrow(TONES.good, 1)}BETTER W/O</span>
+              <span style={legendItem}>{legendArrow(TONES.bad, -1)}WORSE W/O</span>
             </div>
           </div>
         </div>

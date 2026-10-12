@@ -86,10 +86,13 @@ html { scroll-behavior: smooth; }
 .ls-main > .ls-row:not(.ls-head) { flex: 1 0 auto; }
 .ls-plot { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
 /* The year strip: a pickable season lightens under the pointer; the strip shows focus for
-   its arrow keys. The stars' row scrolls sideways without a scrollbar. Narrow, the cells
-   close up to fit thirteen seasons. */
-.ls-years [data-has="1"]:hover { color: #ece8e3 !important; }
-.ls-years:focus-visible { outline: 1px solid #b8b2ab; outline-offset: 2px; }
+   its arrow keys. The stars' row scrolls sideways without a scrollbar. On a phone (the
+   picker's panel is sized to the screen) the cells close up to fit thirteen seasons. */
+.year-strip [data-has="1"]:hover { color: #ece8e3 !important; }
+.year-strip:focus-visible { outline: 1px solid #b8b2ab; outline-offset: 2px; }
+@media (max-width: 560px) {
+  .year-strip > span { min-width: 22px !important; padding: 0 2px !important; }
+}
 .ls-keys { scrollbar-width: none; }
 .ls-keys::-webkit-scrollbar { display: none; }
 .ls-keys > * { flex: none; }
@@ -103,7 +106,6 @@ html { scroll-behavior: smooth; }
 }
 @container (max-width: 560px) {
   .ls-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ls-years > span { min-width: 22px !important; padding: 0 2px !important; }
   .ls-bar { flex-wrap: wrap; }
   .ls-without { order: 3; flex-basis: 100%; }
   .ls-without > span:first-child { margin-left: 0 !important; }

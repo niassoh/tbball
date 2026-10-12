@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, change, namesText, posOf, seasonTag, seasonsBetween, shortSeason, spanId, spanText, starsText, toneOf, value } from './lonestar.js'
+import { STATS, change, namesText, posOf, seasonTag, starsText, toneOf, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -43,15 +43,5 @@ describe('lonestar', () => {
     expect(namesText([{ name: null }])).toBe('?')
     expect(seasonTag(['2025-26'])).toBe('25–26')
     expect(seasonTag(['2018-19', '2019-20', '2020-21'])).toBe('’19–’21')
-  })
-
-  test('the year strip: short seasons, every season between two, a span and its view', () => {
-    expect(shortSeason('2013-14')).toBe('’14')
-    expect(seasonsBetween('2018-19', '2021-22')).toEqual(['2018-19', '2019-20', '2020-21', '2021-22'])
-    expect(seasonsBetween('2025-26', '2025-26')).toEqual(['2025-26'])
-    expect(spanText('2025-26', '2025-26')).toBe('2025–26')
-    expect(spanText('2018-19', '2020-21')).toBe('2018–19 → 2020–21')
-    expect(spanId('2025-26', '2025-26')).toBe('2025-26')
-    expect(spanId('2018-19', '2020-21')).toBe('2018-19..2020-21')
   })
 })

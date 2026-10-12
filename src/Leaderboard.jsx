@@ -32,7 +32,7 @@ const AXES = {
   shooting: ['C&S 3s/36', 'C&S 3%'],
   defense: ['Def FGA <6ft /36', 'Def FGA Diff%'],
   team: ['Team Off', 'Team Def'],
-  footprint: ['Rim finishing', 'Rim protection']
+  footprint: ['Rim scoring', 'Rim protection']
 }
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 

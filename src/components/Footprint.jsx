@@ -109,7 +109,7 @@ function Method({ fp, from, to }) {
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons.</li>
             <li>A lit tile is checked against the teammates whose minutes move with his: the one he plays with most and the one who takes his minutes. WHY says whether the swing holds without them.</li>
-            <li>The rim is two tiles each way: how often his team gets there (Rim pressure: its share of shots at the rim; Rim deterrence for opponents), and how well it finishes when it does (Rim finishing: FG% at the rim; Rim protection for opponents).</li>
+            <li>Rim scoring and Rim protection count points at the rim per 100 possessions, so getting there and finishing are one number.</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: DIM, fontSize: 10, letterSpacing: '.08em' }}>MINUTES ON AND OFF</span>

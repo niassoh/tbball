@@ -244,7 +244,7 @@ export default function Lonestar({ profile: p }) {
         <div className="ls-body">
           <div className="ls-side" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="ls-side-head" style={{ ...label, display: 'flex', alignItems: 'center', padding: `0 ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>Load × Net · with → without</div>
-            <div style={{ padding: `16px ${PAD}px 14px` }}><Plot s={s} scale={ls.scale} /></div>
+            <div className="ls-plot" style={{ padding: `16px ${PAD}px 14px` }}><Plot s={s} scale={ls.scale} /></div>
             <div style={{ display: 'flex', borderTop: `1px solid ${RULE}` }}>
               <Move stat={LOAD} name="Load" s={s} />
               <div style={{ width: 1, background: RULE }} />
@@ -269,10 +269,6 @@ export default function Lonestar({ profile: p }) {
               <span style={legendItem}>{swatch(stripCell('without'))}WITHOUT</span>
               <span style={legendItem}>{swatch({ width: 22, background: `linear-gradient(90deg, ${trail(TONES.good, 0)}, ${TONES.good})` })}BETTER W/O</span>
               <span style={legendItem}>{swatch({ width: 22, background: `linear-gradient(90deg, ${trail(TONES.bad, 0)}, ${TONES.bad})` })}WORSE W/O</span>
-              <span>TRAIL FADES IN TOWARD W/O</span>
-              <span>VOLUME STATS: BLUE MORE, ORANGE LESS</span>
-              <span>1 CELL = 2% OF THE STAT&apos;S LEAGUE RANGE</span>
-              <span>#RANK · AMONG EVERY PLAYER&apos;S CHANGE ({ls.minRank}+ MIN EACH WAY)</span>
             </div>
           </div>
         </div>

@@ -61,6 +61,11 @@ html { scroll-behavior: smooth; }
 .ls-side { border-right: 1px solid #3d3a37; }
 .ls-side-head { height: 34px; flex: none; }
 .ls-main { container-type: inline-size; min-width: 0; }
+/* The two columns end together: whichever is shorter takes up the slack, the table's
+   rows sharing it evenly, or the plot's section (the plot centred in it). */
+.ls-main { display: flex; flex-direction: column; }
+.ls-main > .ls-row:not(.ls-head) { flex: 1 0 auto; }
+.ls-plot { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
 @container (max-width: 860px) {
   .ls-body { grid-template-columns: minmax(0, 1fr); }
   .ls-side { border-right: none; border-bottom: 1px solid #3d3a37; }

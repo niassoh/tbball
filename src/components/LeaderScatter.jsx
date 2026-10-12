@@ -1,23 +1,29 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { MONO, fmt } from '../lib/format.js'
-import { along, median, quadrantOf, radiusOf, valueOf } from '../lib/leaderboard.js'
+import { headshotUrl } from '../api.js'
+import { MONO, col, fmt, ord } from '../lib/format.js'
+import { along, median, pctlOf, quadrantOf, radiusOf, valueOf } from '../lib/leaderboard.js'
+import { initials } from '../lib/teams.js'
 import Popover from './Popover.jsx'
 
 // The Leaderboard's scatter: any two stats of the season against each other, each axis
 // running better toward the top and right (a lower-is-better stat reversed) and centred
 // on the league's median, as far either way as the furthest player, so the medians split
-// it into four equal quadrants. A dot is a player, its size his minutes, blue when he's on the good
-// side of both medians, orange when on neither, grey when split; players the table's
+// it into four equal quadrants. A dot is a player, its size his minutes (from the pool's
+// fewest to its most), its colour how far toward the top right (blue) or bottom left
+// (orange) he sits, grey between, on the site's percentile scale; players the table's
 // filters leave out stay as faint dots. Dots glide to their new places when an axis or
-// the season changes (index.css .lb-dot). Hover names a dot (as does the table's row
-// under the pointer, `hot`); a click opens his card.
-// Under it: the season, both medians, how many players, and how many beat both.
+// the season changes (index.css .lb-dot). Hover a dot (or the table's row under the
+// pointer, `hot`) for his card in brief; a click opens his card. Under it: the season,
+// both medians, how many players, and how many are in the top right.
 const INK = '#ece8e3'
 const DIM = '#8a847e'
 const FAINT = '#5f5a55'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
-const TONE = { both: '#597ec1', neither: '#fa962a', split: '#7a7570' }
+const TONE = { both: '#597ec1', neither: '#fa962a' }
+const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
+const TIP_W = 228
+const TIP_H = 138
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM, textTransform: 'uppercase' }
 const M = { l: 30, r: 14, t: 16, b: 30 }
 
@@ -40,6 +46,46 @@ function AxisPicker({ doc, axis, value, set }) {
         </div>
       )}
     </Popover>
+  )
+}
+
+// A dot's player in brief: headshot, name, team, position, age and minutes, then each
+// axis's stat with its value and a bar to its percentile.
+function Tip({ doc, d, x, y, left, top }) {
+  const row = (l, v) => {
+    const pc = pctlOf(doc, d.p, l)
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ ...label, fontSize: 8.5 }}>{l}</span>
+          <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 600, color: INK }}>{fmt(doc.stats[l], v)}</span>
+        </span>
+        <span style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 34px', gap: 8, alignItems: 'center' }}>
+          <span style={{ position: 'relative', height: 5, background: '#34312e' }}>
+            {pc !== null && <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(pc, 2)}%`, background: col(pc) }} />}
+            <span style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: '#6b655f' }} />
+          </span>
+          <span style={{ fontFamily: MONO, fontSize: 9, textAlign: 'right', color: pc === null ? FAINT : col(pc) }}>{pc === null ? '—' : ord(pc)}</span>
+        </span>
+      </div>
+    )
+  }
+  const p = d.p
+  return (
+    <div style={{ position: 'absolute', left, top, width: TIP_W, pointerEvents: 'none', zIndex: 5, background: 'rgba(31, 29, 28, .96)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: 10, display: 'flex', flexDirection: 'column', gap: 9 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+        <span style={{ width: 34, height: 34, flex: 'none', borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: '1px solid #544f4b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 9, color: DIM }}>
+          {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={34} height={34} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(p.name)}
+        </span>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.005em', color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
+          <span style={{ ...label, fontSize: 8 }}>{[p.team, p.pos, p.age !== null && `age ${Math.floor(p.age)}`, p.mp !== null && `${p.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>
+        </span>
+      </div>
+      <span style={{ height: 1, background: RULE }} />
+      {row(x, d.vx)}
+      {row(y, d.vy)}
+    </div>
   )
 }
 
@@ -69,6 +115,11 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const cx = (M.l + w - M.r) / 2
   const cy = (M.t + h - M.b) / 2
   const most = Math.max(...doc.players.map(p => p.mp || 0))
+  const least = Math.min(...doc.players.map(p => p.mp || 0))
+  const radius = p => radiusOf(p.mp || 0, most, 2, 11, least)
+  // Toward the top right, bluer; toward the bottom left, more orange (the percentile scale,
+  // from how far up and right he sits, each axis 0 to 1 with its median at the middle).
+  const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (along(d.vx, x0, x1, sx.lowerBetter) + along(d.vy, y0, y1, sy.lowerBetter) - 1))))
   // Big dots first, so small ones stay on top; the filters' players over the rest.
   const order = [...pts].sort((a, b) => (shown.has(a.p.slug) - shown.has(b.p.slug)) || (b.p.mp || 0) - (a.p.mp || 0))
   const quad = d => quadrantOf(d.vx, d.vy, mx, my, sx.lowerBetter, sy.lowerBetter)
@@ -101,15 +152,14 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           <text x={M.l + 6} y={h - M.b - 6} style={{ ...label, fontSize: 9, fill: TONE.neither }}>− −</text>
           {order.map(d => {
             const on = shown.has(d.p.slug)
-            const q = quad(d)
             return (
-              <circle key={d.p.slug} className="lb-dot lb-dot-in" cx={0} cy={0} r={radiusOf(d.p.mp || 0, most, 2.5, 9)}
-                fill={TONE[q]} fillOpacity={on ? (q === 'split' ? 0.55 : 0.75) : 0.08}
+              <circle key={d.p.slug} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
+                fill={tint(d)} fillOpacity={on ? 0.82 : 0.08}
                 style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: on ? 'pointer' : 'default', pointerEvents: on ? 'auto' : 'none' }}
                 onMouseEnter={() => setHover(d.p.slug)} onClick={() => onPick(d.p.slug)} />
             )
           })}
-          {hv && <circle cx={px(hv.vx)} cy={py(hv.vy)} r={radiusOf(hv.p.mp || 0, most, 2.5, 9) + 2.5} fill="none" stroke={INK} strokeWidth={1.5} pointerEvents="none" />}
+          {hv && <circle cx={px(hv.vx)} cy={py(hv.vy)} r={radius(hv.p) + 2.5} fill="none" stroke={INK} strokeWidth={1.5} pointerEvents="none" />}
           {/* Each axis: its ends' values and its name, the better end up and to the right. */}
           <text x={M.l} y={h - M.b + 14} style={{ ...label, fill: FAINT }}>{fmt(sx, xl)}</text>
           <text x={(M.l + w - M.r) / 2} y={h - M.b + 14} textAnchor="middle" style={{ ...label, fill: DIM }}>{x} →</text>
@@ -118,19 +168,16 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           <text x={M.l - 6} y={(M.t + h - M.b) / 2} textAnchor="middle" style={{ ...label, fill: DIM }} transform={`rotate(-90 ${M.l - 6} ${(M.t + h - M.b) / 2})`}>{y} →</text>
           <text x={M.l - 6} y={M.t} textAnchor="end" style={{ ...label, fill: FAINT }} transform={`rotate(-90 ${M.l - 6} ${M.t})`}>{fmt(sy, yt)}</text>
         </svg>
-        {hv && (
-          <div style={{ position: 'absolute', left: Math.min(px(hv.vx) + 12, w - 190), top: Math.max(py(hv.vy) - 54, 4), width: 178, pointerEvents: 'none', background: '#1f1d1c', border: '1px solid #6b655f', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 3, fontFamily: MONO, fontSize: 10 }}>
-            <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK }}>{hv.p.name} <span style={{ ...label, fontSize: 8 }}>{hv.p.team}</span></span>
-            <span style={{ color: DIM }}>{x} <span style={{ color: INK }}>{fmt(sx, hv.vx)}</span> · {y} <span style={{ color: INK }}>{fmt(sy, hv.vy)}</span></span>
-          </div>
-        )}
+        {hv && <Tip doc={doc} d={hv} x={x} y={y}
+          left={px(hv.vx) + 16 + TIP_W < w ? px(hv.vx) + 16 : px(hv.vx) - 16 - TIP_W}
+          top={Math.max(4, Math.min(h - TIP_H - 4, py(hv.vy) - TIP_H / 2))} />}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
         <div style={{ ...cell, borderLeft: 0 }}><span style={cap}>League</span><span style={big}>{seasonLabel}</span></div>
         <div style={cell}><span style={cap}>{x} med</span><span style={big}>{fmt(sx, mx)}</span></div>
         <div style={cell}><span style={cap}>{y} med</span><span style={big}>{fmt(sy, my)}</span></div>
         <div style={cell}><span style={cap}>Players</span><span style={big}>{pts.length}</span></div>
-        <div style={cell}><span style={cap}>Beat both</span><span style={{ ...big, color: TONE.both }}>{top}</span></div>
+        <div style={cell}><span style={cap}>Top right</span><span style={{ ...big, color: TONE.both }}>{top}</span></div>
       </div>
     </>
   )

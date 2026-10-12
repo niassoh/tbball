@@ -37,9 +37,9 @@ export const quadrantOf = (x, y, mx, my, xLow, yLow) => {
   return a && b ? 'both' : !a && !b ? 'neither' : 'split'
 }
 
-// A dot's radius by minutes, its area in proportion (from `lo` px for none to `hi` for
-// the most).
-export const radiusOf = (minutes, most, lo = 3, hi = 11) => lo + (hi - lo) * Math.sqrt(Math.max(0, minutes) / (most || 1))
+// A dot's radius by minutes, its area in proportion: `lo` px for the fewest (`least`), `hi`
+// for the most.
+export const radiusOf = (minutes, most, lo = 3, hi = 11, least = 0) => lo + (hi - lo) * Math.sqrt(Math.max(0, minutes - least) / ((most - least) || 1))
 
 // Where a value sits on an axis from lo to hi, 0–1 (lower-is-better stats run reversed,
 // so better is always up and right), clamped.

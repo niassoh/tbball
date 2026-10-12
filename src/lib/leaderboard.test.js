@@ -40,6 +40,9 @@ describe('leaderboard', () => {
     expect(radiusOf(0, 3000)).toBe(3)
     expect(radiusOf(3000, 3000)).toBe(11)
     expect(radiusOf(750, 3000)).toBe(7)
+    // From the fewest minutes in the pool, not from none.
+    expect(radiusOf(800, 3000, 2, 11, 800)).toBe(2)
+    expect(radiusOf(3000, 3000, 2, 11, 800)).toBe(11)
     expect(along(5, 0, 10, false)).toBe(0.5)
     expect(along(2, 0, 10, true)).toBe(0.8)
     expect(along(20, 0, 10, false)).toBe(1)

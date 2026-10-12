@@ -8,7 +8,9 @@ import WindowTag from './WindowTag.jsx'
 // the player, his team, position, age, games and minutes that season, then the picked
 // group's stats; the player and his details take no more room than they need, the stats
 // share the rest. A header sorts by its stat, best first, and again for worst first. A
-// cell is shaded by its percentile as the profile's stat tables are (lib/format.js heat:
+// header keeps one size whatever the group or sort: two lines at most, its rolling
+// window's tag in the corner, the sorted one marked by colour and a rule (not weight),
+// with room kept for its arrow. A cell is shaded by its percentile as the profile's stat tables are (lib/format.js heat:
 // blue above the middle, orange below; a style stat, neither, in grey), and a Footprint
 // swing that clears the noise carries a small square. The rank and player stay put when
 // the stats scroll sideways. Rows carry their player (data-slug), so the page can light
@@ -42,23 +44,24 @@ function Face({ p }) {
 
 function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picked, onPick }) {
   const cell = { height: 26, padding: '0 7px', borderBottom: `1px solid ${RULE}`, whiteSpace: 'nowrap' }
-  const head = { position: 'sticky', top: 0, zIndex: 2, padding: '7px 7px 6px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', verticalAlign: 'bottom' }
+  const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 7px 6px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', verticalAlign: 'bottom' }
   const stick = left => ({ position: 'sticky', left, zIndex: 1 })
   return (
     <table className="lb-table" style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
       <thead>
         <tr>
-          <th style={{ ...head, ...stick(0), zIndex: 3, padding: '7px 0 6px', textAlign: 'center' }}><span style={{ ...label, display: 'inline-block', width: RANK_W }}>#</span></th>
+          <th style={{ ...head, ...stick(0), zIndex: 3, paddingLeft: 0, paddingRight: 0, textAlign: 'center' }}><span style={{ ...label, display: 'inline-block', width: RANK_W }}>#</span></th>
           <th style={{ ...head, ...stick(RANK_W), zIndex: 3, width: '1%', textAlign: 'left', borderRight: `1px solid ${RULE}` }}><span style={label}>Player</span></th>
           {BIO.map(([name], i) => <th key={name} style={{ ...head, width: '1%', textAlign: i < 2 ? 'left' : 'right' }}><span style={label}>{name}</span></th>)}
           {group.stats.map((l, i) => {
             const on = sortLabel === l
             return (
-              <th key={l} style={{ ...head, minWidth: 54, borderLeft: i ? 0 : `1px solid ${RULE}` }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
+              <th key={l} style={{ ...head, minWidth: 58, borderLeft: i ? 0 : `1px solid ${RULE}`, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none' }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
+                {doc.stats[l].years && <span style={{ position: 'absolute', top: 2, right: 5 }}><WindowTag stat={doc.stats[l]} /></span>}
                 <button type="button" className="lb-head-cell" onClick={() => onSort(l)} title={on ? 'Sorted best first; click for worst first' : 'Sort by this stat, best first'}
-                  style={{ ...label, display: 'inline-flex', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 3, padding: 0, border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'right', lineHeight: 1.25, color: on ? INK : DIM, fontWeight: on ? 700 : 400 }}>
-                  <span>{l}<WindowTag stat={doc.stats[l]} /></span>
-                  {on && <span aria-hidden="true">{reverse ? '↑' : '↓'}</span>}
+                  style={{ ...label, display: 'flex', width: '100%', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 3, padding: 0, border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'right', lineHeight: 1.25, color: on ? INK : DIM }}>
+                  <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={l}>{l}</span>
+                  <span aria-hidden="true" style={{ width: 7, flex: 'none', textAlign: 'left', color: on ? INK : 'transparent' }}>{reverse ? '↑' : '↓'}</span>
                 </button>
               </th>
             )

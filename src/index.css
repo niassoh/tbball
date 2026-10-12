@@ -52,15 +52,14 @@ html { scroll-behavior: smooth; }
    catalogue tiles lift a shade and their portrait leans in, parts-list lines highlight. */
 .ls-key { transition: border-color .12s, color .12s; }
 .ls-key[aria-pressed="false"]:hover { border-color: #ece8e3 !important; color: #ece8e3 !important; }
-/* Lonestar: one continuous panel at the left (its head lines up with the table's), the
-   stats at the right; one column (the panel first) when narrow. The panel's numbers sit
+/* Lonestar: one continuous panel at the left, the stats at the right; one column (the
+   panel first) when narrow. The panel's numbers sit
    in one row of four (two by two when narrow), split by 1px rules. The stats: stat |
    with | strip | without | change, compact rows, the strip 50 small cells; in a narrow
    column with drops (!important over its inline display) and the cells close up. */
 .ls-frame { container-type: inline-size; }
 .ls-body { display: grid; grid-template-columns: 340px minmax(0, 1fr); }
 .ls-side { border-right: 1px solid #3d3a37; }
-.ls-side-head { height: 34px; flex: none; }
 .ls-main { container-type: inline-size; min-width: 0; }
 .ls-nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #3d3a37; }
 /* The two columns end together: whichever is shorter takes up the slack, the table's

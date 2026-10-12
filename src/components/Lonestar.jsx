@@ -249,8 +249,7 @@ export default function Lonestar({ profile: p }) {
 
         <div className="ls-body">
           <div className="ls-side" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="ls-side-head" style={{ ...label, display: 'flex', alignItems: 'center', padding: `0 ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>Load × Net · with → without</div>
-            <div className="ls-plot" style={{ padding: `16px ${PAD}px 12px` }}><div ref={plotRef}><Plot s={s} scale={ls.scale} width={plotWidth} /></div></div>
+            <div className="ls-plot" style={{ padding: `20px ${PAD}px 12px` }}><div ref={plotRef}><Plot s={s} scale={ls.scale} width={plotWidth} /></div></div>
             <Cast p={p} s={s} />
             <Numbers s={s} minRank={ls.minRank} />
           </div>

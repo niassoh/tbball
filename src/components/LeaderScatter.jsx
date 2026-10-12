@@ -12,8 +12,9 @@ import Popover from './Popover.jsx'
 // fewest to its most), its colour how far toward the top right (blue) or bottom left
 // (orange) he sits, grey between, on the site's percentile scale; players the table's
 // filters leave out stay as faint dots. Dots glide to their new places when an axis or
-// the season changes (index.css .lb-dot). Hover a dot (or the table's row under the
-// pointer, `hot`) for his card in brief; a click opens his card. Under it: the season,
+// the season changes (index.css .lb-dot). Hover a dot for his card in brief; the table's
+// row under the pointer (`hot`) rings its dot with just his face and surname, so the chart
+// stays in view as the table is read. A click opens his card. Under it: the season,
 // both medians, how many players, and how many are in the top right.
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -85,6 +86,19 @@ function Tip({ doc, d, x, y, left, top }) {
       <span style={{ height: 1, background: RULE }} />
       {row(x, d.vx)}
       {row(y, d.vy)}
+    </div>
+  )
+}
+
+// The table's row under the pointer, at its dot: his face and surname, no more.
+const MINI_W = 160
+function Mini({ p, left, top }) {
+  return (
+    <div style={{ position: 'absolute', left, top, maxWidth: MINI_W, pointerEvents: 'none', zIndex: 5, display: 'flex', alignItems: 'center', gap: 5, padding: '2px 7px 2px 2px', background: 'rgba(31, 29, 28, .92)', border: '1px solid #6b655f', borderRadius: 12 }}>
+      <span style={{ width: 18, height: 18, flex: 'none', borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 7, color: DIM }}>
+        {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={18} height={18} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(p.name)}
+      </span>
+      <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name.split(' ').slice(1).join(' ') || p.name}</span>
     </div>
   )
 }
@@ -168,9 +182,12 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           <text x={M.l - 6} y={(M.t + h - M.b) / 2} textAnchor="middle" style={{ ...label, fill: DIM }} transform={`rotate(-90 ${M.l - 6} ${(M.t + h - M.b) / 2})`}>{y} →</text>
           <text x={M.l - 6} y={M.t} textAnchor="end" style={{ ...label, fill: FAINT }} transform={`rotate(-90 ${M.l - 6} ${M.t})`}>{fmt(sy, yt)}</text>
         </svg>
-        {hv && <Tip doc={doc} d={hv} x={x} y={y}
+        {hv && hover && <Tip doc={doc} d={hv} x={x} y={y}
           left={px(hv.vx) + 16 + TIP_W < w ? px(hv.vx) + 16 : px(hv.vx) - 16 - TIP_W}
           top={Math.max(4, Math.min(h - TIP_H - 4, py(hv.vy) - TIP_H / 2))} />}
+        {hv && !hover && <Mini p={hv.p}
+          left={px(hv.vx) + radius(hv.p) + 6 + MINI_W < w ? px(hv.vx) + radius(hv.p) + 6 : Math.max(0, px(hv.vx) - radius(hv.p) - 6 - MINI_W)}
+          top={Math.max(2, py(hv.vy) - 12)} />}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
         <div style={{ ...cell, borderLeft: 0 }}><span style={cap}>League</span><span style={big}>{seasonLabel}</span></div>

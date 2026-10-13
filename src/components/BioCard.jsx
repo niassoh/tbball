@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { headshotUrl, jerseyUrl, loadTeams } from '../api.js'
+import { ageIn } from '../lib/age.js'
 import { MONO } from '../lib/format.js'
 import TeamInitials from './TeamInitials.jsx'
 import TeamPicker from './TeamPicker.jsx'
@@ -68,16 +69,18 @@ const nameSize = lines => Math.min(30, Math.floor(240 / (0.62 * Math.max(...line
 const draftLine = d => (!d ? null : d.undrafted ? 'UNDRAFTED' : `${d.year} DRAFT · R${d.round} #${d.overall} · ${d.team}`)
 
 // The card for the season picked on the season rail (an index into p.seasons): the
-// team he played most for that season, his age then, its lineups and its rotation
-// (p.seasons[i].card). The depth chart's own season (and a profile without seasons)
-// shows today's team, lineups and depth chart.
+// team he played most for that season, his age then (on the day, from his birth date where
+// known), its lineups and its rotation (p.seasons[i].card). The depth chart's own season
+// (and a profile without seasons) shows today's team, lineups and depth chart.
 const seasonView = (p, i) => {
   const s = p.seasons[i]
+  const latest = p.seasons.length ? p.seasons[p.seasons.length - 1].season : null
+  const ageOf = (season, sheet) => (p.bio.born && latest ? ageIn(p.bio.born, season || latest, latest) : sheet)
   if (!s || (!s.card && p.depth && s.season === p.depth.season)) {
-    return { team: p.team, teamName: p.teamName, age: p.bio.age, lineups: p.lineups, chart: p.depth, rotation: false }
+    return { team: p.team, teamName: p.teamName, age: ageOf(null, p.bio.age), lineups: p.lineups, chart: p.depth, rotation: false }
   }
-  if (!s.card) return { team: s.teams[s.teams.length - 1], teamName: null, age: s.age, lineups: null, chart: null, rotation: true }
-  return { team: s.card.team, teamName: s.card.teamName, age: s.age, lineups: s.card.lineups, chart: s.card.rotation, rotation: true }
+  if (!s.card) return { team: s.teams[s.teams.length - 1], teamName: null, age: ageOf(s.season, s.age), lineups: null, chart: null, rotation: true }
+  return { team: s.card.team, teamName: s.card.teamName, age: ageOf(s.season, s.age), lineups: s.card.lineups, chart: s.card.rotation, rotation: true }
 }
 
 export default function BioCard({ profile: p, season, loading = false }) {

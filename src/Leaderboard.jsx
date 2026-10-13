@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardRecent, fetchLeaderboardSeasons } from './api.js'
+import { liveAges } from './lib/age.js'
 import { combined, combinedDelta, eachSeason, qualified, singleYear } from './lib/board.js'
 import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
@@ -210,7 +211,7 @@ export default function Leaderboard() {
     for (const key of missingKey.split(',')) {
       const [kind, x] = key.split('|')
       const load = kind === 'recent' ? fetchLeaderboardRecent() : fetchLeaderboard(x, kind !== 'regular', kind === 'delta')
-      load.then(d => live && setCache(c => ({ ...c, [key]: d || false })), () => live && setCache(c => ({ ...c, [key]: false })))
+      load.then(d => live && setCache(c => ({ ...c, [key]: d ? liveAges(d) : false })), () => live && setCache(c => ({ ...c, [key]: false })))
     }
     return () => { live = false }
   }, [missingKey])

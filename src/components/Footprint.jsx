@@ -70,36 +70,18 @@ function MateMark({ size = 15 }) {
   )
 }
 
-// One half of the teammate check: its swing, a bar from zero on the two halves' shared
-// scale (right a rise, left a fall), and his minutes on and off in it.
-function Half({ label, half, max, color }) {
-  const v = half.swing
-  const w = v === null ? 0 : (Math.abs(v) / max) * 50
-  return (
-    <>
-      <span style={{ color: DIM, letterSpacing: '.1em' }}>{label}</span>
-      <span style={{ color: INK, textAlign: 'right' }}>{swingText(v)}</span>
-      <span style={{ position: 'relative', height: 8, alignSelf: 'center' }}>
-        <span style={{ position: 'absolute', left: 0, right: 0, top: 4, height: 1, background: '#4a4642' }} />
-        <span style={{ position: 'absolute', left: '50%', top: 0, width: 1, height: 8, background: DIM }} />
-        {v !== null && <span style={{ position: 'absolute', top: 2, height: 5, left: `${v >= 0 ? 50 : 50 - w}%`, width: `${w}%`, background: color }} />}
-      </span>
-      <span style={{ color: DIM, textAlign: 'right', whiteSpace: 'nowrap' }}>{half.min[0].toLocaleString()} / {half.min[1].toLocaleString()}</span>
-    </>
-  )
-}
-
 // A tile's details, on hover (a tap on a phone), as a sheet: his team's value off and on,
-// the swing (its unit, z and size among players' swings), the on value's league and
-// percentile; for a teammate stat, the swing again with his best-OBPM teammate on the
-// floor and off it, with his minutes on and off in each, and, when the tile is lit by a
-// teammate effect, the swing with that teammate held fixed. Opens leftward from a tile on
-// the right of its row.
-// `color`: a lit tile's; an unlit one's swing is ink and its bars grey.
+// the swing (its unit and size among players' swings), the on value's league and
+// percentile; for a teammate stat, WHEN [his best-OBPM teammate] SITS: the same off, on
+// and swing over only the minutes that teammate is off the floor, with his minutes on and
+// off there, and what happens to the swing when it's a teammate effect. Opens leftward
+// from a tile on the right of its row.
+// `color`: a lit tile's; an unlit one's swing is ink.
 function Details({ e, anchors, color, right }) {
   const medal = medalOf(e)
   const w = e.wowy
-  const max = w ? Math.max(...[w.with.swing, w.without.swing].filter(v => v !== null).map(Math.abs), 0.1) : 1
+  const who = anchorName(anchors)
+  const sits = `WHEN ${who} ${anchors.length > 1 ? 'SIT' : 'SITS'}`
   const head = { fontSize: 9, letterSpacing: '.14em', color: DIM }
   const big = { fontSize: 18, lineHeight: 1.15, color: INK }
   const sub = { fontSize: 9.5, letterSpacing: '.06em', color: DIM, whiteSpace: 'nowrap' }
@@ -121,7 +103,7 @@ function Details({ e, anchors, color, right }) {
           <span style={sub}>{unitOf(e.key, e.unit)}</span>
           <span />
           <span style={{ ...sub, display: 'inline-flex', alignItems: 'center', gap: 5, color: medal ? MEDALS[medal - 1] : DIM }}>{medal && <Medal tier={medal} />}{pctlText(e.onPctl)}</span>
-          <span style={sub}>{e.pctl !== null && e.pctl !== undefined ? `z ${e.z.toFixed(1)} · ${pctlText(e.pctl)}` : MISSING[e.status]}</span>
+          <span style={sub}>{e.pctl !== null && e.pctl !== undefined ? pctlText(e.pctl) : MISSING[e.status]}</span>
         </div>
       ) : MISSING[e.status] && <span style={sub}>{MISSING[e.status]}</span>}
       {w && (
@@ -130,21 +112,28 @@ function Details({ e, anchors, color, right }) {
             <span style={{ display: 'flex' }}>
               {anchors.map((a, i) => <span key={a.slug || i} style={{ marginLeft: i ? -8 : 0, display: 'flex' }}><Face who={a} /></span>)}
             </span>
-            <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <span style={head}>SWING WITH / WITHOUT</span>
-              <span style={{ color: INK, fontWeight: 700, letterSpacing: '.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{anchorName(anchors)}</span>
-            </span>
+            <span style={{ minWidth: 0, color: INK, fontWeight: 700, letterSpacing: '.08em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sits}</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto auto minmax(0, 1fr) auto', columnGap: 12, rowGap: 4, alignItems: 'center' }}>
-            <span /><span /><span />
-            <span style={{ ...head, textAlign: 'right' }}>MIN ON / OFF</span>
-            <Half label="WITH" half={w.with} max={max} color={color || '#837d76'} />
-            <Half label="WITHOUT" half={w.without} max={max} color={color || '#837d76'} />
-          </div>
+          {w.swing === null
+            ? <span style={sub}>TOO FEW MINUTES TO SAY · {w.min[0].toLocaleString()} ON, {w.min[1].toLocaleString()} OFF</span>
+            : (
+              // The same off, on and swing as above, over only those minutes.
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.45fr', columnGap: 12, rowGap: 2 }}>
+                <span style={head}>OFF</span>
+                <span style={head}>ON</span>
+                <span style={head}>SWING</span>
+                <span style={big}>{valueText(e, w.off)}</span>
+                <span style={big}>{valueText(e, w.on)}</span>
+                <span style={big}>{swingText(w.swing)}</span>
+                <span style={sub}>{w.min[1].toLocaleString()} MIN</span>
+                <span style={sub}>{w.min[0].toLocaleString()} MIN</span>
+                <span style={sub}>{pctlText(w.pctl)}</span>
+              </div>
+            )}
           {w.mate && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 7, paddingTop: 2, color: INK, letterSpacing: '.06em' }}>
               <MateMark size={16} />
-              <span><span style={{ color: WARN }}>TEAMMATE EFFECT</span> <span style={{ color: DIM }}>· WITH HIM HELD ON OR OFF, THE SWING IS</span> {swingText(w.held[0])}</span>
+              <span><span style={{ color: WARN }}>TEAMMATE EFFECT</span> <span style={{ color: DIM }}>·</span> {swingText(e.diff)} <span style={{ color: DIM }}>{Math.sign(w.swing) === Math.sign(e.diff) ? 'FALLS' : 'TURNS'} TO</span> {swingText(w.swing)} <span style={{ color: DIM }}>{sits}</span></span>
             </span>
           )}
         </div>
@@ -213,9 +202,9 @@ function Method({ fp, from, to }) {
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them.</li>
-            <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (WITH) and off it (WITHOUT), with his minutes on and off in each.</li>
-            <li>A lit teammate tile is marked as a teammate effect when, with that teammate held fixed (the two halves taken together), the swing keeps less than half of itself or turns round: it comes from how that teammate&apos;s minutes split between his time on and off.</li>
-            <li>In a tile&apos;s details, z is the whole swing over its noise, and its percentile is the swing&apos;s size among players&apos; swings in that stat. LG and the percentile under ON place his team&apos;s on value against the league&apos;s that season.</li>
+            <li>Teammate stats are also measured WHEN his best-OBPM teammate SITS: the same on and off over only the minutes that teammate is off the floor, with his minutes on and off there.</li>
+            <li>A lit teammate tile is marked as a teammate effect when its swing keeps less than half of itself, or turns round, when that teammate sits: most of it is that teammate&apos;s minutes.</li>
+            <li>In a tile&apos;s details, the percentile under SWING is the swing&apos;s size among players&apos; swings in that stat; LG and the percentile under ON place his team&apos;s on value against the league&apos;s that season.</li>
             <li>An on value in the league&apos;s top 10 at the end that helps his team gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%.</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

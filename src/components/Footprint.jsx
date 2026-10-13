@@ -158,10 +158,13 @@ export default function Footprint({ profile: p }) {
   )
 }
 
-// The span on show (his latest season alone at first) and its tiles.
+// The span on show (his last two seasons at first, or his only one) and its tiles.
 function Views({ p, doc }) {
-  const [span, setSpan] = useState({ from: doc.views[0].id, to: doc.views[0].id })
   const viewOf = (from, to) => doc.views.find(v => v.id === spanId(from, to))
+  const [span, setSpan] = useState(() => {
+    const [a, b] = doc.seasons.slice(-2)
+    return b && viewOf(a, b) ? { from: a, to: b } : { from: doc.views[0].id, to: doc.views[0].id }
+  })
   const fp = viewOf(span.from, span.to)
   const pick = (from, to) => { if (viewOf(from, to)) setSpan({ from, to }) }
   const anchor = anchorName(fp.anchors)

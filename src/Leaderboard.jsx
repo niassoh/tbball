@@ -20,9 +20,9 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // screen on a laptop (index.css .lb): the table scrolls in its box. Filters (a team, a
 // name) narrow the table and fade the scatter's other dots. In the playoffs a small Δ
 // toggle turns it to each player's playoffs minus regular season, and in the regular season
-// FULL SEASON | LAST 30 DAYS switches to the latest season's last 30 days (its stats that
-// can't be scoped to dates, and Footprint, greyed); RAW | PCTL sets what the table's cells
-// read in; the row under the pointer,
+// a calendar button by the season picker switches to the latest season's last 30 days (its
+// stats that can't be scoped to dates, and Footprint, greyed); RAW | PCTL sets what the
+// table's cells read in; the row under the pointer,
 // as it moves or as the table scrolls beneath it, lights its player's dot.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
@@ -95,16 +95,18 @@ function Minutes({ top, set, playoffs }) {
   )
 }
 
-// The whole season or its last 30 days: at the top, there only in the regular season (the
-// window is the latest regular season's).
-function WindowToggle({ recent, set }) {
+// The latest season's last 30 days: a small calendar reading 30 beside the season picker,
+// there only in the regular season (the window is the latest regular season's), lit while on.
+function RecentButton({ on, set }) {
   return (
-    <div role="group" aria-label="Window" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
-      {[[false, 'Full season'], [true, 'Last 30 days']].map(([on, name], i) => (
-        <button key={name} type="button" aria-pressed={recent === on} onClick={() => set(on)}
-          style={{ height: 24, padding: '0 9px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: recent === on ? '#3a3734' : 'transparent', color: recent === on ? INK : DIM, fontFamily: MONO, fontSize: 9, fontWeight: recent === on ? 700 : 400, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>{name}</button>
-      ))}
-    </div>
+    <button type="button" aria-pressed={on} aria-label="Last 30 days" onClick={() => set(!on)} title={on ? 'Back to the full season' : 'The last 30 days'}
+      style={{ flex: 'none', width: 34, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: on ? '#3a3734' : 'transparent', color: on ? 'var(--accent)' : '#c9c3bc', cursor: 'pointer' }}>
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3">
+        <rect x="2.5" y="4" width="15" height="13.5" />
+        <path d="M2.5 7.5H17.5M6.5 2V5.5M13.5 2V5.5" />
+        <text x="10" y="15.3" textAnchor="middle" stroke="none" fill="currentColor" fontFamily={MONO} fontSize="7" fontWeight="700">30</text>
+      </svg>
+    </button>
   )
 }
 
@@ -279,14 +281,14 @@ export default function Leaderboard() {
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}` }}>
         <Link to="/" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>← All players</Link>
         <span style={{ ...label, fontSize: 10, color: INK, fontWeight: 700, border: `1px solid ${EDGE}`, padding: '5px 9px' }}>Leaderboard</span>
-        <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
-          {!playoffs && <WindowToggle recent={recent} set={setRecent} />}
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <SeasonToggle />
           {playoffs && <DeltaToggle on={delta} set={setDelta} />}
         </span>
       </header>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>
+        {!playoffs && <RecentButton on={recent} set={setRecent} />}
         {windowed && doc && doc.window && (
           <span style={{ ...label, height: 30, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 10px', border: `1px solid ${EDGE}`, color: INK }}>
             <span style={{ color: DIM }}>Last 30 days</span>{day(doc.window.start)} – {day(doc.window.end)}, {doc.window.end.slice(0, 4)}

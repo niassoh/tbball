@@ -59,13 +59,18 @@ describe('footprint', () => {
     expect(wowyVerdict(null)).toBe(null)
   })
 
-  test('a medal for a top five at the end that helps his team', () => {
-    expect(medalOf({ good: 1, rank: [1, 465, 'high'] })).toBe(1)
-    expect(medalOf({ good: -1, rank: [3, 360, 'low'] })).toBe(3)
-    // The wrong end, outside the top five, or a style stat: none.
-    expect(medalOf({ good: 1, rank: [2, 465, 'low'] })).toBe(null)
-    expect(medalOf({ good: 1, rank: [6, 465, 'high'] })).toBe(null)
-    expect(medalOf({ good: 0, rank: [1, 465, 'high'] })).toBe(null)
+  test("a medal for the league's top 1, 2 or 3% at the end that helps his team", () => {
+    // Of 500: places 1–5 gold, 6–10 silver, 11–15 bronze.
+    expect(medalOf({ good: 1, rank: [1, 500, 'high'] })).toBe(1)
+    expect(medalOf({ good: 1, rank: [5, 500, 'high'] })).toBe(1)
+    expect(medalOf({ good: 1, rank: [6, 500, 'high'] })).toBe(2)
+    expect(medalOf({ good: -1, rank: [15, 500, 'low'] })).toBe(3)
+    expect(medalOf({ good: 1, rank: [16, 500, 'high'] })).toBe(null)
+    // A smaller league (a span's top half by minutes) has fewer: of 305, gold is 1–3.
+    expect(medalOf({ good: 1, rank: [4, 305, 'high'] })).toBe(2)
+    // The wrong end, or a style stat: none.
+    expect(medalOf({ good: 1, rank: [1, 500, 'low'] })).toBe(null)
+    expect(medalOf({ good: 0, rank: [1, 500, 'high'] })).toBe(null)
     expect(medalOf({ good: 1, rank: null })).toBe(null)
   })
 })

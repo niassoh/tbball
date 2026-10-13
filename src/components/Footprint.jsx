@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchFootprint } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { UNITS, anchorName, bar, medalOf, rankText, shade, strengthOf, swingText, toneOf, valueText, wowyText, wowyVerdict } from '../lib/footprint.js'
+import { MEDAL_SHARES, UNITS, anchorName, bar, medalOf, rankText, shade, strengthOf, swingText, toneOf, valueText, wowyText, wowyVerdict } from '../lib/footprint.js'
 import { spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
@@ -14,8 +14,8 @@ import SectionHeader from './SectionHeader.jsx'
 // the TEAM MATES row (his own shots left out), his team's otherwise. Those that clear the
 // noise and stand out against the league's swings are lit (blue for a lift, orange for a
 // cost, ink for a style stat, as strong as the evidence). Each tile has its on value
-// against the league's, a medal when it's a top five at the end that helps his team, and
-// a teammate stat its swing with and without his best-OBPM teammate.
+// against the league's, a medal when that's in the league's top 3% at the end that helps
+// his team, and a teammate stat its swing with and without his best-OBPM teammate.
 const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#c9c3bc' }
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -25,16 +25,17 @@ const one = v => v.toFixed(1)
 const chip = { display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', padding: '3px 6px', lineHeight: 1, whiteSpace: 'nowrap', background: 'transparent' }
 // Why an unlit tile is unlit.
 const UNLIT = { noise: 'WITHIN NOISE', typical: 'COMMON SWING', thin: 'TOO FEW MINUTES', na: "NOT IN THIS SEASON'S DATA YET" }
-// A top five's medal: gold, silver and bronze, then plain for fourth and fifth.
-const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a', '#8a847e', '#8a847e']
+// The medals' colors: gold, silver and bronze for the league's top 1, 2 and 3%.
+const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a']
 
 // A flat tab of its color hanging from the tile's top edge, notched like a bookmark, "TOP"
-// over its place in the tile's dark.
-function Medal({ place }) {
+// over its share of the league in the tile's dark.
+function Medal({ tier }) {
+  const share = `${Math.round(MEDAL_SHARES[tier - 1] * 100)}%`
   return (
-    <span title={`Top ${place} in the league`} style={{ position: 'absolute', top: 0, right: 14, width: 24, height: 34, boxSizing: 'border-box', paddingTop: 5, background: MEDALS[place - 1], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%)', color: '#1f1d1c', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontFamily: MONO, lineHeight: 1 }}>
+    <span title={`In the league's top ${share}`} style={{ position: 'absolute', top: 0, right: 14, width: 26, height: 34, boxSizing: 'border-box', paddingTop: 5, background: MEDALS[tier - 1], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%)', color: '#1f1d1c', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontFamily: MONO, lineHeight: 1 }}>
       <span style={{ fontSize: 6.5, letterSpacing: '.1em', fontWeight: 700 }}>TOP</span>
-      <span style={{ fontSize: 12, fontWeight: 700 }}>{place}</span>
+      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '-.02em' }}>{share}</span>
     </span>
   )
 }
@@ -48,7 +49,7 @@ function FootprintTile({ e, anchor }) {
   return (
     // A lit tile carries a bar of its color across the top edge.
     <div style={{ position: 'relative', background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 196, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
-      {medal && <Medal place={medal} />}
+      {medal && <Medal tier={medal} />}
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', paddingRight: medal ? 26 : 0 }}>
         <div style={{ flex: 'none', width: 28, height: 28, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} /></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
@@ -102,7 +103,7 @@ function Method({ fp, from, to }) {
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them.</li>
             <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (W/) and off it (W/O): the swing holds either way, comes only with or only without that teammate, or shrinks in both.</li>
-            <li>VS LG is the on value against the league&apos;s that season; the rank is its place among every qualified player&apos;s at either end, and a top five at the end that helps his team gets a medal (gold, silver and bronze for the top three).</li>
+            <li>VS LG is the on value against the league&apos;s that season; the rank is its place among every qualified player&apos;s at either end, and an on value in the league&apos;s top 3% at the end that helps his team gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%.</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: DIM, fontSize: 10, letterSpacing: '.08em' }}>MINUTES ON AND OFF</span>

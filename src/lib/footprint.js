@@ -49,9 +49,15 @@ export const anchorName = anchors => [...new Set((anchors || []).map(a => ((a.na
 export const wowyText = (w, name) => (w ? `W/ ${name} ${w.with ? swingText(w.with[0]) : '—'} · W/O ${w.without ? swingText(w.without[0]) : '—'}` : null)
 export const wowyVerdict = w => (!w ? null : { holds: 'HOLDS', with: 'ONLY WITH', without: 'ONLY WITHOUT', mix: 'SHRINKS', thin: 'TOO THIN' }[w.kind])
 
-// A top-five on value at the end of the league that helps his team: its place (1–5), for
-// a medal. A style stat helps neither way, so it has none.
+// A medal for an on value in the league's top 3% at the end that helps his team, so few
+// players hold one: 1 (gold) for the top 1%, 2 (silver) the top 2%, 3 (bronze) the top 3%,
+// by its place among every qualified player's that season or span. A style stat helps
+// neither way, so it has none.
+export const MEDAL_SHARES = [0.01, 0.02, 0.03]
 export const medalOf = e => {
-  if (!e.rank || !e.good || e.rank[0] > 5) return null
-  return (e.rank[2] === 'high') === (e.good > 0) ? e.rank[0] : null
+  if (!e.rank || !e.good) return null
+  const [place, of, end] = e.rank
+  if ((end === 'high') !== (e.good > 0)) return null
+  const tier = MEDAL_SHARES.findIndex(share => place <= share * of)
+  return tier < 0 ? null : tier + 1
 }

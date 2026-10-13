@@ -15,6 +15,24 @@ export const percentileOf = (value, pool, lowerBetter = false) => {
   return Math.round((worse / nums.length) * 100)
 }
 
+// A regular season's document with its rolling-window shooting stats (the sheet's 3yr)
+// replaced by that season alone (the document's hidden `1yr` columns), values and
+// percentiles, for views over many seasons, whose windows would overlap. A stat with no
+// single season on file keeps its window.
+export const singleYear = doc => {
+  const at = new Map(doc.labels.map((l, k) => [l, k]))
+  const swaps = doc.labels.map((l, k) => [k, at.get(`1yr ${l}`)]).filter(([, j]) => j !== undefined)
+  if (!swaps.length) return doc
+  const stats = { ...doc.stats }
+  for (const [k] of swaps) stats[doc.labels[k]] = { ...stats[doc.labels[k]], years: null }
+  const swap = xs => {
+    const out = [...xs]
+    for (const [k, j] of swaps) out[k] = xs[j]
+    return out
+  }
+  return { ...doc, stats, players: doc.players.map(p => ({ ...p, v: swap(p.v), p: swap(p.p) })) }
+}
+
 // Each player-season in the documents its own row, ranked as its season ranked it.
 export const eachSeason = docs => {
   const meta = docs[docs.length - 1]

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardSeasons } from './api.js'
-import { combined, combinedDelta, eachSeason, qualified } from './lib/board.js'
+import { combined, combinedDelta, eachSeason, qualified, singleYear } from './lib/board.js'
 import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
 import { seasonsBetween } from './lib/seasons.js'
@@ -195,11 +195,14 @@ export default function Leaderboard() {
       const po = docsOf('playoffs')
       const rs = docsOf('regular')
       if (!po.length || !rs.length) return false
-      const board = combinedDelta(po, rs)
+      const board = combinedDelta(po, rs.map(singleYear))
       return { ...board, players: qualified(board.players, top) }
     }
-    const docs = docsOf(wanted[0].split('|')[0])
-    if (!docs.length) return false
+    // Over many seasons the shooting stats are each season's own: their rolling windows
+    // would overlap.
+    const loaded = docsOf(wanted[0].split('|')[0])
+    if (!loaded.length) return false
+    const docs = loaded.length > 1 ? loaded.map(singleYear) : loaded
     const board = each || docs.length === 1 ? eachSeason(docs) : combined(docs)
     return { ...board, players: qualified(board.players, top) }
   }, [cache, wantedKey, each, top])

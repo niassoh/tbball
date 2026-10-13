@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { combined, combinedDelta, eachSeason, percentileOf, qualified } from './board.js'
+import { combined, combinedDelta, eachSeason, percentileOf, qualified, singleYear } from './board.js'
 
 // Two seasons' documents: BPM, and C&S 3% weighted by C&S 3s/36.
 const labels = ['BPM', 'C&S 3%', 'C&S 3s/36']
@@ -49,6 +49,26 @@ describe('board', () => {
     // b's 2024-25 run, but he has no 2024-25 regular season: not compared.
     expect(d.players.find(p => p.slug === 'b')).toBe(undefined)
     expect(d.stats.BPM.relative).toBe(true)
+  })
+
+  test('single year: a window stat takes its season-alone column, values and percentiles', () => {
+    const d = {
+      season: '2023-24',
+      labels: ['BPM', 'C&S 3%', 'Def FGA Diff%', '1yr C&S 3%'],
+      stats: { BPM: { years: null }, 'C&S 3%': { years: 3 }, 'Def FGA Diff%': { years: 2 }, '1yr C&S 3%': { years: null, hidden: true } },
+      players: [{ slug: 'a', v: [2, 38, -3, 41], p: [60, 70, 80, 90] }]
+    }
+    const one = singleYear(d)
+    expect(one.players[0].v).toEqual([2, 41, -3, 41])
+    expect(one.players[0].p).toEqual([60, 90, 80, 90])
+    expect(one.stats['C&S 3%'].years).toBe(null)
+    // No single season on file: keeps its window.
+    expect(one.stats['Def FGA Diff%'].years).toBe(2)
+    // The document itself is untouched (the page caches it).
+    expect(d.players[0].v[1]).toBe(38)
+    expect(d.stats['C&S 3%'].years).toBe(3)
+    // A playoffs document has no window columns: as it was.
+    expect(singleYear(s1)).toBe(s1)
   })
 
   test('qualifiers keep the top share of the minutes', () => {

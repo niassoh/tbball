@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { UNITS, anchorName, bar, medalOf, rankText, shade, strengthOf, swingText, toneOf, unitOf, valueText, wowyText, wowyVerdict } from './footprint.js'
+import { UNITS, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, unitOf, valueText, wowyVerdict } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -41,22 +41,20 @@ describe('footprint', () => {
     expect(unitOf('tm3Pct', 'pct')).toBe('PCT PTS')
   })
 
-  test('a rank from its end of the league', () => {
-    expect(rankText([1, 465, 'high'])).toBe('HIGHEST OF 465')
-    expect(rankText([2, 465, 'high'])).toBe('2ND-HIGHEST OF 465')
-    expect(rankText([8, 465, 'low'])).toBe('8TH-LOWEST OF 465')
-    expect(rankText([11, 465, 'low'])).toBe('11TH-LOWEST OF 465')
-    expect(rankText(null)).toBe(null)
+  test('percentiles as ordinals', () => {
+    expect(pctlText(95)).toBe('95TH PCTL')
+    expect(pctlText(1)).toBe('1ST PCTL')
+    expect(pctlText(22)).toBe('22ND PCTL')
+    expect(pctlText(13)).toBe('13TH PCTL')
+    expect(pctlText(null)).toBe(null)
   })
 
-  test('the teammate check: his anchor, its halves and its verdict', () => {
+  test('the teammate check: his anchor and its verdict', () => {
     const lillard = { name: 'Damian Lillard', slug: 'damian-lillard', seasons: ['2023-24', '2024-25'] }
     expect(anchorName([lillard])).toBe('LILLARD')
     // A span with a different anchor by season names each.
     expect(anchorName([{ name: 'Draymond Green' }, { name: 'Jimmy Butler III' }])).toBe('GREEN/BUTLER III')
     const w = { with: [11, 9], without: [16.4, 11.3], kind: 'holds' }
-    expect(wowyText(w, 'LILLARD')).toBe('W/ LILLARD +11.0 · W/O +16.4')
-    expect(wowyText({ ...w, without: null, kind: 'thin' }, 'LILLARD')).toBe('W/ LILLARD +11.0 · W/O —')
     expect(wowyVerdict(w)).toBe('HOLDS')
     expect(wowyVerdict({ ...w, kind: 'with' })).toBe('ONLY WITH')
     expect(wowyVerdict(null)).toBe(null)

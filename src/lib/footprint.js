@@ -36,19 +36,13 @@ const ordinal = n => {
   const v = n % 100
   return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
-// Where his on value ranks among the league's at either end ([place, of, 'high'|'low']):
-// "HIGHEST OF 465", "8TH-LOWEST OF 465".
-export const rankText = rank => {
-  if (!rank) return null
-  const [k, of, end] = rank
-  return `${k === 1 ? '' : `${ordinal(k)}-`}${end === 'high' ? 'HIGHEST' : 'LOWEST'} OF ${of}`
-}
+// A percentile, "95TH PCTL".
+export const pctlText = p => (p === null || p === undefined ? null : `${ordinal(p)} PCTL`)
 
 // The teammate a teammate stat is checked with and without: his last name, or each
 // season's in a span that has more than one ("GREEN/BUTLER III").
 export const anchorName = anchors => [...new Set((anchors || []).map(a => ((a.name || '').split(' ').slice(1).join(' ') || a.name || '').toUpperCase()))].join('/')
-// The check's two halves ("W/ LILLARD +11.0 · W/O +16.4") and its verdict.
-export const wowyText = (w, name) => (w ? `W/ ${name} ${w.with ? swingText(w.with[0]) : '—'} · W/O ${w.without ? swingText(w.without[0]) : '—'}` : null)
+// The check's verdict.
 export const wowyVerdict = w => (!w ? null : { holds: 'HOLDS', with: 'ONLY WITH', without: 'ONLY WITHOUT', mix: 'SHRINKS', thin: 'TOO THIN' }[w.kind])
 
 // A medal for an on value in the league's top 3% at the end that helps his team, so few

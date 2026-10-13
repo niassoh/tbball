@@ -134,6 +134,13 @@ html { scroll-behavior: smooth; }
 .idx-logo:hover .idx-logo-color, .idx-logo[aria-pressed="true"] .idx-logo-color { opacity: 1; }
 .idx-logo:hover { opacity: 1 !important; }
 .idx-logo:focus-visible { outline: 1px solid #ece8e3; outline-offset: -1px; }
+/* The Footprint's rows: one line of tiles each on a wide screen; on a narrower one three
+   a line, then two with the row's name above its tiles. */
+@media (max-width: 1100px) { .fp-row-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }
+@media (max-width: 700px) {
+  .fp-row { grid-template-columns: minmax(0, 1fr) !important; row-gap: 10px; }
+  .fp-row-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
 .idx-tile { transition: background .15s; }
 /* On a phone, three portraits a row: the tiles close up and leave out the season range and
    the BPM meter (the number stays). */

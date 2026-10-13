@@ -20,76 +20,86 @@ const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#c9c3bc' }
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const RULE = '#3d3a37'
-// The rows' brackets.
-const BRACKET = '#837d76'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 const one = v => v.toFixed(1)
-const chip = { display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', padding: '3px 6px', lineHeight: 1, whiteSpace: 'nowrap', background: 'transparent' }
 // The medals' colors: gold, silver and bronze for the league's top 1, 2 and 3%.
 const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a']
+// What a tile without a swing to show says, in its details.
+const MISSING = { thin: 'TOO FEW MINUTES ON A SIDE TO JUDGE', na: "NOT IN THIS SEASON'S DATA YET" }
 
-// A rank's mark: a small solid square of its medal's color, the rank text in the same
-// color after it.
+// A medal's mark: a small solid square of its color.
 function Medal({ tier }) {
-  return <span title={`In the league's top ${Math.round(MEDAL_SHARES[tier - 1] * 100)}%`} style={{ display: 'inline-block', width: 6, height: 6, background: MEDALS[tier - 1], flex: 'none' }} />
+  return <span title={`In the league's top ${Math.round(MEDAL_SHARES[tier - 1] * 100)}%`} style={{ display: 'inline-block', width: 7, height: 7, background: MEDALS[tier - 1], flex: 'none' }} />
 }
 
 // The league's best: a flat gold tab hanging from the tile's top edge, notched like a
 // bookmark, #1 on it in the tile's dark.
 function Ribbon() {
   return (
-    <span title="The league's best" style={{ position: 'absolute', top: 0, right: 14, width: 22, height: 28, boxSizing: 'border-box', paddingTop: 6, background: MEDALS[0], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)', color: '#1f1d1c', textAlign: 'center', fontFamily: MONO, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
+    <span title="The league's best" style={{ position: 'absolute', top: 0, right: 12, zIndex: 1, width: 22, height: 28, boxSizing: 'border-box', paddingTop: 6, background: MEDALS[0], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)', color: '#1f1d1c', textAlign: 'center', fontFamily: MONO, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
       #1
     </span>
   )
 }
 
-function FootprintTile({ e, anchor }) {
+// A tile's details, on hover (a tap on a phone): its measure, off → on, its on value
+// against the league's and where that ranks, the check with and without his best-OBPM
+// teammate, and how big the swing is. Opens leftward from a tile on the right of its row.
+function Details({ e, anchor, right }) {
+  const medal = medalOf(e)
+  const line = { display: 'flex', justifyContent: 'space-between', gap: 12 }
+  return (
+    <div role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 4px)', ...(right ? { right: 0 } : { left: 0 }), zIndex: 30, width: 320, maxWidth: 'calc(100vw - 32px)', background: 'rgba(31, 29, 28, .97)', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 7, fontFamily: MONO, fontSize: 10.5, lineHeight: 1.4, letterSpacing: '.04em', color: '#d8d2cb', fontVariantNumeric: 'tabular-nums', textAlign: 'left' }}>
+      <span style={{ color: DIM, textTransform: 'uppercase', letterSpacing: '.08em' }}>{e.label}</span>
+      {e.on !== null && <span style={line}><span>{one(e.off)} OFF → {one(e.on)} ON</span><span>{swingText(e.diff)} {UNITS[e.unit]}</span></span>}
+      {e.r !== null && e.r !== undefined && (
+        <span style={line}>
+          <span>ON {swingText(e.r)} VS LG ({valueText(e, e.lg)})</span>
+          {e.rank && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: medal ? MEDALS[medal - 1] : INK }}>{medal && <Medal tier={medal} />}{rankText(e.rank)}</span>}
+        </span>
+      )}
+      {e.wowy && <span style={line}><span>{wowyText(e.wowy, anchor)}</span><span style={{ color: INK }}>{wowyVerdict(e.wowy)}</span></span>}
+      {e.pctl !== null && e.pctl !== undefined
+        ? <span style={{ color: DIM }}>Z {e.z.toFixed(1)} · BIGGER THAN {e.pctl}% OF PLAYERS&apos; SWINGS{e.borderline ? ' · BORDERLINE' : ''}</span>
+        : MISSING[e.status] && <span style={{ color: DIM }}>{MISSING[e.status]}</span>}
+    </div>
+  )
+}
+
+// A stat at a glance, in a box: its glyph and name at the top, its swing at the foot
+// over the bar of how big the swing is among players'; a medal or the #1 ribbon when it
+// has one. The rest is in its details.
+function FootprintTile({ e, anchor, right }) {
+  const [open, setOpen] = useState(false)
   const lit = e.status === 'notable'
   const color = lit ? shade(TONES[toneOf(e)], strengthOf(e)) : DIM
   const b = bar(e)
   const medal = medalOf(e)
   const first = medal && e.rank[0] === 1
-  const small = { fontSize: 9.5, letterSpacing: '.06em', fontVariantNumeric: 'tabular-nums' }
   return (
-    // A lit tile carries a bar of its color across the top edge.
-    // An unlit one is dimmed, and says nothing more.
-    <div style={{ position: 'relative', background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '13px 12px 12px', display: 'flex', flexDirection: 'column', gap: 8, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
+    // A lit tile carries a bar of its color across the top edge; an unlit one is dimmed.
+    <div tabIndex={0} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
+      onPointerUp={ev => { if (ev.pointerType !== 'mouse') setOpen(o => !o) }}
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto' }}>
       {first && <Ribbon />}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: first ? 24 : 0 }}>
-        <div style={{ flex: 'none', width: 22, height: 22, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} size={22} /></div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.02em', textTransform: 'uppercase', lineHeight: 1.2 }}>{e.effect}</span>
-          <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.06em', textTransform: 'uppercase' }}>{e.label}</span>
+      <div style={{ flex: 1, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.6, fontFamily: MONO }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: first ? 26 : 0 }}>
+          <div style={{ flex: 'none', width: 22, height: 22, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} size={22} /></div>
+          <span style={{ minWidth: 0, paddingTop: 3, fontSize: 12.5, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', lineHeight: 1.25, color: INK }}>{e.effect}</span>
+          {medal && !first && <span style={{ marginLeft: 'auto', paddingTop: 6, display: 'flex' }}><Medal tier={medal} /></span>}
         </div>
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: '4px 8px', marginTop: 'auto' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }}>
-          <span style={{ fontSize: 24, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
-          <span style={{ fontSize: 9, color: DIM, letterSpacing: '.08em' }}>{UNITS[e.unit]}</span>
+        <span style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
+          <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em' }}>{UNITS[e.unit]}</span>
         </span>
-        {e.on !== null && <span style={{ fontSize: 10, color: DIM, letterSpacing: '.04em', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' }}>{one(e.off)} <span style={{ color: '#837d76' }}>OFF</span> → {one(e.on)} <span style={{ color: '#837d76' }}>ON</span></span>}
-      </div>
-      {/* How big the swing is among players' swings in this stat: right a lift, left a cost. */}
-      <div style={{ position: 'relative', height: 8 }}>
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 4, height: 1, background: '#4a4642' }} />
-        <div style={{ position: 'absolute', left: '50%', top: 0, width: 1, height: 8, background: DIM }} />
-        <div style={{ position: 'absolute', top: 3, height: 3, left: `${b.left}%`, width: `${b.width}%`, background: lit ? color : '#837d76' }} />
-      </div>
-      {/* His on value against the league's, and where it ranks at the league's ends. */}
-      {e.r !== null && e.r !== undefined && (
-        <div style={{ ...small, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '2px 8px', color: DIM }} title="With him on, against the league that season">
-          <span>ON {swingText(e.r)} VS LG <span style={{ color: '#837d76' }}>({valueText(e, e.lg)})</span></span>
-          {e.rank && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: medal ? MEDALS[medal - 1] : '#c9c3bc' }}>{medal && <Medal tier={medal} />}{rankText(e.rank)}</span>}
+        {/* How big the swing is among players' swings in this stat: right a lift, left a cost. */}
+        <div style={{ position: 'relative', height: 8 }}>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: 4, height: 1, background: '#4a4642' }} />
+          <div style={{ position: 'absolute', left: '50%', top: 0, width: 1, height: 8, background: DIM }} />
+          <div style={{ position: 'absolute', top: 3, height: 3, left: `${b.left}%`, width: `${b.width}%`, background: lit ? color : '#837d76' }} />
         </div>
-      )}
-      {e.wowy && <div style={{ ...small, color: '#b3ada6' }}>{wowyText(e.wowy, anchor)}</div>}
-      {lit && (e.borderline || e.wowy) && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          {e.borderline && <span style={{ ...chip, border: `1px solid ${RULE}`, color: DIM }} title="Just clears the bar, or on a thin sample">BORDERLINE</span>}
-          {e.wowy && <span style={{ ...chip, border: `1px solid ${RULE}`, color: '#c9c3bc' }} title={`With and without ${anchor}`}>{wowyVerdict(e.wowy)}</span>}
-        </div>
-      )}
+      </div>
+      {open && <Details e={e} anchor={anchor} right={right} />}
     </div>
   )
 }
@@ -167,18 +177,18 @@ function Views({ p, doc }) {
   const defSwing = fp.drtg.off - fp.drtg.on
   const ortg = fp.effects.find(e => e.key === 'ortg')
   const legendKey = { display: 'inline-flex', gap: 6, alignItems: 'center' }
+  // A row: TEAM and its word on the left, its tiles side by side, every row on the widest
+  // one's columns so the tiles are the same boxes throughout.
+  const cols = Math.max(...sections.map(sec => sec.tiles.length))
   const row = sec => (
-    <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO, minWidth: 0 }}>
-      {/* A bracket over the row's tiles, as the Leaderboard's window columns have: a rule
-          with its ends turned down, the row named on it at the left. */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '16px 0 10px', minWidth: 0 }}>
-        <span aria-hidden="true" style={{ flex: 'none', width: 10, height: 7, marginTop: 6, borderTop: `1px solid ${BRACKET}`, borderLeft: `1px solid ${BRACKET}` }} />
-        <span style={{ flex: 'none', fontSize: 11.5, fontWeight: 700, letterSpacing: '.16em', color: '#d8d2cb', lineHeight: '13px' }}>TEAM {sec.title}</span>
-        {sec.note && <span style={{ minWidth: 0, fontSize: 10, color: DIM, letterSpacing: '.08em', lineHeight: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sec.note}</span>}
-        <span aria-hidden="true" style={{ flex: 1, minWidth: 12, height: 7, marginTop: 6, borderTop: `1px solid ${BRACKET}`, borderRight: `1px solid ${BRACKET}` }} />
+    <div key={sec.id} className="fp-row" style={{ display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', columnGap: 14, padding: '14px 0', borderTop: `1px solid ${RULE}`, fontFamily: MONO }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 2, minWidth: 0 }}>
+        <span style={{ fontSize: 10, letterSpacing: '.22em', color: DIM }}>TEAM</span>
+        <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '.1em', lineHeight: 1.1, color: INK }}>{sec.title}</span>
+        {sec.note && <span style={{ marginTop: 6, fontSize: 9, letterSpacing: '.06em', lineHeight: 1.5, color: DIM }}>{sec.note}</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 1, padding: 1 }}>
-        {sec.tiles.map(e => <FootprintTile key={e.key} e={e} anchor={anchor} />)}
+      <div className="fp-row-tiles" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, padding: 1, alignSelf: 'start' }}>
+        {sec.tiles.map((e, i) => <FootprintTile key={e.key} e={e} anchor={anchor} right={i >= cols / 2} />)}
       </div>
     </div>
   )
@@ -198,18 +208,15 @@ function Views({ p, doc }) {
           )}
         </div>
       </div>
-      {/* TEAM MATES across the top; TEAM OFFENSE and TEAM DEFENSE side by side under it
-          (one above the other on a narrow screen). */}
-      {sections.filter(sec => sec.id === 'mates').map(row)}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: '0 24px', alignItems: 'start' }}>
-        {sections.filter(sec => sec.id !== 'mates').map(row)}
-      </div>
+      {/* TEAM MATES, then TEAM OFFENSE, then TEAM DEFENSE, a row each. */}
+      <div style={{ borderBottom: `1px solid ${RULE}` }}>{sections.map(row)}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', paddingTop: 4, fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.good }} />LIFT</span>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.bad }} />COST</span>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.neutral }} />STYLE</span>
         <span style={legendKey}>DIM · WITHIN NOISE OR COMMON</span>
         <span style={legendKey}>BAR · SIZE AMONG PLAYERS&apos; SWINGS</span>
+        <span style={legendKey}>HOVER A TILE FOR ITS DETAILS</span>
       </div>
       <Method fp={fp} from={span.from} to={span.to} />
     </>

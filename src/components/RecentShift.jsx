@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
 import { BANDS, BETTER, GOLD, MODES, mix, rgb, shotModel } from '../lib/shot.js'
-import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, THREE_LINE } from '../lib/court.js'
+import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, KEY_HASHES, KEY_LINES, THREE_LINE } from '../lib/court.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -80,6 +80,17 @@ function Legend({ hidden, labels = WINDOWS.regular }) {
 
 const statRows = { display: 'flex', flexDirection: 'column', padding: '4px 14px 12px', gap: 2 }
 
+// The key, faint and broken like a stencil, so the bands read against the court's own
+// distances.
+function CourtKey({ opacity }) {
+  return (
+    <g fill="none" stroke={`rgba(236,232,227,${opacity})`} strokeWidth="1.5" pointerEvents="none">
+      {KEY_LINES.map(d => <path key={d} d={d} strokeDasharray="12 5" />)}
+      <path d={KEY_HASHES} />
+    </g>
+  )
+}
+
 function ShotMap({ shotShift, divided, po = false }) {
   const labels = WINDOWS[po ? 'playoffs' : 'regular']
   const [mode, setMode] = useState('value')
@@ -127,6 +138,7 @@ function ShotMap({ shotShift, divided, po = false }) {
                 style={{ cursor: 'pointer', opacity: hover && hover !== z.id ? 0.3 : 1, transition: 'opacity .15s, fill .45s' }} />
             ))}
           </g>
+          <CourtKey opacity={0.22} />
           {/* Court markings over the bands, light and thin so they read the same on every color. */}
           <g fill="none" stroke="rgba(236,232,227,.4)" strokeWidth="1.5" pointerEvents="none">
             <rect x="1" y="1" width="498" height={COURT_H - 2} />
@@ -281,6 +293,7 @@ function EmptyShotMap({ reason, divided }) {
           <g clipPath="url(#emptyCourtClip)">
             {BANDS.map((b, i) => <path key={b.id} d={b.d} fill={i % 2 ? '#292725' : '#2e2c2a'} fillRule="evenodd" clipPath={b.clip ? 'url(#emptyInsideThree)' : undefined} />)}
           </g>
+          <CourtKey opacity={0.1} />
           <g fill="none" stroke="rgba(236,232,227,.18)" strokeWidth="1.5">
             <rect x="1" y="1" width="498" height={COURT_H - 2} />
             <path d={THREE_LINE} />

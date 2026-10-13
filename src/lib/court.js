@@ -25,6 +25,21 @@ const arch = r => `${edge(r)} Z`
 // Drawn over the bands with the 3pt line, so every band border looks the same.
 export const BAND_EDGES = [edge(RIM_R), edge(SHORT_MID_R)]
 
+// The key as the paint marks it, for scale under the bands: the lane (16 ft wide, to the
+// free-throw line 19 ft from the baseline) and the free-throw semicircle (6 ft) beyond
+// it; and the lane's hash marks (the block at 7 and 8 ft from the baseline, marks at 11
+// and 14 ft), drawn a little longer than a court's so they show at this size.
+const LANE_HALF = 80
+const FT_Y = 191
+const HASH = 9
+export const KEY_LINES = [
+  `M${BASKET.x - LANE_HALF} 1 V${FT_Y} H${BASKET.x + LANE_HALF} V1`,
+  `M${BASKET.x - 60} ${FT_Y} A60 60 0 0 0 ${BASKET.x + 60} ${FT_Y}`
+]
+export const KEY_HASHES = [71, 81, 111, 141]
+  .map(y => `M${BASKET.x - LANE_HALF - HASH} ${y} H${BASKET.x - LANE_HALF} M${BASKET.x + LANE_HALF} ${y} H${BASKET.x + LANE_HALF + HASH}`)
+  .join(' ')
+
 const COURT = `M1 1 H499 V${COURT_H - 1} H1 Z`
 
 // Order matches thinking-bball/lib/zones.js ZONES, which the shot list's band index uses.

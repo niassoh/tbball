@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useLocation, Link } from 'react-router-dom'
-import { fetchProfile } from './api.js'
+import { fetchProfile, peekProfile } from './api.js'
 import { MONO } from './lib/format.js'
 import BioCard from './components/BioCard.jsx'
 import PercentileSnapshot from './components/PercentileSnapshot.jsx'
@@ -85,7 +85,13 @@ function ProfilePage({ slug, playoffs }) {
   const { homePath, setPlayoffs } = useSeasonType()
   // The player and season type the state was loaded for; it lags the URL while loading.
   const key = `${slug}|${playoffs ? 'playoffs' : 'regular'}`
-  const [state, setState] = useState({ status: 'loading', profile: null, key: null })
+  // A profile already fetched (the index fetches the one being opened) shows on the first
+  // frame; one that isn't shows the loader, then eases in (pf-in).
+  const [state, setState] = useState(() => {
+    const ready = peekProfile(slug, playoffs)
+    return ready ? { status: 'ready', profile: ready, key } : { status: 'loading', profile: null, key: null }
+  })
+  const [loaded] = useState(() => !peekProfile(slug, playoffs))
   // Footprint first, wherever it's there (else the first tab).
   const [tab, setTab] = useState('footprint')
   // The stat tables' dragged season span, kept here so it carries across tabs; tagged
@@ -146,7 +152,7 @@ function ProfilePage({ slug, playoffs }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#262422' }}>
-      <main className="page-main" style={{ maxWidth: 1440, margin: '0 auto', padding: '0 var(--page-pad) 64px' }}>
+      <main className={loaded ? 'page-main pf-in' : 'page-main'} style={{ maxWidth: 1440, margin: '0 auto', padding: '0 var(--page-pad) 64px' }}>
         <TopBar profile={p} homePath={homePath} />
         <section style={{ padding: '4px 0 26px' }}>
           <Cards profile={p} loading={loading} onPickGroup={setTab} />

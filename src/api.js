@@ -22,7 +22,21 @@ const getJson = async url => {
 // Playoffs mode reads the same documents built from the playoffs, under playoffs/.
 const pre = playoffs => (playoffs ? 'playoffs/' : '')
 
-export const fetchProfile = (slug, playoffs = false) => getJson(api(`${pre(playoffs)}profile/${encodeURIComponent(slug)}`, `${pre(playoffs)}profile/${encodeURIComponent(slug)}.json`))
+// Profiles fetched, or on their way, this session: a hover's prefetch serves the click,
+// and a profile already here can be shown on the page's first frame (peekProfile).
+const profiles = new Map()
+const arrived = new Map()
+const profileKey = (slug, playoffs) => `${playoffs ? 'po' : 'rs'}|${slug}`
+export const fetchProfile = (slug, playoffs = false) => {
+  const key = profileKey(slug, playoffs)
+  if (!profiles.has(key)) {
+    const got = getJson(api(`${pre(playoffs)}profile/${encodeURIComponent(slug)}`, `${pre(playoffs)}profile/${encodeURIComponent(slug)}.json`))
+    profiles.set(key, got.then(d => { arrived.set(key, d); return d }, err => { profiles.delete(key); throw err }))
+  }
+  return profiles.get(key)
+}
+export const prefetchProfile = (slug, playoffs = false) => { fetchProfile(slug, playoffs).catch(() => {}) }
+export const peekProfile = (slug, playoffs = false) => arrived.get(profileKey(slug, playoffs))
 export const fetchPlayers = () => getJson(api('profiles', 'profiles.json'))
 // The Leaderboard page's seasons, and one season's players with every stat.
 export const fetchLeaderboardSeasons = (playoffs = false) => getJson(api(`${pre(playoffs)}leaderboard`, `${pre(playoffs)}leaderboard/index.json`))

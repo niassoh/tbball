@@ -62,6 +62,16 @@ html { scroll-behavior: smooth; }
 .fp-bracket-label { animation: fp-run .28s steps(7, end) .12s both; }
 .fp-lone-text { animation: fp-run .5s steps(24, end) .1s both; }
 @media (prefers-reduced-motion: reduce) { .fp-face-img, .fp-bracket, .fp-bracket-label, .fp-lone-text { animation: none; } }
+/* Opening a player from the index (PlayerIndex useOpen): the tile runs a line of progress
+   while his profile arrives; then the page cross-fades quickly and his portrait flies from
+   the tile into the header. A profile that had to load eases in after the loader. */
+.idx-opening { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--accent); transform-origin: left; animation: idx-open 1.5s cubic-bezier(.1, .7, .2, 1) both; }
+@keyframes idx-open { from { transform: scaleX(0); } to { transform: scaleX(.92); } }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .26s; }
+::view-transition-group(player-portrait) { animation-duration: .45s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+.pf-in { animation: pf-in .32s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes pf-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .idx-opening, .pf-in { animation: none; } ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
 /* The player page's loader: its cells light in turn (ProfileLoading). */
 .ld-cells > span { background: #3d3a37; animation: ld-cell 1.2s steps(1, end) infinite; animation-delay: calc(var(--i) * .1s); }
 @keyframes ld-cell { 0% { background: var(--accent, #8fb0e6); } 25%, 100% { background: #3d3a37; } }

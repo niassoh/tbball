@@ -1,6 +1,6 @@
 import { startTransition, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { fetchPlayers, headshotUrl } from './api.js'
+import { Link, useNavigate } from 'react-router-dom'
+import { fetchPlayers, fetchProfile, headshotUrl, prefetchProfile } from './api.js'
 import { MONO } from './lib/format.js'
 import { TEAM_COLORS } from './lib/teams.js'
 import { asset } from './lib/static.js'
@@ -120,7 +120,8 @@ function TeamLogo({ team, on, faded, onClick }) {
 const cover = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }
 // Four rows of the widest grid (9 a row): a desktop's first screen.
 const EAGER = 36
-function Face({ player, size, square, order = EAGER, onShown }) {
+// `carry`: the portrait the view transition takes into the opened page's header.
+function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
   const [failed, setFailed] = useState(false)
   const [small, setSmall] = useState(false)
   const [large, setLarge] = useState(false)
@@ -128,7 +129,7 @@ function Face({ player, size, square, order = EAGER, onShown }) {
   const url = px => headshotUrl(player.slug, px, player.headshotVersion, player.headshot)
   const eager = order < EAGER
   return (
-    <span className="idx-face" style={{ position: 'relative', display: 'block', width: square ? '100%' : size, height: square ? 'auto' : size, aspectRatio: '1 / 1', overflow: 'hidden', background: show ? PORTRAIT_BG : '#34312e', flex: 'none' }}>
+    <span className="idx-face" style={{ position: 'relative', display: 'block', width: square ? '100%' : size, height: square ? 'auto' : size, aspectRatio: '1 / 1', overflow: 'hidden', background: show ? PORTRAIT_BG : '#34312e', flex: 'none', viewTransitionName: carry ? 'player-portrait' : undefined }}>
       {show
         ? <>
             <img src={url(100)} alt="" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" onLoad={() => { setSmall(true); onShown?.() }} onError={() => setFailed(true)}
@@ -143,11 +144,34 @@ function Face({ player, size, square, order = EAGER, onShown }) {
 // What a link hands the player's page to show while it loads (ProfileLoading).
 const previewOf = p => ({ preview: { name: p.name, headshot: p.headshot, headshotVersion: p.headshotVersion } })
 
+// Opening a player, app-like: his profile is fetched from the hover (or touch) on; the
+// click waits for it (OPEN_WAIT_MS at most), the tile running a line of progress, and the
+// page then arrives whole, his portrait carried from the tile into the header by a view
+// transition (index.css; BioCard's portrait has the same name). A click meant for a new
+// tab is left alone.
+const OPEN_WAIT_MS = 1500
+function useOpen(p, to) {
+  const navigate = useNavigate()
+  const { playoffs } = useSeasonType()
+  const [opening, setOpening] = useState(false)
+  const warm = () => prefetchProfile(p.slug, playoffs)
+  const open = e => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+    e.preventDefault()
+    if (opening) return
+    setOpening(true)
+    const wait = new Promise(resolve => setTimeout(resolve, OPEN_WAIT_MS))
+    Promise.race([fetchProfile(p.slug, playoffs).catch(() => null), wait]).then(() => navigate(to, { state: previewOf(p), viewTransition: true }))
+  }
+  return { opening, events: { onPointerEnter: warm, onTouchStart: warm, onFocus: warm, onClick: open } }
+}
+
 // A portrait in the catalogue: team and seasons over the portrait, then the name and his
 // latest BPM on the meter. The LED is lit for players in the latest season.
 function Tile({ player: p, to, order, onShown }) {
+  const { opening, events } = useOpen(p, to)
   return (
-    <Link to={to} state={previewOf(p)} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
+    <Link to={to} state={previewOf(p)} {...events} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
       <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
         <TeamChip team={p.team} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
@@ -155,7 +179,7 @@ function Tile({ player: p, to, order, onShown }) {
           <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}` }} />
         </span>
       </span>
-      <Face player={p} square order={order} onShown={onShown} />
+      <Face player={p} square order={order} onShown={onShown} carry={opening} />
       <span className="idx-tile-foot" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 10px 12px', borderTop: `1px solid ${RULE}` }}>
         <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>
         <FitName text={lastName(p.name)} />
@@ -165,19 +189,22 @@ function Tile({ player: p, to, order, onShown }) {
           <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: 600, color: low(p.recentBpm) ? '#fa962a' : INK }}>{signed(p.recentBpm)}</span>
         </span>
       </span>
+      {opening && <span aria-hidden="true" className="idx-opening" />}
     </Link>
   )
 }
 
 // A line in the parts list.
 function Row({ player: p, to }) {
+  const { opening, events } = useOpen(p, to)
   return (
-    <Link to={to} state={previewOf(p)} className="idx-row idx-later-row" style={{ display: 'grid', gridTemplateColumns: '22px minmax(0,1fr) 48px 30px 44px', gap: 10, alignItems: 'center', height: 32, padding: '0 4px', borderBottom: `1px solid ${RULE}`, color: INK }}>
-      <Face player={p} size={22} />
+    <Link to={to} state={previewOf(p)} {...events} className="idx-row idx-later-row" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '22px minmax(0,1fr) 48px 30px 44px', gap: 10, alignItems: 'center', height: 32, padding: '0 4px', borderBottom: `1px solid ${RULE}`, color: INK }}>
+      <Face player={p} size={22} carry={opening} />
       <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
       <TeamChip team={p.team} />
       <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{yy(p.seasons[1])}</span>
       <span style={{ fontFamily: MONO, fontSize: 10, textAlign: 'right', color: low(p.recentBpm) ? '#fa962a' : '#b8b2ab' }}>{signed(p.recentBpm)}</span>
+      {opening && <span aria-hidden="true" className="idx-opening" />}
     </Link>
   )
 }

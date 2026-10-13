@@ -50,7 +50,8 @@ function Headshot({ slug, version, source, name, team, layers, jersey }) {
     // The hover zoom scales this whole box (mask included), not the image inside it:
     // transparent portraits run to the top of the frame, so a zoom inside the box
     // would clip the hair flat.
-    <div className="hero-face fade-in" style={{ position: 'absolute', right: 0, bottom: 0, width: size, height: size, WebkitMaskImage: mask, WebkitMaskComposite: 'source-in', maskImage: mask, maskComposite: 'intersect' }}>
+    // Named for the view transition that carries the portrait in from the index.
+    <div className="hero-face fade-in" style={{ position: 'absolute', right: 0, bottom: 0, width: size, height: size, WebkitMaskImage: mask, WebkitMaskComposite: 'source-in', maskImage: mask, maskComposite: 'intersect', viewTransitionName: 'player-portrait' }}>
       <img src={headshotUrl(slug, 400, version, source)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
       {source === 'jersey' && <JerseyOverlay slug={slug} size={400} layers={layers} id={jersey} animate />}
     </div>

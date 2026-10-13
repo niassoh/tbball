@@ -28,16 +28,10 @@ const UNLIT = { noise: 'WITHIN NOISE', typical: 'COMMON SWING', thin: 'TOO FEW M
 // The medals' colors: gold, silver and bronze for the league's top 1, 2 and 3%.
 const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a']
 
-// A flat tab of its color hanging from the tile's top edge, notched like a bookmark, "TOP"
-// over its share of the league in the tile's dark.
+// A rank's mark: a small solid square of its medal's color, the rank text in the same
+// color after it.
 function Medal({ tier }) {
-  const share = `${Math.round(MEDAL_SHARES[tier - 1] * 100)}%`
-  return (
-    <span title={`In the league's top ${share}`} style={{ position: 'absolute', top: 0, right: 14, width: 26, height: 34, boxSizing: 'border-box', paddingTop: 5, background: MEDALS[tier - 1], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%)', color: '#1f1d1c', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontFamily: MONO, lineHeight: 1 }}>
-      <span style={{ fontSize: 6.5, letterSpacing: '.1em', fontWeight: 700 }}>TOP</span>
-      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '-.02em' }}>{share}</span>
-    </span>
-  )
+  return <span title={`In the league's top ${Math.round(MEDAL_SHARES[tier - 1] * 100)}%`} style={{ display: 'inline-block', width: 6, height: 6, background: MEDALS[tier - 1], flex: 'none' }} />
 }
 
 function FootprintTile({ e, anchor }) {
@@ -48,9 +42,8 @@ function FootprintTile({ e, anchor }) {
   const small = { fontSize: 9.5, letterSpacing: '.06em', fontVariantNumeric: 'tabular-nums' }
   return (
     // A lit tile carries a bar of its color across the top edge.
-    <div style={{ position: 'relative', background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 196, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
-      {medal && <Medal tier={medal} />}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', paddingRight: medal ? 26 : 0 }}>
+    <div style={{ background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 196, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <div style={{ flex: 'none', width: 28, height: 28, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} /></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
           <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.02em', textTransform: 'uppercase', lineHeight: 1.2 }}>{e.effect}</span>
@@ -74,7 +67,7 @@ function FootprintTile({ e, anchor }) {
       {e.r !== null && e.r !== undefined && (
         <div style={{ ...small, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '2px 8px', color: DIM }} title="With him on, against the league that season">
           <span>ON {swingText(e.r)} VS LG <span style={{ color: '#6b655f' }}>({valueText(e, e.lg)})</span></span>
-          {e.rank && <span style={{ color: medal ? MEDALS[medal - 1] : '#c9c3bc' }}>{rankText(e.rank)}</span>}
+          {e.rank && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: medal ? MEDALS[medal - 1] : '#c9c3bc' }}>{medal && <Medal tier={medal} />}{rankText(e.rank)}</span>}
         </div>
       )}
       {e.wowy && <div style={{ ...small, color: '#a8a29c' }}>{wowyText(e.wowy, anchor)}</div>}

@@ -206,9 +206,10 @@ function Views({ p, doc }) {
   const fp = viewOf(span.from, span.to)
   const pick = (from, to) => { if (viewOf(from, to)) setSpan({ from, to }) }
   const anchor = anchorName(fp.anchors)
+  const left = `${lastName(p.name).toUpperCase()}'S SHOTS LEFT OUT`
   const sections = [
+    { id: 'mates', title: 'TEAMMATES', note: (fp.anchors || []).length ? `${left} · CHECKED WITH AND WITHOUT ${anchor}` : left, tiles: fp.effects.filter(e => e.mates) },
     { id: 'off', title: 'OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
-    { id: 'mates', title: 'TEAMMATES', note: (fp.anchors || []).length ? `HIS SHOTS LEFT OUT · CHECKED WITH AND WITHOUT ${anchor}` : 'HIS SHOTS LEFT OUT', tiles: fp.effects.filter(e => e.mates) },
     { id: 'def', title: 'DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
   ].filter(sec => sec.tiles.length)
   // His team's points per 100 scored (OFF) and kept off the board (DEF), on minus off, and
@@ -238,7 +239,6 @@ function Views({ p, doc }) {
         <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline', padding: '12px 0 10px' }}>
             <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '.14em' }}>{sec.title}</span>
-            <span style={{ fontSize: 11, color: DIM, letterSpacing: '.08em', whiteSpace: 'nowrap' }}>{sec.tiles.filter(e => e.status === 'notable').length} OF {sec.tiles.length} CLEAR THE NOISE</span>
             {sec.note && <span style={{ fontSize: 10, color: '#6b655f', letterSpacing: '.08em' }}>{sec.note}</span>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 1, padding: 1 }}>

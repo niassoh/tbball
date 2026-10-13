@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { UNITS, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, wowyVerdict } from './footprint.js'
+import { UNITS, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -49,15 +49,11 @@ describe('footprint', () => {
     expect(pctlText(null)).toBe(null)
   })
 
-  test('the teammate check: his anchor and its verdict', () => {
+  test('the teammate check is named for his anchor', () => {
     const lillard = { name: 'Damian Lillard', slug: 'damian-lillard', seasons: ['2023-24', '2024-25'] }
     expect(anchorName([lillard])).toBe('LILLARD')
     // A span with a different anchor by season names each.
     expect(anchorName([{ name: 'Draymond Green' }, { name: 'Jimmy Butler III' }])).toBe('GREEN/BUTLER III')
-    const w = { with: [11, 9], without: [16.4, 11.3], kind: 'holds' }
-    expect(wowyVerdict(w)).toBe('HOLDS')
-    expect(wowyVerdict({ ...w, kind: 'with' })).toBe('ONLY WITH')
-    expect(wowyVerdict(null)).toBe(null)
   })
 
   test("a medal for the league's top 1, 2 or 3% at the end that helps his team", () => {

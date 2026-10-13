@@ -42,8 +42,6 @@ export const pctlText = p => (p === null || p === undefined ? null : `${ordinal(
 // The teammate a teammate stat is checked with and without: his last name, or each
 // season's in a span that has more than one ("GREEN/BUTLER III").
 export const anchorName = anchors => [...new Set((anchors || []).map(a => ((a.name || '').split(' ').slice(1).join(' ') || a.name || '').toUpperCase()))].join('/')
-// The check's verdict.
-export const wowyVerdict = w => (!w ? null : { holds: 'HOLDS', with: 'ONLY WITH', without: 'ONLY WITHOUT', mix: 'SHRINKS', thin: 'TOO THIN' }[w.kind])
 
 // A medal for an on value in the league's top 3% at the end that helps his team, so few
 // players hold one: 1 (gold) for the top 1%, 2 (silver) the top 2%, 3 (bronze) the top 3%,

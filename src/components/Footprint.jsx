@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { MEDAL_SHARES, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, wowyVerdict } from '../lib/footprint.js'
+import { MEDAL_SHARES, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText } from '../lib/footprint.js'
 import { spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
@@ -35,11 +35,11 @@ function Medal({ tier }) {
   return <span title={`In the league's top ${Math.round(MEDAL_SHARES[tier - 1] * 100)}%`} style={{ display: 'inline-block', width: 7, height: 7, background: MEDALS[tier - 1], flex: 'none' }} />
 }
 
-// A top-10 place in the league: a flat gold tab hanging from the tile's top edge, notched
-// like a bookmark, the place on it in the tile's dark.
+// A top-10 place in the league: a flat tab hanging from the tile's top edge, notched like
+// a bookmark, the place on it in the tile's dark; gold for #1, silver for #2 to #10.
 function Ribbon({ place }) {
   return (
-    <span title={place === 1 ? "The league's best" : `${place} in the league`} style={{ position: 'absolute', top: 0, right: 12, zIndex: 1, width: place < 10 ? 22 : 28, height: 28, boxSizing: 'border-box', paddingTop: 6, background: MEDALS[0], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)', color: '#1f1d1c', textAlign: 'center', fontFamily: MONO, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
+    <span title={place === 1 ? "The league's best" : `${place} in the league`} style={{ position: 'absolute', top: 0, right: 12, zIndex: 1, width: place < 10 ? 22 : 28, height: 28, boxSizing: 'border-box', paddingTop: 6, background: MEDALS[place === 1 ? 0 : 1], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)', color: '#1f1d1c', textAlign: 'center', fontFamily: MONO, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
       #{place}
     </span>
   )
@@ -106,7 +106,6 @@ function Details({ e, anchors, color, right }) {
           <span />
           <span style={{ ...sub, display: 'inline-flex', alignItems: 'center', gap: 5, color: medal ? MEDALS[medal - 1] : DIM }}>{medal && <Medal tier={medal} />}{pctlText(e.onPctl)}</span>
           <span style={sub}>{e.pctl !== null && e.pctl !== undefined ? `z ${e.z.toFixed(1)} · ${pctlText(e.pctl)}` : MISSING[e.status]}</span>
-          {e.borderline && <><span /><span /><span style={sub}>BORDERLINE</span></>}
         </div>
       ) : MISSING[e.status] && <span style={sub}>{MISSING[e.status]}</span>}
       {w && (
@@ -119,7 +118,6 @@ function Details({ e, anchors, color, right }) {
               <span style={head}>SWING WITH / WITHOUT</span>
               <span style={{ color: INK, fontWeight: 700, letterSpacing: '.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{anchorName(anchors)}</span>
             </span>
-            <span style={{ marginLeft: 'auto', flex: 'none', padding: '2px 6px', border: `1px solid ${w.kind === 'holds' ? INK : '#5a5550'}`, color: w.kind === 'holds' ? INK : DIM, fontSize: 9.5, letterSpacing: '.1em' }}>{wowyVerdict(w)}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'auto auto minmax(0, 1fr)', columnGap: 12, rowGap: 4, alignItems: 'center' }}>
             <Half label="WITH" v={halves[0]} max={max} color={color || '#837d76'} />
@@ -184,9 +182,9 @@ function Method({ fp, from, to }) {
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them.</li>
-            <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (WITH) and off it (WITHOUT): the swing holds either way, comes only with or only without that teammate, or shrinks in both.</li>
+            <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (WITH) and off it (WITHOUT).</li>
             <li>In a tile&apos;s details, z is the whole swing over its noise, and its percentile is the swing&apos;s size among players&apos; swings in that stat. LG and the percentile under ON place his team&apos;s on value against the league&apos;s that season.</li>
-            <li>An on value in the league&apos;s top 10 at the end that helps his team gets a badge with its place; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%.</li>
+            <li>An on value in the league&apos;s top 10 at the end that helps his team gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%.</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: DIM, fontSize: 10, letterSpacing: '.08em' }}>MINUTES ON AND OFF</span>

@@ -286,7 +286,7 @@ export default function Leaderboard() {
         <span style={{ ...label, fontSize: 10, color: INK, fontWeight: 700, border: `1px solid ${EDGE}`, padding: '5px 9px' }}>Leaderboard</span>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           {!playoffs && <RecentButton on={recent} set={setRecent} />}
-          <SeasonToggle />
+          <SeasonToggle regularLit={!recent} onRegular={() => setRecent(false)} />
           {playoffs && <DeltaToggle on={delta} set={setDelta} />}
         </span>
       </header>

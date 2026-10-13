@@ -1,7 +1,8 @@
 // Line glyphs for the Footprint's tiles (Claude Design "Footprint" module), one per stat,
-// keyed like the stats (thinking-bball lib/footprint.js). 28×28, drawn in currentColor.
-const Svg = ({ children }) => (
-  <svg viewBox="0 0 28 28" width={28} height={28} fill="none" stroke="currentColor" strokeWidth={1.25} strokeLinecap="square" strokeLinejoin="miter" style={{ display: 'block' }} aria-hidden="true">{children}</svg>
+// keyed like the stats (thinking-bball lib/footprint.js). Drawn on 28×28 (shown at `size`),
+// in currentColor.
+const Svg = ({ children, size }) => (
+  <svg viewBox="0 0 28 28" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={1.25} strokeLinecap="square" strokeLinejoin="miter" style={{ display: 'block' }} aria-hidden="true">{children}</svg>
 )
 const Hoop = () => <><line x1={4} y1={10} x2={24} y2={10} /><path d="M8 10 L10 20 L18 20 L20 10" /><line x1={9} y1={15} x2={19} y2={15} /></>
 const Arc = () => <><line x1={3} y1={25} x2={25} y2={25} /><path d="M3 17 Q14 2 25 17" /></>
@@ -32,6 +33,6 @@ const GLYPHS = {
   drebPct: <><Board /><line x1={14} y1={24} x2={14} y2={18} /><path d="M11 21 L14 18 L17 21" /></>
 }
 
-export default function FootprintGlyph({ stat }) {
-  return GLYPHS[stat] ? <Svg>{GLYPHS[stat]}</Svg> : null
+export default function FootprintGlyph({ stat, size = 28 }) {
+  return GLYPHS[stat] ? <Svg size={size}>{GLYPHS[stat]}</Svg> : null
 }

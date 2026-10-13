@@ -25,8 +25,6 @@ const BRACKET = '#837d76'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 const one = v => v.toFixed(1)
 const chip = { display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', padding: '3px 6px', lineHeight: 1, whiteSpace: 'nowrap', background: 'transparent' }
-// Why an unlit tile is unlit.
-const UNLIT = { noise: 'WITHIN NOISE', typical: 'COMMON SWING', thin: 'TOO FEW MINUTES', na: "NOT IN THIS SEASON'S DATA YET" }
 // The medals' colors: gold, silver and bronze for the league's top 1, 2 and 3%.
 const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a']
 
@@ -55,18 +53,19 @@ function FootprintTile({ e, anchor }) {
   const small = { fontSize: 9.5, letterSpacing: '.06em', fontVariantNumeric: 'tabular-nums' }
   return (
     // A lit tile carries a bar of its color across the top edge.
-    <div style={{ position: 'relative', background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 196, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
+    // An unlit one is dimmed, and says nothing more.
+    <div style={{ position: 'relative', background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '13px 12px 12px', display: 'flex', flexDirection: 'column', gap: 8, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
       {first && <Ribbon />}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', paddingRight: first ? 24 : 0 }}>
-        <div style={{ flex: 'none', width: 28, height: 28, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} /></div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.02em', textTransform: 'uppercase', lineHeight: 1.2 }}>{e.effect}</span>
-          <span style={{ fontSize: 10, color: DIM, letterSpacing: '.06em', textTransform: 'uppercase' }}>{e.label}</span>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: first ? 24 : 0 }}>
+        <div style={{ flex: 'none', width: 22, height: 22, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} size={22} /></div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.02em', textTransform: 'uppercase', lineHeight: 1.2 }}>{e.effect}</span>
+          <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.06em', textTransform: 'uppercase' }}>{e.label}</span>
         </div>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: '4px 8px', marginTop: 'auto' }}>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }}>
-          <span style={{ fontSize: 30, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
+          <span style={{ fontSize: 24, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
           <span style={{ fontSize: 9, color: DIM, letterSpacing: '.08em' }}>{UNITS[e.unit]}</span>
         </span>
         {e.on !== null && <span style={{ fontSize: 10, color: DIM, letterSpacing: '.04em', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' }}>{one(e.off)} <span style={{ color: '#837d76' }}>OFF</span> → {one(e.on)} <span style={{ color: '#837d76' }}>ON</span></span>}
@@ -85,11 +84,12 @@ function FootprintTile({ e, anchor }) {
         </div>
       )}
       {e.wowy && <div style={{ ...small, color: '#b3ada6' }}>{wowyText(e.wowy, anchor)}</div>}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', minHeight: 18 }}>
-        {lit && e.borderline && <span style={{ ...chip, border: `1px solid ${RULE}`, color: DIM }} title="Just clears the bar, or on a thin sample">BORDERLINE</span>}
-        {lit && e.wowy && <span style={{ ...chip, border: `1px solid ${RULE}`, color: '#c9c3bc' }} title={`With and without ${anchor}`}>{wowyVerdict(e.wowy)}</span>}
-        {!lit && <span style={{ fontSize: 9, letterSpacing: '.12em', color: DIM }}>{UNLIT[e.status]}</span>}
-      </div>
+      {lit && (e.borderline || e.wowy) && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          {e.borderline && <span style={{ ...chip, border: `1px solid ${RULE}`, color: DIM }} title="Just clears the bar, or on a thin sample">BORDERLINE</span>}
+          {e.wowy && <span style={{ ...chip, border: `1px solid ${RULE}`, color: '#c9c3bc' }} title={`With and without ${anchor}`}>{wowyVerdict(e.wowy)}</span>}
+        </div>
+      )}
     </div>
   )
 }
@@ -177,7 +177,7 @@ function Views({ p, doc }) {
         {sec.note && <span style={{ minWidth: 0, fontSize: 10, color: DIM, letterSpacing: '.08em', lineHeight: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sec.note}</span>}
         <span aria-hidden="true" style={{ flex: 1, minWidth: 12, height: 7, marginTop: 6, borderTop: `1px solid ${BRACKET}`, borderRight: `1px solid ${BRACKET}` }} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 1, padding: 1 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 1, padding: 1 }}>
         {sec.tiles.map(e => <FootprintTile key={e.key} e={e} anchor={anchor} />)}
       </div>
     </div>

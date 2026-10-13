@@ -179,9 +179,9 @@ function Views({ p, doc }) {
       {sections.map(sec => (
         <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline', padding: '12px 0 10px' }}>
-            {/* TEAM, then the row's word on a solid block of ink. */}
+            {/* TEAM, then the row's word on a solid block of muted grey. */}
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, letterSpacing: '.14em' }}>
-              TEAM<span style={{ background: INK, color: '#1f1d1c', padding: '2px 5px 1px 6px', lineHeight: 1.1 }}>{sec.title}</span>
+              TEAM<span style={{ background: '#a8a29c', color: '#1f1d1c', padding: '2px 5px 1px 6px', lineHeight: 1.1 }}>{sec.title}</span>
             </span>
             {sec.note && <span style={{ fontSize: 10, color: '#6b655f', letterSpacing: '.08em' }}>{sec.note}</span>}
           </div>

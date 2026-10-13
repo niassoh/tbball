@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { fetchFootprint } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { UNITS, anchorName, bar, rankText, shade, standoutsOf, strengthOf, swingText, toneOf, valueText, wowyText, wowyVerdict } from '../lib/footprint.js'
+import { UNITS, anchorName, bar, medalOf, rankText, shade, strengthOf, swingText, toneOf, valueText, wowyText, wowyVerdict } from '../lib/footprint.js'
 import { spanId, spanText } from '../lib/seasons.js'
-import { useSeasonType } from '../useSeasonType.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
 import SectionHeader from './SectionHeader.jsx'
@@ -12,14 +10,12 @@ import SectionHeader from './SectionHeader.jsx'
 // The Footprint tab: how his team's play changes with him on the floor vs. off it, from
 // his teams' five-man lineup totals in a regular season or a span of them, picked as in
 // the Lonestar tab (thinking-bball lib/footprint.js), laid out as the Claude Design
-// "Footprint" module. Each tile is a
-// stat with him on minus off: his team's, or, in the TEAMMATES row, his teammates' alone
-// (his own shots left out). Those that clear the noise and stand out against the league's
-// swings are lit (blue for a lift, orange for a cost, ink for a style stat, as strong as
-// the evidence), and their WHY says whether the swing survives the teammates whose minutes
-// move with his; a teammate stat is also checked with and without his best-OBPM
-// teammate. Each tile has its on value against the league's, and the standouts head the
-// tab.
+// "Footprint" module. Each tile is a stat with him on minus off: his teammates' alone in
+// the TEAMMATES row (his own shots left out), his team's otherwise. Those that clear the
+// noise and stand out against the league's swings are lit (blue for a lift, orange for a
+// cost, ink for a style stat, as strong as the evidence). Each tile has its on value
+// against the league's, a medal when it's a top five at the end that helps his team, and
+// a teammate stat its swing with and without his best-OBPM teammate.
 const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#c9c3bc' }
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -29,35 +25,20 @@ const one = v => v.toFixed(1)
 const chip = { display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', padding: '3px 6px', lineHeight: 1, whiteSpace: 'nowrap', background: 'transparent' }
 // Why an unlit tile is unlit.
 const UNLIT = { noise: 'WITHIN NOISE', typical: 'COMMON SWING', thin: 'TOO FEW MINUTES', na: "NOT IN THIS SEASON'S DATA YET" }
+// A top five's medal: gold, silver and bronze, then plain for fourth and fifth.
+const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a', '#8a847e', '#8a847e']
 
-// The teammate named in a check's text, linked to his profile wherever it appears.
-function Named({ text, mate }) {
-  const { playerPath } = useSeasonType()
-  if (!mate || !mate.slug || !mate.name || !text.includes(mate.name)) return text
-  return text.split(mate.name).flatMap((part, i) => (i === 0 ? [part] : [
-    <Link key={i} to={playerPath(mate.slug)} style={{ color: INK, borderBottom: `1px solid ${DIM}` }}>{mate.name}</Link>,
-    part
-  ]))
-}
-
-function Why({ e }) {
-  const [open, setOpen] = useState(false)
-  const closing = useRef(null)
-  const show = on => {
-    clearTimeout(closing.current)
-    if (on) setOpen(true)
-    else closing.current = setTimeout(() => setOpen(false), 150)
-  }
+// A square medal on a V of ribbon, its place inside, in its color; pinned to the tile's
+// top corner.
+function Medal({ place }) {
+  const c = MEDALS[place - 1]
   return (
-    <span style={{ position: 'relative', display: 'inline-flex' }} onMouseEnter={() => show(true)} onMouseLeave={() => show(false)}>
-      <button type="button" onFocus={() => show(true)} onBlur={() => show(false)} onClick={() => setOpen(o => !o)} style={{ ...chip, border: `1px solid ${INK}`, color: INK, cursor: 'help' }}>WHY</button>
-      {open && (
-        <span role="tooltip" style={{ position: 'absolute', left: 0, bottom: 'calc(100% + 6px)', zIndex: 20, width: 280, background: 'rgba(31, 29, 28, .94)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: 10, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, lineHeight: 1.45, color: INK, textAlign: 'left' }}>
-          <span>{e.label}: {one(e.off)} with him off, {one(e.on)} with him on ({swingText(e.diff)}).</span>
-          <span style={{ color: '#c9c3bc' }}><Named text={e.context.text} mate={e.context.mate} /></span>
-          <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>z {e.z.toFixed(1)} · BIGGER THAN {e.pctl}% OF PLAYERS&apos; SWINGS</span>
-        </span>
-      )}
+    <span title={`Top ${place} in the league`} style={{ position: 'absolute', top: 10, right: 12, display: 'block', lineHeight: 0 }}>
+      <svg width={20} height={27} viewBox="0 0 20 27" aria-label={`Top ${place}`} style={{ display: 'block' }}>
+        <path d="M4 0 L10 8 L16 0" fill="none" stroke={c} strokeWidth={1.5} strokeOpacity={0.7} />
+        <rect x={1} y={9} width={18} height={17} fill={`color-mix(in srgb, ${c} 16%, transparent)`} stroke={c} strokeWidth={1.25} />
+        <text x={10} y={21.5} textAnchor="middle" fontFamily={MONO} fontSize={11} fontWeight={700} fill={c}>{place}</text>
+      </svg>
     </span>
   )
 }
@@ -66,11 +47,13 @@ function FootprintTile({ e, anchor }) {
   const lit = e.status === 'notable'
   const color = lit ? shade(TONES[toneOf(e)], strengthOf(e)) : DIM
   const b = bar(e)
+  const medal = medalOf(e)
   const small = { fontSize: 9.5, letterSpacing: '.06em', fontVariantNumeric: 'tabular-nums' }
   return (
     // A lit tile carries a bar of its color across the top edge.
-    <div style={{ background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 196, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+    <div style={{ position: 'relative', background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 196, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
+      {medal && <Medal place={medal} />}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', paddingRight: medal ? 26 : 0 }}>
         <div style={{ flex: 'none', width: 28, height: 28, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} /></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
           <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.02em', textTransform: 'uppercase', lineHeight: 1.2 }}>{e.effect}</span>
@@ -92,54 +75,17 @@ function FootprintTile({ e, anchor }) {
       </div>
       {/* His on value against the league's, and where it ranks at the league's ends. */}
       {e.r !== null && e.r !== undefined && (
-        <div style={{ ...small, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '2px 8px', color: DIM }} title="With him on, against the league that season">
+        <div style={{ ...small, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '2px 8px', color: DIM }} title="With him on, against the league that season">
           <span>ON {swingText(e.r)} VS LG <span style={{ color: '#6b655f' }}>({valueText(e, e.lg)})</span></span>
-          {e.rank && <span style={{ color: '#c9c3bc' }}>{rankText(e.rank)}</span>}
+          {e.rank && <span style={{ color: medal ? MEDALS[medal - 1] : '#c9c3bc' }}>{rankText(e.rank)}</span>}
         </div>
       )}
-      {e.wowy && <div style={{ ...small, color: '#a8a29c' }} title={wowyVerdict(e.wowy, anchor)}>{wowyText(e.wowy, anchor)}</div>}
+      {e.wowy && <div style={{ ...small, color: '#a8a29c' }}>{wowyText(e.wowy, anchor)}</div>}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', minHeight: 18 }}>
-        {lit && e.context && <Why e={e} />}
         {lit && e.borderline && <span style={{ ...chip, border: `1px solid ${RULE}`, color: DIM }} title="Just clears the bar, or on a thin sample">BORDERLINE</span>}
-        {lit && e.wowy && <span style={{ ...chip, border: `1px solid ${RULE}`, color: '#c9c3bc' }}>{wowyVerdict(e.wowy, anchor)}</span>}
+        {lit && e.wowy && <span style={{ ...chip, border: `1px solid ${RULE}`, color: '#c9c3bc' }} title={`With and without ${anchor}`}>{wowyVerdict(e.wowy)}</span>}
         {!lit && <span style={{ fontSize: 9, letterSpacing: '.12em', color: DIM }}>{UNLIT[e.status]}</span>}
       </div>
-    </div>
-  )
-}
-
-// The stats that stand out most in this view: a headline, then up to two more lines. An
-// on value at the league's extremes reads as where it ranks; a swing, as how big it is
-// among players' swings.
-function Standouts({ fp }) {
-  const list = standoutsOf(fp)
-  if (!list.length) return null
-  const [top, ...rest] = list
-  const describe = ({ e, kind }) => (kind === 'level'
-    ? [`${valueText(e, e.on)} WITH HIM ON`, `LEAGUE ${valueText(e, e.lg)}`, rankText(e.rank), `${swingText(e.diff)} VS OFF`]
-    : [`${swingText(e.diff)} ${UNITS[e.unit]} ON−OFF`, `BIGGER THAN ${e.pctl}% OF PLAYERS' SWINGS`, `${one(e.off)} → ${one(e.on)}`]
-  ).filter(Boolean)
-  const toneFor = ({ e, kind }) => TONES[toneOf({ good: e.good, diff: kind === 'level' ? e.r : e.diff })]
-  const [value, ...facts] = describe(top)
-  return (
-    <div style={{ border: `1px solid ${RULE}`, background: '#262422', fontFamily: MONO, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 18px', padding: '14px 16px' }}>
-        <span style={{ fontSize: 9, letterSpacing: '.14em', color: DIM }}>STANDOUT</span>
-        <span style={{ width: 28, height: 28, color: INK }}><FootprintGlyph stat={top.e.key} /></span>
-        <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>{top.e.effect} <span style={{ fontWeight: 400, color: DIM }}>· {top.e.label}</span></span>
-          <span style={{ fontSize: 24, fontWeight: 500, lineHeight: 1, color: toneFor(top), fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-        </span>
-        <span style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 10.5, letterSpacing: '.06em', color: '#c9c3bc', fontVariantNumeric: 'tabular-nums' }}>
-          {facts.map(f => <span key={f}>{f}</span>)}
-        </span>
-      </div>
-      {rest.map(s => (
-        <div key={s.key} style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'baseline', padding: '8px 16px', borderTop: `1px solid ${RULE}`, fontSize: 10.5, letterSpacing: '.06em', color: DIM, fontVariantNumeric: 'tabular-nums' }}>
-          <span style={{ color: INK, textTransform: 'uppercase' }}>{s.e.effect} <span style={{ color: DIM }}>· {s.e.label}</span></span>
-          {describe(s).map((f, i) => <span key={f} style={i === 0 ? { color: toneFor(s) } : undefined}>{f}</span>)}
-        </div>
-      ))}
     </div>
   )
 }
@@ -159,9 +105,8 @@ function Method({ fp, from, to }) {
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons.</li>
-            <li>A lit tile is checked against the teammates whose minutes move with his: the one he plays with most and the one who takes his minutes. WHY says whether the swing holds without them.</li>
-            <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (W/) and off it (W/O): the swing holds either way, or comes only with him on or off.</li>
-            <li>VS LG is the on value against the league&apos;s that season; the rank is its place among every qualified player&apos;s at either end. The standouts are on values at the league&apos;s extremes that his own swing points toward, then his biggest swings.</li>
+            <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (W/) and off it (W/O): the swing holds either way, comes only with or only without that teammate, or shrinks in both.</li>
+            <li>VS LG is the on value against the league&apos;s that season; the rank is its place among every qualified player&apos;s at either end, and a top five at the end that helps his team gets a medal (gold, silver and bronze for the top three).</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: DIM, fontSize: 10, letterSpacing: '.08em' }}>MINUTES ON AND OFF</span>
@@ -234,7 +179,6 @@ function Views({ p, doc }) {
           )}
         </div>
       </div>
-      <Standouts fp={fp} />
       {sections.map(sec => (
         <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline', padding: '12px 0 10px' }}>

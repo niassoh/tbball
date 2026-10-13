@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { UNITS, anchorName, bar, rankText, shade, standoutsOf, strengthOf, swingText, toneOf, valueText, wowyText, wowyVerdict } from './footprint.js'
+import { UNITS, anchorName, bar, medalOf, rankText, shade, strengthOf, swingText, toneOf, valueText, wowyText, wowyVerdict } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -49,18 +49,23 @@ describe('footprint', () => {
   test('the teammate check: his anchor, its halves and its verdict', () => {
     const lillard = { name: 'Damian Lillard', slug: 'damian-lillard', seasons: ['2023-24', '2024-25'] }
     expect(anchorName([lillard])).toBe('LILLARD')
-    expect(anchorName([lillard, { name: 'Khris Middleton', slug: 'khris-middleton', seasons: ['2022-23'] }])).toBe('TOP OBPM MATE')
+    // A span with a different anchor by season names each.
+    expect(anchorName([{ name: 'Draymond Green' }, { name: 'Jimmy Butler III' }])).toBe('GREEN/BUTLER III')
     const w = { with: [11, 9], without: [16.4, 11.3], kind: 'holds' }
     expect(wowyText(w, 'LILLARD')).toBe('W/ LILLARD +11.0 · W/O +16.4')
     expect(wowyText({ ...w, without: null, kind: 'thin' }, 'LILLARD')).toBe('W/ LILLARD +11.0 · W/O —')
-    expect(wowyVerdict(w, 'LILLARD')).toBe('HOLDS WITH OR WITHOUT LILLARD')
-    expect(wowyVerdict({ ...w, kind: 'with' }, 'LILLARD')).toBe('ONLY WITH LILLARD ON')
-    expect(wowyVerdict(null, 'LILLARD')).toBe(null)
+    expect(wowyVerdict(w)).toBe('HOLDS')
+    expect(wowyVerdict({ ...w, kind: 'with' })).toBe('ONLY WITH')
+    expect(wowyVerdict(null)).toBe(null)
   })
 
-  test("the standouts come with their effects, in the view's order", () => {
-    const fp = { standouts: [{ key: 'tm3Rate', kind: 'level' }, { key: 'gone', kind: 'swing' }, { key: 'ortg', kind: 'swing' }], effects: [{ key: 'ortg' }, { key: 'tm3Rate' }] }
-    expect(standoutsOf(fp).map(s => [s.key, s.kind, s.e.key])).toEqual([['tm3Rate', 'level', 'tm3Rate'], ['ortg', 'swing', 'ortg']])
-    expect(standoutsOf({ effects: [] })).toEqual([])
+  test('a medal for a top five at the end that helps his team', () => {
+    expect(medalOf({ good: 1, rank: [1, 465, 'high'] })).toBe(1)
+    expect(medalOf({ good: -1, rank: [3, 360, 'low'] })).toBe(3)
+    // The wrong end, outside the top five, or a style stat: none.
+    expect(medalOf({ good: 1, rank: [2, 465, 'low'] })).toBe(null)
+    expect(medalOf({ good: 1, rank: [6, 465, 'high'] })).toBe(null)
+    expect(medalOf({ good: 0, rank: [1, 465, 'high'] })).toBe(null)
+    expect(medalOf({ good: 1, rank: null })).toBe(null)
   })
 })

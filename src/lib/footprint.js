@@ -42,21 +42,16 @@ export const rankText = rank => {
   return `${k === 1 ? '' : `${ordinal(k)}-`}${end === 'high' ? 'HIGHEST' : 'LOWEST'} OF ${of}`
 }
 
-// The teammate a teammate stat is checked with and without: his last name, or, when the
-// span has a different one by season, what they have in common.
-export const anchorName = anchors => {
-  const names = [...new Set((anchors || []).map(a => (a.name || '').split(' ').slice(1).join(' ') || a.name))]
-  return names.length === 1 ? names[0].toUpperCase() : 'TOP OBPM MATE'
-}
+// The teammate a teammate stat is checked with and without: his last name, or each
+// season's in a span that has more than one ("GREEN/BUTLER III").
+export const anchorName = anchors => [...new Set((anchors || []).map(a => ((a.name || '').split(' ').slice(1).join(' ') || a.name || '').toUpperCase()))].join('/')
 // The check's two halves ("W/ LILLARD +11.0 · W/O +16.4") and its verdict.
 export const wowyText = (w, name) => (w ? `W/ ${name} ${w.with ? swingText(w.with[0]) : '—'} · W/O ${w.without ? swingText(w.without[0]) : '—'}` : null)
-export const wowyVerdict = (w, name) => (!w ? null : {
-  holds: `HOLDS WITH OR WITHOUT ${name}`,
-  with: `ONLY WITH ${name} ON`,
-  without: `ONLY WITH ${name} OFF`,
-  mix: `SHRINKS WITH OR WITHOUT ${name}`,
-  thin: `TOO FEW MINUTES APART FROM ${name}`
-}[w.kind])
+export const wowyVerdict = w => (!w ? null : { holds: 'HOLDS', with: 'ONLY WITH', without: 'ONLY WITHOUT', mix: 'SHRINKS', thin: 'TOO THIN' }[w.kind])
 
-// The view's standouts with their effects, most striking first.
-export const standoutsOf = fp => (fp.standouts || []).map(s => ({ ...s, e: fp.effects.find(e => e.key === s.key) })).filter(s => s.e)
+// A top-five on value at the end of the league that helps his team: its place (1–5), for
+// a medal. A style stat helps neither way, so it has none.
+export const medalOf = e => {
+  if (!e.rank || !e.good || e.rank[0] > 5) return null
+  return (e.rank[2] === 'high') === (e.good > 0) ? e.rank[0] : null
+}

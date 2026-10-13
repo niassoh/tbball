@@ -27,6 +27,8 @@ const GLYPHS = {
   oppRimPts: <><Hoop /><line x1={14} y1={2} x2={14} y2={9} /><line x1={8} y1={5} x2={20} y2={5} /></>,
   // The lane, walled off at its top.
   oppPaintPts: <><path d="M8 25 L8 11 L20 11 L20 25" /><path d="M8 18 Q14 23 20 18" /><line x1={6} y1={6} x2={22} y2={6} /><line x1={14} y1={2} x2={14} y2={6} /></>,
+  // A floater lofted over a raised hand into the hoop.
+  oppFloaterPts: <><line x1={17} y1={10} x2={25} y2={10} /><path d="M18 10 L19 15 L23 15 L24 10" /><path d="M3 24 Q7 1 21 8" strokeDasharray="2 2" /><line x1={9} y1={11} x2={9} y2={20} /><line x1={6} y1={13} x2={12} y2={13} /></>,
   oppCorner3: <><Arc /><Corners /><path d="M10 9 L18 17 M18 9 L10 17" /></>,
   oppFtRate: <><Whistle /><line x1={6} y1={4} x2={22} y2={24} /></>,
   forcedTov: <><Ball x={14} y={14} r={7} /><path d="M14 3 A11 11 0 0 1 25 14" /><path d="M22 11 L25 14 L28 11" /></>,

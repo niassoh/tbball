@@ -34,6 +34,16 @@ html { scroll-behavior: smooth; }
 /* The pages' side padding: 32px, 14px on a phone (the profile's top bar runs to it). */
 .page-main { --page-pad: 32px; }
 @media (max-width: 560px) { .page-main { --page-pad: 14px; } }
+/* The profile top bar's search: a box, or on a phone a button that opens it full
+   screen (TopBar), so the bar is one line: the back link, the season switch and that
+   button (no sliding name). */
+.topbar-search-btn { display: none !important; }
+@media (max-width: 560px) {
+  .topbar { flex-wrap: nowrap !important; }
+  .topbar-name { display: none !important; }
+  .topbar .player-search-wrap { display: none !important; }
+  .topbar-search-btn { display: inline-flex !important; }
+}
 .profile-cards-wrap { container-type: inline-size; }
 .profile-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 12px; align-items: stretch; }
 .season-rail-cell { grid-column: 1 / -1; min-width: 0; }

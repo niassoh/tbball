@@ -52,7 +52,9 @@ function Name({ text, query, whole = false }) {
 // Compact search for the profile's top bar: players, and teams, which open the player in
 // the viewed player's depth slot there, like the team switcher (from Jokic, the
 // starting C, "lakers" opens the Lakers' starting C). "/" focuses it from anywhere.
-export default function PlayerSearch({ profile }) {
+// `sheet`: the phone's full-screen search (TopBar), focused on opening, its results
+// always shown under it, `onPick` called when one is picked.
+export default function PlayerSearch({ profile, sheet = false, onPick }) {
   const [players, setPlayers] = useState(null)
   const [teams, setTeams] = useState(null)
   const [query, setQuery] = useState('')
@@ -72,6 +74,9 @@ export default function PlayerSearch({ profile }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+  useEffect(() => {
+    if (sheet) input.current?.focus()
+  }, [sheet])
 
   // The index and team list are fetched on first focus, not on every profile load.
   const load = () => {
@@ -85,13 +90,14 @@ export default function PlayerSearch({ profile }) {
   }).filter(r => r.current || r.fit) : []
   const playerRows = players ? searchPlayers(players, query, MAX - teamRows.length).map(p => ({ key: p.slug, player: p })) : []
   const results = [...teamRows, ...playerRows]
-  const showing = open && results.length > 0
+  const showing = (open || sheet) && results.length > 0
   const go = r => {
     setQuery('')
     setOpen(false)
     input.current?.blur()
     const slug = r.player ? r.player.slug : r.fit && r.fit.player.slug
     if (slug) navigate(playerPath(slug))
+    onPick?.()
   }
   const onKeyDown = e => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, results.length - 1)) }
@@ -101,7 +107,7 @@ export default function PlayerSearch({ profile }) {
   }
 
   return (
-    <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 300, minWidth: 0 }}>
+    <div className={sheet ? undefined : 'player-search-wrap'} style={sheet ? { flex: 1, minWidth: 0 } : { position: 'relative', flex: '1 1 220px', maxWidth: 300, minWidth: 0 }}>
       <div className="search-box" style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${showing ? INK : '#a09a93'}`, background: '#2c2a28', paddingLeft: 9 }}>
         <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={{ flex: 'none' }}>
           <circle cx="5" cy="5" r="3.75" fill="none" stroke="#b8b2ab" strokeWidth="1.5" />
@@ -119,13 +125,13 @@ export default function PlayerSearch({ profile }) {
           className="player-search"
           style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#ece8e3', fontFamily: MONO, fontSize: 11, letterSpacing: '.08em', padding: '8px 8px' }}
         />
-        <span title="Press / to search" style={{ fontFamily: MONO, fontSize: 10, color: '#b8b2ab', border: '1px solid #837d76', padding: '0 5px', marginRight: 7 }}>/</span>
+        {!sheet && <span title="Press / to search" style={{ fontFamily: MONO, fontSize: 10, color: '#b8b2ab', border: '1px solid #837d76', padding: '0 5px', marginRight: 7 }}>/</span>}
       </div>
       {showing && (
         // Hangs off the field as one white-framed block: names with the first name lighter
         // and the rest bold, the typed letters underlined in blue. Teams come first, ruled
         // off from the players.
-        <div role="listbox" style={{ position: 'absolute', right: 0, top: '100%', marginTop: -1, width: '100%', zIndex: 20, background: PAPER, border: `1px solid ${INK}`, boxShadow: '0 14px 32px rgba(0,0,0,.55)', padding: '4px 0' }}>
+        <div role="listbox" style={sheet ? { marginTop: 10, background: PAPER, border: `1px solid ${INK}`, padding: '4px 0' } : { position: 'absolute', right: 0, top: '100%', marginTop: -1, width: '100%', zIndex: 20, background: PAPER, border: `1px solid ${INK}`, boxShadow: '0 14px 32px rgba(0,0,0,.55)', padding: '4px 0' }}>
           {results.map((r, i) => {
             const on = i === active
             const lastTeam = r.team && !(results[i + 1] && results[i + 1].team) && i < results.length - 1
@@ -136,7 +142,7 @@ export default function PlayerSearch({ profile }) {
                 aria-selected={on}
                 onMouseDown={e => { e.preventDefault(); go(r) }}
                 onMouseEnter={() => setActive(i)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', border: 'none', borderBottom: lastTeam ? '1px solid #544f4b' : 'none', marginBottom: lastTeam ? 4 : 0, background: on ? '#2a2826' : 'transparent', color: INK, textAlign: 'left', cursor: 'pointer' }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: sheet ? '10px 12px' : '6px 12px', border: 'none', borderBottom: lastTeam ? '1px solid #544f4b' : 'none', marginBottom: lastTeam ? 4 : 0, background: on ? '#2a2826' : 'transparent', color: INK, textAlign: 'left', cursor: 'pointer' }}
               >
                 {r.team ? (
                   <>

@@ -149,9 +149,9 @@ function Views({ p, doc }) {
   const anchor = anchorName(fp.anchors)
   const left = `${lastName(p.name).toUpperCase()}'S SHOTS LEFT OUT`
   const sections = [
-    { id: 'mates', title: 'TEAM MATES', note: (fp.anchors || []).length ? `${left} · CHECKED WITH AND WITHOUT ${anchor}` : left, tiles: fp.effects.filter(e => e.mates) },
-    { id: 'off', title: 'TEAM OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
-    { id: 'def', title: 'TEAM DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
+    { id: 'mates', title: 'MATES', note: (fp.anchors || []).length ? `${left} · CHECKED WITH AND WITHOUT ${anchor}` : left, tiles: fp.effects.filter(e => e.mates) },
+    { id: 'off', title: 'OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
+    { id: 'def', title: 'DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
   ].filter(sec => sec.tiles.length)
   // His team's points per 100 scored (OFF) and kept off the board (DEF), on minus off, and
   // its points per 100 with him on against the league's.
@@ -178,7 +178,10 @@ function Views({ p, doc }) {
       {sections.map(sec => (
         <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline', padding: '12px 0 10px' }}>
-            <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '.14em' }}>{sec.title}</span>
+            {/* TEAM, then the row's word on a solid block of ink. */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, letterSpacing: '.14em' }}>
+              TEAM<span style={{ background: INK, color: '#1f1d1c', padding: '2px 5px 1px 6px', lineHeight: 1.1 }}>{sec.title}</span>
+            </span>
             {sec.note && <span style={{ fontSize: 10, color: '#6b655f', letterSpacing: '.08em' }}>{sec.note}</span>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 1, padding: 1 }}>

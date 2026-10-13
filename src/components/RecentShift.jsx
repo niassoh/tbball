@@ -247,7 +247,7 @@ function CoreStats({ profile: p, po = false }) {
 
 // Empty states keep each module's shape (stat rows, court) at low contrast, with the
 // reason stamped in the middle, so the card reads as "no data" rather than broken.
-const EMPTY_STATS = ['BPM', 'AuPM / g', 'Load', 'Net On', 'ORTG On']
+const EMPTY_STATS = ['BPM', 'AuPM / g', 'Load', 'rTS%', 'Net On']
 const stamp = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#b3ada6', background: '#2c2a28', border: '1px solid #544f4b', padding: '4px 8px', whiteSpace: 'nowrap' }
 
 // A stat row with no value: its frame at low contrast.

@@ -61,7 +61,7 @@ export default function TeamPicker({ profile: p, anchor, onClose }) {
   const left = Math.max(8, Math.min(r.left + window.scrollX, document.documentElement.clientWidth + window.scrollX - WIDTH - 8))
 
   return createPortal(
-    <div ref={panel} role="dialog" aria-label="Switch team" className="picker-in" style={{ position: 'absolute', top, left, zIndex: 40, width: WIDTH, background: '#1f1d1c', border: '1px solid #6b655f', borderTop: '2px solid #ece8e3', boxShadow: '5px 5px 0 rgba(0,0,0,.55)' }}>
+    <div ref={panel} role="dialog" aria-label="Switch team" className="picker-in" style={{ position: 'absolute', top, left, zIndex: 40, width: WIDTH, background: '#1f1d1c', border: '1px solid #837d76', borderTop: '2px solid #ece8e3', boxShadow: '5px 5px 0 rgba(0,0,0,.55)' }}>
       {/* Hard 1px rules between the squares: the cells sit on a #3d3a37 field with a 1px gap. */}
       <div onMouseLeave={() => setHover(null)} style={{ display: 'grid', gridTemplateColumns: `repeat(${COLS}, ${CELL}px)`, gridAutoRows: CELL, gap: 1, background: '#3d3a37', minHeight: 5 * CELL + 4 }}>
         {teams && teams.map(t => {
@@ -84,7 +84,7 @@ export default function TeamPicker({ profile: p, anchor, onClose }) {
           )
         })}
       </div>
-      <div style={{ borderTop: '1px solid #6b655f', padding: '7px 9px', fontFamily: MONO, fontSize: 9.5, letterSpacing: '.06em', color: shown ? '#ece8e3' : '#8a847e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{line}</div>
+      <div style={{ borderTop: '1px solid #837d76', padding: '7px 9px', fontFamily: MONO, fontSize: 9.5, letterSpacing: '.06em', color: shown ? '#ece8e3' : '#a09a93', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{line}</div>
     </div>,
     document.body
   )

@@ -40,15 +40,15 @@ export default function TopBar({ profile: p, homePath }) {
   return (
     <div ref={bar} style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 calc(-1 * var(--page-pad))', padding: '10px var(--page-pad)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: stuck ? '#262422' : 'transparent', borderBottom: `1px solid ${stuck ? '#3d3a37' : 'transparent'}`, transition: 'background-color .2s, border-color .2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-        <Link to={homePath} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', color: '#a8a29c', whiteSpace: 'nowrap' }}>← ALL PLAYERS</Link>
+        <Link to={homePath} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', color: '#b3ada6', whiteSpace: 'nowrap' }}>← ALL PLAYERS</Link>
         <span aria-hidden={!scrolled} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, pointerEvents: scrolled ? 'auto' : 'none', ...slide }}>
-          <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', overflow: 'hidden', background: '#34312e', border: '1px solid #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: '#a8a29c' }}>
+          <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', overflow: 'hidden', background: '#34312e', border: '1px solid #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: '#b3ada6' }}>
             {p.headshot
               ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={24} height={24} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : initials(p.name)}
           </span>
           <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
-          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', color: '#8a847e' }}>{p.team}</span>
+          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', color: '#a09a93' }}>{p.team}</span>
         </span>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 8, flex: '1 1 auto', minWidth: 0 }}>

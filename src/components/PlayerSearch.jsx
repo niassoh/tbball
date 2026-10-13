@@ -102,7 +102,7 @@ export default function PlayerSearch({ profile }) {
 
   return (
     <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 300, minWidth: 0 }}>
-      <div className="search-box" style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${showing ? INK : '#8a847e'}`, background: '#2c2a28', paddingLeft: 9 }}>
+      <div className="search-box" style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${showing ? INK : '#a09a93'}`, background: '#2c2a28', paddingLeft: 9 }}>
         <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={{ flex: 'none' }}>
           <circle cx="5" cy="5" r="3.75" fill="none" stroke="#b8b2ab" strokeWidth="1.5" />
           <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="#b8b2ab" strokeWidth="1.5" strokeLinecap="square" />
@@ -119,7 +119,7 @@ export default function PlayerSearch({ profile }) {
           className="player-search"
           style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#ece8e3', fontFamily: MONO, fontSize: 11, letterSpacing: '.08em', padding: '8px 8px' }}
         />
-        <span title="Press / to search" style={{ fontFamily: MONO, fontSize: 10, color: '#b8b2ab', border: '1px solid #6b655f', padding: '0 5px', marginRight: 7 }}>/</span>
+        <span title="Press / to search" style={{ fontFamily: MONO, fontSize: 10, color: '#b8b2ab', border: '1px solid #837d76', padding: '0 5px', marginRight: 7 }}>/</span>
       </div>
       {showing && (
         // Hangs off the field as one white-framed block: names with the first name lighter
@@ -151,7 +151,7 @@ export default function PlayerSearch({ profile }) {
                     <Name text={r.player.name} query={query} />
                   </>
                 )}
-                <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: on ? INK : '#6b655f', flex: 'none' }}>{r.team ? r.team.team : r.player.team}</span>
+                <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: on ? INK : '#837d76', flex: 'none' }}>{r.team ? r.team.team : r.player.team}</span>
               </button>
             )
           })}

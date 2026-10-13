@@ -23,7 +23,7 @@ a:hover { color: #ece8e3; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
-.player-search::placeholder { color: #a8a29c; }
+.player-search::placeholder { color: #b3ada6; }
 /* The search field frames in white on hover and while typing. */
 .search-box { transition: border-color .15s; }
 .search-box:hover, .search-box:focus-within { border-color: #ece8e3 !important; }
@@ -153,7 +153,7 @@ html { scroll-behavior: smooth; }
    scrolled near (their sizes are held meanwhile), so the first screen paints sooner. */
 .idx-later { content-visibility: auto; contain-intrinsic-size: auto 290px; }
 .idx-later-row { content-visibility: auto; contain-intrinsic-size: auto 33px; }
-.idx-input::placeholder { color: #5f5a55; }
+.idx-input::placeholder { color: #7a746e; }
 .lineup-tile { transition: border-color .15s; }
 .lineup-tile > * { filter: saturate(.45) brightness(.88); transition: filter .2s; }
 a:hover > .lineup-tile { border-color: #ece8e3 !important; }
@@ -217,11 +217,11 @@ a:hover > .lineup-tile > * { filter: none; }
 .dist-mark { transition: left .28s cubic-bezier(.2,.8,.2,1); }
 
 /* Stat tables' horizontal scroll: a thin square bar in the site's greys. */
-.stat-scroll { scrollbar-width: thin; scrollbar-color: #6b655f #2c2a28; padding-bottom: 8px; }
+.stat-scroll { scrollbar-width: thin; scrollbar-color: #837d76 #2c2a28; padding-bottom: 8px; }
 .stat-scroll::-webkit-scrollbar { height: 6px; }
 .stat-scroll::-webkit-scrollbar-track { background: #2c2a28; }
-.stat-scroll::-webkit-scrollbar-thumb { background: #6b655f; border-radius: 0; }
-.stat-scroll::-webkit-scrollbar-thumb:hover { background: #a8a29c; }
+.stat-scroll::-webkit-scrollbar-thumb { background: #837d76; border-radius: 0; }
+.stat-scroll::-webkit-scrollbar-thumb:hover { background: #b3ada6; }
 
 /* Team switcher: logos muted at rest like the header's, full colour on hover. */
 .team-switch:focus-visible { outline: 2px solid #ece8e3; outline-offset: 2px; }
@@ -272,7 +272,7 @@ a:hover > .lineup-tile > * { filter: none; }
 .lb-row[aria-selected="true"] td { box-shadow: inset 0 0 0 100px rgba(236, 232, 227, .09); }
 .lb-row[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--accent), inset 0 0 0 100px rgba(236, 232, 227, .09); }
 .lb-group:hover, .lb-head-cell:hover { color: #ece8e3 !important; }
-.lb-chip:hover { border-color: #8a847e !important; color: #ece8e3 !important; }
+.lb-chip:hover { border-color: #a09a93 !important; color: #ece8e3 !important; }
 @media (max-width: 1000px), (max-height: 600px) {
   .lb { height: auto; }
   .lb-body { grid-template-columns: minmax(0, 1fr); }

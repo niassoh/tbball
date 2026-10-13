@@ -22,8 +22,8 @@ import FootprintGlyph from './FootprintGlyph.jsx'
 // both fetched on opening. Its charts move: the percentile bars wipe in, the career dots
 // pop in and Lonestar's arrow draws (index.css).
 const INK = '#ece8e3'
-const DIM = '#8a847e'
-const FAINT = '#5f5a55'
+const DIM = '#a09a93'
+const FAINT = '#7a746e'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
 const BLUE = '#8fb0e6'
@@ -292,7 +292,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
                 <span style={{ ...label, fontSize: 8, color: '#b8b2ab', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</span>
                 <span style={{ position: 'relative', height: 8, background: '#34312e' }}>
                   {pc !== null && <span className="lb-bar-in" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(pc, 2)}%`, background: col(pc), animationDelay: `${80 + i * 30}ms` }} />}
-                  <span style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: '#6b655f' }} />
+                  <span style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: '#837d76' }} />
                 </span>
                 <span style={{ fontSize: 10, textAlign: 'right', color: pc === null ? FAINT : INK }}>{pc ?? '—'}</span>
               </div>

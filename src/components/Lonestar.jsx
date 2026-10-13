@@ -17,13 +17,13 @@ import TeamInitials from './TeamInitials.jsx'
 // where he is without them in the change's colour), without, and the change (its rank
 // among every player's in the row's tooltip). Positions are on each stat's league range,
 // not its percentile, so a big change near the top still reads as big.
-const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#5f5a55' }
+const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#7a746e' }
 const BG = '#262422'
 const INK = '#ece8e3'
 const SOFT = '#d9d3cc'
 const MID = '#b8b2ab'
-const DIM = '#8a847e'
-const FAINT = '#5f5a55'
+const DIM = '#a09a93'
+const FAINT = '#7a746e'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
 const PAD = 18

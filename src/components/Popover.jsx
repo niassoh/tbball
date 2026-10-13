@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { MONO } from '../lib/format.js'
 
 const INK = '#ece8e3'
-const DIM = '#8a847e'
+const DIM = '#a09a93'
 const EDGE = '#544f4b'
 // The space a panel keeps from the screen's edges.
 const GUTTER = 16
@@ -42,7 +42,7 @@ export default function Popover({ name, trigger, children, disabled = false, ali
         {!disabled && <span aria-hidden="true" style={{ fontSize: 7, color: DIM }}>{open ? '▲' : '▼'}</span>}
       </button>
       {open && (
-        <div ref={panel} role="dialog" aria-label={name} style={{ position: 'absolute', ...side, top: 'calc(100% + 6px)', zIndex: 20, width: 'max-content', minWidth, maxWidth: `calc(100vw - ${2 * GUTTER}px)`, display: 'flex', flexDirection: 'column', gap: 10, padding: 12, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)' }}>
+        <div ref={panel} role="dialog" aria-label={name} style={{ position: 'absolute', ...side, top: 'calc(100% + 6px)', zIndex: 20, width: 'max-content', minWidth, maxWidth: `calc(100vw - ${2 * GUTTER}px)`, display: 'flex', flexDirection: 'column', gap: 10, padding: 12, background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 8px 24px rgba(0,0,0,.5)' }}>
           {children(() => setOpen(false))}
         </div>
       )}

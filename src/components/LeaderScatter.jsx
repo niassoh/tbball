@@ -18,8 +18,8 @@ import Popover from './Popover.jsx'
 // stays in view as the table is read. A click opens his card. Under it: the season,
 // both medians, how many players, and how many are in the top right.
 const INK = '#ece8e3'
-const DIM = '#8a847e'
-const FAINT = '#5f5a55'
+const DIM = '#a09a93'
+const FAINT = '#7a746e'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
 const TONE = { both: '#597ec1', neither: '#fa962a' }
@@ -65,7 +65,7 @@ function Tip({ doc, d, x, y, left, top }) {
         <span style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 34px', gap: 8, alignItems: 'center' }}>
           <span style={{ position: 'relative', height: 5, background: '#34312e' }}>
             {pc !== null && <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(pc, 2)}%`, background: col(pc) }} />}
-            <span style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: '#6b655f' }} />
+            <span style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: '#837d76' }} />
           </span>
           <span style={{ fontFamily: MONO, fontSize: 9, textAlign: 'right', color: pc === null ? FAINT : col(pc) }}>{pc === null ? '—' : ord(pc)}</span>
         </span>
@@ -74,7 +74,7 @@ function Tip({ doc, d, x, y, left, top }) {
   }
   const p = d.p
   return (
-    <div style={{ position: 'absolute', left, top, width: TIP_W, pointerEvents: 'none', zIndex: 5, background: 'rgba(31, 29, 28, .96)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: 10, display: 'flex', flexDirection: 'column', gap: 9 }}>
+    <div style={{ position: 'absolute', left, top, width: TIP_W, pointerEvents: 'none', zIndex: 5, background: 'rgba(31, 29, 28, .96)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: 10, display: 'flex', flexDirection: 'column', gap: 9 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
         <span style={{ width: 34, height: 34, flex: 'none', borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: '1px solid #544f4b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 9, color: DIM }}>
           {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={34} height={34} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(p.name)}
@@ -97,7 +97,7 @@ function Tip({ doc, d, x, y, left, top }) {
 const MINI_W = 160
 function Mini({ p, left, top, flip }) {
   return (
-    <div style={{ position: 'absolute', left, top, maxWidth: MINI_W, transform: flip ? 'translateX(-100%)' : 'none', pointerEvents: 'none', zIndex: 5, display: 'flex', alignItems: 'center', gap: 5, padding: '2px 7px 2px 2px', background: 'rgba(31, 29, 28, .94)', border: '1px solid #6b655f' }}>
+    <div style={{ position: 'absolute', left, top, maxWidth: MINI_W, transform: flip ? 'translateX(-100%)' : 'none', pointerEvents: 'none', zIndex: 5, display: 'flex', alignItems: 'center', gap: 5, padding: '2px 7px 2px 2px', background: 'rgba(31, 29, 28, .94)', border: '1px solid #837d76' }}>
       <span style={{ width: 18, height: 18, flex: 'none', borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 7, color: DIM }}>
         {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={18} height={18} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(p.name)}
       </span>

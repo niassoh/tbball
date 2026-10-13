@@ -10,8 +10,8 @@ import { arrange } from '../lib/units.js'
 import JerseyOverlay from './JerseyOverlay.jsx'
 
 const INK = '#ece8e3'
-const DIM = '#8a847e'
-const FAINT = '#6b655f'
+const DIM = '#a09a93'
+const FAINT = '#837d76'
 const BLUE = '#8fb0e6'
 const ORANGE = '#fa962a'
 const RULE = '1px solid #3d3a37'
@@ -26,7 +26,7 @@ const lastName = name => name.split(' ').slice(1).join(' ') || name
 const net = v => (v === null || v === undefined ? '—' : signed(v))
 // Colour is kept for the verdicts (Δ and a unit's net); everything else is ink and grey.
 const verdict = v => (v === null || v === undefined ? FAINT : v >= 0 ? BLUE : ORANGE)
-const neutral = v => (v === null || v === undefined ? FAINT : v >= 0 ? INK : '#a8a29c')
+const neutral = v => (v === null || v === undefined ? FAINT : v >= 0 ? INK : '#b3ada6')
 const mins = m => m.toLocaleString()
 
 // Links to teammates carry the season (his page opens on it, when he played it).
@@ -74,7 +74,7 @@ function SizePicker({ size, setSize, open, setOpen }) {
         {size}-MAN<span style={{ fontSize: 6.5, color: BLUE }}>▼</span>
       </button>
       {open && (
-        <span style={{ position: 'absolute', left: -4, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', minWidth: 64 }}>
+        <span style={{ position: 'absolute', left: -4, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 8px 24px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', minWidth: 64 }}>
           {[2, 3, 4, 5].map(n => (
             <button key={n} onClick={() => { setSize(n); setOpen(false) }} style={{ textAlign: 'left', background: n === size ? '#3d3a37' : 'transparent', border: 'none', borderBottom: '1px solid #3d3a37', color: n === size ? INK : '#b8b2ab', fontFamily: MONO, fontSize: 10, fontWeight: n === size ? 600 : 400, padding: '6px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {n}-MAN
@@ -99,7 +99,7 @@ function MinutesPicker({ value, def, range, onChange, open, setOpen }) {
         {value}+ MIN<span style={{ fontSize: 6.5, color: BLUE }}>▼</span>
       </button>
       {open && (
-        <span style={{ position: 'absolute', left: -4, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #6b655f', boxShadow: '0 8px 24px rgba(0,0,0,.5)', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <span style={{ position: 'absolute', left: -4, top: 'calc(100% + 4px)', zIndex: 10, background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 8px 24px rgba(0,0,0,.5)', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>MINIMUM MINUTES</span>
           <span style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 38px)', gap: 2 }}>
             {choices.map(n => (
@@ -212,7 +212,7 @@ function RankTip({ unit, size, floor, isDefault, self, team, season, onHover }) 
   const tick = { fontFamily: MONO, fontSize: 9, fill: FAINT }
   const section = { borderTop: RULE, paddingTop: 7 }
   return (
-    <div ref={box} role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', right: -6, ...(below ? { top: 'calc(100% + 8px)' } : { bottom: 'calc(100% + 8px)' }), zIndex: 20, width: TIP_W, background: 'rgba(31, 29, 28, .92)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', border: '1px solid #6b655f', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: TIP_PAD, display: 'flex', flexDirection: 'column', gap: 7, fontFamily: 'Montserrat,sans-serif', fontWeight: 400, lineHeight: 'normal', textAlign: 'left', color: INK, cursor: 'default' }}>
+    <div ref={box} role="tooltip" onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)} style={{ position: 'absolute', right: -6, ...(below ? { top: 'calc(100% + 8px)' } : { bottom: 'calc(100% + 8px)' }), zIndex: 20, width: TIP_W, background: 'rgba(31, 29, 28, .92)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: TIP_PAD, display: 'flex', flexDirection: 'column', gap: 7, fontFamily: 'Montserrat,sans-serif', fontWeight: 400, lineHeight: 'normal', textAlign: 'left', color: INK, cursor: 'default' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {r ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

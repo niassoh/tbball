@@ -7,7 +7,7 @@ import { MONO } from '../lib/format.js'
 // career one season at a time. Arrow keys step while it has focus. When the ticks don't all
 // fit (narrow screens) they scroll, keeping the picked one in view.
 const RULE = '#544f4b'
-const DIM = '#8a847e'
+const DIM = '#a09a93'
 const INK = '#ece8e3'
 const cell = { display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', fontFamily: MONO, color: DIM, cursor: 'pointer', padding: 0 }
 

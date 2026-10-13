@@ -18,10 +18,10 @@ import SectionHeader from './SectionHeader.jsx'
 // his team, and a teammate stat its swing with and without his best-OBPM teammate.
 const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#c9c3bc' }
 const INK = '#ece8e3'
-const DIM = '#8a847e'
+const DIM = '#a09a93'
 const RULE = '#3d3a37'
 // The rows' brackets.
-const BRACKET = '#6b655f'
+const BRACKET = '#837d76'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 const one = v => v.toFixed(1)
 const chip = { display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', padding: '3px 6px', lineHeight: 1, whiteSpace: 'nowrap', background: 'transparent' }
@@ -69,22 +69,22 @@ function FootprintTile({ e, anchor }) {
           <span style={{ fontSize: 30, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
           <span style={{ fontSize: 9, color: DIM, letterSpacing: '.08em' }}>{UNITS[e.unit]}</span>
         </span>
-        {e.on !== null && <span style={{ fontSize: 10, color: DIM, letterSpacing: '.04em', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' }}>{one(e.off)} <span style={{ color: '#6b655f' }}>OFF</span> → {one(e.on)} <span style={{ color: '#6b655f' }}>ON</span></span>}
+        {e.on !== null && <span style={{ fontSize: 10, color: DIM, letterSpacing: '.04em', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' }}>{one(e.off)} <span style={{ color: '#837d76' }}>OFF</span> → {one(e.on)} <span style={{ color: '#837d76' }}>ON</span></span>}
       </div>
       {/* How big the swing is among players' swings in this stat: right a lift, left a cost. */}
       <div style={{ position: 'relative', height: 8 }}>
         <div style={{ position: 'absolute', left: 0, right: 0, top: 4, height: 1, background: '#4a4642' }} />
         <div style={{ position: 'absolute', left: '50%', top: 0, width: 1, height: 8, background: DIM }} />
-        <div style={{ position: 'absolute', top: 3, height: 3, left: `${b.left}%`, width: `${b.width}%`, background: lit ? color : '#6b655f' }} />
+        <div style={{ position: 'absolute', top: 3, height: 3, left: `${b.left}%`, width: `${b.width}%`, background: lit ? color : '#837d76' }} />
       </div>
       {/* His on value against the league's, and where it ranks at the league's ends. */}
       {e.r !== null && e.r !== undefined && (
         <div style={{ ...small, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '2px 8px', color: DIM }} title="With him on, against the league that season">
-          <span>ON {swingText(e.r)} VS LG <span style={{ color: '#6b655f' }}>({valueText(e, e.lg)})</span></span>
+          <span>ON {swingText(e.r)} VS LG <span style={{ color: '#837d76' }}>({valueText(e, e.lg)})</span></span>
           {e.rank && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: medal ? MEDALS[medal - 1] : '#c9c3bc' }}>{medal && <Medal tier={medal} />}{rankText(e.rank)}</span>}
         </div>
       )}
-      {e.wowy && <div style={{ ...small, color: '#a8a29c' }}>{wowyText(e.wowy, anchor)}</div>}
+      {e.wowy && <div style={{ ...small, color: '#b3ada6' }}>{wowyText(e.wowy, anchor)}</div>}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', minHeight: 18 }}>
         {lit && e.borderline && <span style={{ ...chip, border: `1px solid ${RULE}`, color: DIM }} title="Just clears the bar, or on a thin sample">BORDERLINE</span>}
         {lit && e.wowy && <span style={{ ...chip, border: `1px solid ${RULE}`, color: '#c9c3bc' }} title={`With and without ${anchor}`}>{wowyVerdict(e.wowy)}</span>}
@@ -187,7 +187,7 @@ function Views({ p, doc }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' }}>
           <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} />
-          <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#a8a29c', textWrap: 'pretty' }}>Team footprint with {lastName(p.name)} ON vs OFF the court</p>
+          <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>Team footprint with {lastName(p.name)} ON vs OFF the court</p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title="His team's points per 100 possessions scored (OFF) and kept off the board (DEF), with him on minus off">
           <span><span style={{ color: DIM }}>OFF</span> <span style={{ color: offSwing >= 0 ? TONES.good : TONES.bad }}>{swingText(offSwing)}</span></span>

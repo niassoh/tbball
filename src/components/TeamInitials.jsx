@@ -8,7 +8,7 @@ export default function TeamInitials({ name, team, fontSize }) {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: color ? `color-mix(in srgb, ${color} 45%, #2c2a28)` : '#34312e' }}>
       {color && <img src={asset(`logos/${team}.png`)} alt="" style={{ position: 'absolute', inset: '14%', width: '72%', height: '72%', objectFit: 'contain', opacity: 0.16 }} />}
-      <span style={{ position: 'relative', fontSize, fontWeight: 800, color: color ? '#ece8e3' : '#6b655f', textShadow: color ? '0 1px 3px rgba(0,0,0,.45)' : 'none' }}>{initials(name)}</span>
+      <span style={{ position: 'relative', fontSize, fontWeight: 800, color: color ? '#ece8e3' : '#837d76', textShadow: color ? '0 1px 3px rgba(0,0,0,.45)' : 'none' }}>{initials(name)}</span>
     </div>
   )
 }

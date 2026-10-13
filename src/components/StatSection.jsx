@@ -71,15 +71,15 @@ function DistStrip({ values, stat, value, pctl, lg }) {
   const at = h.pos(value) * 100
   return (
     <div style={{ width: DIST_W, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ position: 'relative', height: 62, paddingTop: 14, display: 'flex', alignItems: 'flex-end', gap: 1, borderBottom: '1px solid #6b655f' }}>
+      <div style={{ position: 'relative', height: 62, paddingTop: 14, display: 'flex', alignItems: 'flex-end', gap: 1, borderBottom: '1px solid #837d76' }}>
         {h.bars.map((b, i) => (
           <div key={i} className="dist-bar" style={{ flex: 1, height: `${b.count ? Math.max(5, b.height * 100) : 0}%`, background: i === mine ? '#ece8e3' : i < mine ? col(b.pct) : '#3d3a37' }} />
         ))}
-        {lg !== null && lg !== undefined && <div className="dist-mark" style={{ position: 'absolute', left: `${h.pos(lg) * 100}%`, top: 14, bottom: 0, borderLeft: '1px dashed #a8a29c' }} />}
+        {lg !== null && lg !== undefined && <div className="dist-mark" style={{ position: 'absolute', left: `${h.pos(lg) * 100}%`, top: 14, bottom: 0, borderLeft: '1px dashed #b3ada6' }} />}
         <div className="dist-mark" style={{ position: 'absolute', left: `${at}%`, top: 11, bottom: -4, width: 1, marginLeft: -0.5, background: '#ece8e3' }} />
         {pctl !== null && pctl !== undefined && <span className="dist-mark" style={{ position: 'absolute', left: `${at}%`, top: 0, transform: at < 12 ? 'none' : at > 88 ? 'translateX(-100%)' : 'translateX(-50%)', fontSize: 9, fontWeight: 700, letterSpacing: '.06em', color: '#ece8e3', lineHeight: 1 }}>{ord(pctl).toUpperCase()}</span>}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8.5, letterSpacing: '.04em', color: '#8a847e' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8.5, letterSpacing: '.04em', color: '#a09a93' }}>
         <span>{fmt(stat, h.worst)}</span>
         <span>{values.length} QUALIFIED</span>
         <span>{fmt(stat, h.best)}</span>
@@ -94,11 +94,11 @@ function PointTip({ p, season, stat, dist }) {
   const flip = p.x > 200
   const anchor = Math.min(110, Math.max(20, p.has ? p.y : p.ly ?? 75))
   return (
-    <div style={{ position: 'absolute', left: pct(p.x, 330), top: pct(anchor, 150), transform: flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)', zIndex: 2, pointerEvents: 'none', background: '#1f1d1c', border: '1px solid #6b655f', borderTop: '2px solid #fa962a', padding: '6px 9px 7px', fontFamily: MONO, whiteSpace: 'nowrap', display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <span style={{ fontSize: 9, letterSpacing: '.06em', color: '#8a847e' }}>{season.label} · {teams}</span>
-      <span style={{ fontSize: 15, fontWeight: 700, color: p.has ? '#ece8e3' : '#6b655f', lineHeight: 1.1 }}>{p.has ? p.value : '—'}</span>
+    <div style={{ position: 'absolute', left: pct(p.x, 330), top: pct(anchor, 150), transform: flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)', zIndex: 2, pointerEvents: 'none', background: '#1f1d1c', border: '1px solid #837d76', borderTop: '2px solid #fa962a', padding: '6px 9px 7px', fontFamily: MONO, whiteSpace: 'nowrap', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <span style={{ fontSize: 9, letterSpacing: '.06em', color: '#a09a93' }}>{season.label} · {teams}</span>
+      <span style={{ fontSize: 15, fontWeight: 700, color: p.has ? '#ece8e3' : '#837d76', lineHeight: 1.1 }}>{p.has ? p.value : '—'}</span>
       {p.has && <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.04em', color: p.color }}>{p.detail}</span>}
-      {p.showLg && <span style={{ fontSize: 9, letterSpacing: '.04em', color: '#8a847e' }}>LG {p.lgValue}</span>}
+      {p.showLg && <span style={{ fontSize: 9, letterSpacing: '.04em', color: '#a09a93' }}>LG {p.lgValue}</span>}
       {p.has && dist && dist.length > 1 && <DistStrip values={dist} stat={stat} value={stat.vals[p.i].n} pctl={stat.vals[p.i].p} lg={stat.lg[p.i]} />}
     </div>
   )
@@ -128,26 +128,26 @@ function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span }) {
     <div style={{ flex: '0 1 330px', minWidth: 260, display: 'flex', flexDirection: 'column', gap: 10, background: '#2c2a28', border: '1px solid #544f4b', padding: 16, alignSelf: 'stretch' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: '.03em' }}>{label}<WindowTag stat={stat} /></span>
-        <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#8a847e' }}>
+        <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#a09a93' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 2, background: '#ece8e3' }} />{lineLabel}</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 0, borderTop: '2px dashed #8a847e' }} />{m.legend}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 0, borderTop: '2px dashed #a09a93' }} />{m.legend}</span>
         </span>
       </div>
       <div onMouseLeave={() => setHover(null)} style={{ position: 'relative', flex: 1, minHeight: 200, display: 'flex' }}>
         <svg viewBox="0 0 330 150" preserveAspectRatio="none" style={{ width: '100%', height: '100%', minHeight: 200, display: 'block', overflow: 'visible', position: 'absolute', inset: 0 }}>
           {band && <rect x={band.x0} y="0" width={band.x1 - band.x0} height="134" fill="rgba(0,0,0,.34)" />}
           {m.bands.map((b, i) => <path key={i} d={b.d} fill={b.fill} />)}
-          <line x1="0" x2="330" y1="134" y2="134" stroke="#6b655f" vectorEffect="non-scaling-stroke" />
-          {m.leagueLines.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke="#8a847e" strokeWidth="1.5" strokeDasharray="4 3" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
+          <line x1="0" x2="330" y1="134" y2="134" stroke="#837d76" vectorEffect="non-scaling-stroke" />
+          {m.leagueLines.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke="#a09a93" strokeWidth="1.5" strokeDasharray="4 3" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
           {m.playerLines.map((pts, i) => <polyline key={i} points={pts} fill="none" stroke="#ece8e3" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
           {bandY !== null && <line x1={band.x0} x2={band.x1} y1={bandY} y2={bandY} stroke="#d6d1cb" strokeWidth="1.5" strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />}
         </svg>
         {/* Where the y scale starts: the value at the axis line, tagged on its left end. */}
-        <span style={{ position: 'absolute', left: 0, top: pct(134, 150), transform: 'translateY(-50%)', paddingRight: 4, background: '#2c2a28', fontFamily: MONO, fontSize: 8.5, lineHeight: 1, letterSpacing: '.04em', color: '#8a847e', pointerEvents: 'none' }}>{m.axisLabel}</span>
+        <span style={{ position: 'absolute', left: 0, top: pct(134, 150), transform: 'translateY(-50%)', paddingRight: 4, background: '#2c2a28', fontFamily: MONO, fontSize: 8.5, lineHeight: 1, letterSpacing: '.04em', color: '#a09a93', pointerEvents: 'none' }}>{m.axisLabel}</span>
         {bandY !== null && <span style={{ position: 'absolute', left: pct(band.x1, 330), top: pct(bandY, 150), transform: band.x1 > 290 ? 'translate(calc(-100% - 4px), -130%)' : 'translate(4px, -50%)', fontFamily: MONO, fontSize: 10, fontWeight: 700, color: '#ece8e3', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{fmt(stat, span.mean)}</span>}
         {m.pts.map(p => (
           <span key={`dots-${p.i}`}>
-            {p.ly !== null && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.ly, 150), width: 5, height: 5, marginLeft: -2.5, marginTop: -2.5, borderRadius: '50%', background: '#8a847e', pointerEvents: 'none' }} />}
+            {p.ly !== null && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.ly, 150), width: 5, height: 5, marginLeft: -2.5, marginTop: -2.5, borderRadius: '50%', background: '#a09a93', pointerEvents: 'none' }} />}
             {p.has && (() => {
               const r = hover === p.i ? Math.max(p.r, 3.5) + 1.5 : p.r
               return <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.y, 150), width: r * 2, height: r * 2, marginLeft: -r, marginTop: -r, borderRadius: '50%', background: p.color, border: p.current || hover === p.i ? '1.5px solid #ece8e3' : 'none', boxSizing: 'border-box', pointerEvents: 'none' }} />
@@ -157,8 +157,8 @@ function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span }) {
         {m.pts.map(p => (
           <span key={`labels-${p.i}`}>
             {p.showValue && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.valueY, 150), transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: 10.5, fontWeight: 600, color: '#ece8e3', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{p.value}</span>}
-            {p.showValue && p.showLg && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.lgY, 150), transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: 8.5, color: '#8a847e', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{p.lgValue}</span>}
-            <span style={{ position: 'absolute', left: pct(p.x, 330), top: '96%', transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: seasons.length > 9 ? 8.5 : 9.5, color: p.current || hover === p.i ? '#ece8e3' : '#8a847e', whiteSpace: 'nowrap', display: p.hideSeason && hover !== p.i ? 'none' : 'block' }}>{p.season}</span>
+            {p.showValue && p.showLg && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.lgY, 150), transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: 8.5, color: '#a09a93', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{p.lgValue}</span>}
+            <span style={{ position: 'absolute', left: pct(p.x, 330), top: '96%', transform: 'translate(-50%,-50%)', fontFamily: MONO, fontSize: seasons.length > 9 ? 8.5 : 9.5, color: p.current || hover === p.i ? '#ece8e3' : '#a09a93', whiteSpace: 'nowrap', display: p.hideSeason && hover !== p.i ? 'none' : 'block' }}>{p.season}</span>
           </span>
         ))}
         {hover !== null && <span style={{ position: 'absolute', left: pct(m.pts[hover].x, 330), top: 0, bottom: '9%', width: 1, background: 'rgba(236,232,227,.22)', pointerEvents: 'none' }} />}
@@ -252,12 +252,12 @@ export default function StatSection({ profile: p, tab, sel, setSel, pctView = fa
   return (
     <section id={`sec-${tab.id}`} style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
       <SectionHeader title={tab.name}>
-        <span style={{ fontFamily: MONO, fontSize: 10, color: '#8a847e', letterSpacing: '.06em' }}>
+        <span style={{ fontFamily: MONO, fontSize: 10, color: '#a09a93', letterSpacing: '.06em' }}>
           {spanOn
             ? <>
                 <span style={{ color: '#ece8e3' }}>{spanLen}-{p.seasonType === 'playoffs' ? 'RUN' : 'SEASON'} AVERAGE</span>{' · '}
                 {/* Chart the stat as a rolling average over the span's length. */}
-                <button type="button" onClick={() => setSel({ ...sel, rolling: !sel.rolling })} aria-pressed={rollingOn} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', lineHeight: 'inherit', padding: '0 5px', border: '1px solid #6b655f', background: rollingOn ? '#ece8e3' : 'transparent', color: rollingOn ? '#1f1d1c' : '#ece8e3', cursor: 'pointer' }}>ROLLING {spanLen}-YR</button>
+                <button type="button" onClick={() => setSel({ ...sel, rolling: !sel.rolling })} aria-pressed={rollingOn} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.06em', lineHeight: 'inherit', padding: '0 5px', border: '1px solid #837d76', background: rollingOn ? '#ece8e3' : 'transparent', color: rollingOn ? '#1f1d1c' : '#ece8e3', cursor: 'pointer' }}>ROLLING {spanLen}-YR</button>
                 {' · CLEAR OR ESC'}
               </>
             : <>
@@ -279,15 +279,15 @@ export default function StatSection({ profile: p, tab, sel, setSel, pctView = fa
           )}
           <div ref={scroller} className="stat-scroll" onScroll={measure} style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: minW, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: grid, fontFamily: MONO, fontSize: 10, letterSpacing: '.04em', borderBottom: '1px solid #6b655f', alignItems: 'end' }}>
-                <span style={{ padding: '5px 10px', color: '#8a847e', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', ...pinSeason(PAGE_BG) }}>SEASON</span>
-                <span style={{ padding: '5px 10px', color: '#8a847e', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', ...pinTeam(PAGE_BG) }}>TM</span>
-                <span style={{ color: '#8a847e', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', ...pinGames(PAGE_BG), fontSize: 10 }}>G</span>
-                <span style={{ color: '#8a847e', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', ...pinMinutes(PAGE_BG), fontSize: 10 }}>MIN</span>
+              <div style={{ display: 'grid', gridTemplateColumns: grid, fontFamily: MONO, fontSize: 10, letterSpacing: '.04em', borderBottom: '1px solid #837d76', alignItems: 'end' }}>
+                <span style={{ padding: '5px 10px', color: '#a09a93', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', ...pinSeason(PAGE_BG) }}>SEASON</span>
+                <span style={{ padding: '5px 10px', color: '#a09a93', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', ...pinTeam(PAGE_BG) }}>TM</span>
+                <span style={{ color: '#a09a93', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', ...pinGames(PAGE_BG), fontSize: 10 }}>G</span>
+                <span style={{ color: '#a09a93', alignSelf: 'stretch', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', ...pinMinutes(PAGE_BG), fontSize: 10 }}>MIN</span>
                 {shown.map(l => {
                   const on = l === charted
                   return (
-                    <span key={l} onClick={() => setCharted(l)} style={{ padding: '8px 10px', textAlign: 'right', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, color: on ? '#ece8e3' : '#8a847e', fontWeight: on ? 600 : 400, boxShadow: on ? 'inset 0 -3px 0 #fa962a' : 'none', background: on ? '#2f2c2a' : 'transparent' }}>
+                    <span key={l} onClick={() => setCharted(l)} style={{ padding: '8px 10px', textAlign: 'right', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, color: on ? '#ece8e3' : '#a09a93', fontWeight: on ? 600 : 400, boxShadow: on ? 'inset 0 -3px 0 #fa962a' : 'none', background: on ? '#2f2c2a' : 'transparent' }}>
                       <span style={{ textTransform: 'uppercase', lineHeight: 1.3 }}>{l}<WindowTag stat={p.stats[l]} /></span>
                     </span>
                   )
@@ -301,17 +301,17 @@ export default function StatSection({ profile: p, tab, sel, setSel, pctView = fa
                       edge on the pinned season cell (so it stays while the stats scroll), and its
                       right edge at the table's far end. */}
                   {picked && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: i === to ? 0 : -1, zIndex: 2, pointerEvents: 'none', borderRight: SPAN_FRAME, borderTop: i === from ? SPAN_FRAME : 'none', borderBottom: i === to ? SPAN_FRAME : 'none' }} />}
-                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#a8a29c', ...pinSeason(PAGE_BG), boxShadow: picked ? 'inset 2px 0 0 #ece8e3' : i === k ? 'inset 3px 0 0 var(--accent)' : 'none' }}>
+                  <span style={{ padding: '5px 10px', fontWeight: 600, color: picked || i === k ? '#ece8e3' : '#b3ada6', ...pinSeason(PAGE_BG), boxShadow: picked ? 'inset 2px 0 0 #ece8e3' : i === k ? 'inset 3px 0 0 var(--accent)' : 'none' }}>
                     {s.label}
                   </span>
-                  <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam(PAGE_BG) }}>{s.tm}</span>
-                  <span style={{ color: '#8a847e', ...pinGames(PAGE_BG) }}>{count(s.gp)}</span>
-                  <span style={{ color: '#8a847e', ...pinMinutes(PAGE_BG) }}>{count(s.mp)}</span>
+                  <span style={{ padding: '5px 10px', color: '#b3ada6', ...pinTeam(PAGE_BG) }}>{s.tm}</span>
+                  <span style={{ color: '#a09a93', ...pinGames(PAGE_BG) }}>{count(s.gp)}</span>
+                  <span style={{ color: '#a09a93', ...pinMinutes(PAGE_BG) }}>{count(s.mp)}</span>
                   {shown.map(l => {
                     const st = p.stats[l]
                     const v = st.vals[i]
                     return (
-                      <span key={l} style={{ padding: '5px 10px', textAlign: 'right', background: v ? heat(v.p, i === k ? 0.12 : 0) : 'transparent', fontWeight: l === charted ? 600 : 400, color: v ? '#ece8e3' : '#6b655f' }}>
+                      <span key={l} style={{ padding: '5px 10px', textAlign: 'right', background: v ? heat(v.p, i === k ? 0.12 : 0) : 'transparent', fontWeight: l === charted ? 600 : 400, color: v ? '#ece8e3' : '#837d76' }}>
                         {v ? (pctView ? (v.p === null ? '—' : ord(v.p)) : fmt(st, v.n)) : '—'}
                       </span>
                     )
@@ -321,11 +321,11 @@ export default function StatSection({ profile: p, tab, sel, setSel, pctView = fa
               })}
               {/* Always in the table (a faint placeholder until a span is picked), so picking one
                   never changes the table's height, or the chart's beside it. */}
-              <div onClick={spanOn ? () => setSel(null) : undefined} title={spanOn ? `Average of ${p.seasons[from].label} to ${p.seasons[to].label} · click to clear` : undefined} style={{ display: 'grid', gridTemplateColumns: grid, borderTop: `1px solid ${spanOn ? '#6b655f' : '#3d3a37'}`, borderBottom: `1px solid ${spanOn ? '#6b655f' : '#3d3a37'}`, background: spanOn ? '#141312' : 'transparent', fontFamily: MONO, fontSize: 13, fontWeight: 600, cursor: spanOn ? 'pointer' : 'default', transition: 'background-color .15s, border-color .15s' }}>
+              <div onClick={spanOn ? () => setSel(null) : undefined} title={spanOn ? `Average of ${p.seasons[from].label} to ${p.seasons[to].label} · click to clear` : undefined} style={{ display: 'grid', gridTemplateColumns: grid, borderTop: `1px solid ${spanOn ? '#837d76' : '#3d3a37'}`, borderBottom: `1px solid ${spanOn ? '#837d76' : '#3d3a37'}`, background: spanOn ? '#141312' : 'transparent', fontFamily: MONO, fontSize: 13, fontWeight: 600, cursor: spanOn ? 'pointer' : 'default', transition: 'background-color .15s, border-color .15s' }}>
                 <span style={{ padding: '5px 10px', color: spanOn ? '#ece8e3' : '#544f4b', ...pinSeason(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? spanLabel(p.seasons, from, to) : 'SPAN'}</span>
-                <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? spanTeams(p.seasons, from, to) : ''}</span>
-                <span style={{ color: '#8a847e', fontWeight: 400, ...pinGames(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? count(total(p.seasons, 'gp', from, to)) : ''}</span>
-                <span style={{ color: '#8a847e', fontWeight: 400, ...pinMinutes(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? count(total(p.seasons, 'mp', from, to)) : ''}</span>
+                <span style={{ padding: '5px 10px', color: '#b3ada6', ...pinTeam(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? spanTeams(p.seasons, from, to) : ''}</span>
+                <span style={{ color: '#a09a93', fontWeight: 400, ...pinGames(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? count(total(p.seasons, 'gp', from, to)) : ''}</span>
+                <span style={{ color: '#a09a93', fontWeight: 400, ...pinMinutes(spanOn ? '#141312' : PAGE_BG) }}>{spanOn ? count(total(p.seasons, 'mp', from, to)) : ''}</span>
                 {shown.map(l => {
                   if (!spanOn) return <span key={l} style={{ padding: '5px 10px', textAlign: 'right', color: '#3d3a37' }}>—</span>
                   const st = p.stats[l]
@@ -335,9 +335,9 @@ export default function StatSection({ profile: p, tab, sel, setSel, pctView = fa
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: grid, borderBottom: '2px solid #ece8e3', background: '#34312e', fontFamily: MONO, fontSize: 13, fontWeight: 600 }}>
                 <span style={{ padding: '5px 10px', ...pinSeason('#34312e') }}>{p.seasonType === 'playoffs' ? 'PLAYOFFS' : 'CAREER'}</span>
-                <span style={{ padding: '5px 10px', color: '#a8a29c', ...pinTeam('#34312e') }}>{p.careerTm}</span>
-                <span style={{ color: '#a8a29c', fontWeight: 400, ...pinGames('#34312e') }}>{count(total(p.seasons, 'gp', 0, k))}</span>
-                <span style={{ color: '#a8a29c', fontWeight: 400, ...pinMinutes('#34312e') }}>{count(total(p.seasons, 'mp', 0, k))}</span>
+                <span style={{ padding: '5px 10px', color: '#b3ada6', ...pinTeam('#34312e') }}>{p.careerTm}</span>
+                <span style={{ color: '#b3ada6', fontWeight: 400, ...pinGames('#34312e') }}>{count(total(p.seasons, 'gp', 0, k))}</span>
+                <span style={{ color: '#b3ada6', fontWeight: 400, ...pinMinutes('#34312e') }}>{count(total(p.seasons, 'mp', 0, k))}</span>
                 {shown.map(l => <span key={l} style={{ padding: '5px 10px', textAlign: 'right' }}>{pctView ? pctlText(spanPctl(p, l, 0, k)) : fmt(p.stats[l], spanMean(p, l, 0, k))}</span>)}
               </div>
             </div>

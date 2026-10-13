@@ -19,8 +19,8 @@ import { initials } from '../lib/teams.js'
 // scroll shows on a rail of its own under the stats alone (the browser's bar is hidden,
 // index.css).
 const INK = '#ece8e3'
-const DIM = '#8a847e'
-const FAINT = '#5f5a55'
+const DIM = '#a09a93'
+const FAINT = '#7a746e'
 const RULE = '#3d3a37'
 const label = { fontFamily: MONO, fontSize: 8.5, letterSpacing: '.08em', color: DIM, textTransform: 'uppercase' }
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'

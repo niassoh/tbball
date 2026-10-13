@@ -23,8 +23,8 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // table's cells read in; the row under the pointer,
 // as it moves or as the table scrolls beneath it, lights its player's dot.
 const INK = '#ece8e3'
-const DIM = '#8a847e'
-const FAINT = '#5f5a55'
+const DIM = '#a09a93'
+const FAINT = '#7a746e'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
@@ -252,7 +252,7 @@ export default function Leaderboard() {
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}` }}>
-        <Link to="/" style={{ ...label, fontSize: 10, color: '#a8a29c' }}>← All players</Link>
+        <Link to="/" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>← All players</Link>
         <span style={{ ...label, fontSize: 10, color: INK, fontWeight: 700, border: `1px solid ${EDGE}`, padding: '5px 9px' }}>Leaderboard</span>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <SeasonToggle />

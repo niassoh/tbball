@@ -152,21 +152,21 @@ export default function BioCard({ profile: p, season, loading = false }) {
         <div key={`specs-${p.slug}-${v.team}`} className="swap-in" style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>
           {color && (
             // The real logo, muted at rest (index.css); full colour on hover.
-            <div style={{ paddingRight: 10, borderRight: '1px solid #6b655f', margin: '-5px 10px -5px 0' }}>
+            <div style={{ paddingRight: 10, borderRight: '1px solid #837d76', margin: '-5px 10px -5px 0' }}>
               <button type="button" className="team-switch" aria-label={`${v.teamName || v.team}: switch team`} {...switcher} style={{ display: 'block', padding: 0, margin: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
                 <img className="hero-logo" src={asset(`logos/color/${v.team}.png`)} alt={v.team} style={{ display: 'block', width: 44, height: 44, objectFit: 'contain' }} />
               </button>
             </div>
           )}
           {specs.map(([label, value], i) => (
-            <span key={label} title={label} style={{ display: 'flex', alignItems: 'center', padding: '0 10px', paddingLeft: i === 0 && !color ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #6b655f' : 'none', fontSize: 13, fontWeight: 600, color: '#ece8e3' }}>
+            <span key={label} title={label} style={{ display: 'flex', alignItems: 'center', padding: '0 10px', paddingLeft: i === 0 && !color ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #837d76' : 'none', fontSize: 13, fontWeight: 600, color: '#ece8e3' }}>
               {value}
-              {label === 'AGE' && <span style={{ marginLeft: 3, fontSize: 9, fontWeight: 400, letterSpacing: '.06em', color: '#8a847e' }}>YRS</span>}
+              {label === 'AGE' && <span style={{ marginLeft: 3, fontSize: 9, fontWeight: 400, letterSpacing: '.06em', color: '#a09a93' }}>YRS</span>}
             </span>
           ))}
         </div>
         {draft && (
-          <span key={`draft-${p.slug}`} className="hero-more" style={{ position: 'absolute', left: color ? 89 : 14, top: 43, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a8a29c', whiteSpace: 'nowrap' }}>{draft}</span>
+          <span key={`draft-${p.slug}`} className="hero-more" style={{ position: 'absolute', left: color ? 89 : 14, top: 43, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#b3ada6', whiteSpace: 'nowrap' }}>{draft}</span>
         )}
         {accent && <div className="hero-bar" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: accent }} />}
         <h1 key={`name-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
@@ -182,9 +182,9 @@ export default function BioCard({ profile: p, season, loading = false }) {
           <div ref={ruleRef} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #544f4b', paddingBottom: 5 }}>
             <button type="button" className="team-switch" {...switcher} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0, background: 'none', border: 'none', color: '#ece8e3', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>
               {(v.teamName || v.team).toUpperCase()}
-              <span aria-hidden="true" style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e' }}>▾</span>
+              <span aria-hidden="true" style={{ fontFamily: MONO, fontSize: 9, color: '#a09a93' }}>▾</span>
             </button>
-            <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#8a847e', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a09a93', display: 'flex', gap: 8, alignItems: 'center' }}>
               {v.rotation
                 ? <span title="First row: the team's most-used five. Then everyone with an hour on the floor, by minutes">ROTATION · BY MIN</span>
                 : <>
@@ -198,12 +198,12 @@ export default function BioCard({ profile: p, season, loading = false }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,minmax(0,1fr))', gap: '0 3px' }}>
             {v.chart.rows.map(row => (
               <div key={row.pos} style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', minWidth: 0 }}>
-                <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a8a29c', textAlign: 'center', paddingBottom: 3 }}>{row.pos}</span>
+                <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#b3ada6', textAlign: 'center', paddingBottom: 3 }}>{row.pos}</span>
                 {row.players.map((pl, i) => {
                   const me = pl.slug === p.slug
                   const Name = pl.hasProfile && !me ? Link : 'span'
                   return (
-                    <Name key={pl.espnId || `${pl.name}-${i}`} {...(Name === Link && { to: playerPath(pl.slug), state: v.rotation ? { season: p.seasons[season].season } : undefined, className: 'depth-link' })} title={v.rotation ? `${pl.name} · ${pl.minutes} MIN` : pl.name} style={{ fontSize: 10.5, lineHeight: 1.3, fontWeight: me ? 700 : 500, color: me ? '#ece8e3' : pl.status ? '#8a847e' : i > 2 ? '#8a847e' : '#d6d1cb', textAlign: 'center', padding: '3px 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: me ? '2px solid var(--accent)' : '2px solid transparent', background: me ? 'var(--accent-soft)' : 'transparent' }}>
+                    <Name key={pl.espnId || `${pl.name}-${i}`} {...(Name === Link && { to: playerPath(pl.slug), state: v.rotation ? { season: p.seasons[season].season } : undefined, className: 'depth-link' })} title={v.rotation ? `${pl.name} · ${pl.minutes} MIN` : pl.name} style={{ fontSize: 10.5, lineHeight: 1.3, fontWeight: me ? 700 : 500, color: me ? '#ece8e3' : pl.status ? '#a09a93' : i > 2 ? '#a09a93' : '#d6d1cb', textAlign: 'center', padding: '3px 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: me ? '2px solid var(--accent)' : '2px solid transparent', background: me ? 'var(--accent-soft)' : 'transparent' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         {lastName(pl.name)}
                         {pl.status && <span title={pl.status} style={{ width: 5, height: 5, background: INJURY[pl.status], flex: 'none' }} />}

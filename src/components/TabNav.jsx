@@ -11,7 +11,7 @@ export default function TabNav({ tabs, active, onPick }) {
         const view = t.kind === 'view'
         const first = view && (tabs[i - 1] || {}).kind !== 'view'
         return (
-          <button key={t.id} className="tab-btn" onClick={() => onPick(t.id)} style={{ marginLeft: first ? 'auto' : 0, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: on ? '#2f2c2a' : 'transparent', border: 'none', borderLeft: `1px solid ${first ? '#6b655f' : '#3d3a37'}`, boxShadow: on ? 'inset 0 -3px 0 var(--accent)' : 'none', fontFamily: MONO, fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: on ? '#ece8e3' : '#a8a29c', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap', cursor: 'pointer' }}>
+          <button key={t.id} className="tab-btn" onClick={() => onPick(t.id)} style={{ marginLeft: first ? 'auto' : 0, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: on ? '#2f2c2a' : 'transparent', border: 'none', borderLeft: `1px solid ${first ? '#837d76' : '#3d3a37'}`, boxShadow: on ? 'inset 0 -3px 0 var(--accent)' : 'none', fontFamily: MONO, fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: on ? '#ece8e3' : '#b3ada6', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap', cursor: 'pointer' }}>
             {view && <span aria-hidden="true" style={{ width: 7, height: 7, flex: 'none', border: '1px solid currentColor', background: on ? 'currentColor' : 'transparent' }} />}
             {t.name}
           </button>

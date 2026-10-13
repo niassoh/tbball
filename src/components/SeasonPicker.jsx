@@ -9,8 +9,8 @@ import Popover from './Popover.jsx'
 const INK = '#ece8e3'
 const SOFT = '#d9d3cc'
 const MID = '#b8b2ab'
-const DIM = '#8a847e'
-const FAINT = '#5f5a55'
+const DIM = '#a09a93'
+const FAINT = '#7a746e'
 const EDGE = '#544f4b'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 

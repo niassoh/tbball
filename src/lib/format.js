@@ -8,8 +8,8 @@ export const COLORS = {
   green: '#97c197',
   yellow: '#e6c27a',
   text: '#ece8e3',
-  muted: '#a8a29c',
-  dim: '#8a847e',
+  muted: '#b3ada6',
+  dim: '#a09a93',
   rule: '#3d3a37',
   border: '#544f4b'
 }

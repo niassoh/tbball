@@ -9,7 +9,7 @@ const legendSwatch = (color, label, round = false, hollow = false) => (
     {label}
   </span>
 )
-const subhead = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#8a847e' }
+const subhead = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a09a93' }
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
@@ -55,7 +55,7 @@ function ModeToggle({ mode, onPick, hidden }) {
       {Object.entries(MODES).map(([id, m]) => {
         const on = id === mode
         return (
-          <button key={id} onClick={() => onPick(id)} style={{ background: on ? '#ece8e3' : 'transparent', color: on ? '#1f1d1c' : '#a8a29c', border: 'none', padding: '3px 7px', fontFamily: MONO, fontSize: 9, letterSpacing: '.06em', fontWeight: on ? 700 : 400, cursor: 'pointer' }}>{m.label}</button>
+          <button key={id} onClick={() => onPick(id)} style={{ background: on ? '#ece8e3' : 'transparent', color: on ? '#1f1d1c' : '#b3ada6', border: 'none', padding: '3px 7px', fontFamily: MONO, fontSize: 9, letterSpacing: '.06em', fontWeight: on ? 700 : 400, cursor: 'pointer' }}>{m.label}</button>
         )
       })}
     </div>
@@ -70,8 +70,8 @@ const WINDOWS = { regular: { base: 'SEASON', window: 'RECENT', short: 'SEASON' }
 function Legend({ hidden, labels = WINDOWS.regular }) {
   return (
     <div aria-hidden={hidden || undefined} style={{ padding: '10px 0 0', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px', visibility: hidden ? 'hidden' : 'visible' }}>
-      <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#8a847e', whiteSpace: 'nowrap' }}>
-        {legendSwatch('#8a847e', labels.base, true, true)}
+      <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#a09a93', whiteSpace: 'nowrap' }}>
+        {legendSwatch('#a09a93', labels.base, true, true)}
         {legendSwatch('#ece8e3', labels.window, true)}
       </span>
     </div>
@@ -151,14 +151,14 @@ function ShotMap({ shotShift, divided, po = false }) {
               <rect x="10" y="10" width="244" height="70" fill="rgba(31,29,28,.88)" />
               <text x="19" y="25" dominantBaseline="central" fontSize="15" fontWeight="700" letterSpacing="1" fill="#ece8e3">{band.name}</text>
               {[[labels.window, band.recentShots, !season], [labels.short, band.seasonShots, season]].map(([name, c, on], i) => (
-                <text key={name} x="19" y={48 + i * 18} dominantBaseline="central" fontSize="11.5" fontWeight={on ? 700 : 400} fill={on ? '#ece8e3' : '#8a847e'}>
+                <text key={name} x="19" y={48 + i * 18} dominantBaseline="central" fontSize="11.5" fontWeight={on ? 700 : 400} fill={on ? '#ece8e3' : '#a09a93'}>
                   <tspan>{name}</tspan>
                   <tspan x="84">{c.fgm}/{c.fga}</tspan>
                   <tspan x="148">{c.pct === null ? '—' : `${c.pct.toFixed(1)}%`}</tspan>
                   <tspan x="204">{c.share === null ? '—' : `${Math.round(c.share)}%`}</tspan>
                 </text>
               ))}
-              <text x="245" y="25" dominantBaseline="central" textAnchor="end" fontSize="9" fill="#8a847e">FG · FG% · OF FGA</text>
+              <text x="245" y="25" dominantBaseline="central" textAnchor="end" fontSize="9" fill="#a09a93">FG · FG% · OF FGA</text>
             </g>
           )}
         </svg>
@@ -205,23 +205,23 @@ function CoreStats({ profile: p, po = false }) {
           const p1 = 50 + t * 50
           const neutral = Math.abs(move) < 0.1
           const good = move > 0
-          const color = neutral ? '#8a847e' : good ? rgb(top) : '#d6d1cb'
-          const end = neutral ? '#8a847e' : sliderColor(t, top)
+          const color = neutral ? '#a09a93' : good ? rgb(top) : '#d6d1cb'
+          const end = neutral ? '#a09a93' : sliderColor(t, top)
           // The bar shades from the middle tone at the season dot to the move's colour at the recent dot.
-          const bar = neutral ? '#6b655f' : `linear-gradient(to ${good ? 'right' : 'left'}, ${rgb(SLIDER_MID)}, ${end})`
+          const bar = neutral ? '#837d76' : `linear-gradient(to ${good ? 'right' : 'left'}, ${rgb(SLIDER_MID)}, ${end})`
           const lo = Math.min(p0, p1)
           const hi = Math.max(p0, p1)
           return (
             <div key={r.stat} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr) 54px', gap: 10, alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #3d3a37' }}>
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.stat}</span>
-                <span style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e', whiteSpace: 'nowrap' }}>{fmt(stat, r.season.value)} → {fmt(stat, r.recent.value)}</span>
+                <span style={{ fontFamily: MONO, fontSize: 9, color: '#a09a93', whiteSpace: 'nowrap' }}>{fmt(stat, r.season.value)} → {fmt(stat, r.recent.value)}</span>
               </div>
               <div style={{ position: 'relative', height: 18 }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: '#3d3a37' }} />
-                <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#6b655f' }} />
+                <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#837d76' }} />
                 <div style={{ position: 'absolute', left: lo + '%', width: hi - lo + '%', top: 7, height: 4, background: bar, transition: SLIDE }} />
-                <div style={{ position: 'absolute', left: p0 + '%', top: 4, width: 8, height: 8, marginLeft: -5, border: '1.5px solid #8a847e', borderRadius: '50%', background: '#2c2a28', boxSizing: 'border-box' }} />
+                <div style={{ position: 'absolute', left: p0 + '%', top: 4, width: 8, height: 8, marginLeft: -5, border: '1.5px solid #a09a93', borderRadius: '50%', background: '#2c2a28', boxSizing: 'border-box' }} />
                 <div style={{ position: 'absolute', left: p1 + '%', top: 4, width: 10, height: 10, marginLeft: -5, borderRadius: '50%', background: '#ece8e3', border: '2px solid ' + end, boxSizing: 'border-box', transition: SLIDE }} />
               </div>
               <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color, whiteSpace: 'nowrap' }}>{(change >= 0 ? '+' : '−') + Math.abs(change).toFixed(stat.dec || 1)}</span>
@@ -236,21 +236,21 @@ function CoreStats({ profile: p, po = false }) {
 // Empty states keep each module's shape (stat rows, court) at low contrast, with the
 // reason stamped in the middle, so the card reads as "no data" rather than broken.
 const EMPTY_STATS = ['BPM', 'AuPM / g', 'Load', 'Net On', 'ORTG On']
-const stamp = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#a8a29c', background: '#2c2a28', border: '1px solid #544f4b', padding: '4px 8px', whiteSpace: 'nowrap' }
+const stamp = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#b3ada6', background: '#2c2a28', border: '1px solid #544f4b', padding: '4px 8px', whiteSpace: 'nowrap' }
 
 // A stat row with no value: its frame at low contrast.
 function EmptyRow({ stat }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr) 54px', gap: 10, alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #3d3a37', opacity: 0.45 }}>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: '#8a847e' }}>{stat}</span>
-        <span style={{ fontFamily: MONO, fontSize: 9, color: '#6b655f' }}>— → —</span>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: '#a09a93' }}>{stat}</span>
+        <span style={{ fontFamily: MONO, fontSize: 9, color: '#837d76' }}>— → —</span>
       </div>
       <div style={{ position: 'relative', height: 18 }}>
         <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: '#3d3a37' }} />
-        <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#6b655f' }} />
+        <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#837d76' }} />
       </div>
-      <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color: '#6b655f' }}>—</span>
+      <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color: '#837d76' }}>—</span>
     </div>
   )
 }

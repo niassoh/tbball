@@ -115,7 +115,7 @@ function ProfilePage({ slug, playoffs }) {
   if (state.status !== 'ready') {
     const msg = { loading: 'Loading…', missing: 'Player not found.', error: `Couldn't load profile (${state.error}).` }[state.status]
     return (
-      <main className="page-main" style={{ maxWidth: 1440, margin: '0 auto', padding: '40px var(--page-pad)', fontFamily: MONO, color: '#a8a29c' }}>
+      <main className="page-main" style={{ maxWidth: 1440, margin: '0 auto', padding: '40px var(--page-pad)', fontFamily: MONO, color: '#b3ada6' }}>
         {msg} <Link to={homePath}>All players</Link>
       </main>
     )
@@ -159,13 +159,13 @@ function ProfilePage({ slug, playoffs }) {
           </>
         ) : (
           // No playoff runs on file (playoffs mode only: every regular profile has seasons).
-          <div className={loading ? 'fold-loading' : 'fold-ready'} style={{ borderTop: '2px solid var(--trim)', padding: '28px 0', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', fontFamily: MONO, fontSize: 11, letterSpacing: '.08em', color: '#a8a29c' }}>
+          <div className={loading ? 'fold-loading' : 'fold-ready'} style={{ borderTop: '2px solid var(--trim)', padding: '28px 0', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', fontFamily: MONO, fontSize: 11, letterSpacing: '.08em', color: '#b3ada6' }}>
             <span>NO PLAYOFF GAMES SINCE 2013–14</span>
             <button type="button" onClick={() => setPlayoffs(false)} style={{ background: 'transparent', border: '1px solid #544f4b', color: '#ece8e3', fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', padding: '4px 8px', cursor: 'pointer' }}>REGULAR SEASON →</button>
           </div>
         )}
 
-        <footer style={{ marginTop: 56, paddingTop: 16, borderTop: '1px solid #544f4b', display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', fontFamily: MONO, fontSize: 11, color: '#8a847e' }}>
+        <footer style={{ marginTop: 56, paddingTop: 16, borderTop: '1px solid #544f4b', display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', fontFamily: MONO, fontSize: 11, color: '#a09a93' }}>
           {po
             ? <span>Playoff percentiles vs. that postseason's players with 50+ MP · Career, span and league averages = minutes-weighted (shooting % = attempts-weighted) · Tracking shooting and rim defence cover that playoff run · Playoffs vs season = the latest playoffs vs. that regular season</span>
             : <span>Percentiles vs. players with 800+ MP · Career, span and league averages = minutes-weighted (shooting % = attempts-weighted) · 3YR / 2YR = tracking stats over that season and the ones before it · Recent shift = games in the last 30 days of the season vs. the rest</span>}

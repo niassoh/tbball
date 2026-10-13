@@ -24,7 +24,7 @@ export default function PercentileSnapshot({ profile: p, season: kp, onPickGroup
       <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <div style={{ padding: '12px 0 8px', borderBottom: '1px solid #544f4b', margin: '0 14px', fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase' }}>{title}</div>
         <div style={{ flex: 1, minHeight: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#a8a29c', border: '1px solid #544f4b', padding: '4px 8px' }}>NO PLAYOFF GAMES</span>
+          <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#b3ada6', border: '1px solid #544f4b', padding: '4px 8px' }}>NO PLAYOFF GAMES</span>
         </div>
       </div>
     )
@@ -43,9 +43,9 @@ export default function PercentileSnapshot({ profile: p, season: kp, onPickGroup
           const rows = labels.map(l => [l, p.stats[l]]).filter(([, s]) => s)
           return (
             <div key={name} style={{ display: 'flex', flexDirection: 'column' }}>
-              <a href="#tabs" onClick={() => onPickGroup(tab)} data-align-rule={tab === 'defense' ? 'defense' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0 4px', marginBottom: 3, color: '#ece8e3', borderBottom: '1px solid #6b655f' }}>
+              <a href="#tabs" onClick={() => onPickGroup(tab)} data-align-rule={tab === 'defense' ? 'defense' : undefined} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0 4px', marginBottom: 3, color: '#ece8e3', borderBottom: '1px solid #837d76' }}>
                 <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>{name}</span>
-                <span style={{ fontFamily: MONO, fontSize: 9, color: '#8a847e' }}>BY SEASON ↓</span>
+                <span style={{ fontFamily: MONO, fontSize: 9, color: '#a09a93' }}>BY SEASON ↓</span>
               </a>
               {rows.map(([label, s]) => {
                 const v = s.vals[kp]
@@ -55,16 +55,16 @@ export default function PercentileSnapshot({ profile: p, season: kp, onPickGroup
                 return (
                   <div key={label} style={{ ...rowGrid, alignItems: 'center', height: 23, borderBottom: '1px dashed #3d3a37' }}>
                     <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minWidth: 0 }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: has ? '#d6d1cb' : '#6b655f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: has ? '#d6d1cb' : '#837d76', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
                       <WindowTag stat={s} />
                     </span>
                     <div style={{ position: 'relative', height: 18, display: 'flex', alignItems: 'center' }}>
                       <div style={{ position: 'absolute', left: 0, right: 0, height: 14, background: '#34312e' }} />
                       <div style={{ position: 'absolute', left: 0, height: 14, width: w, background: c, transition: slide(['width', 'background-color']) }} />
-                      <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#6b655f' }} />
+                      <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#837d76' }} />
                       <div style={{ position: 'absolute', left: w, transform: 'translateX(-50%)', width: 19, height: 19, borderRadius: '50%', background: c, transition: slide(['left', 'background-color', 'opacity']), border: '1.5px solid #ece8e3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8.5, fontWeight: 600, color: '#1f1d1c', opacity: has ? 1 : 0 }}>{has ? v.p : ''}</div>
                     </div>
-                    <span style={{ fontFamily: MONO, fontSize: 11, textAlign: 'right', color: has ? '#ece8e3' : '#6b655f' }}>{has ? fmt(s, v.n) : '—'}</span>
+                    <span style={{ fontFamily: MONO, fontSize: 11, textAlign: 'right', color: has ? '#ece8e3' : '#837d76' }}>{has ? fmt(s, v.n) : '—'}</span>
                   </div>
                 )
               })}

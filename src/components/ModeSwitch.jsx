@@ -2,7 +2,7 @@ import { MONO } from '../lib/format.js'
 
 // RAW | PCTL: what a table's numbers read in (the Lonestar tab's, the Leaderboard's).
 const INK = '#ece8e3'
-const DIM = '#8a847e'
+const DIM = '#a09a93'
 const EDGE = '#544f4b'
 
 export default function ModeSwitch({ mode, setMode, height = 28 }) {

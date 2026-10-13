@@ -28,6 +28,8 @@ const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%,
 // would narrow the column, and the sticky player column, set this far from the left,
 // would then cover the next).
 const RANK_W = 32
+// A phone's width (index.css turns the stats' snapping off there too).
+const NARROW = '(max-width: 600px)'
 // A style stat's shade: how far from the middle, in grey.
 const plain = p => `rgba(201,195,188,${((Math.abs(p - 50) / 50) * 0.32).toFixed(2)})`
 // "N. Jokić": the first name as an initial, so the column stays narrow.
@@ -148,8 +150,17 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
     for (const th of lead) watch.observe(th)
     return () => watch.disconnect()
   }, [doc.many])
-  const lock = k => (lefts.length ? stick(lefts[k]) : {})
-  const held = lefts.length ? lefts[lefts.length - 1] : 0
+  // On a phone the details would fill the screen, leaving no room for the stats: only the
+  // rank and player stay put there, and the names are shorter.
+  const [narrow, setNarrow] = useState(() => window.matchMedia(NARROW).matches)
+  useEffect(() => {
+    const m = window.matchMedia(NARROW)
+    const on = () => setNarrow(m.matches)
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [])
+  const lock = k => (lefts.length && !narrow ? stick(lefts[k]) : {})
+  const held = !lefts.length ? 0 : narrow ? lefts[0] : lefts[lefts.length - 1]
   // The held block's right edge, a rule the stats slide under.
   const edge = i => (i === BIO.length - 1 ? { borderRight: `1px solid ${RULE}` } : {})
   const yr = doc.many ? 1 : 0
@@ -159,8 +170,8 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
         <tr ref={headRow}>
           <th style={{ ...head, ...stick(0), zIndex: 3, width: '1%', paddingLeft: 0, paddingRight: 0, textAlign: 'center' }}><span style={{ ...label, display: 'inline-block', width: RANK_W }}>#</span></th>
           <th style={{ ...head, ...stick(RANK_W), zIndex: 3, width: '1%', textAlign: 'left', borderRight: `1px solid ${RULE}` }}><span style={label}>Player</span></th>
-          {doc.many && <th data-lock style={{ ...head, ...lock(0), zIndex: 3, width: '1%', textAlign: 'left' }}><span style={label}>Yr</span></th>}
-          {BIO.map(([name], i) => <th key={name} data-lock style={{ ...head, ...lock(yr + i), zIndex: 3, width: '1%', textAlign: i < 2 ? 'left' : 'right', ...edge(i) }}><span style={label}>{name}</span></th>)}
+          {doc.many && <th data-lock style={{ ...head, ...lock(0), zIndex: narrow ? 2 : 3, width: '1%', textAlign: 'left' }}><span style={label}>Yr</span></th>}
+          {BIO.map(([name], i) => <th key={name} data-lock style={{ ...head, ...lock(yr + i), zIndex: narrow ? 2 : 3, width: '1%', textAlign: i < 2 ? 'left' : 'right', ...edge(i) }}><span style={label}>{name}</span></th>)}
           {group.stats.map((l, i) => {
             const on = sortLabel === l
             const years = doc.stats[l].years
@@ -187,7 +198,7 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
               <td style={{ ...cell, ...stick(RANK_W), padding: '0 8px 0 4px', borderRight: `1px solid ${RULE}` }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <Face p={p} />
-                  <span title={p.name} style={{ maxWidth: 130, fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{short(p.name)}</span>
+                  <span title={p.name} style={{ maxWidth: narrow ? 84 : 130, fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{short(p.name)}</span>
                 </span>
               </td>
               {doc.many && <td style={{ ...cell, ...lock(0), color: '#b8b2ab', fontSize: 10.5 }}>’{p.season.slice(5)}</td>}

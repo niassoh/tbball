@@ -249,6 +249,11 @@ a:hover > .lineup-tile > * { filter: none; }
 .lb { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
 .lb-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(400px, 1fr); gap: 12px; padding-bottom: 16px; }
 .lb-table-wrap { min-height: 0; overflow: auto; border: 1px solid #3d3a37; scroll-snap-type: x mandatory; }
+/* On a phone the stats scroll freely under a finger (LeaderTable NARROW). */
+@media (max-width: 600px) {
+  .lb-table-wrap { scroll-snap-type: none; }
+  .lb { padding-left: 14px !important; padding-right: 14px !important; }
+}
 /* Its sideways scroll is the table's own rail (LeaderTable Rail): the browser's bar shows
    for up and down only. */
 .lb-table-wrap::-webkit-scrollbar { width: 6px; height: 0; }

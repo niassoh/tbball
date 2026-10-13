@@ -44,10 +44,6 @@ html { scroll-behavior: smooth; }
   .topbar .player-search-wrap { display: none !important; }
   .topbar-search-btn { display: inline-flex !important; }
 }
-/* Footprint's LONE strip: it wipes in from its top edge, stepped (Footprint.jsx). */
-@keyframes fp-wipe { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
-.fp-lone { animation: fp-wipe .3s steps(4, end) backwards; }
-@media (prefers-reduced-motion: reduce) { .fp-lone { animation: none; } }
 /* The player page's loader: its cells light in turn (ProfileLoading). */
 .ld-cells > span { background: #3d3a37; animation: ld-cell 1.2s steps(1, end) infinite; animation-delay: calc(var(--i) * .1s); }
 @keyframes ld-cell { 0% { background: var(--accent, #8fb0e6); } 25%, 100% { background: #3d3a37; } }

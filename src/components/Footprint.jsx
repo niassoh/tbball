@@ -47,10 +47,10 @@ function Ribbon({ place }) {
 
 // A teammate's face: his portrait (the players index's), else his initials.
 // Square and greyed out: in LONE these are the ones off the floor.
-function Face({ who }) {
+function Face({ who, size }) {
   const [failed, setFailed] = useState(false)
   return (
-    <span style={{ width: 38, height: 38, flex: 'none', overflow: 'hidden', background: PORTRAIT_BG, boxShadow: '0 0 0 1px #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: DIM }}>
+    <span style={{ width: size, height: size, flex: 'none', overflow: 'hidden', background: PORTRAIT_BG, boxShadow: '0 0 0 1px #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: DIM }}>
       {who.headshot && !failed
         ? <img src={headshotUrl(who.slug, 100, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 15%', filter: 'grayscale(1) contrast(1.05)', opacity: 0.8 }} />
         : initialsOf(who.name)}
@@ -260,7 +260,8 @@ export default function Footprint({ profile: p }) {
 // A tile as LONE has it: the stat over only the minutes his anchor sits, with no badge (a
 // place is among players' whole on/off) and no teammate mark.
 const loneTile = e => ({ ...e, ...(e.lone || { status: 'na', on: null, off: null, diff: null, pctl: null, onPctl: null }), rank: null, mate: false, isLone: true })
-const seasonsText = seasons => seasons.map(s => s.replace('-', '–')).join(', ')
+// His anchor's seasons as a span, "2019–20 → 2021–22".
+const seasonsText = seasons => spanText(seasons[0], seasons[seasons.length - 1])
 
 // LONE: the MATES and OFFENSE tiles over only the minutes his best-OBPM teammate sits.
 function LoneSwitch({ on, set, disabled }) {
@@ -334,7 +335,19 @@ function Views({ p, doc, faces }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' }}>
           <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} />
           <LoneSwitch on={loneOn} set={setLone} disabled={!anchors.length} />
-          <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>in {lastName(p.name)}&apos;s {fp.minutes.on.toLocaleString()} ON court vs {fp.minutes.off.toLocaleString()} OFF</p>
+          {loneOn ? (
+            // In LONE the same line says who sits and the minutes left, so nothing below moves.
+            <p title={`MATES and OFFENSE count only the minutes ${names} sat, off the floor on both sides. DEFENSE stays on all his minutes.`}
+              style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, lineHeight: 1.6, color: '#b3ada6' }}>
+              <span style={{ display: 'flex', gap: 3, flex: 'none' }}>{anchors.map((a, i) => <Face key={a.slug || i} who={a} size={28} />)}</span>
+              <span>
+                without {anchors.map((a, i) => <span key={a.slug || i}>{i ? ' · ' : ''}<span style={{ color: INK, fontWeight: 700, letterSpacing: '.06em' }}>{lastName(a.name).toUpperCase()}</span> <span style={{ color: DIM }}>{seasonsText(a.seasons)}</span></span>)}
+                {' '}· {lastName(p.name)}&apos;s {loneMin ? loneMin.min[0].toLocaleString() : '—'} ON vs {loneMin ? loneMin.min[1].toLocaleString() : '—'} OFF
+              </span>
+            </p>
+          ) : (
+            <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>in {lastName(p.name)}&apos;s {fp.minutes.on.toLocaleString()} ON court vs {fp.minutes.off.toLocaleString()} OFF</p>
+          )}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title="His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on">
           {rating('rORTG', fp.ortg, 1)}
@@ -342,22 +355,6 @@ function Views({ p, doc, faces }) {
           {rating('rDRTG', fp.drtg, -1)}
         </div>
       </div>
-      {loneOn && (
-        // What LONE shows: who is set aside, in which seasons, and the minutes left.
-        <div className="fp-lone" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', border: `1px solid ${RULE}`, borderLeft: '3px solid var(--accent)', background: '#262422', fontFamily: MONO }}>
-          <span style={{ display: 'flex', gap: 4, flex: 'none' }}>
-            {anchors.map((a, i) => <Face key={a.slug || i} who={a} />)}
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', color: INK }}>
-              LONE <span style={{ color: DIM }}>· WITHOUT</span> {anchors.map((a, i) => <span key={a.slug || i}>{i ? <span style={{ color: DIM }}> · </span> : null}{lastName(a.name).toUpperCase()} <span style={{ color: DIM, fontWeight: 400 }}>{seasonsText(a.seasons)}</span></span>)}
-            </span>
-            <span style={{ fontSize: 11, lineHeight: 1.55, color: '#b3ada6', textWrap: 'pretty' }}>
-              MATES and OFFENSE count only the minutes {names} sat, off the floor on both sides: {lastName(p.name)}&apos;s {loneMin ? loneMin.min[0].toLocaleString() : '—'} ON vs {loneMin ? loneMin.min[1].toLocaleString() : '—'} OFF. DEFENSE stays on all his minutes.
-            </span>
-          </div>
-        </div>
-      )}
       {/* TEAM MATES, then TEAM OFFENSE, then TEAM DEFENSE, a row each. */}
       <div style={{ borderBottom: `1px solid ${RULE}` }}>{sections.map(row)}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', paddingTop: 4, fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>

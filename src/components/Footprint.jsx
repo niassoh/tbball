@@ -34,16 +34,28 @@ function Medal({ tier }) {
   return <span title={`In the league's top ${Math.round(MEDAL_SHARES[tier - 1] * 100)}%`} style={{ display: 'inline-block', width: 6, height: 6, background: MEDALS[tier - 1], flex: 'none' }} />
 }
 
+// The league's best: a flat gold tab hanging from the tile's top edge, notched like a
+// bookmark, #1 on it in the tile's dark.
+function Ribbon() {
+  return (
+    <span title="The league's best" style={{ position: 'absolute', top: 0, right: 14, width: 22, height: 28, boxSizing: 'border-box', paddingTop: 6, background: MEDALS[0], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)', color: '#1f1d1c', textAlign: 'center', fontFamily: MONO, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
+      #1
+    </span>
+  )
+}
+
 function FootprintTile({ e, anchor }) {
   const lit = e.status === 'notable'
   const color = lit ? shade(TONES[toneOf(e)], strengthOf(e)) : DIM
   const b = bar(e)
   const medal = medalOf(e)
+  const first = medal && e.rank[0] === 1
   const small = { fontSize: 9.5, letterSpacing: '.06em', fontVariantNumeric: 'tabular-nums' }
   return (
     // A lit tile carries a bar of its color across the top edge.
-    <div style={{ background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 196, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+    <div style={{ position: 'relative', background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 196, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
+      {first && <Ribbon />}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', paddingRight: first ? 24 : 0 }}>
         <div style={{ flex: 'none', width: 28, height: 28, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} /></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
           <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.02em', textTransform: 'uppercase', lineHeight: 1.2 }}>{e.effect}</span>
@@ -96,7 +108,7 @@ function Method({ fp, from, to }) {
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them.</li>
             <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (W/) and off it (W/O): the swing holds either way, comes only with or only without that teammate, or shrinks in both.</li>
-            <li>VS LG is the on value against the league&apos;s that season; the rank is its place among every qualified player&apos;s at either end, and an on value in the league&apos;s top 3% at the end that helps his team gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%.</li>
+            <li>VS LG is the on value against the league&apos;s that season; the rank is its place among every qualified player&apos;s at either end, and an on value in the league&apos;s top 3% at the end that helps his team gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%. The league&apos;s best gets a #1 ribbon.</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: DIM, fontSize: 10, letterSpacing: '.08em' }}>MINUTES ON AND OFF</span>

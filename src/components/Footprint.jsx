@@ -11,7 +11,7 @@ import SectionHeader from './SectionHeader.jsx'
 // his teams' five-man lineup totals in a regular season or a span of them, picked as in
 // the Lonestar tab (thinking-bball lib/footprint.js), laid out as the Claude Design
 // "Footprint" module. Each tile is a stat with him on minus off: his teammates' alone in
-// the TEAMMATES row (his own shots left out), his team's otherwise. Those that clear the
+// the TEAM MATES row (his own shots left out), his team's otherwise. Those that clear the
 // noise and stand out against the league's swings are lit (blue for a lift, orange for a
 // cost, ink for a style stat, as strong as the evidence). Each tile has its on value
 // against the league's, a medal when it's a top five at the end that helps his team, and
@@ -149,9 +149,9 @@ function Views({ p, doc }) {
   const anchor = anchorName(fp.anchors)
   const left = `${lastName(p.name).toUpperCase()}'S SHOTS LEFT OUT`
   const sections = [
-    { id: 'mates', title: 'TEAMMATES', note: (fp.anchors || []).length ? `${left} · CHECKED WITH AND WITHOUT ${anchor}` : left, tiles: fp.effects.filter(e => e.mates) },
-    { id: 'off', title: 'OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
-    { id: 'def', title: 'DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
+    { id: 'mates', title: 'TEAM MATES', note: (fp.anchors || []).length ? `${left} · CHECKED WITH AND WITHOUT ${anchor}` : left, tiles: fp.effects.filter(e => e.mates) },
+    { id: 'off', title: 'TEAM OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
+    { id: 'def', title: 'TEAM DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
   ].filter(sec => sec.tiles.length)
   // His team's points per 100 scored (OFF) and kept off the board (DEF), on minus off, and
   // its points per 100 with him on against the league's.

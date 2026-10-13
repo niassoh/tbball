@@ -25,7 +25,7 @@ export const swingText = v => (v === null || v === undefined ? '—' : Math.abs(
 
 // What each kind of stat's swing is counted in, and a stat's own where it has one.
 export const UNITS = { pct: 'PCT PTS', pts: 'PTS/100', pace: 'POSS/48', shots: 'PTS/100 SHOTS' }
-const KEY_UNITS = { tmTs: 'TS PCT' }
+const KEY_UNITS = { tmTs: 'TS%', tm3Pct: '3P%', tovPct: 'TOV%', orebPct: 'ORB%' }
 export const unitOf = (key, unit) => KEY_UNITS[key] || UNITS[unit]
 
 // A value in its stat's terms: a percentage with its sign, otherwise the bare number.

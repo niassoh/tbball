@@ -36,9 +36,12 @@ describe('footprint', () => {
     expect(valueText({ unit: 'shots' }, 32.1)).toBe('32.1')
     expect(valueText({ unit: 'pct' }, null)).toBe('—')
     for (const unit of ['pct', 'pts', 'pace', 'shots']) expect(UNITS[unit]).toBeTruthy()
-    // Teammates' TS% swings in TS points; the rest by their kind.
-    expect(unitOf('tmTs', 'pct')).toBe('TS PCT')
-    expect(unitOf('tm3Pct', 'pct')).toBe('PCT PTS')
+    // A stat measured in a named percentage swings in it; the rest by their kind.
+    expect(unitOf('tmTs', 'pct')).toBe('TS%')
+    expect(unitOf('tm3Pct', 'pct')).toBe('3P%')
+    expect(unitOf('tovPct', 'pct')).toBe('TOV%')
+    expect(unitOf('orebPct', 'pct')).toBe('ORB%')
+    expect(unitOf('tm3Rate', 'pct')).toBe('PCT PTS')
   })
 
   test('percentiles as ordinals', () => {

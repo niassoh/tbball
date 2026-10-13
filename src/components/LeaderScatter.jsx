@@ -172,7 +172,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
               <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
                 fill={tint(d)} fillOpacity={on ? 0.82 : 0.08}
                 style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: on ? 'pointer' : 'default', pointerEvents: on ? 'auto' : 'none' }}
-                onMouseEnter={() => setHover(d.p.id)} onClick={() => onPick(d.p.id)} />
+                onMouseEnter={() => setHover(d.p.id)} onMouseLeave={() => setHover(id => (id === d.p.id ? null : id))} onClick={() => onPick(d.p.id)} />
             )
           })}
           {hv && <circle cx={px(hv.vx)} cy={py(hv.vy)} r={radius(hv.p) + 2.5} fill="none" stroke={INK} strokeWidth={1.5} pointerEvents="none" />}

@@ -223,9 +223,11 @@ export default function Leaderboard() {
     setAxes({ x: ax, y: ay })
   }
   const onSort = useCallback(l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false })), [])
-  // A new season, group or sort starts the table at its top-left corner.
+  // A new season, group or sort starts the table at its top; only a new group (other
+  // columns) starts it at its left as well, so a sort keeps the stats in view.
   const gid = g ? g.id : null
-  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0, left: 0 }) }, [span, playoffs, delta, each, top, gid, sortLabel, sort.reverse])
+  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [span, playoffs, delta, each, top, gid, sortLabel, sort.reverse])
+  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ left: 0 }) }, [gid])
 
   const q = fold(find.trim())
   // Kept between renders so lighting a dot doesn't redraw the table (LeaderTable is memo).

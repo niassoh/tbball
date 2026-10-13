@@ -60,7 +60,9 @@ function Face({ who, size, tip, order = 0 }) {
           : initialsOf(who.name)}
       </span>
       {tip && hover && (
-        <span role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)', zIndex: 30, padding: '7px 10px', display: 'flex', flexDirection: 'column', gap: 3, background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', color: DIM, fontSize: 10, lineHeight: 1.4, letterSpacing: '.08em', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+        // A callout: a pointer on its top edge aimed at the face it speaks for.
+        <span role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', zIndex: 30, padding: '7px 10px', display: 'flex', flexDirection: 'column', gap: 3, background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', color: DIM, fontSize: 10, lineHeight: 1.4, letterSpacing: '.08em', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+          <span aria-hidden="true" style={{ position: 'absolute', top: -6, left: 'calc(50% - 5px)', width: 10, height: 10, background: '#1f1d1c', borderLeft: '1px solid #837d76', borderTop: '1px solid #837d76', transform: 'rotate(45deg)' }} />
           {tip.map((line, i) => <span key={i} style={{ color: i ? DIM : INK }}>{line}</span>)}
         </span>
       )}

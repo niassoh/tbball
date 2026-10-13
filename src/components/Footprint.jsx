@@ -155,8 +155,8 @@ function Details({ e, anchors, color, right }) {
 
 // A stat at a glance, in a box: its glyph and name at the top, its swing at the foot
 // over the bar of how big the swing is among players'; its top-10 badge, else its medal,
-// when it has one, and a warning mark when it's lit by a teammate effect. The rest is in
-// its details.
+// when it has one. Lit by a teammate effect, its top edge is hatched rather than solid and
+// its unit says so, quietly. The rest is in its details.
 function FootprintTile({ e, anchors, right }) {
   const [open, setOpen] = useState(false)
   const lit = e.status === 'notable'
@@ -166,10 +166,12 @@ function FootprintTile({ e, anchors, right }) {
   const place = topPlaceOf(e)
   const mate = lit && e.wowy && e.wowy.mate
   return (
-    // A lit tile carries a bar of its color across the top edge; an unlit one is dimmed.
+    // A lit tile carries a bar of its color across the top edge (hatched for a teammate
+    // effect); an unlit one is dimmed.
     <div tabIndex={0} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
       onPointerUp={ev => { if (ev.pointerType !== 'mouse') setOpen(o => !o) }}
-      style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto' }}>
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto' }}>
+      {mate && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
       {place && <Ribbon place={place} />}
       <div style={{ flex: 1, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.6, fontFamily: MONO }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: place ? 32 : 0 }}>
@@ -178,11 +180,11 @@ function FootprintTile({ e, anchors, right }) {
           {medal && !place && <span style={{ marginLeft: 'auto', paddingTop: 6, display: 'flex' }}><Medal tier={medal} /></span>}
         </div>
         <span style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
-            <span style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
-            {mate && <span title="Teammate effect: most of this swing is his best teammate's minutes, not his" style={{ paddingTop: 3 }}><MateMark size={18} /></span>}
+          <span style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
+          <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {unitOf(e.key, e.unit)}
+            {mate && <span title="Teammate effect: most of this swing is his best teammate's minutes, not his" style={{ color: '#b9a45f' }}> · TEAMMATE</span>}
           </span>
-          <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em' }}>{unitOf(e.key, e.unit)}</span>
         </span>
         {/* How big the swing is among players' swings in this stat: right a lift, left a cost. */}
         <div style={{ position: 'relative', height: 8 }}>
@@ -320,6 +322,7 @@ function Views({ p, doc, faces }) {
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.bad }} />COST</span>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.neutral }} />STYLE</span>
         <span style={legendKey}>DIM · WITHIN NOISE OR COMMON</span>
+        <span style={legendKey}><span style={{ width: 14, height: 3, background: `repeating-linear-gradient(135deg, ${TONES.good} 0 4px, transparent 4px 7px)` }} />TEAMMATE EFFECT</span>
         <span style={legendKey}>BAR · SIZE AMONG PLAYERS&apos; SWINGS</span>
         <span style={legendKey}>HOVER A TILE FOR ITS DETAILS</span>
       </div>

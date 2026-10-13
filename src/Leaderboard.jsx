@@ -278,7 +278,7 @@ export default function Leaderboard() {
         <div className="lb-body">
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
             <LeaderTable doc={doc} group={g} rows={rows} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
-              picked={picked} onPick={setPicked} />
+              picked={picked} onPick={setPicked} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>No players match</div>}
           </div>
           <div className={`lb-side${player ? ' lb-carded' : ''}`}>

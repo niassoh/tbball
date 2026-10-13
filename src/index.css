@@ -237,7 +237,16 @@ a:hover > .lineup-tile > * { filter: none; }
    short, it stacks and the page scrolls, and a card covers the screen. */
 .lb { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
 .lb-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(400px, 1fr); gap: 12px; padding-bottom: 16px; }
-.lb-table-wrap { min-height: 0; overflow: auto; border: 1px solid #3d3a37; scrollbar-width: thin; scrollbar-color: #544f4b transparent; }
+.lb-table-wrap { min-height: 0; overflow: auto; border: 1px solid #3d3a37; scroll-snap-type: x mandatory; }
+/* Its sideways scroll is the table's own rail (LeaderTable Rail): the browser's bar shows
+   for up and down only. */
+.lb-table-wrap::-webkit-scrollbar { width: 6px; height: 0; }
+.lb-table-wrap::-webkit-scrollbar-thumb { background: #544f4b; }
+.lb-table-wrap::-webkit-scrollbar-track, .lb-table-wrap::-webkit-scrollbar-corner { background: transparent; }
+@supports not selector(::-webkit-scrollbar) {
+  .lb-table-wrap { scrollbar-width: thin; scrollbar-color: #544f4b transparent; }
+}
+.lb-rail-thumb:hover, .lb-rail-thumb:active { background: #ece8e3 !important; }
 .lb-side { min-height: 0; display: flex; flex-direction: column; border: 1px solid #3d3a37; background: #262422; }
 .lb-table th, .lb-table td { background-color: #262422; }
 /* Stat cells carry their percentile shade; hover and the open card's row lay a light wash

@@ -129,8 +129,7 @@ function Method({ fp, from, to }) {
   )
 }
 
-// The tab fetches its views (every season and span) when opened; the profile has only his
-// seasons, for the header.
+// The tab fetches its views (every season and span) when opened.
 export default function Footprint({ profile: p }) {
   const [doc, setDoc] = useState(null)
   useEffect(() => {
@@ -138,12 +137,9 @@ export default function Footprint({ profile: p }) {
     fetchFootprint(p.slug).then(d => live && setDoc(d), () => live && setDoc(false))
     return () => { live = false }
   }, [p.slug])
-  const seasons = p.footprint.seasons
   return (
     <section id="sec-footprint" style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
-      <SectionHeader title="Footprint">
-        <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, letterSpacing: '.08em', textTransform: 'uppercase' }}>{p.name} · {spanText(seasons[0], seasons[seasons.length - 1])} REG</span>
-      </SectionHeader>
+      <SectionHeader title="Footprint" />
       {doc
         ? <Views p={p} doc={doc} />
         : <div style={{ border: `1px solid ${RULE}`, minHeight: 600, display: 'grid', placeItems: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }}>{doc === false ? 'Unavailable' : 'Loading'}</div>}

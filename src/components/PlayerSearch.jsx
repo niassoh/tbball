@@ -101,7 +101,7 @@ export default function PlayerSearch({ profile }) {
   }
 
   return (
-    <div style={{ position: 'relative', width: 300, maxWidth: '100%', flexShrink: 0 }}>
+    <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 300, minWidth: 0 }}>
       <div className="search-box" style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${showing ? INK : '#8a847e'}`, background: '#2c2a28', paddingLeft: 9 }}>
         <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={{ flex: 'none' }}>
           <circle cx="5" cy="5" r="3.75" fill="none" stroke="#b8b2ab" strokeWidth="1.5" />

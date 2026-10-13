@@ -115,7 +115,7 @@ function ProfilePage({ slug, playoffs }) {
   if (state.status !== 'ready') {
     const msg = { loading: 'Loading…', missing: 'Player not found.', error: `Couldn't load profile (${state.error}).` }[state.status]
     return (
-      <main style={{ maxWidth: 1440, margin: '0 auto', padding: '40px 32px', fontFamily: MONO, color: '#a8a29c' }}>
+      <main className="page-main" style={{ maxWidth: 1440, margin: '0 auto', padding: '40px var(--page-pad)', fontFamily: MONO, color: '#a8a29c' }}>
         {msg} <Link to={homePath}>All players</Link>
       </main>
     )
@@ -140,7 +140,7 @@ function ProfilePage({ slug, playoffs }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#262422' }}>
-      <main style={{ maxWidth: 1440, margin: '0 auto', padding: '0 32px 64px' }}>
+      <main className="page-main" style={{ maxWidth: 1440, margin: '0 auto', padding: '0 var(--page-pad) 64px' }}>
         <TopBar profile={p} homePath={homePath} />
         <section style={{ padding: '4px 0 26px' }}>
           <Cards profile={p} loading={loading} onPickGroup={setTab} />

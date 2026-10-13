@@ -31,6 +31,9 @@ html { scroll-behavior: smooth; }
 /* The bio, percentile and recent-shift cards. The season rail sits over the first two
    (the cards it drives); when all three fit side by side, the third runs the full height
    beside the rail and its two cards. */
+/* The pages' side padding: 32px, 14px on a phone (the profile's top bar runs to it). */
+.page-main { --page-pad: 32px; }
+@media (max-width: 560px) { .page-main { --page-pad: 14px; } }
 .profile-cards-wrap { container-type: inline-size; }
 .profile-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 12px; align-items: stretch; }
 .season-rail-cell { grid-column: 1 / -1; min-width: 0; }

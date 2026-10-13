@@ -29,12 +29,15 @@ const TIP_H = 138
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM, textTransform: 'uppercase' }
 const M = { l: 30, r: 14, t: 16, b: 30 }
 
+// The stats a board can chart: those with values in it (the last 30 days leave some out).
 function AxisPicker({ doc, axis, value, set }) {
+  const charted = l => !doc.stats[l].na && doc.players.some(p => valueOf(doc, p, l) !== null)
+  const groups = doc.groups.map(g => ({ ...g, stats: g.stats.filter(charted) })).filter(g => g.stats.length)
   return (
     <Popover name={`${axis} axis: ${value}`} minWidth={300} trigger={<><span style={{ ...label, fontWeight: 400 }}>{axis}</span>{value}</>}>
       {close => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 460 }}>
-          {doc.groups.map(g => (
+          {groups.map(g => (
             <div key={g.id} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <span style={{ ...label, fontSize: 8, color: FAINT }}>{g.name}</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -155,7 +158,8 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         <AxisPicker doc={doc} axis="Y" value={y} set={v => setAxis('y', v)} />
         <span style={{ ...label, marginLeft: 'auto', fontSize: 8 }}>● = minutes · ┼ median</span>
       </div>
-      <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 240 }}>
+      {/* As tall as the panel allows, but never much taller than it's wide. */}
+      <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 240, maxHeight: Math.round(w * 1.1) }}>
         <svg width={w} height={h} style={{ position: 'absolute', inset: 0, display: 'block' }} onMouseLeave={() => setHover(null)}>
           <rect x={M.l} y={M.t} width={w - M.l - M.r} height={h - M.t - M.b} fill="none" stroke={RULE} />
           {/* The medians cross at the centre: better-in-both up and right, worse-in-both down

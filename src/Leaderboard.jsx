@@ -245,8 +245,9 @@ export default function Leaderboard() {
   const axesOf = gr => [...new Set([...(AXES[gr.id] || []), ...gr.stats])].filter(filled).slice(0, 2)
   const sortLabel = has(sort.label) ? sort.label : g && g.stats[0]
   const pair = g && axesOf(g)
-  const x = has(axes.x) ? axes.x : pair && pair[0]
-  const y = has(axes.y) ? axes.y : pair && pair[1]
+  // An axis on a stat with no values here (the last 30 days lack some) gives way too.
+  const x = filled(axes.x) ? axes.x : pair && pair[0]
+  const y = filled(axes.y) ? axes.y : pair && pair[1]
   const choose = id => {
     const next = doc.groups.find(gr => gr.id === id)
     setGroup(id)

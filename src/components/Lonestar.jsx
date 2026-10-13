@@ -167,7 +167,7 @@ function Portrait({ who, team, on, size, layers, jersey }) {
   return who.headshot && !failed
     ? (
         <span className={bench} style={{ position: 'relative', width: size, height: size, WebkitMaskImage: FADE, maskImage: FADE, ...place }}>
-          <img src={headshotUrl(who.slug, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)}
+          <img src={headshotUrl(who.slug || who.face, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)}
             style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', objectPosition: '50% 100%' }} />
           {who.headshot === 'jersey' && <JerseyOverlay slug={who.slug} size={400} layers={layers} id={jersey} />}
         </span>

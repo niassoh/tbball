@@ -56,7 +56,7 @@ function Face({ who, size, tip, order = 0 }) {
       style={{ position: 'relative', width: size, height: size, flex: 'none', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', fontSize: 10, color: DIM }}>
       <span style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
         {who.headshot && !failed
-          ? <img className="fp-face-img" src={headshotUrl(who.slug, 100, who.headshotVersion, who.headshot)} alt={who.name || ''} onError={() => setFailed(true)} style={{ '--i': order, width: '132%', height: '132%', flex: 'none', objectFit: 'cover', objectPosition: '50% 0', filter: 'grayscale(1) contrast(1.05)', opacity: 0.8 }} />
+          ? <img className="fp-face-img" src={headshotUrl(who.slug || who.face.key, 100, who.headshotVersion, who.headshot)} alt={who.name || ''} onError={() => setFailed(true)} style={{ '--i': order, width: '132%', height: '132%', flex: 'none', objectFit: 'cover', objectPosition: '50% 0', filter: 'grayscale(1) contrast(1.05)', opacity: 0.8 }} />
           : initialsOf(who.name)}
       </span>
       {tip && hover && (
@@ -272,11 +272,12 @@ export default function Footprint({ profile: p }) {
 // A tile as LONE has it: the stat over only the minutes his anchor sits, with no badge (a
 // place is among players' whole on/off) and no teammate mark.
 const loneTile = e => ({ ...e, ...(e.lone || { status: 'na', on: null, off: null, diff: null, pctl: null, onPctl: null }), rank: null, mate: false, isLone: true })
-// What hovering an anchor's face says: who, which seasons, why him (his OBPM, how much he
-// played), and this player's minutes on and off with him sitting.
+// What hovering an anchor's face says: who, which seasons, why him (his OBPM, or its
+// estimate from play-by-play where the sheet has none; how much he played), and this
+// player's minutes on and off with him sitting.
 const anchorTip = (a, p) => [
   `${lastName(a.name).toUpperCase()}  ${seasonsText(a.seasons)}`,
-  [a.obpm !== null && a.obpm !== undefined && `OBPM ${swingText(a.obpm)}`, a.share && `ON THE FLOOR ${a.share}% OF THE MINUTES`].filter(Boolean).join(' · '),
+  [a.rating && `${a.rating.by.toUpperCase()} ${swingText(a.rating.value)}`, a.share && `ON THE FLOOR ${a.share}% OF THE MINUTES`].filter(Boolean).join(' · '),
   a.min ? `${lastName(p.name).toUpperCase()} WITHOUT HIM: ${a.min[0].toLocaleString()} ON · ${a.min[1].toLocaleString()} OFF` : null
 ].filter(Boolean)
 // His anchor's seasons as a span, "2019–20 → 2021–22".
@@ -304,8 +305,9 @@ function Views({ p, doc, faces }) {
   const fp = viewOf(span.from, span.to)
   const pick = (from, to) => { if (viewOf(from, to)) setSpan({ from, to }) }
   const [lone, setLone] = useState(false)
+  // A teammate with no profile (an older one) brings his own face (`face`, by NBA id).
   const anchors = (fp.anchors || []).map(a => {
-    const f = faces.get(a.slug)
+    const f = a.slug ? faces.get(a.slug) : a.face
     return { ...a, headshot: f && f.headshot, headshotVersion: f && f.headshotVersion }
   })
   const sections = [

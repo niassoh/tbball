@@ -57,9 +57,23 @@ function Face({ who }) {
   )
 }
 
-// One half of the teammate check: its swing, and a bar from zero on the two halves'
-// shared scale (right a rise, left a fall).
-function Half({ label, v, max, color }) {
+// A warning mark for a tile lit by a teammate effect: a solid warning-yellow triangle with
+// a dark "!" (apart from the cost orange and the badges' gold).
+const WARN = '#f2c230'
+function MateMark({ size = 15 }) {
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 14 14" style={{ flex: 'none', display: 'block' }}>
+      <path d="M7 1 13.4 12.6H.6Z" fill={WARN} stroke={WARN} strokeWidth="1" strokeLinejoin="round" />
+      <path d="M7 4.9V8.7" stroke="#1f1d1c" strokeWidth="1.6" />
+      <circle cx="7" cy="10.6" r=".95" fill="#1f1d1c" />
+    </svg>
+  )
+}
+
+// One half of the teammate check: its swing, a bar from zero on the two halves' shared
+// scale (right a rise, left a fall), and his minutes on and off in it.
+function Half({ label, half, max, color }) {
+  const v = half.swing
   const w = v === null ? 0 : (Math.abs(v) / max) * 50
   return (
     <>
@@ -70,6 +84,7 @@ function Half({ label, v, max, color }) {
         <span style={{ position: 'absolute', left: '50%', top: 0, width: 1, height: 8, background: DIM }} />
         {v !== null && <span style={{ position: 'absolute', top: 2, height: 5, left: `${v >= 0 ? 50 : 50 - w}%`, width: `${w}%`, background: color }} />}
       </span>
+      <span style={{ color: DIM, textAlign: 'right', whiteSpace: 'nowrap' }}>{half.min[0].toLocaleString()} / {half.min[1].toLocaleString()}</span>
     </>
   )
 }
@@ -77,13 +92,14 @@ function Half({ label, v, max, color }) {
 // A tile's details, on hover (a tap on a phone), as a sheet: his team's value off and on,
 // the swing (its unit, z and size among players' swings), the on value's league and
 // percentile; for a teammate stat, the swing again with his best-OBPM teammate on the
-// floor and off it. Opens leftward from a tile on the right of its row.
+// floor and off it, with his minutes on and off in each, and, when the tile is lit by a
+// teammate effect, the swing with that teammate held fixed. Opens leftward from a tile on
+// the right of its row.
 // `color`: a lit tile's; an unlit one's swing is ink and its bars grey.
 function Details({ e, anchors, color, right }) {
   const medal = medalOf(e)
   const w = e.wowy
-  const halves = w ? [w.with ? w.with[0] : null, w.without ? w.without[0] : null] : null
-  const max = halves ? Math.max(...halves.filter(v => v !== null).map(Math.abs), 0.1) : 1
+  const max = w ? Math.max(...[w.with.swing, w.without.swing].filter(v => v !== null).map(Math.abs), 0.1) : 1
   const head = { fontSize: 9, letterSpacing: '.14em', color: DIM }
   const big = { fontSize: 18, lineHeight: 1.15, color: INK }
   const sub = { fontSize: 9.5, letterSpacing: '.06em', color: DIM, whiteSpace: 'nowrap' }
@@ -119,10 +135,18 @@ function Details({ e, anchors, color, right }) {
               <span style={{ color: INK, fontWeight: 700, letterSpacing: '.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{anchorName(anchors)}</span>
             </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto auto minmax(0, 1fr)', columnGap: 12, rowGap: 4, alignItems: 'center' }}>
-            <Half label="WITH" v={halves[0]} max={max} color={color || '#837d76'} />
-            <Half label="WITHOUT" v={halves[1]} max={max} color={color || '#837d76'} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto auto minmax(0, 1fr) auto', columnGap: 12, rowGap: 4, alignItems: 'center' }}>
+            <span /><span /><span />
+            <span style={{ ...head, textAlign: 'right' }}>MIN ON / OFF</span>
+            <Half label="WITH" half={w.with} max={max} color={color || '#837d76'} />
+            <Half label="WITHOUT" half={w.without} max={max} color={color || '#837d76'} />
           </div>
+          {w.mate && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 7, paddingTop: 2, color: INK, letterSpacing: '.06em' }}>
+              <MateMark size={16} />
+              <span><span style={{ color: WARN }}>TEAMMATE EFFECT</span> <span style={{ color: DIM }}>· WITH HIM HELD ON OR OFF, THE SWING IS</span> {swingText(w.held[0])}</span>
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -131,7 +155,8 @@ function Details({ e, anchors, color, right }) {
 
 // A stat at a glance, in a box: its glyph and name at the top, its swing at the foot
 // over the bar of how big the swing is among players'; its top-10 badge, else its medal,
-// when it has one. The rest is in its details.
+// when it has one, and a warning mark when it's lit by a teammate effect. The rest is in
+// its details.
 function FootprintTile({ e, anchors, right }) {
   const [open, setOpen] = useState(false)
   const lit = e.status === 'notable'
@@ -139,6 +164,7 @@ function FootprintTile({ e, anchors, right }) {
   const b = bar(e)
   const medal = medalOf(e)
   const place = topPlaceOf(e)
+  const mate = lit && e.wowy && e.wowy.mate
   return (
     // A lit tile carries a bar of its color across the top edge; an unlit one is dimmed.
     <div tabIndex={0} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
@@ -152,7 +178,10 @@ function FootprintTile({ e, anchors, right }) {
           {medal && !place && <span style={{ marginLeft: 'auto', paddingTop: 6, display: 'flex' }}><Medal tier={medal} /></span>}
         </div>
         <span style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
+          <span style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+            <span style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
+            {mate && <span title="Teammate effect: most of this swing is his best teammate's minutes, not his" style={{ paddingTop: 3 }}><MateMark size={18} /></span>}
+          </span>
           <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em' }}>{unitOf(e.key, e.unit)}</span>
         </span>
         {/* How big the swing is among players' swings in this stat: right a lift, left a cost. */}
@@ -182,7 +211,8 @@ function Method({ fp, from, to }) {
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them.</li>
-            <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (WITH) and off it (WITHOUT).</li>
+            <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (WITH) and off it (WITHOUT), with his minutes on and off in each.</li>
+            <li>A lit teammate tile is marked as a teammate effect when, with that teammate held fixed (the two halves taken together), the swing keeps less than half of itself or turns round: it comes from how that teammate&apos;s minutes split between his time on and off.</li>
             <li>In a tile&apos;s details, z is the whole swing over its noise, and its percentile is the swing&apos;s size among players&apos; swings in that stat. LG and the percentile under ON place his team&apos;s on value against the league&apos;s that season.</li>
             <li>An on value in the league&apos;s top 10 at the end that helps his team gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%.</li>
           </ul>

@@ -28,17 +28,13 @@ const UNLIT = { noise: 'WITHIN NOISE', typical: 'COMMON SWING', thin: 'TOO FEW M
 // A top five's medal: gold, silver and bronze, then plain for fourth and fifth.
 const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a', '#8a847e', '#8a847e']
 
-// A square medal on a V of ribbon, its place inside, in its color; pinned to the tile's
-// top corner.
+// A flat tab of its color hanging from the tile's top edge, notched like a bookmark, "TOP"
+// over its place in the tile's dark.
 function Medal({ place }) {
-  const c = MEDALS[place - 1]
   return (
-    <span title={`Top ${place} in the league`} style={{ position: 'absolute', top: 10, right: 12, display: 'block', lineHeight: 0 }}>
-      <svg width={20} height={27} viewBox="0 0 20 27" aria-label={`Top ${place}`} style={{ display: 'block' }}>
-        <path d="M4 0 L10 8 L16 0" fill="none" stroke={c} strokeWidth={1.5} strokeOpacity={0.7} />
-        <rect x={1} y={9} width={18} height={17} fill={`color-mix(in srgb, ${c} 16%, transparent)`} stroke={c} strokeWidth={1.25} />
-        <text x={10} y={21.5} textAnchor="middle" fontFamily={MONO} fontSize={11} fontWeight={700} fill={c}>{place}</text>
-      </svg>
+    <span title={`Top ${place} in the league`} style={{ position: 'absolute', top: 0, right: 14, width: 24, height: 34, boxSizing: 'border-box', paddingTop: 5, background: MEDALS[place - 1], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%)', color: '#1f1d1c', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, fontFamily: MONO, lineHeight: 1 }}>
+      <span style={{ fontSize: 6.5, letterSpacing: '.1em', fontWeight: 700 }}>TOP</span>
+      <span style={{ fontSize: 12, fontWeight: 700 }}>{place}</span>
     </span>
   )
 }
@@ -104,7 +100,7 @@ function Method({ fp, from, to }) {
             <li>Teammate stats leave his own shots out: with him on, only his teammates&apos; shots count; with him off, everyone&apos;s. Their rim scoring is per 100 of their own shots, so a high-usage player doesn&apos;t drag it down by shooting more himself.</li>
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
-            <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons.</li>
+            <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them.</li>
             <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (W/) and off it (W/O): the swing holds either way, comes only with or only without that teammate, or shrinks in both.</li>
             <li>VS LG is the on value against the league&apos;s that season; the rank is its place among every qualified player&apos;s at either end, and a top five at the end that helps his team gets a medal (gold, silver and bronze for the top three).</li>
           </ul>

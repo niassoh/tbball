@@ -201,6 +201,7 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
                 <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   <Face p={p} />
                   <span title={p.name} style={{ maxWidth: narrow ? 84 : 130, fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{short(p.name)}</span>
+                  {p.era && <span style={{ flex: 'none', fontFamily: MONO, fontSize: 9.5, color: FAINT, letterSpacing: '.04em' }}>’{p.era[0].slice(2, 4)}–’{p.era[1].slice(5)}</span>}
                 </span>
               </td>
               {doc.many && <td style={{ ...cell, ...lock(0), color: '#b8b2ab', fontSize: 10.5 }}>’{p.season.slice(5)}</td>}

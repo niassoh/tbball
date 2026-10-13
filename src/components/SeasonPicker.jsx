@@ -78,13 +78,14 @@ function YearRange({ seasons, from, to, pick }) {
 // that opens the year strip in a panel under it (Popover), the strip taking the arrow
 // keys at once; a pick shows behind it as it's made. The strip sets the panel's width
 // (the readout wraps inside it, so a pick never resizes it). With one season there's
-// nothing to pick.
-export default function SeasonPicker({ seasons, from, to, n, pick, extra = null }) {
+// nothing to pick. `readout`: what the box says in place of the span (the Leaderboard's
+// eras).
+export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, readout = null }) {
   return (
-    <Popover name={`Seasons: ${spanText(from, to)}`} disabled={seasons.length < 2}
+    <Popover name={`Seasons: ${readout || spanText(from, to)}`} disabled={seasons.length < 2}
       trigger={<>
         <span style={{ ...label, fontWeight: 400 }}>Seasons</span>
-        {from === to ? from.replace('-', '–') : `${shortSeason(from)}–${shortSeason(to)} · ${n}`}
+        {readout || (from === to ? from.replace('-', '–') : `${shortSeason(from)}–${shortSeason(to)} · ${n}`)}
       </>}>
       {() => (
         <>

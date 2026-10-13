@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardRecent, fetchLeaderboardSeasons } from './api.js'
 import { liveAges } from './lib/age.js'
-import { combined, combinedDelta, eachSeason, qualified, singleYear } from './lib/board.js'
+import { bestEras, combined, combinedDelta, eachSeason, eras, qualified, singleYear } from './lib/board.js'
 import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
 import { seasonsBetween } from './lib/seasons.js'
@@ -22,8 +22,9 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // name) narrow the table and fade the scatter's other dots. In the playoffs a small Δ
 // toggle turns it to each player's playoffs minus regular season, and in the regular season
 // a small calendar beside it switches to the latest season's last 30 days (its
-// stats that can't be scoped to dates, and Footprint, greyed); RAW | PCTL sets what the
-// table's cells read in; the row under the pointer,
+// stats that can't be scoped to dates, and Footprint, greyed); ERAS turns the regular
+// season's board into every player's runs of 3, 5 or 7 seasons over all the years, each
+// averaged; RAW | PCTL sets what the table's cells read in; the row under the pointer,
 // as it moves or as the table scrolls beneath it, lights its player's dot.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
@@ -43,6 +44,8 @@ const AXES = {
   footprint: ['Rim scoring', 'Rim protection']
 }
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+// Rows drawn at a time on a long board.
+const PAGE = 200
 // What a greyed group or column says on hover in the last 30 days.
 const NA = 'Unavailable for the last 30 days'
 
@@ -70,6 +73,22 @@ function Each({ each, set }) {
       {[[true, 'Each season'], [false, 'Combined']].map(([on, name]) => (
         <button key={name} type="button" aria-pressed={each === on} onClick={() => set(on)}
           style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: on ? 0 : `1px solid ${EDGE}`, background: each === on ? '#3a3734' : 'transparent', color: each === on ? INK : DIM, fontFamily: MONO, fontSize: 9, fontWeight: each === on ? 700 : 400, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
+      ))}
+    </div>
+  )
+}
+
+// Eras, in the season picker's panel: every player's runs of 3, 5 or 7 of his seasons
+// over all the years (lib/board.js eras), the span lightly beside his name; a lit length
+// again, or a season picked on the strip, goes back to seasons.
+const ERAS = [3, 5, 7]
+function Eras({ era, set }) {
+  return (
+    <div role="group" aria-label="Eras" style={{ display: 'flex', border: `1px solid ${era ? 'var(--accent)' : EDGE}` }}>
+      <span style={{ ...label, display: 'inline-flex', alignItems: 'center', padding: '0 10px', color: era ? 'var(--accent)' : DIM }}>Eras</span>
+      {ERAS.map(n => (
+        <button key={n} type="button" aria-pressed={era === n} onClick={() => set(era === n ? null : n)} title={era === n ? 'Back to seasons' : `Every ${n}-season run of every player, averaged`}
+          style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: `1px solid ${EDGE}`, background: era === n ? '#3a3734' : 'transparent', color: era === n ? INK : DIM, fontFamily: MONO, fontSize: 10, fontWeight: era === n ? 700 : 400, letterSpacing: '.1em', cursor: 'pointer' }}>{n} YR</button>
       ))}
     </div>
   )
@@ -162,6 +181,8 @@ export default function Leaderboard() {
   const [picked, setPicked] = useState(null)
   const [delta, setDelta] = useState(false)
   const [recent, setRecent] = useState(false)
+  // Eras' length (3, 5 or 7 seasons), or null for seasons.
+  const [era, setEra] = useState(null)
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
   const close = useCallback(() => setPicked(null), [])
@@ -198,9 +219,10 @@ export default function Leaderboard() {
   // The documents the board is built from: each season's of the mode on show, or, for a
   // combined span of playoffs minus regular season, both kinds for every season. Keys are
   // kind|season; the effects follow them as strings.
-  const inSpan = useMemo(() => (span && seasons ? seasonsBetween(span.from, span.to).filter(x => seasons.includes(x)) : []), [span, seasons])
-  // The last 30 days are one document whatever the span.
+  // The last 30 days are one document whatever the span; eras take every season.
   const windowed = recent && !playoffs
+  const eraOn = !playoffs && !windowed ? era : null
+  const inSpan = useMemo(() => (!seasons ? [] : eraOn ? seasons : span ? seasonsBetween(span.from, span.to).filter(x => seasons.includes(x)) : []), [span, seasons, eraOn])
   const many = !windowed && inSpan.length > 1
   const kinds = windowed ? ['recent'] : !playoffs ? ['regular'] : !delta ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
   const wantedKey = windowed ? 'recent|window' : kinds.flatMap(kind => inSpan.map(x => `${kind}|${x}`)).join()
@@ -231,9 +253,9 @@ export default function Leaderboard() {
     const loaded = docsOf(wanted[0].split('|')[0])
     if (!loaded.length) return false
     const docs = loaded.length > 1 ? loaded.map(singleYear) : loaded
-    const board = each || docs.length === 1 ? eachSeason(docs) : combined(docs)
+    const board = eraOn ? eras(docs, eraOn) : each || docs.length === 1 ? eachSeason(docs) : combined(docs)
     return { ...board, players: qualified(board.players, top) }
-  }, [cache, wantedKey, each, top])
+  }, [cache, wantedKey, each, top, eraOn])
 
   // A group the season type lacks (Footprint in the playoffs), or one greyed in the last 30
   // days, falls back to the first;
@@ -259,7 +281,7 @@ export default function Leaderboard() {
   // A new season, group or sort starts the table at its top; only a new group (other
   // columns) starts it at its left as well, so a sort keeps the stats in view.
   const gid = g ? g.id : null
-  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [span, playoffs, delta, windowed, each, top, gid, sortLabel, sort.reverse])
+  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [span, playoffs, delta, windowed, each, eraOn, top, gid, sortLabel, sort.reverse])
   useEffect(() => { if (wrap.current) wrap.current.scrollTo({ left: 0 }) }, [gid])
 
   const q = fold(find.trim())
@@ -275,9 +297,21 @@ export default function Leaderboard() {
       shown: new Set(list.map(p => p.id))
     }
   }, [doc, sortLabel, sort.reverse, team, q])
+  // In eras the scatter draws each player's best era for its two stats, not every era.
+  const chartDoc = useMemo(() => (doc && doc.eras && x && y ? bestEras(doc, x, y) : doc), [doc, x, y])
+  // A long board (eras, or many seasons each a row) draws its rows a page at a time as the
+  // table scrolls: thousands of rows at once take seconds. A new list starts at one page.
+  const [paged, setPaged] = useState({ rows: null, n: PAGE })
+  const limit = paged.rows === rows ? paged.n : PAGE
+  const drawn = useMemo(() => (rows.length > limit ? rows.slice(0, limit) : rows), [rows, limit])
+  const onTableScroll = () => {
+    under()
+    const el = wrap.current
+    if (el && limit < rows.length && el.scrollTop + el.clientHeight > el.scrollHeight - 800) setPaged({ rows, n: limit + PAGE })
+  }
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
   const player = doc && picked ? doc.players.find(p => p.id === picked) : null
-  const spanText = windowed ? 'Last 30 days' : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : `${span.from.slice(0, 4)}–${span.to.slice(5)}`
+  const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season eras` : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : `${span.from.slice(0, 4)}–${span.to.slice(5)}`
 
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
@@ -298,8 +332,13 @@ export default function Leaderboard() {
           </span>
         )}
         {!windowed && seasons && span && (
-          <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} pick={(from, to) => setSpan({ from, to })}
-            extra={many && <Each each={each} set={setEach} />} />
+          <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length}
+            pick={(from, to) => { setSpan({ from, to }); setEra(null) }}
+            readout={eraOn ? `${eraOn}-yr eras · ’${seasons[0].slice(5)}–’${seasons[seasons.length - 1].slice(5)}` : null}
+            extra={<>
+              {many && !eraOn && <Each each={each} set={setEach} />}
+              {!playoffs && <Eras era={eraOn} set={setEra} />}
+            </>} />
         )}
         {doc && <Minutes top={top} set={setTop} playoffs={playoffs} />}
         {doc && <Groups groups={doc.groups} active={g.id} pick={choose} />}
@@ -315,17 +354,23 @@ export default function Leaderboard() {
       </div>
 
       {doc === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
+      {doc === null && wantedKey && wantedKey.includes(',') && (
+        // Many seasons (a long span, or eras' every one) come in one by one.
+        <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>
+          Loading seasons · {wantedKey.split(',').filter(k => k in cache).length} of {wantedKey.split(',').length}
+        </div>
+      )}
       {doc && (
         <div className="lb-body">
-          <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
-            <LeaderTable doc={doc} group={g} rows={rows} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
+          <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={onTableScroll}>
+            <LeaderTable doc={doc} group={g} rows={drawn} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
               picked={picked} onPick={setPicked} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>No players match</div>}
           </div>
           <div className={`lb-side${player ? ' lb-carded' : ''}`}>
             {player
-              ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={spanText} />
-              : <LeaderScatter doc={doc} shown={shown} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />}
+              ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? `${player.era[0].slice(0, 4)}–${player.era[1].slice(5)}` : spanText} />
+              : <LeaderScatter doc={chartDoc} shown={shown} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />}
           </div>
         </div>
       )}

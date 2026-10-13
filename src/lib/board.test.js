@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { combined, combinedDelta, eachSeason, percentileOf, qualified, singleYear } from './board.js'
+import { bestEras, combined, combinedDelta, eachSeason, eras, percentileOf, qualified, singleYear } from './board.js'
 
 // Two seasons' documents: BPM, and C&S 3% weighted by C&S 3s/36.
 const labels = ['BPM', 'C&S 3%', 'C&S 3s/36']
@@ -21,6 +21,25 @@ describe('board', () => {
     expect(b.players.map(p => p.id)).toEqual(['a|2023-24', 'b|2023-24', 'a|2024-25', 'c|2024-25'])
     expect(b.many).toBe(true)
     expect(eachSeason([s2]).players.map(p => p.id)).toEqual(['a', 'c'])
+  })
+
+  test('eras: a row for each run of n of a player\'s seasons, averaged as combined, ranked among them all', () => {
+    const s3 = doc('2025-26', [P('a', 2000, [4, 20, 2])])
+    const b = eras([s1, s2, s3], 2)
+    expect(b.players.map(p => p.id)).toEqual(['a|2023-24..2024-25', 'a|2024-25..2025-26'])
+    const [first, second] = b.players
+    expect(first.era).toEqual(['2023-24', '2024-25'])
+    expect(first.season).toBe('2024-25')
+    // The first run is the combined span's: BPM (2·1000 + 6·3000) / 4000.
+    expect(first.v[0]).toBe(5)
+    // The second: (6·3000 + 4·2000) / 5000.
+    expect(second.v[0]).toBe(5.2)
+    expect(second.p[0]).toBe(50)
+    expect(b.eras).toBe(2)
+    expect(eras([s1, s2, s3], 4).players).toEqual([])
+    // The chart's one dot for him: his era with the best BPM and C&S 3% percentiles.
+    const best = bestEras(b, 'BPM', 'C&S 3%')
+    expect(best.players.map(p => p.id)).toEqual([second.p[1] + second.p[0] > first.p[1] + first.p[0] ? second.id : first.id])
   })
 
   test('combined: minutes-weighted, shooting by minutes times attempts, ranked among the combined', () => {

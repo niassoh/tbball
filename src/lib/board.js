@@ -45,22 +45,30 @@ export const eachSeason = docs => {
 // stat averaged as the profile averages a span (lib/span.js spanMean): weighted by
 // minutes, a shooting stat by minutes times its attempt rate that season, a season
 // without the stat (or its attempt rate) left out.
+// A document's label positions, found once (eras average thousands of rows).
+const POSITIONS = new WeakMap()
+const positionsOf = doc => {
+  if (!POSITIONS.has(doc)) POSITIONS.set(doc, new Map(doc.labels.map((l, k) => [l, k])))
+  return POSITIONS.get(doc)
+}
+
 const combineOne = (entries, labels) => {
   const last = entries[entries.length - 1].p
   const teams = [...new Set(entries.flatMap(({ p }) => p.teams || [p.team]).filter(t => !/TM$/.test(t)))]
+  const at = entries.map(({ doc }) => positionsOf(doc))
   const v = labels.map(l => {
     const volume = SHOT_VOLUME[l]
     let sum = 0
     let weight = 0
-    for (const { doc, p } of entries) {
-      const k = doc.labels.indexOf(l)
-      const x = k < 0 ? null : p.v[k]
-      if (x === null || !p.mp) continue
-      const shots = volume ? p.v[doc.labels.indexOf(volume)] ?? null : 1
-      if (!shots) continue
+    entries.forEach(({ p }, i) => {
+      const k = at[i].get(l)
+      const x = k === undefined ? null : p.v[k]
+      if (x === null || !p.mp) return
+      const shots = volume ? p.v[at[i].get(volume)] ?? null : 1
+      if (!shots) return
       sum += x * p.mp * shots
       weight += p.mp * shots
-    }
+    })
     return weight ? sum / weight : null
   })
   return {
@@ -80,12 +88,30 @@ const combineOne = (entries, labels) => {
   }
 }
 
+// How many of an ascending list sit below v (strict), or at or below it.
+const countBelow = (sorted, v, strict) => {
+  let lo = 0
+  let hi = sorted.length
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (strict ? sorted[mid] < v : sorted[mid] <= v) lo = mid + 1
+    else hi = mid
+  }
+  return lo
+}
+
 // Each row's percentile in every stat among the rows (the way the stat helps; a style
-// stat as is).
+// stat as is): percentileOf's share strictly worse, counted on each stat's sorted values
+// (eras run to thousands of rows).
 const ranked = (labels, stats, players) => {
   labels.forEach((l, k) => {
-    const pool = players.map(p => p.v[k])
-    for (const p of players) p.p[k] = percentileOf(p.v[k], pool, !!stats[l].lowerBetter)
+    const pool = players.map(p => p.v[k]).filter(v => v !== null).sort((a, b) => a - b)
+    const lower = !!stats[l].lowerBetter
+    for (const p of players) {
+      const v = p.v[k]
+      const worse = v === null ? null : lower ? pool.length - countBelow(pool, v, false) : countBelow(pool, v, true)
+      p.p[k] = worse === null || !pool.length ? null : Math.round((worse / pool.length) * 100)
+    }
   })
   return players
 }
@@ -103,6 +129,41 @@ export const combined = docs => {
   const meta = docs[docs.length - 1]
   const players = [...bySlug(docs).values()].map(entries => ({ ...combineOne(entries, meta.labels), season: meta.season, p: [] }))
   return { ...meta, combined: true, players: ranked(meta.labels, meta.stats, players) }
+}
+
+// Every player's eras of `n` seasons: each run of n of his seasons in a row on the board
+// (`docs` in season order; a season he spent under the minutes floor isn't on it, so a run
+// can stretch past n years), one row apiece (`era`: its first and last season), averaged
+// as a combined span is, ranked among all of them.
+export const eras = (docs, n) => {
+  const meta = docs[docs.length - 1]
+  const players = []
+  for (const entries of bySlug(docs).values()) {
+    for (let i = 0; i + n <= entries.length; i++) {
+      const run = entries.slice(i, i + n)
+      const era = [run[0].doc.season, run[n - 1].doc.season]
+      const row = combineOne(run, meta.labels)
+      players.push({ ...row, id: `${row.slug}|${era.join('..')}`, season: era[1], era, p: [] })
+    }
+  }
+  return { ...meta, combined: true, eras: n, players: ranked(meta.labels, meta.stats, players) }
+}
+
+// Each player's best era for two stats (labels `x`, `y`): the one with the highest
+// percentiles in both together (each read the way it helps), for the scatter, which would
+// otherwise draw thousands of eras. Eras missing either stat are left out.
+export const bestEras = (doc, x, y) => {
+  const kx = doc.labels.indexOf(x)
+  const ky = doc.labels.indexOf(y)
+  const best = new Map()
+  for (const p of doc.players) {
+    const a = p.p[kx]
+    const b = p.p[ky]
+    if (a === null || a === undefined || b === null || b === undefined) continue
+    const held = best.get(p.slug)
+    if (!held || a + b > held.score) best.set(p.slug, { p, score: a + b })
+  }
+  return { ...doc, players: [...best.values()].map(b => b.p) }
 }
 
 // Playoffs minus regular season over a span, one row per playoff player: his combined

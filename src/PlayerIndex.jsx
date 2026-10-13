@@ -204,6 +204,12 @@ export default function PlayerIndex() {
   // phone), transition or not. A search or a team renders them at once.
   const [full, setFull] = useState(false)
   const shown = useRef(0)
+  // The search takes the keyboard on arrival only where there's a pointer: on a phone a
+  // focused box would open the on-screen keyboard over the portraits.
+  const search = useRef(null)
+  useEffect(() => {
+    if (window.matchMedia('(pointer: fine)').matches) search.current?.focus()
+  }, [])
   const showAll = () => startTransition(() => setFull(true))
   const onShown = () => {
     shown.current += 1
@@ -230,7 +236,7 @@ export default function PlayerIndex() {
           <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
           <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.5" />
         </svg>
-        <input className="idx-input" autoFocus aria-label="Search players" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search" spellCheck={false}
+        <input ref={search} className="idx-input" aria-label="Search players" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search" spellCheck={false}
           style={{ flex: 1, minWidth: 0, padding: '18px 0', background: 'transparent', border: 'none', color: INK, fontFamily: MONO, fontSize: 'clamp(16px, 2vw, 22px)', letterSpacing: '.02em', outline: 'none', caretColor: 'var(--accent)' }} />
         <Link to="/leaderboard" style={{ ...label, flex: 'none', color: INK, border: `1px solid ${EDGE}`, padding: '7px 10px' }}>Leaderboard →</Link>
       </div>

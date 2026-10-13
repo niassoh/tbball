@@ -165,9 +165,8 @@ function Views({ p, doc }) {
   const fp = viewOf(span.from, span.to)
   const pick = (from, to) => { if (viewOf(from, to)) setSpan({ from, to }) }
   const anchor = anchorName(fp.anchors)
-  const left = `${lastName(p.name).toUpperCase()}'S SHOTS LEFT OUT`
   const sections = [
-    { id: 'mates', title: 'MATES', note: (fp.anchors || []).length ? `${left} · CHECKED WITH AND WITHOUT ${anchor}` : left, tiles: fp.effects.filter(e => e.mates) },
+    { id: 'mates', title: 'MATES', tiles: fp.effects.filter(e => e.mates) },
     { id: 'off', title: 'OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
     { id: 'def', title: 'DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
   ].filter(sec => sec.tiles.length)
@@ -185,7 +184,6 @@ function Views({ p, doc }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 2, minWidth: 0 }}>
         <span style={{ fontSize: 10, letterSpacing: '.22em', color: DIM }}>TEAM</span>
         <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '.1em', lineHeight: 1.1, color: INK }}>{sec.title}</span>
-        {sec.note && <span style={{ marginTop: 6, fontSize: 9, letterSpacing: '.06em', lineHeight: 1.5, color: DIM }}>{sec.note}</span>}
       </div>
       <div className="fp-row-tiles" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, padding: 1, alignSelf: 'start' }}>
         {sec.tiles.map((e, i) => <FootprintTile key={e.key} e={e} anchor={anchor} right={i >= cols / 2} />)}

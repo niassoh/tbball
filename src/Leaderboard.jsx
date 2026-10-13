@@ -101,8 +101,8 @@ function Minutes({ top, set, playoffs }) {
 function RecentButton({ on, set }) {
   return (
     <button type="button" aria-pressed={on} aria-label="Last 30 days" onClick={() => set(!on)} title={on ? 'Back to the full season' : 'The last 30 days'}
-      style={{ flex: 'none', width: 24, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, cursor: 'pointer' }}>
-      <svg aria-hidden="true" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+      style={{ flex: 'none', width: 30, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, cursor: 'pointer' }}>
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
         <rect x="2.5" y="4" width="15" height="13.5" />
         <path d="M2.5 7.5H17.5M6.5 2V5.5M13.5 2V5.5" />
         <text x="10" y="15.3" textAnchor="middle" stroke="none" fill="currentColor" fontFamily={MONO} fontSize="7" fontWeight="700">30</text>
@@ -119,7 +119,7 @@ const day = d => `${MONTHS[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8))}`
 function DeltaToggle({ on, set }) {
   return (
     <button type="button" aria-pressed={on} onClick={() => set(!on)} title="Each player's playoffs minus his regular season"
-      style={{ height: 22, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 7px', border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, fontFamily: MONO, fontSize: 9, fontWeight: on ? 700 : 400, letterSpacing: '.08em', cursor: 'pointer' }}>
+      style={{ height: 26, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 9px', border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 400, letterSpacing: '.08em', cursor: 'pointer' }}>
       <span aria-hidden="true" style={{ width: 6, height: 6, border: '1px solid currentColor', background: on ? 'currentColor' : 'transparent' }} />
       Δ VS REG
     </button>

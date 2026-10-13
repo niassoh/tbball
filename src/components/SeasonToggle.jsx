@@ -7,15 +7,15 @@ import { useSeasonType } from '../useSeasonType.js'
 export default function SeasonToggle() {
   const { playoffs, setPlayoffs } = useSeasonType()
   const seg = (on, fill, ink) => ({
-    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 8px', border: 'none', cursor: on ? 'default' : 'pointer',
+    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: 'none', cursor: on ? 'default' : 'pointer',
     background: on ? fill : 'transparent', color: on ? ink : '#a09a93',
-    fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', fontWeight: on ? 700 : 400, whiteSpace: 'nowrap', transition: 'background .2s, color .2s'
+    fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', fontWeight: on ? 700 : 400, whiteSpace: 'nowrap', transition: 'background .2s, color .2s'
   })
   return (
     <div role="group" aria-label="Season type" style={{ display: 'inline-flex', border: '1px solid #544f4b', flexShrink: 0 }}>
       <button type="button" aria-pressed={!playoffs} onClick={() => playoffs && setPlayoffs(false)} style={seg(!playoffs, '#3d3a37', '#ece8e3')}>REG SEASON</button>
       <button type="button" aria-pressed={playoffs} onClick={() => !playoffs && setPlayoffs(true)} style={{ ...seg(playoffs, 'var(--accent-soft)', 'var(--accent)'), borderLeft: '1px solid #544f4b' }}>
-        <span aria-hidden="true" style={{ width: 7, height: 7, border: `1px solid ${playoffs ? 'var(--accent)' : '#837d76'}`, background: playoffs ? 'var(--accent)' : 'transparent' }} />
+        <span aria-hidden="true" style={{ width: 8, height: 8, border: `1px solid ${playoffs ? 'var(--accent)' : '#837d76'}`, background: playoffs ? 'var(--accent)' : 'transparent' }} />
         PLAYOFFS
       </button>
     </div>

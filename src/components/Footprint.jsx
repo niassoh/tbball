@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
 import { MEDAL_SHARES, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText } from '../lib/footprint.js'
@@ -46,15 +46,47 @@ function Ribbon({ place }) {
 }
 
 // A teammate's face: his portrait (the players index's), else his initials.
+// Square and greyed out: in LONE these are the ones off the floor.
 function Face({ who }) {
   const [failed, setFailed] = useState(false)
   return (
-    <span style={{ width: 30, height: 30, flex: 'none', borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, boxShadow: '0 0 0 1px #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: DIM }}>
+    <span style={{ width: 38, height: 38, flex: 'none', overflow: 'hidden', background: PORTRAIT_BG, boxShadow: '0 0 0 1px #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: DIM }}>
       {who.headshot && !failed
-        ? <img src={headshotUrl(who.slug, 100, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 15%' }} />
+        ? <img src={headshotUrl(who.slug, 100, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 15%', filter: 'grayscale(1) contrast(1.05)', opacity: 0.8 }} />
         : initialsOf(who.name)}
     </span>
   )
+}
+
+// A swing that counts to a new value like a mechanical counter, in tenths, eased out over
+// TICKS steps after `delay` ms. The effect writes its text (React doesn't), so the count
+// runs between renders; with reduced motion it goes straight to the value.
+const TICK_MS = 520
+const TICKS = 14
+const still = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+function Ticker({ value, delay, style }) {
+  const el = useRef(null)
+  const shown = useRef(null)
+  useLayoutEffect(() => {
+    const node = el.current
+    const from = shown.current
+    shown.current = value
+    if (from === null || value === null || from === value || still()) {
+      node.textContent = swingText(value)
+      return undefined
+    }
+    node.textContent = swingText(from)
+    let raf = 0
+    const start = performance.now() + delay
+    const tick = now => {
+      const t = Math.min(1, Math.max(0, (now - start) / TICK_MS))
+      node.textContent = swingText(from + (value - from) * (Math.round((1 - (1 - t) ** 3) * TICKS) / TICKS))
+      if (t < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value, delay])
+  return <span ref={el} style={style} />
 }
 
 // A warning mark for a tile lit by a teammate effect: a solid warning-yellow triangle with
@@ -118,8 +150,10 @@ function Details({ e, anchors, color, right }) {
 // over the bar of how big the swing is among players'; its top-10 badge, else its medal,
 // when it has one. Lit by a teammate effect, its top edge is hatched rather than solid and
 // its unit says so, quietly. The rest is in its details.
-// `turn`: its place in a row the LONE switch just turned over (the wipe's stagger).
-function FootprintTile({ e, anchors, right, turn }) {
+// When its numbers change (LONE, another span), the tile stays put and its data moves: the
+// swing counts to its new value and the bar slides, `delay` ms after the tile before it;
+// colors and the lit edge fade.
+function FootprintTile({ e, anchors, right, delay = 0 }) {
   const [open, setOpen] = useState(false)
   const lit = e.status === 'notable'
   const color = lit ? shade(TONES[toneOf(e)], strengthOf(e)) : DIM
@@ -130,19 +164,19 @@ function FootprintTile({ e, anchors, right, turn }) {
   return (
     // A lit tile carries a bar of its color across the top edge (hatched for a teammate
     // effect); an unlit one is dimmed.
-    <div tabIndex={0} className={turn === undefined ? undefined : 'fp-turn'} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
+    <div tabIndex={0} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
       onPointerUp={ev => { if (ev.pointerType !== 'mouse') setOpen(o => !o) }}
-      style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', animationDelay: turn === undefined ? undefined : `${turn * 55}ms` }}>
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
       {mate && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
       {place && <Ribbon place={place} />}
-      <div style={{ flex: 1, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.6, fontFamily: MONO }}>
+      <div style={{ flex: 1, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.6, transition: `opacity .35s ${delay}ms`, fontFamily: MONO }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: place ? 32 : 0 }}>
           <div style={{ flex: 'none', width: 22, height: 22, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} size={22} /></div>
           <span style={{ minWidth: 0, paddingTop: 3, fontSize: 12.5, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', lineHeight: 1.25, color: INK }}>{e.effect}</span>
           {medal && !place && <span style={{ marginLeft: 'auto', paddingTop: 6, display: 'flex' }}><Medal tier={medal} /></span>}
         </div>
         <span style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
+          <Ticker value={e.diff} delay={delay} style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums', transition: `color .35s ${delay}ms` }} />
           <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {unitOf(e.key, e.unit)}
             {mate && <span title="Teammate effect: most of this swing is his best teammate's minutes, not his" style={{ color: '#b9a45f' }}> · TEAMMATE</span>}
@@ -152,7 +186,7 @@ function FootprintTile({ e, anchors, right, turn }) {
         <div style={{ position: 'relative', height: 8 }}>
           <div style={{ position: 'absolute', left: 0, right: 0, top: 4, height: 1, background: '#4a4642' }} />
           <div style={{ position: 'absolute', left: '50%', top: 0, width: 1, height: 8, background: DIM }} />
-          <div style={{ position: 'absolute', top: 3, height: 3, left: `${b.left}%`, width: `${b.width}%`, background: lit ? color : '#837d76' }} />
+          <div style={{ position: 'absolute', top: 3, height: 3, left: `${b.left}%`, width: `${b.width}%`, background: lit ? color : '#837d76', transition: `left .55s cubic-bezier(.3,0,.1,1) ${delay}ms, width .55s cubic-bezier(.3,0,.1,1) ${delay}ms, background-color .35s ${delay}ms` }} />
         </div>
       </div>
       {open && <Details e={e} anchors={anchors} color={lit ? color : null} right={right} />}
@@ -249,14 +283,7 @@ function Views({ p, doc, faces }) {
   })
   const fp = viewOf(span.from, span.to)
   const pick = (from, to) => { if (viewOf(from, to)) setSpan({ from, to }) }
-  // LONE, and how many times it's been switched (each switch wipes the tiles it changes in
-  // anew; the first view doesn't).
   const [lone, setLone] = useState(false)
-  const [turns, setTurns] = useState(0)
-  const switchLone = on => {
-    setLone(on)
-    setTurns(t => t + 1)
-  }
   const anchors = (fp.anchors || []).map(a => {
     const f = faces.get(a.slug)
     return { ...a, headshot: f && f.headshot, headshotVersion: f && f.headshotVersion }
@@ -294,8 +321,8 @@ function Views({ p, doc, faces }) {
         </div>
         <div className="fp-row-tiles" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, padding: 1, alignSelf: 'start' }}>
           {sec.tiles.map((e, i) => (
-            <FootprintTile key={changes ? `${e.key}-${turns}` : e.key} e={loneOn && changes ? loneTile(e) : e} anchors={anchors} right={i >= cols / 2}
-              turn={changes && turns > 0 ? (sec.id === 'mates' ? i : sections[0].tiles.length + i) : undefined} />
+            <FootprintTile key={e.key} e={loneOn && changes ? loneTile(e) : e} anchors={anchors} right={i >= cols / 2}
+              delay={45 * (sections.slice(0, sections.indexOf(sec)).reduce((n, x) => n + x.tiles.length, 0) + i)} />
           ))}
         </div>
       </div>
@@ -306,7 +333,7 @@ function Views({ p, doc, faces }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' }}>
           <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} />
-          <LoneSwitch on={loneOn} set={switchLone} disabled={!anchors.length} />
+          <LoneSwitch on={loneOn} set={setLone} disabled={!anchors.length} />
           <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>in {lastName(p.name)}&apos;s {fp.minutes.on.toLocaleString()} ON court vs {fp.minutes.off.toLocaleString()} OFF</p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title="His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on">
@@ -318,8 +345,8 @@ function Views({ p, doc, faces }) {
       {loneOn && (
         // What LONE shows: who is set aside, in which seasons, and the minutes left.
         <div className="fp-lone" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', border: `1px solid ${RULE}`, borderLeft: '3px solid var(--accent)', background: '#262422', fontFamily: MONO }}>
-          <span style={{ display: 'flex', flex: 'none' }}>
-            {anchors.map((a, i) => <span key={a.slug || i} style={{ marginLeft: i ? -8 : 0, display: 'flex' }}><Face who={a} /></span>)}
+          <span style={{ display: 'flex', gap: 4, flex: 'none' }}>
+            {anchors.map((a, i) => <Face key={a.slug || i} who={a} />)}
           </span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', color: INK }}>

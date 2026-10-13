@@ -44,6 +44,12 @@ html { scroll-behavior: smooth; }
   .topbar .player-search-wrap { display: none !important; }
   .topbar-search-btn { display: inline-flex !important; }
 }
+/* The player page's loader: its cells light in turn (ProfileLoading). */
+.ld-cells > span { background: #3d3a37; animation: ld-cell 1.2s steps(1, end) infinite; animation-delay: calc(var(--i) * .1s); }
+@keyframes ld-cell { 0% { background: var(--accent, #8fb0e6); } 25%, 100% { background: #3d3a37; } }
+.ld-face img { animation: ld-face .35s ease both; }
+@keyframes ld-face { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ld-cells > span, .ld-face img { animation: none; } }
 .profile-cards-wrap { container-type: inline-size; }
 .profile-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 12px; align-items: stretch; }
 .season-rail-cell { grid-column: 1 / -1; min-width: 0; }

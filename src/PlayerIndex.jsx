@@ -140,11 +140,14 @@ function Face({ player, size, square, order = EAGER, onShown }) {
   )
 }
 
+// What a link hands the player's page to show while it loads (ProfileLoading).
+const previewOf = p => ({ preview: { name: p.name, headshot: p.headshot, headshotVersion: p.headshotVersion } })
+
 // A portrait in the catalogue: team and seasons over the portrait, then the name and his
 // latest BPM on the meter. The LED is lit for players in the latest season.
 function Tile({ player: p, to, order, onShown }) {
   return (
-    <Link to={to} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
+    <Link to={to} state={previewOf(p)} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
       <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
         <TeamChip team={p.team} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
@@ -169,7 +172,7 @@ function Tile({ player: p, to, order, onShown }) {
 // A line in the parts list.
 function Row({ player: p, to }) {
   return (
-    <Link to={to} className="idx-row idx-later-row" style={{ display: 'grid', gridTemplateColumns: '22px minmax(0,1fr) 48px 30px 44px', gap: 10, alignItems: 'center', height: 32, padding: '0 4px', borderBottom: `1px solid ${RULE}`, color: INK }}>
+    <Link to={to} state={previewOf(p)} className="idx-row idx-later-row" style={{ display: 'grid', gridTemplateColumns: '22px minmax(0,1fr) 48px 30px 44px', gap: 10, alignItems: 'center', height: 32, padding: '0 4px', borderBottom: `1px solid ${RULE}`, color: INK }}>
       <Face player={p} size={22} />
       <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
       <TeamChip team={p.team} />

@@ -12,6 +12,7 @@ import YearToYear from './components/YearToYear.jsx'
 import Footprint from './components/Footprint.jsx'
 import Lonestar from './components/Lonestar.jsx'
 import TopBar from './components/TopBar.jsx'
+import ProfileLoading from './components/ProfileLoading.jsx'
 import { useSeasonType } from './useSeasonType.js'
 
 // Not keyed by slug: moving to another player (e.g. from the depth chart) keeps the
@@ -93,6 +94,7 @@ function ProfilePage({ slug, playoffs }) {
   // so the choice carries across tabs and players.
   const [pctView, setPctView] = useState(false)
   const loading = state.key !== key
+  const preview = useLocation().state?.preview
 
   useEffect(() => {
     let live = true
@@ -112,8 +114,11 @@ function ProfilePage({ slug, playoffs }) {
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps -- state.profile only gates the delay
 
 
+  // The first load shows the player's page arriving (his portrait and name, if the link
+  // that brought us handed them over); a swap between players keeps the page up instead.
+  if (state.status === 'loading') return <ProfileLoading slug={slug} preview={preview} homePath={homePath} />
   if (state.status !== 'ready') {
-    const msg = { loading: 'Loading…', missing: 'Player not found.', error: `Couldn't load profile (${state.error}).` }[state.status]
+    const msg = { missing: 'Player not found.', error: `Couldn't load profile (${state.error}).` }[state.status]
     return (
       <main className="page-main" style={{ maxWidth: 1440, margin: '0 auto', padding: '40px var(--page-pad)', fontFamily: MONO, color: '#b3ada6' }}>
         {msg} <Link to={homePath}>All players</Link>

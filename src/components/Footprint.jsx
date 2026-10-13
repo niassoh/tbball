@@ -72,16 +72,13 @@ function MateMark({ size = 15 }) {
 
 // A tile's details, on hover (a tap on a phone), as a sheet: his team's value off and on,
 // the swing (its unit and size among players' swings), the on value's league and
-// percentile; for a teammate stat, WHEN [his best-OBPM teammate] SITS: the same off, on
-// and swing over only the minutes that teammate is off the floor, with his minutes on and
-// off there, and what happens to the swing when it's a teammate effect. Opens leftward
-// from a tile on the right of its row.
+// percentile; in LONE, his minutes on and off too; and, for a tile lit by a teammate
+// effect, what its swing comes to in LONE. Opens leftward from a tile on the right of its
+// row.
 // `color`: a lit tile's; an unlit one's swing is ink.
 function Details({ e, anchors, color, right }) {
   const medal = medalOf(e)
-  const w = e.wowy
-  const who = anchorName(anchors)
-  const sits = `WHEN ${who} ${anchors.length > 1 ? 'SIT' : 'SITS'}`
+  const sits = `WHEN ${anchorName(anchors)} ${anchors.length > 1 ? 'SIT' : 'SITS'}`
   const head = { fontSize: 9, letterSpacing: '.14em', color: DIM }
   const big = { fontSize: 18, lineHeight: 1.15, color: INK }
   const sub = { fontSize: 9.5, letterSpacing: '.06em', color: DIM, whiteSpace: 'nowrap' }
@@ -89,7 +86,7 @@ function Details({ e, anchors, color, right }) {
   const has = e.on !== null && e.on !== undefined
   return (
     <div role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 4px)', ...(right ? { right: 0 } : { left: 0 }), zIndex: 30, width: 340, maxWidth: 'calc(100vw - 32px)', background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10, fontFamily: MONO, fontSize: 10.5, lineHeight: 1.4, letterSpacing: '.04em', color: '#d8d2cb', fontVariantNumeric: 'tabular-nums', textAlign: 'left' }}>
-      <span style={{ color: INK, textTransform: 'uppercase', letterSpacing: '.08em' }}>{e.label}</span>
+      <span style={{ color: INK, textTransform: 'uppercase', letterSpacing: '.08em' }}>{e.label}{e.isLone && <span style={{ color: 'var(--accent)' }}> · LONE</span>}</span>
       {has ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.45fr', columnGap: 12, rowGap: 2, paddingTop: 9, borderTop: rule }}>
           <span style={head}>OFF</span>
@@ -104,39 +101,14 @@ function Details({ e, anchors, color, right }) {
           <span />
           <span style={{ ...sub, display: 'inline-flex', alignItems: 'center', gap: 5, color: medal ? MEDALS[medal - 1] : DIM }}>{medal && <Medal tier={medal} />}{pctlText(e.onPctl)}</span>
           <span style={sub}>{e.pctl !== null && e.pctl !== undefined ? pctlText(e.pctl) : MISSING[e.status]}</span>
+          {e.isLone && <><span style={sub}>{e.min[1].toLocaleString()} MIN</span><span style={sub}>{e.min[0].toLocaleString()} MIN</span><span /></>}
         </div>
       ) : MISSING[e.status] && <span style={sub}>{MISSING[e.status]}</span>}
-      {w && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, paddingTop: 10, borderTop: rule }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <span style={{ display: 'flex' }}>
-              {anchors.map((a, i) => <span key={a.slug || i} style={{ marginLeft: i ? -8 : 0, display: 'flex' }}><Face who={a} /></span>)}
-            </span>
-            <span style={{ minWidth: 0, color: INK, fontWeight: 700, letterSpacing: '.08em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sits}</span>
-          </div>
-          {w.swing === null
-            ? <span style={sub}>TOO FEW MINUTES TO SAY · {w.min[0].toLocaleString()} ON, {w.min[1].toLocaleString()} OFF</span>
-            : (
-              // The same off, on and swing as above, over only those minutes.
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.45fr', columnGap: 12, rowGap: 2 }}>
-                <span style={head}>OFF</span>
-                <span style={head}>ON</span>
-                <span style={head}>SWING</span>
-                <span style={big}>{valueText(e, w.off)}</span>
-                <span style={big}>{valueText(e, w.on)}</span>
-                <span style={big}>{swingText(w.swing)}</span>
-                <span style={sub}>{w.min[1].toLocaleString()} MIN</span>
-                <span style={sub}>{w.min[0].toLocaleString()} MIN</span>
-                <span style={sub}>{pctlText(w.pctl)}</span>
-              </div>
-            )}
-          {w.mate && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 7, paddingTop: 2, color: INK, letterSpacing: '.06em' }}>
-              <MateMark size={16} />
-              <span><span style={{ color: WARN }}>TEAMMATE EFFECT</span> <span style={{ color: DIM }}>·</span> {swingText(e.diff)} <span style={{ color: DIM }}>{Math.sign(w.swing) === Math.sign(e.diff) ? 'FALLS' : 'TURNS'} TO</span> {swingText(w.swing)} <span style={{ color: DIM }}>{sits}</span></span>
-            </span>
-          )}
-        </div>
+      {e.mate && (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 7, paddingTop: 10, borderTop: rule, color: INK, letterSpacing: '.06em' }}>
+          <MateMark size={16} />
+          <span><span style={{ color: WARN }}>TEAMMATE EFFECT</span> <span style={{ color: DIM }}>·</span> {swingText(e.diff)} <span style={{ color: DIM }}>{Math.sign(e.lone.diff) === Math.sign(e.diff) ? 'FALLS' : 'TURNS'} TO</span> {swingText(e.lone.diff)} <span style={{ color: DIM }}>{sits} (LONE)</span></span>
+        </span>
       )}
     </div>
   )
@@ -146,20 +118,21 @@ function Details({ e, anchors, color, right }) {
 // over the bar of how big the swing is among players'; its top-10 badge, else its medal,
 // when it has one. Lit by a teammate effect, its top edge is hatched rather than solid and
 // its unit says so, quietly. The rest is in its details.
-function FootprintTile({ e, anchors, right }) {
+// `turn`: its place in a row the LONE switch just turned over (the wipe's stagger).
+function FootprintTile({ e, anchors, right, turn }) {
   const [open, setOpen] = useState(false)
   const lit = e.status === 'notable'
   const color = lit ? shade(TONES[toneOf(e)], strengthOf(e)) : DIM
   const b = bar(e)
   const medal = medalOf(e)
   const place = topPlaceOf(e)
-  const mate = lit && e.wowy && e.wowy.mate
+  const mate = lit && e.mate
   return (
     // A lit tile carries a bar of its color across the top edge (hatched for a teammate
     // effect); an unlit one is dimmed.
-    <div tabIndex={0} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
+    <div tabIndex={0} className={turn === undefined ? undefined : 'fp-turn'} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
       onPointerUp={ev => { if (ev.pointerType !== 'mouse') setOpen(o => !o) }}
-      style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto' }}>
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', animationDelay: turn === undefined ? undefined : `${turn * 55}ms` }}>
       {mate && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
       {place && <Ribbon place={place} />}
       <div style={{ flex: 1, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.6, fontFamily: MONO }}>
@@ -202,8 +175,8 @@ function Method({ fp, from, to }) {
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them.</li>
-            <li>Teammate stats are also measured WHEN his best-OBPM teammate SITS: the same on and off over only the minutes that teammate is off the floor, with his minutes on and off there.</li>
-            <li>A lit teammate tile is marked as a teammate effect when its swing keeps less than half of itself, or turns round, when that teammate sits: most of it is that teammate&apos;s minutes.</li>
+            <li>LONE shows the MATES and OFFENSE tiles again over only the minutes his best-OBPM teammate sits (off the floor on both sides), measured and lit the same way; DEFENSE stays on all his minutes.</li>
+            <li>A lit tile is marked as a teammate effect when its swing keeps less than half of itself, or turns round, in LONE: most of it is that teammate&apos;s minutes.</li>
             <li>In a tile&apos;s details, the percentile under SWING is the swing&apos;s size among players&apos; swings in that stat; LG and the percentile under ON place his team&apos;s on value against the league&apos;s that season.</li>
             <li>An on value in the league&apos;s top 10 at the end that helps his team gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%.</li>
           </ul>
@@ -250,6 +223,23 @@ export default function Footprint({ profile: p }) {
   )
 }
 
+// A tile as LONE has it: the stat over only the minutes his anchor sits, with no badge (a
+// place is among players' whole on/off) and no teammate mark.
+const loneTile = e => ({ ...e, ...(e.lone || { status: 'na', on: null, off: null, diff: null, pctl: null, onPctl: null }), rank: null, mate: false, isLone: true })
+const seasonsText = seasons => seasons.map(s => s.replace('-', '–')).join(', ')
+
+// LONE: the MATES and OFFENSE tiles over only the minutes his best-OBPM teammate sits.
+function LoneSwitch({ on, set, disabled }) {
+  return (
+    <button type="button" aria-pressed={on} disabled={disabled} onClick={() => set(!on)}
+      title={disabled ? 'No teammate to set aside in these seasons' : on ? 'Back to all his minutes' : 'Only the minutes his best teammate sits'}
+      style={{ height: 30, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 12px', border: `1px solid ${on ? 'var(--accent)' : '#544f4b'}`, background: on ? '#3a3734' : 'transparent', color: on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10.5, fontWeight: on ? 700 : 500, letterSpacing: '.16em', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1 }}>
+      <span aria-hidden="true" style={{ width: 8, height: 8, border: `1px solid ${on ? 'var(--accent)' : '#837d76'}`, background: on ? 'var(--accent)' : 'transparent', transition: 'background .15s' }} />
+      LONE
+    </button>
+  )
+}
+
 // The span on show (his last two seasons at first, or his only one) and its tiles.
 function Views({ p, doc, faces }) {
   const viewOf = (from, to) => doc.views.find(v => v.id === spanId(from, to))
@@ -259,6 +249,14 @@ function Views({ p, doc, faces }) {
   })
   const fp = viewOf(span.from, span.to)
   const pick = (from, to) => { if (viewOf(from, to)) setSpan({ from, to }) }
+  // LONE, and how many times it's been switched (each switch wipes the tiles it changes in
+  // anew; the first view doesn't).
+  const [lone, setLone] = useState(false)
+  const [turns, setTurns] = useState(0)
+  const switchLone = on => {
+    setLone(on)
+    setTurns(t => t + 1)
+  }
   const anchors = (fp.anchors || []).map(a => {
     const f = faces.get(a.slug)
     return { ...a, headshot: f && f.headshot, headshotVersion: f && f.headshotVersion }
@@ -268,6 +266,9 @@ function Views({ p, doc, faces }) {
     { id: 'off', title: 'OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
     { id: 'def', title: 'DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
   ].filter(sec => sec.tiles.length)
+  const loneOn = lone && anchors.length > 0
+  const loneMin = (fp.effects.find(e => e.lone) || {}).lone
+  const names = anchors.map(a => lastName(a.name)).join(' and ')
   // His team's points per 100 scored and allowed with him on against the league's (rORTG,
   // rDRTG), and from him off to on; blue where it helps (more scored, fewer allowed).
   const rating = (name, x, good) => (
@@ -280,22 +281,32 @@ function Views({ p, doc, faces }) {
   // A row: TEAM and its word on the left, its tiles side by side, every row on the widest
   // one's columns so the tiles are the same boxes throughout.
   const cols = Math.max(...sections.map(sec => sec.tiles.length))
-  const row = sec => (
-    <div key={sec.id} className="fp-row" style={{ display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', columnGap: 14, padding: '14px 0', borderTop: `1px solid ${RULE}`, fontFamily: MONO }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 2, minWidth: 0 }}>
-        <span style={{ fontSize: 10, letterSpacing: '.22em', color: DIM }}>TEAM</span>
-        <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '.1em', lineHeight: 1.1, color: INK }}>{sec.title}</span>
+  // In LONE, MATES and OFFENSE show LONE's tiles; DEFENSE stays on all his minutes, dimmed.
+  const row = sec => {
+    const changes = sec.id !== 'def'
+    const kept = loneOn && !changes
+    return (
+      <div key={sec.id} className="fp-row" style={{ display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', columnGap: 14, padding: '14px 0', borderTop: `1px solid ${RULE}`, fontFamily: MONO, opacity: kept ? 0.45 : 1, transition: 'opacity .3s' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 2, minWidth: 0 }}>
+          <span style={{ fontSize: 10, letterSpacing: '.22em', color: loneOn && changes ? 'var(--accent)' : DIM }}>{loneOn && changes ? 'LONE' : 'TEAM'}</span>
+          <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '.1em', lineHeight: 1.1, color: INK }}>{sec.title}</span>
+          {kept && <span style={{ fontSize: 9, letterSpacing: '.12em', color: DIM, marginTop: 4 }}>ALL MINUTES</span>}
+        </div>
+        <div className="fp-row-tiles" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, padding: 1, alignSelf: 'start' }}>
+          {sec.tiles.map((e, i) => (
+            <FootprintTile key={changes ? `${e.key}-${turns}` : e.key} e={loneOn && changes ? loneTile(e) : e} anchors={anchors} right={i >= cols / 2}
+              turn={changes && turns > 0 ? (sec.id === 'mates' ? i : sections[0].tiles.length + i) : undefined} />
+          ))}
+        </div>
       </div>
-      <div className="fp-row-tiles" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, padding: 1, alignSelf: 'start' }}>
-        {sec.tiles.map((e, i) => <FootprintTile key={e.key} e={e} anchors={anchors} right={i >= cols / 2} />)}
-      </div>
-    </div>
-  )
+    )
+  }
   return (
     <>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' }}>
           <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} />
+          <LoneSwitch on={loneOn} set={switchLone} disabled={!anchors.length} />
           <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>in {lastName(p.name)}&apos;s {fp.minutes.on.toLocaleString()} ON court vs {fp.minutes.off.toLocaleString()} OFF</p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title="His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on">
@@ -304,6 +315,22 @@ function Views({ p, doc, faces }) {
           {rating('rDRTG', fp.drtg, -1)}
         </div>
       </div>
+      {loneOn && (
+        // What LONE shows: who is set aside, in which seasons, and the minutes left.
+        <div className="fp-lone" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', border: `1px solid ${RULE}`, borderLeft: '3px solid var(--accent)', background: '#262422', fontFamily: MONO }}>
+          <span style={{ display: 'flex', flex: 'none' }}>
+            {anchors.map((a, i) => <span key={a.slug || i} style={{ marginLeft: i ? -8 : 0, display: 'flex' }}><Face who={a} /></span>)}
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', color: INK }}>
+              LONE <span style={{ color: DIM }}>· WITHOUT</span> {anchors.map((a, i) => <span key={a.slug || i}>{i ? <span style={{ color: DIM }}> · </span> : null}{lastName(a.name).toUpperCase()} <span style={{ color: DIM, fontWeight: 400 }}>{seasonsText(a.seasons)}</span></span>)}
+            </span>
+            <span style={{ fontSize: 11, lineHeight: 1.55, color: '#b3ada6', textWrap: 'pretty' }}>
+              MATES and OFFENSE count only the minutes {names} sat, off the floor on both sides: {lastName(p.name)}&apos;s {loneMin ? loneMin.min[0].toLocaleString() : '—'} ON vs {loneMin ? loneMin.min[1].toLocaleString() : '—'} OFF. DEFENSE stays on all his minutes.
+            </span>
+          </div>
+        </div>
+      )}
       {/* TEAM MATES, then TEAM OFFENSE, then TEAM DEFENSE, a row each. */}
       <div style={{ borderBottom: `1px solid ${RULE}` }}>{sections.map(row)}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', paddingTop: 4, fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>

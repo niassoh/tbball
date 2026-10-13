@@ -324,12 +324,15 @@ export default function Lonestar({ profile: p }) {
 }
 
 function Frame({ p, ls }) {
-  // The span first (his latest season alone), then the scenario within it.
-  const [span, setSpan] = useState({ from: ls.views[0].id, to: ls.views[0].id })
+  // The span first (his last two seasons, or his only one), then the scenario within it.
+  const viewOf = (from, to) => ls.views.find(v => v.id === spanId(from, to))
+  const [span, setSpan] = useState(() => {
+    const [a, b] = ls.seasons.slice(-2)
+    return b && viewOf(a, b) ? { from: a, to: b } : { from: ls.views[0].id, to: ls.views[0].id }
+  })
   const [pick, setPick] = useState(0)
   const [mode, setMode] = useState('raw')
   const [plotRef, plotWidth] = useWidth(304)
-  const viewOf = (from, to) => ls.views.find(v => v.id === spanId(from, to))
   const view = viewOf(span.from, span.to)
   const scenarios = view.scenarios
   const s = scenarios[Math.min(pick, scenarios.length - 1)]

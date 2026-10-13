@@ -145,20 +145,20 @@ function Face({ player, size, square, order = EAGER, onShown }) {
 function Tile({ player: p, to, order, onShown }) {
   return (
     <Link to={to} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
-      <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
+      <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
         <TeamChip team={p.team} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
-          {span(p)}
+          <span className="idx-tile-span">{span(p)}</span>
           <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}` }} />
         </span>
       </span>
       <Face player={p} square order={order} onShown={onShown} />
-      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 10px 12px', borderTop: `1px solid ${RULE}` }}>
+      <span className="idx-tile-foot" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 10px 12px', borderTop: `1px solid ${RULE}` }}>
         <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>
         <FitName text={lastName(p.name)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
           <span style={label}>BPM</span>
-          <Meter value={p.recentBpm} />
+          <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={p.recentBpm} /></span>
           <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: 600, color: low(p.recentBpm) ? '#fa962a' : INK }}>{signed(p.recentBpm)}</span>
         </span>
       </span>
@@ -224,7 +224,7 @@ export default function PlayerIndex() {
   const all = full || !!q || !!team
 
   return (
-    <main style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 32px 64px' }}>
+    <main className="page-main" style={{ maxWidth: 1440, margin: '0 auto', padding: '20px var(--page-pad) 64px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderBottom: `1px solid ${EDGE}` }}>
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ flex: 'none', color: DIM }}>
           <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -243,7 +243,7 @@ export default function PlayerIndex() {
       {portraits.length > 0 && (
         <Section title="Illustrated" count={portraits.length}>
           {/* Tiles share their 1px edges (each overlaps the next by 1px), so a short last row leaves empty cells blank. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', paddingRight: 1, paddingBottom: 1 }}>
+          <div className="idx-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', paddingRight: 1, paddingBottom: 1 }}>
             {(all ? portraits : portraits.slice(0, EAGER)).map((p, i) => <Tile key={p.slug} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} />)}
           </div>
         </Section>

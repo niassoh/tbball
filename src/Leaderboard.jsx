@@ -208,18 +208,21 @@ export default function Leaderboard() {
   }, [cache, wantedKey, each, top])
 
   // A group the season type lacks (Footprint in the playoffs) falls back to the first;
-  // a sort or axis the document lacks, to the group's own.
+  // a sort or axis the document lacks, to the group's own. A default axis with no values (a
+  // stat its season's data doesn't have yet) gives way to the group's next one that has.
   const g = doc ? doc.groups.find(x => x.id === group) || doc.groups[0] : null
   const has = l => doc && doc.labels.includes(l)
+  const filled = l => has(l) && doc.players.some(p => p.v[doc.labels.indexOf(l)] !== null)
+  const axesOf = gr => [...new Set([...(AXES[gr.id] || []), ...gr.stats])].filter(filled).slice(0, 2)
   const sortLabel = has(sort.label) ? sort.label : g && g.stats[0]
-  const pair = g && (AXES[g.id] || g.stats).filter(has)
+  const pair = g && axesOf(g)
   const x = has(axes.x) ? axes.x : pair && pair[0]
   const y = has(axes.y) ? axes.y : pair && pair[1]
   const choose = id => {
     const next = doc.groups.find(gr => gr.id === id)
     setGroup(id)
     setSort({ label: next.stats[0], reverse: false })
-    const [ax, ay] = (AXES[id] || next.stats).filter(has)
+    const [ax, ay] = axesOf(next)
     setAxes({ x: ax, y: ay })
   }
   const onSort = useCallback(l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false })), [])

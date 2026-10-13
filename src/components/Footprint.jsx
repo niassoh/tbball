@@ -153,6 +153,20 @@ function Views({ p, doc }) {
   const defSwing = fp.drtg.off - fp.drtg.on
   const ortg = fp.effects.find(e => e.key === 'ortg')
   const legendKey = { display: 'inline-flex', gap: 6, alignItems: 'center' }
+  const row = sec => (
+    <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO, minWidth: 0 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline', padding: '12px 0 10px' }}>
+        {/* TEAM, then the row's word on a solid block of muted grey. */}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, letterSpacing: '.14em' }}>
+          TEAM<span style={{ background: '#a8a29c', color: '#1f1d1c', padding: '2px 5px 1px 6px', lineHeight: 1.1 }}>{sec.title}</span>
+        </span>
+        {sec.note && <span style={{ fontSize: 10, color: '#6b655f', letterSpacing: '.08em' }}>{sec.note}</span>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 1, padding: 1 }}>
+        {sec.tiles.map(e => <FootprintTile key={e.key} e={e} anchor={anchor} />)}
+      </div>
+    </div>
+  )
   return (
     <>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
@@ -169,20 +183,12 @@ function Views({ p, doc }) {
           )}
         </div>
       </div>
-      {sections.map(sec => (
-        <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline', padding: '12px 0 10px' }}>
-            {/* TEAM, then the row's word on a solid block of muted grey. */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, letterSpacing: '.14em' }}>
-              TEAM<span style={{ background: '#a8a29c', color: '#1f1d1c', padding: '2px 5px 1px 6px', lineHeight: 1.1 }}>{sec.title}</span>
-            </span>
-            {sec.note && <span style={{ fontSize: 10, color: '#6b655f', letterSpacing: '.08em' }}>{sec.note}</span>}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 1, padding: 1 }}>
-            {sec.tiles.map(e => <FootprintTile key={e.key} e={e} anchor={anchor} />)}
-          </div>
-        </div>
-      ))}
+      {/* TEAM MATES across the top; TEAM OFFENSE and TEAM DEFENSE side by side under it
+          (one above the other on a narrow screen). */}
+      {sections.filter(sec => sec.id === 'mates').map(row)}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: '0 24px', alignItems: 'start' }}>
+        {sections.filter(sec => sec.id !== 'mates').map(row)}
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', paddingTop: 4, fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.good }} />LIFT</span>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.bad }} />COST</span>

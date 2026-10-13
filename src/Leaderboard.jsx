@@ -48,7 +48,7 @@ function Groups({ groups, active, pick }) {
         const on = g.id === active
         return (
           <button key={g.id} type="button" className="lb-group" aria-pressed={on} onClick={() => pick(g.id)}
-            style={{ flex: 'none', height: 28, padding: '0 11px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: on ? INK : DIM, fontFamily: MONO, fontSize: 9.5, fontWeight: on ? 700 : 400, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+            style={{ flex: 'none', height: 28, padding: '0 11px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer' }}>
             {g.name}
           </button>
         )
@@ -105,7 +105,7 @@ function DeltaToggle({ on, set }) {
 
 function Teams({ teams, team, set }) {
   return (
-    <Popover name={`Team: ${team || 'all'}`} minWidth={280} trigger={<><span style={{ ...label, fontWeight: 400 }}>Team</span>{team || 'All'}</>}>
+    <Popover name={`Team: ${team || 'all'}`} align="right" minWidth={280} trigger={<><span style={{ ...label, fontWeight: 400 }}>Team</span>{team || 'All'}</>}>
       {close => (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', border: `1px solid ${EDGE}` }}>
           {[null, ...teams].map((t, i) => (
@@ -260,7 +260,6 @@ export default function Leaderboard() {
           <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} pick={(from, to) => setSpan({ from, to })}
             extra={many && <Each each={each} set={setEach} />} />
         )}
-        {doc && <Teams teams={teams} team={team} set={setTeam} />}
         {doc && <Minutes top={top} set={setTop} playoffs={playoffs} />}
         {doc && <Groups groups={doc.groups} active={g.id} pick={choose} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
@@ -270,7 +269,7 @@ export default function Leaderboard() {
             <input value={find} onChange={e => setFind(e.target.value)} aria-label="Find a player" spellCheck={false}
               style={{ width: 96, background: 'transparent', border: 0, outline: 'none', color: INK, fontFamily: MONO, fontSize: 11, caretColor: 'var(--accent)' }} />
           </label>
-          {doc && <span style={label}><span style={{ color: INK, fontWeight: 700 }}>{rows.length}</span> {doc.many ? 'seasons' : 'players'}</span>}
+          {doc && <Teams teams={teams} team={team} set={setTeam} />}
         </span>
       </div>
 

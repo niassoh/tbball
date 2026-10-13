@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchFootprint } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { UNITS, bar, shade, strengthOf, swingText, toneOf } from '../lib/footprint.js'
+import { UNITS, anchorName, bar, rankText, shade, standoutsOf, strengthOf, swingText, toneOf, valueText, wowyText, wowyVerdict } from '../lib/footprint.js'
 import { spanId, spanText } from '../lib/seasons.js'
 import { useSeasonType } from '../useSeasonType.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
@@ -13,10 +13,13 @@ import SectionHeader from './SectionHeader.jsx'
 // his teams' five-man lineup totals in a regular season or a span of them, picked as in
 // the Lonestar tab (thinking-bball lib/footprint.js), laid out as the Claude Design
 // "Footprint" module. Each tile is a
-// team stat with him on minus off; those that clear the noise and stand out against the
-// league's swings are lit (blue for a lift, orange for a cost, ink for a style stat, as
-// strong as the evidence), and their WHY says whether the swing survives the teammates
-// whose minutes move with his.
+// stat with him on minus off: his team's, or, in the TEAMMATES row, his teammates' alone
+// (his own shots left out). Those that clear the noise and stand out against the league's
+// swings are lit (blue for a lift, orange for a cost, ink for a style stat, as strong as
+// the evidence), and their WHY says whether the swing survives the teammates whose minutes
+// move with his; a teammate stat is also checked with and without his best-OBPM
+// teammate. Each tile has its on value against the league's, and the standouts head the
+// tab.
 const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#c9c3bc' }
 const INK = '#ece8e3'
 const DIM = '#8a847e'
@@ -25,7 +28,7 @@ const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 const one = v => v.toFixed(1)
 const chip = { display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', padding: '3px 6px', lineHeight: 1, whiteSpace: 'nowrap', background: 'transparent' }
 // Why an unlit tile is unlit.
-const UNLIT = { noise: 'WITHIN NOISE', typical: 'COMMON SWING', thin: 'TOO FEW MINUTES' }
+const UNLIT = { noise: 'WITHIN NOISE', typical: 'COMMON SWING', thin: 'TOO FEW MINUTES', na: "NOT IN THIS SEASON'S DATA YET" }
 
 // The teammate named in a check's text, linked to his profile wherever it appears.
 function Named({ text, mate }) {
@@ -59,13 +62,14 @@ function Why({ e }) {
   )
 }
 
-function FootprintTile({ e }) {
+function FootprintTile({ e, anchor }) {
   const lit = e.status === 'notable'
   const color = lit ? shade(TONES[toneOf(e)], strengthOf(e)) : DIM
   const b = bar(e)
+  const small = { fontSize: 9.5, letterSpacing: '.06em', fontVariantNumeric: 'tabular-nums' }
   return (
     // A lit tile carries a bar of its color across the top edge.
-    <div style={{ background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 170, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
+    <div style={{ background: lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 196, opacity: lit ? 1 : 0.62, fontFamily: MONO }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <div style={{ flex: 'none', width: 28, height: 28, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} /></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
@@ -86,11 +90,56 @@ function FootprintTile({ e }) {
         <div style={{ position: 'absolute', left: '50%', top: 0, width: 1, height: 8, background: DIM }} />
         <div style={{ position: 'absolute', top: 3, height: 3, left: `${b.left}%`, width: `${b.width}%`, background: lit ? color : '#6b655f' }} />
       </div>
+      {/* His on value against the league's, and where it ranks at the league's ends. */}
+      {e.r !== null && e.r !== undefined && (
+        <div style={{ ...small, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '2px 8px', color: DIM }} title="With him on, against the league that season">
+          <span>ON {swingText(e.r)} VS LG <span style={{ color: '#6b655f' }}>({valueText(e, e.lg)})</span></span>
+          {e.rank && <span style={{ color: '#c9c3bc' }}>{rankText(e.rank)}</span>}
+        </div>
+      )}
+      {e.wowy && <div style={{ ...small, color: '#a8a29c' }} title={wowyVerdict(e.wowy, anchor)}>{wowyText(e.wowy, anchor)}</div>}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', minHeight: 18 }}>
         {lit && e.context && <Why e={e} />}
         {lit && e.borderline && <span style={{ ...chip, border: `1px solid ${RULE}`, color: DIM }} title="Just clears the bar, or on a thin sample">BORDERLINE</span>}
+        {lit && e.wowy && <span style={{ ...chip, border: `1px solid ${RULE}`, color: '#c9c3bc' }}>{wowyVerdict(e.wowy, anchor)}</span>}
         {!lit && <span style={{ fontSize: 9, letterSpacing: '.12em', color: DIM }}>{UNLIT[e.status]}</span>}
       </div>
+    </div>
+  )
+}
+
+// The stats that stand out most in this view: a headline, then up to two more lines. An
+// on value at the league's extremes reads as where it ranks; a swing, as how big it is
+// among players' swings.
+function Standouts({ fp }) {
+  const list = standoutsOf(fp)
+  if (!list.length) return null
+  const [top, ...rest] = list
+  const describe = ({ e, kind }) => (kind === 'level'
+    ? [`${valueText(e, e.on)} WITH HIM ON`, `LEAGUE ${valueText(e, e.lg)}`, rankText(e.rank), `${swingText(e.diff)} VS OFF`]
+    : [`${swingText(e.diff)} ${UNITS[e.unit]} ON−OFF`, `BIGGER THAN ${e.pctl}% OF PLAYERS' SWINGS`, `${one(e.off)} → ${one(e.on)}`]
+  ).filter(Boolean)
+  const toneFor = ({ e, kind }) => TONES[toneOf({ good: e.good, diff: kind === 'level' ? e.r : e.diff })]
+  const [value, ...facts] = describe(top)
+  return (
+    <div style={{ border: `1px solid ${RULE}`, background: '#262422', fontFamily: MONO, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 18px', padding: '14px 16px' }}>
+        <span style={{ fontSize: 9, letterSpacing: '.14em', color: DIM }}>STANDOUT</span>
+        <span style={{ width: 28, height: 28, color: INK }}><FootprintGlyph stat={top.e.key} /></span>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>{top.e.effect} <span style={{ fontWeight: 400, color: DIM }}>· {top.e.label}</span></span>
+          <span style={{ fontSize: 24, fontWeight: 500, lineHeight: 1, color: toneFor(top), fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+        </span>
+        <span style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 10.5, letterSpacing: '.06em', color: '#c9c3bc', fontVariantNumeric: 'tabular-nums' }}>
+          {facts.map(f => <span key={f}>{f}</span>)}
+        </span>
+      </div>
+      {rest.map(s => (
+        <div key={s.key} style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'baseline', padding: '8px 16px', borderTop: `1px solid ${RULE}`, fontSize: 10.5, letterSpacing: '.06em', color: DIM, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ color: INK, textTransform: 'uppercase' }}>{s.e.effect} <span style={{ color: DIM }}>· {s.e.label}</span></span>
+          {describe(s).map((f, i) => <span key={f} style={i === 0 ? { color: toneFor(s) } : undefined}>{f}</span>)}
+        </div>
+      ))}
     </div>
   )
 }
@@ -106,10 +155,13 @@ function Method({ fp, from, to }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, paddingTop: 12, fontSize: 11, lineHeight: 1.6, color: '#c9c3bc' }}>
           <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <li>Raw on/off: each stat is his team&apos;s with him on the floor minus with him off, summed over every five-man lineup his teams used in {spanText(from, to)} (regular season).</li>
+            <li>Teammate stats leave his own shots out: with him on, only his teammates&apos; shots count; with him off, everyone&apos;s. Their rim scoring is per 100 of their own shots, so a high-usage player doesn&apos;t drag it down by shooting more himself.</li>
+            <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons.</li>
             <li>A lit tile is checked against the teammates whose minutes move with his: the one he plays with most and the one who takes his minutes. WHY says whether the swing holds without them.</li>
-            <li>Rim scoring and Rim protection count points at the rim per 100 possessions, so getting there and finishing are one number.</li>
+            <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (W/) and off it (W/O): the swing holds either way, or comes only with him on or off.</li>
+            <li>VS LG is the on value against the league&apos;s that season; the rank is its place among every qualified player&apos;s at either end. The standouts are on values at the league&apos;s extremes that his own swing points toward, then his biggest swings.</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: DIM, fontSize: 10, letterSpacing: '.08em' }}>MINUTES ON AND OFF</span>
@@ -153,13 +205,17 @@ function Views({ p, doc }) {
   const viewOf = (from, to) => doc.views.find(v => v.id === spanId(from, to))
   const fp = viewOf(span.from, span.to)
   const pick = (from, to) => { if (viewOf(from, to)) setSpan({ from, to }) }
+  const anchor = anchorName(fp.anchors)
   const sections = [
-    { side: 'off', title: 'OFFENSE' },
-    { side: 'def', title: 'DEFENSE' }
-  ].map(sec => ({ ...sec, tiles: fp.effects.filter(e => e.side === sec.side) }))
-  // His team's points per 100 scored (OFF) and kept off the board (DEF), on minus off.
+    { id: 'off', title: 'OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
+    { id: 'mates', title: 'TEAMMATES', note: (fp.anchors || []).length ? `HIS SHOTS LEFT OUT · CHECKED WITH AND WITHOUT ${anchor}` : 'HIS SHOTS LEFT OUT', tiles: fp.effects.filter(e => e.mates) },
+    { id: 'def', title: 'DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
+  ].filter(sec => sec.tiles.length)
+  // His team's points per 100 scored (OFF) and kept off the board (DEF), on minus off, and
+  // its points per 100 with him on against the league's.
   const offSwing = fp.ortg.on - fp.ortg.off
   const defSwing = fp.drtg.off - fp.drtg.on
+  const ortg = fp.effects.find(e => e.key === 'ortg')
   const legendKey = { display: 'inline-flex', gap: 6, alignItems: 'center' }
   return (
     <>
@@ -172,16 +228,21 @@ function Views({ p, doc }) {
           <span><span style={{ color: DIM }}>OFF</span> <span style={{ color: offSwing >= 0 ? TONES.good : TONES.bad }}>{swingText(offSwing)}</span></span>
           <span><span style={{ color: DIM }}>DEF</span> <span style={{ color: defSwing >= 0 ? TONES.good : TONES.bad }}>{swingText(defSwing)}</span></span>
           <span style={{ color: DIM }}>PTS/100 ON−OFF · {fp.minutes.on.toLocaleString()} MIN ON</span>
+          {ortg && ortg.r !== null && ortg.r !== undefined && (
+            <span title="His team's points per 100 possessions with him on, against the league's"><span style={{ color: DIM }}>ON-COURT rORTG</span> <span style={{ color: ortg.r >= 0 ? TONES.good : TONES.bad }}>{swingText(ortg.r)}</span></span>
+          )}
         </div>
       </div>
+      <Standouts fp={fp} />
       {sections.map(sec => (
-        <div key={sec.side} style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', padding: '12px 0 10px' }}>
+        <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline', padding: '12px 0 10px' }}>
             <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '.14em' }}>{sec.title}</span>
             <span style={{ fontSize: 11, color: DIM, letterSpacing: '.08em', whiteSpace: 'nowrap' }}>{sec.tiles.filter(e => e.status === 'notable').length} OF {sec.tiles.length} CLEAR THE NOISE</span>
+            {sec.note && <span style={{ fontSize: 10, color: '#6b655f', letterSpacing: '.08em' }}>{sec.note}</span>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 1, padding: 1 }}>
-            {sec.tiles.map(e => <FootprintTile key={e.key} e={e} />)}
+            {sec.tiles.map(e => <FootprintTile key={e.key} e={e} anchor={anchor} />)}
           </div>
         </div>
       ))}

@@ -24,4 +24,39 @@ export const bar = e => {
 export const swingText = v => (v === null || v === undefined ? '—' : Math.abs(v) < 0.05 ? '0.0' : `${v > 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}`)
 
 // What each kind of stat's swing is counted in.
-export const UNITS = { pct: 'PCT PTS', pts: 'PTS/100', pace: 'POSS/48' }
+export const UNITS = { pct: 'PCT PTS', pts: 'PTS/100', pace: 'POSS/48', shots: 'PTS/100 SHOTS' }
+
+// A value in its stat's terms: a percentage with its sign, otherwise the bare number.
+export const valueText = (e, v) => (v === null || v === undefined ? '—' : `${v.toFixed(1)}${e.unit === 'pct' ? '%' : ''}`)
+
+const ordinal = n => {
+  const s = ['TH', 'ST', 'ND', 'RD']
+  const v = n % 100
+  return n + (s[(v - 20) % 10] || s[v] || s[0])
+}
+// Where his on value ranks among the league's at either end ([place, of, 'high'|'low']):
+// "HIGHEST OF 465", "8TH-LOWEST OF 465".
+export const rankText = rank => {
+  if (!rank) return null
+  const [k, of, end] = rank
+  return `${k === 1 ? '' : `${ordinal(k)}-`}${end === 'high' ? 'HIGHEST' : 'LOWEST'} OF ${of}`
+}
+
+// The teammate a teammate stat is checked with and without: his last name, or, when the
+// span has a different one by season, what they have in common.
+export const anchorName = anchors => {
+  const names = [...new Set((anchors || []).map(a => (a.name || '').split(' ').slice(1).join(' ') || a.name))]
+  return names.length === 1 ? names[0].toUpperCase() : 'TOP OBPM MATE'
+}
+// The check's two halves ("W/ LILLARD +11.0 · W/O +16.4") and its verdict.
+export const wowyText = (w, name) => (w ? `W/ ${name} ${w.with ? swingText(w.with[0]) : '—'} · W/O ${w.without ? swingText(w.without[0]) : '—'}` : null)
+export const wowyVerdict = (w, name) => (!w ? null : {
+  holds: `HOLDS WITH OR WITHOUT ${name}`,
+  with: `ONLY WITH ${name} ON`,
+  without: `ONLY WITH ${name} OFF`,
+  mix: `SHRINKS WITH OR WITHOUT ${name}`,
+  thin: `TOO FEW MINUTES APART FROM ${name}`
+}[w.kind])
+
+// The view's standouts with their effects, most striking first.
+export const standoutsOf = fp => (fp.standouts || []).map(s => ({ ...s, e: fp.effects.find(e => e.key === s.key) })).filter(s => s.e)

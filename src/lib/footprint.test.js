@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { bar, shade, strengthOf, swingText, toneOf } from './footprint.js'
+import { UNITS, anchorName, bar, rankText, shade, standoutsOf, strengthOf, swingText, toneOf, valueText, wowyText, wowyVerdict } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -29,5 +29,38 @@ describe('footprint', () => {
     expect(swingText(-2)).toBe('−2.0')
     expect(swingText(-0.04)).toBe('0.0')
     expect(swingText(null)).toBe('—')
+  })
+
+  test('values in their terms, and every unit named', () => {
+    expect(valueText({ unit: 'pct' }, 57.43)).toBe('57.4%')
+    expect(valueText({ unit: 'shots' }, 32.1)).toBe('32.1')
+    expect(valueText({ unit: 'pct' }, null)).toBe('—')
+    for (const unit of ['pct', 'pts', 'pace', 'shots']) expect(UNITS[unit]).toBeTruthy()
+  })
+
+  test('a rank from its end of the league', () => {
+    expect(rankText([1, 465, 'high'])).toBe('HIGHEST OF 465')
+    expect(rankText([2, 465, 'high'])).toBe('2ND-HIGHEST OF 465')
+    expect(rankText([8, 465, 'low'])).toBe('8TH-LOWEST OF 465')
+    expect(rankText([11, 465, 'low'])).toBe('11TH-LOWEST OF 465')
+    expect(rankText(null)).toBe(null)
+  })
+
+  test('the teammate check: his anchor, its halves and its verdict', () => {
+    const lillard = { name: 'Damian Lillard', slug: 'damian-lillard', seasons: ['2023-24', '2024-25'] }
+    expect(anchorName([lillard])).toBe('LILLARD')
+    expect(anchorName([lillard, { name: 'Khris Middleton', slug: 'khris-middleton', seasons: ['2022-23'] }])).toBe('TOP OBPM MATE')
+    const w = { with: [11, 9], without: [16.4, 11.3], kind: 'holds' }
+    expect(wowyText(w, 'LILLARD')).toBe('W/ LILLARD +11.0 · W/O +16.4')
+    expect(wowyText({ ...w, without: null, kind: 'thin' }, 'LILLARD')).toBe('W/ LILLARD +11.0 · W/O —')
+    expect(wowyVerdict(w, 'LILLARD')).toBe('HOLDS WITH OR WITHOUT LILLARD')
+    expect(wowyVerdict({ ...w, kind: 'with' }, 'LILLARD')).toBe('ONLY WITH LILLARD ON')
+    expect(wowyVerdict(null, 'LILLARD')).toBe(null)
+  })
+
+  test("the standouts come with their effects, in the view's order", () => {
+    const fp = { standouts: [{ key: 'tm3Rate', kind: 'level' }, { key: 'gone', kind: 'swing' }, { key: 'ortg', kind: 'swing' }], effects: [{ key: 'ortg' }, { key: 'tm3Rate' }] }
+    expect(standoutsOf(fp).map(s => [s.key, s.kind, s.e.key])).toEqual([['tm3Rate', 'level', 'tm3Rate'], ['ortg', 'swing', 'ortg']])
+    expect(standoutsOf({ effects: [] })).toEqual([])
   })
 })

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLonestar, fetchProfile, headshotUrl } from '../api.js'
+import { UNITS as FOOTPRINT_UNITS } from '../lib/footprint.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
 import { pctlOf, valueOf } from '../lib/leaderboard.js'
 import { rollingStat } from '../lib/span.js'
@@ -53,7 +54,7 @@ const fit = (vs, least) => {
   return [lo - pad, hi + pad]
 }
 const careerWindow = p => (rollingStat(p, 'BPM', ROLL).vals.filter(Boolean).length >= ROLL ? ROLL : 1)
-const UNITS = { pct: 'pct pts', pts: 'pts/100', pace: 'poss/48' }
+const UNITS = Object.fromEntries(Object.entries(FOOTPRINT_UNITS).map(([k, v]) => [k, v.toLowerCase()]))
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 
 function Section({ title, children, right }) {

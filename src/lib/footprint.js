@@ -50,10 +50,18 @@ export const wowyVerdict = w => (!w ? null : { holds: 'HOLDS', with: 'ONLY WITH'
 // by its place among every qualified player's that season or span. A style stat helps
 // neither way, so it has none.
 export const MEDAL_SHARES = [0.01, 0.02, 0.03]
+const goodPlace = e => (e.rank && e.good && (e.rank[2] === 'high') === (e.good > 0) ? e.rank[0] : null)
 export const medalOf = e => {
-  if (!e.rank || !e.good) return null
-  const [place, of, end] = e.rank
-  if ((end === 'high') !== (e.good > 0)) return null
-  const tier = MEDAL_SHARES.findIndex(share => place <= share * of)
+  const place = goodPlace(e)
+  if (!place) return null
+  const tier = MEDAL_SHARES.findIndex(share => place <= share * e.rank[1])
   return tier < 0 ? null : tier + 1
+}
+
+// His place when his on value is in the league's top 10 at the end that helps his team
+// (the tile's badge), else null.
+export const TOP_PLACES = 10
+export const topPlaceOf = e => {
+  const place = goodPlace(e)
+  return place && place <= TOP_PLACES ? place : null
 }

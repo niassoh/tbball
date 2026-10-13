@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { UNITS, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, unitOf, valueText, wowyVerdict } from './footprint.js'
+import { UNITS, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, wowyVerdict } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -73,5 +73,14 @@ describe('footprint', () => {
     expect(medalOf({ good: 1, rank: [1, 500, 'low'] })).toBe(null)
     expect(medalOf({ good: 0, rank: [1, 500, 'high'] })).toBe(null)
     expect(medalOf({ good: 1, rank: null })).toBe(null)
+  })
+
+  test('a badge for a top-10 place at the end that helps his team', () => {
+    expect(topPlaceOf({ good: 1, rank: [1, 500, 'high'] })).toBe(1)
+    expect(topPlaceOf({ good: -1, rank: [10, 500, 'low'] })).toBe(10)
+    expect(topPlaceOf({ good: 1, rank: [11, 500, 'high'] })).toBe(null)
+    expect(topPlaceOf({ good: 1, rank: [3, 500, 'low'] })).toBe(null)
+    expect(topPlaceOf({ good: 0, rank: [1, 500, 'high'] })).toBe(null)
+    expect(topPlaceOf({ good: 1, rank: null })).toBe(null)
   })
 })

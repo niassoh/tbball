@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { MEDAL_SHARES, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, unitOf, valueText, wowyVerdict } from '../lib/footprint.js'
+import { MEDAL_SHARES, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, wowyVerdict } from '../lib/footprint.js'
 import { spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
@@ -35,12 +35,12 @@ function Medal({ tier }) {
   return <span title={`In the league's top ${Math.round(MEDAL_SHARES[tier - 1] * 100)}%`} style={{ display: 'inline-block', width: 7, height: 7, background: MEDALS[tier - 1], flex: 'none' }} />
 }
 
-// The league's best: a flat gold tab hanging from the tile's top edge, notched like a
-// bookmark, #1 on it in the tile's dark.
-function Ribbon() {
+// A top-10 place in the league: a flat gold tab hanging from the tile's top edge, notched
+// like a bookmark, the place on it in the tile's dark.
+function Ribbon({ place }) {
   return (
-    <span title="The league's best" style={{ position: 'absolute', top: 0, right: 12, zIndex: 1, width: 22, height: 28, boxSizing: 'border-box', paddingTop: 6, background: MEDALS[0], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)', color: '#1f1d1c', textAlign: 'center', fontFamily: MONO, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
-      #1
+    <span title={place === 1 ? "The league's best" : `${place} in the league`} style={{ position: 'absolute', top: 0, right: 12, zIndex: 1, width: place < 10 ? 22 : 28, height: 28, boxSizing: 'border-box', paddingTop: 6, background: MEDALS[0], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)', color: '#1f1d1c', textAlign: 'center', fontFamily: MONO, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
+      #{place}
     </span>
   )
 }
@@ -132,26 +132,26 @@ function Details({ e, anchors, color, right }) {
 }
 
 // A stat at a glance, in a box: its glyph and name at the top, its swing at the foot
-// over the bar of how big the swing is among players'; a medal or the #1 ribbon when it
-// has one. The rest is in its details.
+// over the bar of how big the swing is among players'; its top-10 badge, else its medal,
+// when it has one. The rest is in its details.
 function FootprintTile({ e, anchors, right }) {
   const [open, setOpen] = useState(false)
   const lit = e.status === 'notable'
   const color = lit ? shade(TONES[toneOf(e)], strengthOf(e)) : DIM
   const b = bar(e)
   const medal = medalOf(e)
-  const first = medal && e.rank[0] === 1
+  const place = topPlaceOf(e)
   return (
     // A lit tile carries a bar of its color across the top edge; an unlit one is dimmed.
     <div tabIndex={0} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
       onPointerUp={ev => { if (ev.pointerType !== 'mouse') setOpen(o => !o) }}
       style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto' }}>
-      {first && <Ribbon />}
+      {place && <Ribbon place={place} />}
       <div style={{ flex: 1, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.6, fontFamily: MONO }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: first ? 26 : 0 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: place ? 32 : 0 }}>
           <div style={{ flex: 'none', width: 22, height: 22, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} size={22} /></div>
           <span style={{ minWidth: 0, paddingTop: 3, fontSize: 12.5, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', lineHeight: 1.25, color: INK }}>{e.effect}</span>
-          {medal && !first && <span style={{ marginLeft: 'auto', paddingTop: 6, display: 'flex' }}><Medal tier={medal} /></span>}
+          {medal && !place && <span style={{ marginLeft: 'auto', paddingTop: 6, display: 'flex' }}><Medal tier={medal} /></span>}
         </div>
         <span style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
@@ -186,7 +186,7 @@ function Method({ fp, from, to }) {
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them.</li>
             <li>Teammate stats are also measured again with his best-OBPM teammate on the floor (WITH) and off it (WITHOUT): the swing holds either way, comes only with or only without that teammate, or shrinks in both.</li>
             <li>In a tile&apos;s details, z is the whole swing over its noise, and its percentile is the swing&apos;s size among players&apos; swings in that stat. LG and the percentile under ON place his team&apos;s on value against the league&apos;s that season.</li>
-            <li>An on value in the league&apos;s top 3% at the end that helps his team gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%. The league&apos;s best gets a #1 ribbon.</li>
+            <li>An on value in the league&apos;s top 10 at the end that helps his team gets a badge with its place; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%.</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: DIM, fontSize: 10, letterSpacing: '.08em' }}>MINUTES ON AND OFF</span>

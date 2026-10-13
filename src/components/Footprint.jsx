@@ -20,6 +20,8 @@ const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#c9c3bc' }
 const INK = '#ece8e3'
 const DIM = '#8a847e'
 const RULE = '#3d3a37'
+// The rows' brackets.
+const BRACKET = '#6b655f'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 const one = v => v.toFixed(1)
 const chip = { display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', padding: '3px 6px', lineHeight: 1, whiteSpace: 'nowrap', background: 'transparent' }
@@ -167,12 +169,13 @@ function Views({ p, doc }) {
   const legendKey = { display: 'inline-flex', gap: 6, alignItems: 'center' }
   const row = sec => (
     <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', fontFamily: MONO, minWidth: 0 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'baseline', padding: '12px 0 10px' }}>
-        {/* TEAM, then the row's word on a solid block of muted grey. */}
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, letterSpacing: '.14em' }}>
-          TEAM<span style={{ background: '#a8a29c', color: '#1f1d1c', padding: '2px 5px 1px 6px', lineHeight: 1.1 }}>{sec.title}</span>
-        </span>
-        {sec.note && <span style={{ fontSize: 10, color: '#6b655f', letterSpacing: '.08em' }}>{sec.note}</span>}
+      {/* A bracket over the row's tiles, as the Leaderboard's window columns have: a rule
+          with its ends turned down, the row named on it at the left. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '16px 0 10px', minWidth: 0 }}>
+        <span aria-hidden="true" style={{ flex: 'none', width: 10, height: 7, marginTop: 6, borderTop: `1px solid ${BRACKET}`, borderLeft: `1px solid ${BRACKET}` }} />
+        <span style={{ flex: 'none', fontSize: 11.5, fontWeight: 700, letterSpacing: '.16em', color: '#d8d2cb', lineHeight: '13px' }}>TEAM {sec.title}</span>
+        {sec.note && <span style={{ minWidth: 0, fontSize: 10, color: DIM, letterSpacing: '.08em', lineHeight: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sec.note}</span>}
+        <span aria-hidden="true" style={{ flex: 1, minWidth: 12, height: 7, marginTop: 6, borderTop: `1px solid ${BRACKET}`, borderRight: `1px solid ${BRACKET}` }} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 1, padding: 1 }}>
         {sec.tiles.map(e => <FootprintTile key={e.key} e={e} anchor={anchor} />)}

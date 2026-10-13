@@ -86,7 +86,8 @@ function ProfilePage({ slug, playoffs }) {
   // The player and season type the state was loaded for; it lags the URL while loading.
   const key = `${slug}|${playoffs ? 'playoffs' : 'regular'}`
   const [state, setState] = useState({ status: 'loading', profile: null, key: null })
-  const [tab, setTab] = useState('impact')
+  // Footprint first, wherever it's there (else the first tab).
+  const [tab, setTab] = useState('footprint')
   // The stat tables' dragged season span, kept here so it carries across tabs; tagged
   // with the player it was made on, so another player starts without one.
   const [span, setSpan] = useState(null)

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLonestar, fetchProfile, headshotUrl } from '../api.js'
-import { UNITS as FOOTPRINT_UNITS } from '../lib/footprint.js'
+import { unitOf } from '../lib/footprint.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
 import { pctlOf, valueOf } from '../lib/leaderboard.js'
 import { rollingStat } from '../lib/span.js'
@@ -54,7 +54,6 @@ const fit = (vs, least) => {
   return [lo - pad, hi + pad]
 }
 const careerWindow = p => (rollingStat(p, 'BPM', ROLL).vals.filter(Boolean).length >= ROLL ? ROLL : 1)
-const UNITS = Object.fromEntries(Object.entries(FOOTPRINT_UNITS).map(([k, v]) => [k, v.toLowerCase()]))
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 
 function Section({ title, children, right }) {
@@ -93,7 +92,7 @@ function Icons({ items, at, setAt }) {
 function Readout({ x }) {
   return (
     <span style={{ ...label, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-      {x.l} <span style={{ color: x.tone }}>{fmt(x.stat, x.v)} {UNITS[x.stat.swing] || ''}</span> <span style={{ color: FAINT }}>on − off</span>
+      {x.l} <span style={{ color: x.tone }}>{fmt(x.stat, x.v)} {x.stat.swing ? unitOf(x.stat.key, x.stat.swing).toLowerCase() : ''}</span> <span style={{ color: FAINT }}>on − off</span>
     </span>
   )
 }

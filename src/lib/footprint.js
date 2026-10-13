@@ -23,8 +23,10 @@ export const bar = e => {
 // A swing with its sign and one decimal, with no "−0.0".
 export const swingText = v => (v === null || v === undefined ? '—' : Math.abs(v) < 0.05 ? '0.0' : `${v > 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}`)
 
-// What each kind of stat's swing is counted in.
+// What each kind of stat's swing is counted in, and a stat's own where it has one.
 export const UNITS = { pct: 'PCT PTS', pts: 'PTS/100', pace: 'POSS/48', shots: 'PTS/100 SHOTS' }
+const KEY_UNITS = { tmTs: 'TS PCT' }
+export const unitOf = (key, unit) => KEY_UNITS[key] || UNITS[unit]
 
 // A value in its stat's terms: a percentage with its sign, otherwise the bare number.
 export const valueText = (e, v) => (v === null || v === undefined ? '—' : `${v.toFixed(1)}${e.unit === 'pct' ? '%' : ''}`)

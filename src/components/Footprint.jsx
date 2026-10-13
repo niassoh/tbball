@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchFootprint } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { MEDAL_SHARES, UNITS, anchorName, bar, medalOf, rankText, shade, strengthOf, swingText, toneOf, valueText, wowyText, wowyVerdict } from '../lib/footprint.js'
+import { MEDAL_SHARES, anchorName, bar, medalOf, rankText, shade, strengthOf, swingText, toneOf, unitOf, valueText, wowyText, wowyVerdict } from '../lib/footprint.js'
 import { spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
@@ -21,6 +21,7 @@ const INK = '#ece8e3'
 const DIM = '#a09a93'
 const RULE = '#3d3a37'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
+const tone = (v, good) => (v === null || v === undefined ? DIM : v * good >= 0 ? TONES.good : TONES.bad)
 const one = v => v.toFixed(1)
 // The medals' colors: gold, silver and bronze for the league's top 1, 2 and 3%.
 const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a']
@@ -51,7 +52,7 @@ function Details({ e, anchor, right }) {
   return (
     <div role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 4px)', ...(right ? { right: 0 } : { left: 0 }), zIndex: 30, width: 320, maxWidth: 'calc(100vw - 32px)', background: 'rgba(31, 29, 28, .97)', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 7, fontFamily: MONO, fontSize: 10.5, lineHeight: 1.4, letterSpacing: '.04em', color: '#d8d2cb', fontVariantNumeric: 'tabular-nums', textAlign: 'left' }}>
       <span style={{ color: DIM, textTransform: 'uppercase', letterSpacing: '.08em' }}>{e.label}</span>
-      {e.on !== null && <span style={line}><span>{one(e.off)} OFF → {one(e.on)} ON</span><span>{swingText(e.diff)} {UNITS[e.unit]}</span></span>}
+      {e.on !== null && <span style={line}><span>{one(e.off)} OFF → {one(e.on)} ON</span><span>{swingText(e.diff)} {unitOf(e.key, e.unit)}</span></span>}
       {e.r !== null && e.r !== undefined && (
         <span style={line}>
           <span>ON {swingText(e.r)} VS LG ({valueText(e, e.lg)})</span>
@@ -90,7 +91,7 @@ function FootprintTile({ e, anchor, right }) {
         </div>
         <span style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums' }}>{swingText(e.diff)}</span>
-          <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em' }}>{UNITS[e.unit]}</span>
+          <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em' }}>{unitOf(e.key, e.unit)}</span>
         </span>
         {/* How big the swing is among players' swings in this stat: right a lift, left a cost. */}
         <div style={{ position: 'relative', height: 8 }}>
@@ -173,11 +174,14 @@ function Views({ p, doc }) {
     { id: 'off', title: 'OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
     { id: 'def', title: 'DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
   ].filter(sec => sec.tiles.length)
-  // His team's points per 100 scored (OFF) and kept off the board (DEF), on minus off, and
-  // its points per 100 with him on against the league's.
-  const offSwing = fp.ortg.on - fp.ortg.off
-  const defSwing = fp.drtg.off - fp.drtg.on
-  const ortg = fp.effects.find(e => e.key === 'ortg')
+  // His team's points per 100 scored and allowed with him on against the league's (rORTG,
+  // rDRTG), and from him off to on; blue where it helps (more scored, fewer allowed).
+  const rating = (name, x, good) => (
+    <span>
+      <span style={{ color: DIM }}>ON {name}</span> <span style={{ color: tone(x.r, good) }}>{swingText(x.r)}</span>{' '}
+      <span style={{ color: DIM }}>(</span><span style={{ color: tone(x.on - x.off, good) }}>{swingText(x.on - x.off)}</span><span style={{ color: DIM }}> ON/OFF)</span>
+    </span>
+  )
   const legendKey = { display: 'inline-flex', gap: 6, alignItems: 'center' }
   // A row: TEAM and its word on the left, its tiles side by side, every row on the widest
   // one's columns so the tiles are the same boxes throughout.
@@ -198,15 +202,12 @@ function Views({ p, doc }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' }}>
           <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} />
-          <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>Team footprint with {lastName(p.name)} ON vs OFF the court</p>
+          <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>in {lastName(p.name)}&apos;s {fp.minutes.on.toLocaleString()} ON court vs {fp.minutes.off.toLocaleString()} OFF</p>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title="His team's points per 100 possessions scored (OFF) and kept off the board (DEF), with him on minus off">
-          <span><span style={{ color: DIM }}>OFF</span> <span style={{ color: offSwing >= 0 ? TONES.good : TONES.bad }}>{swingText(offSwing)}</span></span>
-          <span><span style={{ color: DIM }}>DEF</span> <span style={{ color: defSwing >= 0 ? TONES.good : TONES.bad }}>{swingText(defSwing)}</span></span>
-          <span style={{ color: DIM }}>PTS/100 ON−OFF · {fp.minutes.on.toLocaleString()} MIN ON</span>
-          {ortg && ortg.r !== null && ortg.r !== undefined && (
-            <span title="His team's points per 100 possessions with him on, against the league's"><span style={{ color: DIM }}>ON-COURT rORTG</span> <span style={{ color: ortg.r >= 0 ? TONES.good : TONES.bad }}>{swingText(ortg.r)}</span></span>
-          )}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title="His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on">
+          {rating('rORTG', fp.ortg, 1)}
+          <span style={{ color: DIM }}>·</span>
+          {rating('rDRTG', fp.drtg, -1)}
         </div>
       </div>
       {/* TEAM MATES, then TEAM OFFENSE, then TEAM DEFENSE, a row each. */}

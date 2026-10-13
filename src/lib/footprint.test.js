@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { UNITS, anchorName, bar, medalOf, rankText, shade, strengthOf, swingText, toneOf, valueText, wowyText, wowyVerdict } from './footprint.js'
+import { UNITS, anchorName, bar, medalOf, rankText, shade, strengthOf, swingText, toneOf, unitOf, valueText, wowyText, wowyVerdict } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -36,6 +36,9 @@ describe('footprint', () => {
     expect(valueText({ unit: 'shots' }, 32.1)).toBe('32.1')
     expect(valueText({ unit: 'pct' }, null)).toBe('—')
     for (const unit of ['pct', 'pts', 'pace', 'shots']) expect(UNITS[unit]).toBeTruthy()
+    // Teammates' TS% swings in TS points; the rest by their kind.
+    expect(unitOf('tmTs', 'pct')).toBe('TS PCT')
+    expect(unitOf('tm3Pct', 'pct')).toBe('PCT PTS')
   })
 
   test('a rank from its end of the league', () => {

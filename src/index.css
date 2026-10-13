@@ -44,6 +44,24 @@ html { scroll-behavior: smooth; }
   .topbar .player-search-wrap { display: none !important; }
   .topbar-search-btn { display: inline-flex !important; }
 }
+/* Footprint's LONE faces stand on the rule under the header line: the section's 16px gap
+   below it. Where the header wraps (narrower screens) they sit in the line instead. */
+.fp-lone-faces { margin-bottom: -16px; }
+@media (max-width: 1200px) {
+  .fp-lone-faces { margin-bottom: 0; align-self: center !important; }
+  .fp-lone-faces > span { width: 30px !important; height: 30px !important; }
+}
+/* Footprint's LONE line comes in like the tiles' data: each face rises from behind the
+   rule, one after another; the bracket draws out from its middle and its WITHOUT runs in;
+   a single teammate's sentence runs in left to right, in steps (Footprint.jsx). */
+@keyframes fp-rise { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes fp-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fp-run { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.fp-face-img { animation: fp-rise .45s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+.fp-bracket { animation: fp-draw .3s steps(8, end) both; }
+.fp-bracket-label { animation: fp-run .28s steps(7, end) .12s both; }
+.fp-lone-text { animation: fp-run .5s steps(24, end) .1s both; }
+@media (prefers-reduced-motion: reduce) { .fp-face-img, .fp-bracket, .fp-bracket-label, .fp-lone-text { animation: none; } }
 /* The player page's loader: its cells light in turn (ProfileLoading). */
 .ld-cells > span { background: #3d3a37; animation: ld-cell 1.2s steps(1, end) infinite; animation-delay: calc(var(--i) * .1s); }
 @keyframes ld-cell { 0% { background: var(--accent, #8fb0e6); } 25%, 100% { background: #3d3a37; } }

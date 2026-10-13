@@ -23,8 +23,6 @@ const RULE = '#3d3a37'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 const tone = (v, good) => (v === null || v === undefined ? DIM : v * good >= 0 ? TONES.good : TONES.bad)
 const initialsOf = name => (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-// Same charcoal the portraits sit on elsewhere.
-const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 // The medals' colors: gold, silver and bronze for the league's top 1, 2 and 3%.
 const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a']
 // What a tile without a swing to show says, in its details.
@@ -46,14 +44,26 @@ function Ribbon({ place }) {
 }
 
 // A teammate's face: his portrait (the players index's), else his initials.
-// Square and greyed out: in LONE these are the ones off the floor.
-function Face({ who, size }) {
+// The portrait cut out, unboxed, and greyed: in LONE these are the ones off the floor. It's
+// drawn a third larger from the top, so the bottom is cropped and the head reads bigger.
+// `tip`: what hovering it says, a line apiece. `order`: its place in the line, for the rise
+// it comes in with (index.css .fp-face-img).
+function Face({ who, size, tip, order = 0 }) {
   const [failed, setFailed] = useState(false)
+  const [hover, setHover] = useState(false)
   return (
-    <span style={{ width: size, height: size, flex: 'none', overflow: 'hidden', background: PORTRAIT_BG, boxShadow: '0 0 0 1px #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: DIM }}>
-      {who.headshot && !failed
-        ? <img src={headshotUrl(who.slug, 100, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 15%', filter: 'grayscale(1) contrast(1.05)', opacity: 0.8 }} />
-        : initialsOf(who.name)}
+    <span onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{ position: 'relative', width: size, height: size, flex: 'none', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', fontSize: 10, color: DIM }}>
+      <span style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+        {who.headshot && !failed
+          ? <img className="fp-face-img" src={headshotUrl(who.slug, 100, who.headshotVersion, who.headshot)} alt={who.name || ''} onError={() => setFailed(true)} style={{ '--i': order, width: '132%', height: '132%', flex: 'none', objectFit: 'cover', objectPosition: '50% 0', filter: 'grayscale(1) contrast(1.05)', opacity: 0.8 }} />
+          : initialsOf(who.name)}
+      </span>
+      {tip && hover && (
+        <span role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)', zIndex: 30, padding: '7px 10px', display: 'flex', flexDirection: 'column', gap: 3, background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', color: DIM, fontSize: 10, lineHeight: 1.4, letterSpacing: '.08em', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+          {tip.map((line, i) => <span key={i} style={{ color: i ? DIM : INK }}>{line}</span>)}
+        </span>
+      )}
     </span>
   )
 }
@@ -260,6 +270,13 @@ export default function Footprint({ profile: p }) {
 // A tile as LONE has it: the stat over only the minutes his anchor sits, with no badge (a
 // place is among players' whole on/off) and no teammate mark.
 const loneTile = e => ({ ...e, ...(e.lone || { status: 'na', on: null, off: null, diff: null, pctl: null, onPctl: null }), rank: null, mate: false, isLone: true })
+// What hovering an anchor's face says: who, which seasons, why him (his OBPM, how much he
+// played), and this player's minutes on and off with him sitting.
+const anchorTip = (a, p) => [
+  `${lastName(a.name).toUpperCase()}  ${seasonsText(a.seasons)}`,
+  [a.obpm !== null && a.obpm !== undefined && `OBPM ${swingText(a.obpm)}`, a.share && `ON THE FLOOR ${a.share}% OF THE MINUTES`].filter(Boolean).join(' · '),
+  a.min ? `${lastName(p.name).toUpperCase()} WITHOUT HIM: ${a.min[0].toLocaleString()} ON · ${a.min[1].toLocaleString()} OFF` : null
+].filter(Boolean)
 // His anchor's seasons as a span, "2019–20 → 2021–22".
 const seasonsText = seasons => spanText(seasons[0], seasons[seasons.length - 1])
 
@@ -296,7 +313,6 @@ function Views({ p, doc, faces }) {
   ].filter(sec => sec.tiles.length)
   const loneOn = lone && anchors.length > 0
   const loneMin = (fp.effects.find(e => e.lone) || {}).lone
-  const names = anchors.map(a => lastName(a.name)).join(' and ')
   // His team's points per 100 scored and allowed with him on against the league's (rORTG,
   // rDRTG), and from him off to on; blue where it helps (more scored, fewer allowed).
   const rating = (name, x, good) => (
@@ -332,18 +348,32 @@ function Views({ p, doc, faces }) {
   return (
     <>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px', flex: '1 1 0', minWidth: 0 }}>
           <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} />
           <LoneSwitch on={loneOn} set={setLone} disabled={!anchors.length} />
           {loneOn ? (
-            // In LONE the same line says who sits and the minutes left, so nothing below moves.
-            <p title={`MATES and OFFENSE count only the minutes ${names} sat, off the floor on both sides. DEFENSE stays on all his minutes.`}
-              style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, lineHeight: 1.6, color: '#b3ada6' }}>
-              <span style={{ display: 'flex', gap: 3, flex: 'none' }}>{anchors.map((a, i) => <Face key={a.slug || i} who={a} size={28} />)}</span>
-              <span>
-                without {anchors.map((a, i) => <span key={a.slug || i}>{i ? ' · ' : ''}<span style={{ color: INK, fontWeight: 700, letterSpacing: '.06em' }}>{lastName(a.name).toUpperCase()}</span> <span style={{ color: DIM }}>{seasonsText(a.seasons)}</span></span>)}
-                {' '}· {lastName(p.name)}&apos;s {loneMin ? loneMin.min[0].toLocaleString() : '—'} ON vs {loneMin ? loneMin.min[1].toLocaleString() : '—'} OFF
+            // In LONE the same line says who sits, so nothing below moves: one teammate by name,
+            // his seasons and the minutes left (cut short rather than wrapping); several, their
+            // faces alone, each naming himself on hover. The faces stand on the rule under the
+            // line (index.css .fp-lone-faces); the line keeps the switch's height.
+            <p style={{ margin: 0, height: 30, flex: '1 1 0', minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, lineHeight: 1.6, color: '#b3ada6' }}>
+              <span className="fp-lone-faces" style={{ position: 'relative', display: 'flex', gap: 12, flex: 'none', alignSelf: 'flex-end' }}>
+                {anchors.length > 1 && (
+                  // Several: a bracket over their faces, WITHOUT on it, as the Leaderboard
+                  // brackets its rolling windows; each face says who he is on hover.
+                  <>
+                    <span aria-hidden="true" className="fp-bracket" style={{ position: 'absolute', top: -8, left: 4, right: 4, height: 5, borderTop: '1px solid #837d76', borderLeft: '1px solid #837d76', borderRight: '1px solid #837d76' }} />
+                    <span className="fp-bracket-label" style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', padding: '0 5px', background: '#262422', fontSize: 8.5, lineHeight: '12px', letterSpacing: '.16em', color: '#c9c3bc' }}>WITHOUT</span>
+                  </>
+                )}
+                {anchors.map((a, i) => <Face key={a.slug || i} who={a} size={46} tip={anchorTip(a, p)} order={i} />)}
               </span>
+              {anchors.length === 1 && (
+                <span className="fp-lone-text" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  without <span style={{ color: INK, fontWeight: 700, letterSpacing: '.06em' }}>{lastName(anchors[0].name).toUpperCase()}</span> <span style={{ color: DIM }}>{seasonsText(anchors[0].seasons)}</span>
+                  {' '}· {lastName(p.name)}&apos;s {loneMin ? loneMin.min[0].toLocaleString() : '—'} ON vs {loneMin ? loneMin.min[1].toLocaleString() : '—'} OFF
+                </span>
+              )}
             </p>
           ) : (
             <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>in {lastName(p.name)}&apos;s {fp.minutes.on.toLocaleString()} ON court vs {fp.minutes.off.toLocaleString()} OFF</p>

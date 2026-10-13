@@ -31,6 +31,8 @@ export const fetchLeaderboard = (season, playoffs = false, delta = false) => {
   const path = `${pre(playoffs)}leaderboard/${playoffs && delta ? 'delta/' : ''}${season}`
   return getJson(api(path, `${path}.json`))
 }
+// The last 30 days of the latest regular season, in a season's shape.
+export const fetchLeaderboardRecent = () => getJson(api('leaderboard/recent', 'leaderboard/recent.json'))
 // The Footprint and Lonestar tabs' views (every season and span), fetched when the tab opens.
 export const fetchFootprint = slug => getJson(api(`footprint/${encodeURIComponent(slug)}`, `footprint/${encodeURIComponent(slug)}.json`))
 export const fetchLonestar = slug => getJson(api(`lonestar/${encodeURIComponent(slug)}`, `lonestar/${encodeURIComponent(slug)}.json`))

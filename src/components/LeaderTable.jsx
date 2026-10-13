@@ -175,13 +175,15 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
           {group.stats.map((l, i) => {
             const on = sortLabel === l
             const years = doc.stats[l].years
+            // A stat the last 30 days can't have: greyed, its cells empty.
+            const na = doc.stats[l].na
             const yearsAt = j => (j >= 0 && j < group.stats.length ? doc.stats[group.stats[j]].years : null)
             return (
               <th key={l} style={{ ...head, minWidth: 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none' }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
                 {years && <Bracket years={years} start={yearsAt(i - 1) !== years} end={yearsAt(i + 1) !== years} />}
-                <button type="button" className="lb-head-cell" onClick={() => onSort(l)} title={on ? 'Sorted best first; click for worst first' : 'Sort by this stat, best first'}
-                  style={{ ...label, display: 'flex', width: '100%', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 3, padding: 0, border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'right', lineHeight: 1.25, color: on ? INK : DIM }}>
-                  <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={l}>{l}</span>
+                <button type="button" className="lb-head-cell" disabled={na} onClick={() => onSort(l)} title={na ? 'Unavailable for the last 30 days' : on ? 'Sorted best first; click for worst first' : 'Sort by this stat, best first'}
+                  style={{ ...label, display: 'flex', width: '100%', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 3, padding: 0, border: 0, background: 'transparent', cursor: na ? 'not-allowed' : 'pointer', textAlign: 'right', lineHeight: 1.25, color: na ? '#6a645e' : on ? INK : DIM, textDecoration: na ? 'line-through' : 'none' }}>
+                  <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={na ? undefined : l}>{l}</span>
                   <span aria-hidden="true" style={{ width: 7, flex: 'none', textAlign: 'left', color: on ? INK : 'transparent' }}>{reverse ? '↑' : '↓'}</span>
                 </button>
               </th>

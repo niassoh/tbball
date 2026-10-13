@@ -246,7 +246,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
         <span aria-hidden="true" style={{ width: 7, height: 7, background: 'var(--accent)' }} />
-        <span style={{ ...label, color: INK }}>Player card · {doc.combined && spanText ? `${spanText} combined` : season.replace('-', '–')}{doc.type === 'delta' ? ' playoffs − reg' : playoffs ? ' playoffs' : ''}</span>
+        <span style={{ ...label, color: INK }}>Player card · {doc.type === 'recent' ? 'last 30 days' : doc.combined && spanText ? `${spanText} combined` : season.replace('-', '–')}{doc.type === 'delta' ? ' playoffs − reg' : playoffs ? ' playoffs' : ''}</span>
         <Link to={playerPath(pl.slug)} state={{ season }} style={{ ...label, marginLeft: 'auto', color: INK, border: `1px solid ${EDGE}`, padding: '5px 8px' }}>Full profile →</Link>
         <button type="button" aria-label="Close the card" onClick={onClose} style={{ width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
@@ -282,7 +282,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
       </div>
 
 
-      <Section title={doc.type === 'delta' ? 'Δ percentiles' : 'Percentiles'} right={doc.type === 'delta' ? 'among playoff players' : season.replace('-', '–')}>
+      <Section title={doc.type === 'delta' ? 'Δ percentiles' : 'Percentiles'} right={doc.type === 'delta' ? 'among playoff players' : doc.type === 'recent' ? 'last 30 days' : season.replace('-', '–')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 16, rowGap: 5 }}>
           {rows.map((l, i) => {
             const pc = pctlOf(doc, pl, l)

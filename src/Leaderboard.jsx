@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchLeaderboard, fetchLeaderboardSeasons } from './api.js'
+import { fetchLeaderboard, fetchLeaderboardRecent, fetchLeaderboardSeasons } from './api.js'
 import { combined, combinedDelta, eachSeason, qualified, singleYear } from './lib/board.js'
 import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
@@ -19,8 +19,10 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // scatter beside it; a row or a dot opens the player's card in the scatter's place. One
 // screen on a laptop (index.css .lb): the table scrolls in its box. Filters (a team, a
 // name) narrow the table and fade the scatter's other dots. In the playoffs a small Δ
-// toggle turns it to each player's playoffs minus regular season; RAW | PCTL sets what the
-// table's cells read in; the row under the pointer,
+// toggle turns it to each player's playoffs minus regular season, and in the regular season
+// FULL SEASON | LAST 30 DAYS switches to the latest season's last 30 days (its stats that
+// can't be scoped to dates, and Footprint, greyed); RAW | PCTL sets what the table's cells
+// read in; the row under the pointer,
 // as it moves or as the table scrolls beneath it, lights its player's dot.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
@@ -40,6 +42,8 @@ const AXES = {
   footprint: ['Rim scoring', 'Rim protection']
 }
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+// What a greyed group or column says on hover in the last 30 days.
+const NA = 'Unavailable for the last 30 days'
 
 function Groups({ groups, active, pick }) {
   return (
@@ -47,8 +51,8 @@ function Groups({ groups, active, pick }) {
       {groups.map((g, i) => {
         const on = g.id === active
         return (
-          <button key={g.id} type="button" className="lb-group" aria-pressed={on} onClick={() => pick(g.id)}
-            style={{ flex: 'none', height: 28, padding: '0 11px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+          <button key={g.id} type="button" className="lb-group" aria-pressed={on} aria-disabled={g.na || undefined} onClick={() => !g.na && pick(g.id)} title={g.na ? NA : undefined}
+            style={{ flex: 'none', height: 28, padding: '0 11px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: g.na ? FAINT : on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: g.na ? 'not-allowed' : 'pointer' }}>
             {g.name}
           </button>
         )
@@ -90,6 +94,22 @@ function Minutes({ top, set, playoffs }) {
     </Popover>
   )
 }
+
+// The whole season or its last 30 days: at the top, there only in the regular season (the
+// window is the latest regular season's).
+function WindowToggle({ recent, set }) {
+  return (
+    <div role="group" aria-label="Window" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
+      {[[false, 'Full season'], [true, 'Last 30 days']].map(([on, name], i) => (
+        <button key={name} type="button" aria-pressed={recent === on} onClick={() => set(on)}
+          style={{ height: 24, padding: '0 9px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: recent === on ? '#3a3734' : 'transparent', color: recent === on ? INK : DIM, fontFamily: MONO, fontSize: 9, fontWeight: recent === on ? 700 : 400, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>{name}</button>
+      ))}
+    </div>
+  )
+}
+
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+const day = d => `${MONTHS[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8))}`
 
 // Playoffs minus regular season: a small switch beside the season toggle, there only in
 // the playoffs, so the toggle stays the choice that matters.
@@ -137,6 +157,7 @@ export default function Leaderboard() {
   const [find, setFind] = useState('')
   const [picked, setPicked] = useState(null)
   const [delta, setDelta] = useState(false)
+  const [recent, setRecent] = useState(false)
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
   const close = useCallback(() => setPicked(null), [])
@@ -174,16 +195,19 @@ export default function Leaderboard() {
   // combined span of playoffs minus regular season, both kinds for every season. Keys are
   // kind|season; the effects follow them as strings.
   const inSpan = useMemo(() => (span && seasons ? seasonsBetween(span.from, span.to).filter(x => seasons.includes(x)) : []), [span, seasons])
-  const many = inSpan.length > 1
-  const kinds = !playoffs ? ['regular'] : !delta ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
-  const wantedKey = kinds.flatMap(kind => inSpan.map(x => `${kind}|${x}`)).join()
+  // The last 30 days are one document whatever the span.
+  const windowed = recent && !playoffs
+  const many = !windowed && inSpan.length > 1
+  const kinds = windowed ? ['recent'] : !playoffs ? ['regular'] : !delta ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
+  const wantedKey = windowed ? 'recent|window' : kinds.flatMap(kind => inSpan.map(x => `${kind}|${x}`)).join()
   const missingKey = wantedKey ? wantedKey.split(',').filter(k => !(k in cache)).join() : ''
   useEffect(() => {
     if (!missingKey) return
     let live = true
     for (const key of missingKey.split(',')) {
       const [kind, x] = key.split('|')
-      fetchLeaderboard(x, kind !== 'regular', kind === 'delta').then(d => live && setCache(c => ({ ...c, [key]: d || false })), () => live && setCache(c => ({ ...c, [key]: false })))
+      const load = kind === 'recent' ? fetchLeaderboardRecent() : fetchLeaderboard(x, kind !== 'regular', kind === 'delta')
+      load.then(d => live && setCache(c => ({ ...c, [key]: d || false })), () => live && setCache(c => ({ ...c, [key]: false })))
     }
     return () => { live = false }
   }, [missingKey])
@@ -207,10 +231,11 @@ export default function Leaderboard() {
     return { ...board, players: qualified(board.players, top) }
   }, [cache, wantedKey, each, top])
 
-  // A group the season type lacks (Footprint in the playoffs) falls back to the first;
+  // A group the season type lacks (Footprint in the playoffs), or one greyed in the last 30
+  // days, falls back to the first;
   // a sort or axis the document lacks, to the group's own. A default axis with no values (a
   // stat its season's data doesn't have yet) gives way to the group's next one that has.
-  const g = doc ? doc.groups.find(x => x.id === group) || doc.groups[0] : null
+  const g = doc ? doc.groups.find(x => x.id === group && !x.na) || doc.groups[0] : null
   const has = l => doc && doc.labels.includes(l)
   const filled = l => has(l) && doc.players.some(p => p.v[doc.labels.indexOf(l)] !== null)
   const axesOf = gr => [...new Set([...(AXES[gr.id] || []), ...gr.stats])].filter(filled).slice(0, 2)
@@ -229,7 +254,7 @@ export default function Leaderboard() {
   // A new season, group or sort starts the table at its top; only a new group (other
   // columns) starts it at its left as well, so a sort keeps the stats in view.
   const gid = g ? g.id : null
-  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [span, playoffs, delta, each, top, gid, sortLabel, sort.reverse])
+  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [span, playoffs, delta, windowed, each, top, gid, sortLabel, sort.reverse])
   useEffect(() => { if (wrap.current) wrap.current.scrollTo({ left: 0 }) }, [gid])
 
   const q = fold(find.trim())
@@ -247,21 +272,27 @@ export default function Leaderboard() {
   }, [doc, sortLabel, sort.reverse, team, q])
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
   const player = doc && picked ? doc.players.find(p => p.id === picked) : null
-  const spanText = !span ? '' : span.from === span.to ? span.from.replace('-', '–') : `${span.from.slice(0, 4)}–${span.to.slice(5)}`
+  const spanText = windowed ? 'Last 30 days' : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : `${span.from.slice(0, 4)}–${span.to.slice(5)}`
 
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}` }}>
         <Link to="/" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>← All players</Link>
         <span style={{ ...label, fontSize: 10, color: INK, fontWeight: 700, border: `1px solid ${EDGE}`, padding: '5px 9px' }}>Leaderboard</span>
-        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+          {!playoffs && <WindowToggle recent={recent} set={setRecent} />}
           <SeasonToggle />
           {playoffs && <DeltaToggle on={delta} set={setDelta} />}
         </span>
       </header>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>
-        {seasons && span && (
+        {windowed && doc && doc.window && (
+          <span style={{ ...label, height: 30, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 10px', border: `1px solid ${EDGE}`, color: INK }}>
+            <span style={{ color: DIM }}>Last 30 days</span>{day(doc.window.start)} – {day(doc.window.end)}, {doc.window.end.slice(0, 4)}
+          </span>
+        )}
+        {!windowed && seasons && span && (
           <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} pick={(from, to) => setSpan({ from, to })}
             extra={many && <Each each={each} set={setEach} />} />
         )}

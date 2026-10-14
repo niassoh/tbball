@@ -165,6 +165,9 @@ function Details({ e, anchors, color, right }) {
 // When its numbers change (LONE, another span), the tile stays put and its data moves: the
 // swing counts to its new value and the bar slides, `delay` ms after the tile before it;
 // colors and the lit edge fade.
+// A tile is square and never under TILE_MIN_H, the height of its fullest content (a title on
+// three lines beside a place ribbon): its size never depends on what it says.
+const TILE_MIN_H = 158
 function FootprintTile({ e, anchors, right, delay = 0 }) {
   const [open, setOpen] = useState(false)
   const lit = e.status === 'notable'
@@ -175,13 +178,13 @@ function FootprintTile({ e, anchors, right, delay = 0 }) {
   const mate = lit && e.mate
   return (
     // A lit tile carries a bar of its color across the top edge (hatched for a teammate
-    // effect); an unlit one is dimmed. It stretches to its row's tallest tile (a grid item
-    // with an aspect ratio otherwise keeps its own height, and a title on two lines makes
-    // a tile taller than one on one), so a row's values line up, and it never grows past
-    // its column (minWidth 0: a long unit line would otherwise widen it over the next).
+    // effect); an unlit one is dimmed. It is its column's width and square (stretching to
+    // a row's tallest tile let a long title make a whole row taller and wider than its
+    // columns, so tiles changed size with the player or span); minWidth 0: a long unit line
+    // would otherwise widen it over the next.
     <div tabIndex={0} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
       onPointerUp={ev => { if (ev.pointerType !== 'mouse') setOpen(o => !o) }}
-      style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', alignSelf: 'stretch', minWidth: 0, background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', aspectRatio: '1 / 1', minHeight: TILE_MIN_H, alignSelf: 'start', minWidth: 0, background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
       {mate && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
       {place && <Ribbon place={place} />}
       <div style={{ flex: 1, minWidth: 0, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.6, transition: `opacity .35s ${delay}ms`, fontFamily: MONO }}>

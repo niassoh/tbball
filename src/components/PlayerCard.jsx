@@ -384,8 +384,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
           {pl.headshot
             ? (
               <div className="pc-face" style={{ position: 'absolute', inset: 0 }}>
-                <img className={pl.headshot === 'nba' ? 'tb-graded' : undefined} src={headshotUrl(pl.slug, 400, pl.headshotVersion, pl.headshot)} alt="" width={104} height={104} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                {pl.headshot === 'nba' && <div className="tb-halftone" style={{ '--src': `url(${headshotUrl(pl.slug, 400, pl.headshotVersion, pl.headshot)})` }} />}
+                <img src={headshotUrl(pl.slug, 400, pl.headshotVersion, pl.headshot)} alt="" width={104} height={104} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 {pl.headshot === 'jersey' && layers && (split ? <SplitJersey slug={pl.slug} size={400} layers={layers} ids={split} /> : <JerseyOverlay slug={pl.slug} size={400} layers={layers} id={worn[worn.length - 1]} />)}
               </div>
             )

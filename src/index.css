@@ -359,17 +359,6 @@ a:hover > .lineup-tile > * { filter: none; }
   .lb-dot-in, .lb-bar-in, .lb-rise { animation: none; }
   .lb-dot { transition: none; }
 }
-/* An NBA.com fallback photo on a large portrait (the profile's header, the Leaderboard
-   card), given a printed texture toward the illustrated ones: a light grade (a touch
-   less saturated, warmer, firmer) and a halftone screen over the player alone (the layer
-   masked by the photo's own cut-out, `--src`). */
-.tb-graded { filter: contrast(1.08) saturate(.88) sepia(.06); }
-.tb-halftone {
-  position: absolute; inset: 0; pointer-events: none;
-  background-image: radial-gradient(circle at center, rgba(20, 18, 16, .55) 0 .9px, transparent 1.3px);
-  background-size: 3px 3px; mix-blend-mode: multiply; opacity: .45;
-  -webkit-mask: var(--src) center / 100% 100% no-repeat; mask: var(--src) center / 100% 100% no-repeat;
-}
 /* The card's head (PlayerCard) on opening: his portrait settles out of grey, his bio
    types in and his name wipes in; his footprint's icons light one after
    another, each at its `--d`, their ribbons dropping on just after; each number's meter

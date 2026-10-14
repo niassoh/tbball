@@ -132,14 +132,11 @@ html { scroll-behavior: smooth; }
 .ls-main { display: flex; flex-direction: column; }
 .ls-main > .ls-row:not(.ls-head) { flex: 1 0 auto; }
 .ls-plot { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
-/* The year strip: a pickable season lightens under the pointer; the strip shows focus for
-   its arrow keys. The stars' row scrolls sideways without a scrollbar. On a phone (the
-   picker's panel is sized to the screen) the cells close up to fit thirteen seasons. */
-.year-strip [data-has="1"]:hover { color: #ece8e3 !important; }
-.year-strip:focus-visible { outline: 1px solid #b8b2ab; outline-offset: 2px; }
-@media (max-width: 560px) {
-  .year-strip > span { min-width: 22px !important; padding: 0 2px !important; }
-}
+/* The span slider's handles show focus for their arrow keys, and grow a touch under the
+   pointer. The stars' row scrolls sideways without a scrollbar. */
+.span-handle:focus-visible { outline: 1px solid #b8b2ab; outline-offset: 2px; }
+.span-handle { transition: transform .12s; }
+.span-handle:hover { transform: scale(1.15); }
 .ls-keys { scrollbar-width: none; }
 .ls-keys::-webkit-scrollbar { display: none; }
 .ls-keys > * { flex: none; }

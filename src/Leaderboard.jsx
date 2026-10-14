@@ -183,6 +183,43 @@ function Teams({ teams, team, set }) {
   )
 }
 
+// A shimmering placeholder of a control or a value, while the first board loads.
+const Skel = ({ w, h, round }) => <span className="lb-skel" style={{ width: w, height: h, borderRadius: round ? '50%' : 0, flex: 'none' }} />
+
+// The line along the board's top while another board loads: filling as many seasons come
+// in (`share`), or running along it for one.
+const Progress = ({ share }) => (
+  <div className={`lb-progress${share === null ? ' lb-indet' : ''}`} role="progressbar" aria-label="Loading" aria-valuenow={share === null ? undefined : Math.round(share * 100)}>
+    <span style={share === null ? undefined : { transform: `scaleX(${Math.max(0.04, share)})` }} />
+  </div>
+)
+
+// The board's shape before its first data: the table's rows and the chart's frame where
+// they'll be, so the board comes up in place rather than after a blank page.
+const SKEL_NAMES = [92, 70, 108, 84, 64, 100, 78]
+function BoardSkeleton() {
+  return (
+    <div className="lb-body" aria-busy="true" aria-label="Loading the leaderboard">
+      <div className="lb-table-wrap" style={{ overflow: 'hidden' }}>
+        <div style={{ height: 46, borderBottom: `1px solid ${RULE}` }} />
+        {Array.from({ length: 30 }, (_, i) => (
+          <div key={i} style={{ height: 26, display: 'grid', gridTemplateColumns: '32px 170px 190px repeat(5, minmax(0, 1fr))', alignItems: 'center', borderBottom: `1px solid ${RULE}` }}>
+            <span style={{ justifySelf: 'center' }}><Skel w={12} h={7} /></span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 8px 0 4px' }}><Skel w={20} h={20} round /><Skel w={SKEL_NAMES[i % SKEL_NAMES.length]} h={9} /></span>
+            <span style={{ display: 'flex', gap: 12, padding: '0 7px' }}>{[26, 18, 16, 16, 30].map((w, j) => <Skel key={j} w={w} h={7} />)}</span>
+            {[0, 1, 2, 3, 4].map(j => <span key={j} style={{ justifySelf: 'end', paddingRight: 7 }}><Skel w={34} h={8} /></span>)}
+          </div>
+        ))}
+      </div>
+      <div className="lb-side">
+        <div style={{ display: 'flex', gap: 8, padding: '10px 12px', borderBottom: `1px solid ${RULE}` }}><Skel w={96} h={28} /><Skel w={96} h={28} /></div>
+        <div style={{ flex: 1, minHeight: 240, margin: '16px 14px 30px 30px', border: `1px solid ${RULE}` }} />
+        <div style={{ height: 62, borderTop: `1px solid ${RULE}` }} />
+      </div>
+    </div>
+  )
+}
+
 export default function Leaderboard() {
   const { playoffs } = useSeasonType()
   const [seasons, setSeasons] = useState(null)
@@ -260,7 +297,7 @@ export default function Leaderboard() {
     }
     return () => { live = false }
   }, [missingKey])
-  const doc = useMemo(() => {
+  const fresh = useMemo(() => {
     const wanted = wantedKey ? wantedKey.split(',') : []
     if (!wanted.length || wanted.some(k => !(k in cache))) return null
     const docsOf = kind => wanted.filter(k => k.startsWith(`${kind}|`)).map(k => cache[k]).filter(Boolean)
@@ -279,6 +316,15 @@ export default function Leaderboard() {
     const board = eraOn ? eras(docs, eraOn) : each || docs.length === 1 ? eachSeason(docs) : combined(docs)
     return { ...board, players: qualified(board.players, top) }
   }, [cache, wantedKey, each, top, eraOn])
+  // While another board loads (a span, eras, the last 30 days, the playoffs) the last one
+  // stays up, dimmed under a progress line, and the new one comes up in its place; before
+  // the first, the board's shape shows (BoardSkeleton).
+  const [held, setHeld] = useState(null)
+  if (fresh && fresh !== held) setHeld(fresh)
+  const doc = fresh === null ? held : fresh
+  const loading = fresh === null && !!doc
+  const wanted = wantedKey ? wantedKey.split(',') : []
+  const progress = wanted.length > 1 ? wanted.filter(k => k in cache).length / wanted.length : null
 
   // A group the season type lacks (Footprint in the playoffs), or one greyed in the last 30
   // days, falls back to the first;
@@ -370,8 +416,8 @@ export default function Leaderboard() {
               {!playoffs && <Eras era={eraOn} set={setEra} />}
             </>} />
         )}
-        {doc && <Minutes top={top} set={setTop} playoffs={playoffs} />}
-        {doc && <Groups groups={tabs} active={g.id} pick={choose} />}
+        {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : doc === null && <Skel w={90} h={30} />}
+        {doc ? <Groups groups={tabs} active={g.id} pick={choose} /> : doc === null && <Skel w={586} h={30} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', maxWidth: '100%' }}>
           <ModeSwitch mode={mode} setMode={setMode} height={28} />
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${EDGE}` }}>
@@ -379,19 +425,16 @@ export default function Leaderboard() {
             <input value={find} onChange={e => setFind(e.target.value)} aria-label="Find a player" spellCheck={false}
               style={{ width: 96, background: 'transparent', border: 0, outline: 'none', color: INK, fontFamily: MONO, fontSize: 11, caretColor: 'var(--accent)' }} />
           </label>
-          {doc && <Teams teams={teams} team={team} set={setTeam} />}
+          {doc ? <Teams teams={teams} team={team} set={setTeam} /> : doc === null && <Skel w={96} h={30} />}
         </span>
       </div>
 
       {doc === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
-      {doc === null && wantedKey && wantedKey.includes(',') && (
-        // Many seasons (a long span, or eras' every one) come in one by one.
-        <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>
-          Loading seasons · {wantedKey.split(',').filter(k => k in cache).length} of {wantedKey.split(',').length}
-        </div>
-      )}
+      {doc === null && <BoardSkeleton />}
       {doc && (
-        <div className="lb-body">
+        <div className={`lb-body lb-enter${loading ? ' lb-loading' : ''}`} aria-busy={loading || undefined}>
+          {/* Many seasons (a long span, or eras' every one) fill it as they come in. */}
+          {loading && <Progress share={progress} />}
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
             <LeaderTable doc={doc} group={g} rows={drawn} pager={pager} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
               picked={picked} onPick={setPicked} scroller={wrap} />

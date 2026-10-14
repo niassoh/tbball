@@ -126,6 +126,11 @@ function Face({ p }) {
 }
 
 const CELL = { height: 26, padding: '0 7px', borderBottom: `1px solid ${RULE}`, whiteSpace: 'nowrap' }
+// A group with offense and defense stats (Footprint's, by `side`) parts them: a rule down
+// the first defensive column's left, and over each side's first header its name.
+const sideAt = (doc, group, i) => (i >= 0 && i < group.stats.length ? doc.stats[group.stats[i]].side : undefined)
+const turnsDef = (doc, group, i) => sideAt(doc, group, i) === 'def' && sideAt(doc, group, i - 1) === 'off'
+const sideStarts = (doc, group, i) => sideAt(doc, group, i) && sideAt(doc, group, i) !== sideAt(doc, group, i - 1)
 const stick = left => ({ position: 'sticky', left, zIndex: 1 })
 // A held column at its measured offset (`lefts`); on a phone only the rank and player are held.
 const lockOf = (lefts, narrow) => k => (lefts.length && !narrow ? stick(lefts[k]) : {})
@@ -150,14 +155,14 @@ const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel
       </td>
       {doc.many && <td style={{ ...CELL, ...lock(0), color: '#b8b2ab', fontSize: 10.5 }}>’{p.season.slice(5)}</td>}
       {BIO.map(([name, of], i) => <td key={name} style={{ ...CELL, ...lock(yr + i), minWidth: `${bioCh[i]}ch`, textAlign: i < 2 ? 'left' : 'right', color: i < 2 ? '#b8b2ab' : DIM, fontSize: i < 2 ? 10.5 : 11.5, ...edge(i) }}>{of(p)}</td>)}
-      {group.stats.map(l => {
+      {group.stats.map((l, i) => {
         const k = doc.labels.indexOf(l)
         const stat = doc.stats[l]
         const v = p.v[k]
         const pc = p.p[k]
         const shade = v === null || pc === null ? undefined : stat.neutral ? plain(pc) : heat(pc)
         return (
-          <td key={l} style={{ ...CELL, textAlign: 'right', background: shade, color: v === null ? FAINT : INK, fontWeight: sortLabel === l ? 600 : 400 }}>
+          <td key={l} style={{ ...CELL, textAlign: 'right', background: shade, ...(turnsDef(doc, group, i) ? { borderLeft: '1px solid #544f4b' } : {}), color: v === null ? FAINT : INK, fontWeight: sortLabel === l ? 600 : 400 }}>
             {lit.has(k) && <span aria-label="clears the noise" style={{ display: 'inline-block', width: 4, height: 4, marginRight: 5, verticalAlign: 2, background: INK }} />}
             {pct ? (v === null || pc === null ? '—' : pc) : fmt(stat, v)}
           </td>
@@ -287,13 +292,14 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
             const na = doc.stats[l].na
             const yearsAt = j => (j >= 0 && j < group.stats.length ? doc.stats[group.stats[j]].years : null)
             return (
-              <th key={l} style={{ ...head, minWidth: 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none' }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
+              <th key={l} style={{ ...head, minWidth: 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none', ...(turnsDef(doc, group, i) ? { borderLeft: '1px solid #837d76' } : {}) }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
                 {years && <Bracket years={years} start={yearsAt(i - 1) !== years} end={yearsAt(i + 1) !== years} />}
+                {sideStarts(doc, group, i) && <span style={{ position: 'absolute', top: 4, left: 7, fontSize: 8, letterSpacing: '.14em', color: '#837d76', whiteSpace: 'nowrap' }}>{doc.stats[l].side === 'def' ? 'DEFENSE' : 'OFFENSE'}</span>}
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4 }}>
                   {!na && setFilter && <ColumnFilter stat={l} share={filters[l]} set={setFilter} />}
                   <button type="button" className="lb-head-cell" disabled={na} onClick={() => onSort(l)} title={na ? 'Unavailable for the last 30 days' : on ? 'Sorted best first; click for worst first' : 'Sort by this stat, best first'}
                     style={{ ...label, display: 'flex', width: '100%', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 3, padding: 0, border: 0, background: 'transparent', cursor: na ? 'not-allowed' : 'pointer', textAlign: 'right', lineHeight: 1.25, color: na ? '#6a645e' : on ? INK : DIM, textDecoration: na ? 'line-through' : 'none' }}>
-                    <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={na ? undefined : l}>{l}</span>
+                    <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={na ? undefined : doc.stats[l].desc ? `${l}: ${doc.stats[l].desc}` : l}>{l}</span>
                     <span aria-hidden="true" style={{ width: 7, flex: 'none', textAlign: 'left', color: on ? INK : 'transparent' }}>{reverse ? '↑' : '↓'}</span>
                   </button>
                 </div>

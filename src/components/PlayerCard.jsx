@@ -126,19 +126,27 @@ function Frame({ x, y, splitX, splitY, xLabels, yName, children }) {
 // seasons, or each season) across the seasons that have one, the line spanning the chart;
 // the league's average dashed, the gap shaded blue where he's above it and orange below
 // (as his profile charts it); dots in their percentile's colour, the season on show
-// ringed with its value. The dots pop in season by season.
-function Career({ profile: p, season, n }) {
+// ringed with its value. A span's card (`span`: its first and last season and its BPM)
+// shades the span's seasons, dims the rest and draws the span's average across it, as the
+// profile's stat tables do. The dots pop in season by season.
+function Career({ profile: p, season, span, n }) {
   const stat = n > 1 ? rollingStat(p, 'BPM', n) : p.stats.BPM
   const pts = p.seasons.map((x, i) => ({ season: x.season, v: stat.vals[i], lg: stat.lg[i] })).filter(q => q.v)
   if (!pts.length) return <span style={{ ...label, color: FAINT }}>—</span>
   const xs = [-0.5, pts.length - 0.5]
-  const ys = fit([...pts.map(q => q.v.n), ...pts.map(q => q.lg).filter(v => v !== null && v !== undefined)], MIN_BPM)
+  const mean = span && span.mean !== null ? [span.mean] : []
+  const ys = fit([...pts.map(q => q.v.n), ...pts.map(q => q.lg).filter(v => v !== null && v !== undefined), ...mean], MIN_BPM)
   const at = pts.map((q, i) => ({ ...q, x: px(xs, i), y: py(ys, q.v.n), ly: q.lg === null || q.lg === undefined ? null : py(ys, q.lg) }))
   const line = key => at.filter(q => q[key] !== null).map(q => `${q.x.toFixed(1)},${q[key].toFixed(1)}`).join(' ')
   const yy = q => `’${q.season.slice(5)}`
-  const shown = at.find(q => q.season === season)
+  const shown = !span && at.find(q => q.season === season)
+  const inSpan = q => span && q.season >= span.from && q.season <= span.to
+  const within = at.filter(inSpan)
+  const slot = at.length > 1 ? at[1].x - at[0].x : CW - CM.l - CM.r
+  const band = within.length > 0 && { x0: Math.max(CM.l, within[0].x - slot / 2), x1: Math.min(CW - CM.r, within[within.length - 1].x + slot / 2) }
   return (
     <Frame x={xs} y={ys} xLabels={[yy(at[0]), n > 1 ? `${n}-YR AVG →` : 'SEASON →', yy(at[at.length - 1])]} yName="BPM">
+      {band && <rect x={band.x0} y={CM.t} width={band.x1 - band.x0} height={CH - CM.t - CM.b} fill="rgba(236,232,227,.07)" />}
       {at.slice(1).map((b, i) => {
         const a = at[i]
         if (a.ly === null || b.ly === null) return null
@@ -149,10 +157,16 @@ function Career({ profile: p, season, n }) {
         : at[0].ly !== null && <line x1={CM.l} x2={CW - CM.r} y1={at[0].ly} y2={at[0].ly} stroke={DIM} strokeDasharray="3 3" />}
       {at.length > 1 && <polyline points={line('y')} fill="none" stroke={INK} strokeWidth={1.5} strokeLinejoin="round" />}
       {at.map((q, i) => (
-        <circle key={q.season} className="ls-pop" cx={q.x} cy={q.y} r={q === shown ? 4 : 2.5} fill={q.v.p === null ? FAINT : col(q.v.p)}
-          stroke={q === shown ? INK : 'none'} strokeWidth={1.5} style={{ animationDelay: `${i * 40}ms` }} />
+        <circle key={q.season} className="ls-pop" cx={q.x} cy={q.y} r={q === shown ? 4 : inSpan(q) ? 3 : 2.5} fill={q.v.p === null ? FAINT : col(q.v.p)}
+          stroke={q === shown ? INK : 'none'} strokeWidth={1.5} fillOpacity={span && !inSpan(q) ? 0.3 : 1} style={{ animationDelay: `${i * 40}ms` }} />
       ))}
       {shown && <text x={shown.x} y={shown.y - 8} textAnchor={shown.x > CW - 30 ? 'end' : 'middle'} style={{ fontFamily: MONO, fontSize: 9, fontWeight: 600, fill: INK }}>{fmt(stat, shown.v.n)}</text>}
+      {band && mean.length > 0 && (
+        <>
+          <line x1={band.x0} x2={band.x1} y1={py(ys, span.mean)} y2={py(ys, span.mean)} stroke={INK} strokeWidth={1.5} />
+          <text x={band.x1 > CW - 40 ? band.x0 - 3 : band.x1 + 3} y={py(ys, span.mean) + 3} textAnchor={band.x1 > CW - 40 ? 'end' : 'start'} style={{ fontFamily: MONO, fontSize: 9, fontWeight: 600, fill: INK }}>{fmt(stat, span.mean)}</text>
+        </>
+      )}
     </Frame>
   )
 }
@@ -206,9 +220,10 @@ function Unit({ unit, title }) {
   )
 }
 
-// `doc` is the board (lib/board.js): its row's numbers are its season's, or, for a
-// combined row, its span's (`spanText`); the parts from his profile (career, Lonestar,
-// units) are for the row's season, the span's last for a combined row, and say so.
+// `doc` is the board (lib/board.js): its row's numbers and percentiles are its season's,
+// or, for a combined row, its span's (`spanText`); the career chart marks the season, or
+// shades the span with its average, and Lonestar is that season's or the span's stretch;
+// the units are the row's season's, the span's last for a combined row, and say so.
 export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, spanText = null }) {
   const { playoffs, playerPath } = useSeasonType()
   const [profile, setProfile] = useState(null)
@@ -228,6 +243,12 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
 
   const season = pl.season
   const yy = `’${season.slice(5)}`
+  // A combined row's span (its seasons on the board): its career chart shades it and charts
+  // each season (a rolling average would blur the span's edges), its percentiles are the
+  // span's among the board's, and Lonestar reads the span's stretch.
+  const span = doc.combined && pl.seasons && pl.seasons.length > 1 ? { from: pl.seasons[0], to: pl.seasons[pl.seasons.length - 1], mean: valueOf(doc, pl, 'BPM') } : null
+  const spanYy = span && `’${span.from.slice(5)}–’${span.to.slice(5)}`
+  const careerN = profile && (span ? 1 : careerWindow(profile))
   const at = profile ? profile.seasons.findIndex(s => s.season === season) : -1
   const heroes = [...new Set([sortLabel, 'BPM', 'Load', 'rTS%'])].filter(l => doc.labels.includes(l)).slice(0, 3)
   const rows = CARD_STATS.filter(l => doc.labels.includes(l))
@@ -238,8 +259,11 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
   // card) the profile's own.
   const lineups = at < 0 ? null : profile.seasons[at].card ? profile.seasons[at].card.lineups : profile.lineups && profile.lineups.season === season ? profile.lineups : null
   const units = lineups && lineups.units
-  // Lonestar's stretch that season without both his stars, or his top one alone.
-  const view = lonestar && lonestar.views.find(v => v.id === season)
+  // Lonestar's stretch that season (or over the span: its view by his own first and last
+  // season in it) without both his stars, or his top one alone.
+  const lsSeasons = lonestar && span ? lonestar.seasons.filter(s => s >= span.from && s <= span.to) : []
+  const lsId = !span ? season : lsSeasons.length > 1 ? `${lsSeasons[0]}..${lsSeasons[lsSeasons.length - 1]}` : lsSeasons[0]
+  const view = lonestar && lonestar.views.find(v => v.id === lsId)
   const star = view && (view.scenarios.find(x => x.kind === 'two') || view.scenarios.find(x => x.kind === 'one'))
 
   return (
@@ -282,7 +306,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
       </div>
 
 
-      <Section title={doc.type === 'delta' ? 'Δ percentiles' : 'Percentiles'} right={doc.type === 'delta' ? 'among playoff players' : doc.type === 'recent' ? 'last 30 days' : season.replace('-', '–')}>
+      <Section title={doc.type === 'delta' ? 'Δ percentiles' : 'Percentiles'} right={doc.type === 'delta' ? 'among playoff players' : doc.type === 'recent' ? 'last 30 days' : span ? `${spanText || spanYy} ${doc.eras ? `· among ${doc.eras}-yr eras` : 'combined'}` : season.replace('-', '–')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 16, rowGap: 5 }}>
           {rows.map((l, i) => {
             const pc = pctlOf(doc, pl, l)
@@ -302,13 +326,13 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
 
       <div style={{ display: 'grid', gridTemplateColumns: playoffs ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
         <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-          <span style={{ ...label, color: '#b8b2ab' }}>BPM <span style={{ color: FAINT }}>· {profile && careerWindow(profile) > 1 ? `${ROLL}-yr avg` : 'by season'} vs lg</span></span>
-          {profile ? <Career profile={profile} season={season} n={careerWindow(profile)} /> : <span style={{ ...label, color: FAINT, height: 168 }}>{profile === false ? 'Unavailable' : 'Loading'}</span>}
+          <span style={{ ...label, color: '#b8b2ab' }}>BPM <span style={{ color: FAINT }}>· {careerN > 1 ? `${ROLL}-yr avg` : 'by season'} vs lg{span ? ` · ${spanYy} avg` : ''}</span></span>
+          {profile ? <Career profile={profile} season={season} span={span} n={careerN} /> : <span style={{ ...label, color: FAINT, height: 168 }}>{profile === false ? 'Unavailable' : 'Loading'}</span>}
         </div>
         {!playoffs && (
           <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, borderLeft: `1px solid ${RULE}` }}>
-            <span style={{ ...label, color: '#b8b2ab', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lonestar <span style={{ color: FAINT }}>{doc.combined ? `· ${yy} ` : ''}· w/o {star ? starsText(star.stars) : '—'}</span></span>
-            {star ? <Alone scenario={star} /> : <span style={{ ...label, color: FAINT, height: 168 }}>{lonestar === null ? 'Loading' : 'No star stretch this season'}</span>}
+            <span style={{ ...label, color: '#b8b2ab', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lonestar <span style={{ color: FAINT }}>{span ? `· ${spanYy} ` : doc.combined ? `· ${yy} ` : ''}· w/o {star ? starsText(star.stars) : '—'}</span></span>
+            {star ? <Alone scenario={star} /> : <span style={{ ...label, color: FAINT, height: 168 }}>{lonestar === null ? 'Loading' : `No star stretch ${span ? 'over the span' : 'this season'}`}</span>}
           </div>
         )}
       </div>

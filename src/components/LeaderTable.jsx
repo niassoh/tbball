@@ -123,10 +123,50 @@ function Face({ p }) {
   )
 }
 
+const CELL = { height: 26, padding: '0 7px', borderBottom: `1px solid ${RULE}`, whiteSpace: 'nowrap' }
+const stick = left => ({ position: 'sticky', left, zIndex: 1 })
+// A held column at its measured offset (`lefts`); on a phone only the rank and player are held.
+const lockOf = (lefts, narrow) => k => (lefts.length && !narrow ? stick(lefts[k]) : {})
+// The held block's right edge, a rule the stats slide under.
+const edge = i => (i === BIO.length - 1 ? { borderRight: `1px solid ${RULE}` } : {})
+
+// A player's row. Its own component, kept while its props hold, so when the drawn rows
+// move (Leaderboard.jsx) only the newly drawn ones are made.
+const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel, pct, narrow, lefts }) {
+  const lock = lockOf(lefts, narrow)
+  const yr = doc.many ? 1 : 0
+  const lit = new Set(p.lit || [])
+  return (
+    <tr data-id={p.id} className="lb-row" aria-selected={selected} onClick={() => onPick(p.id)}>
+      <td style={{ ...CELL, ...stick(0), padding: 0, textAlign: 'center', color: DIM, fontSize: 10.5 }}><span style={{ display: 'inline-block', width: RANK_W }}>{rank ?? '—'}</span></td>
+      <td style={{ ...CELL, ...stick(RANK_W), padding: '0 8px 0 4px', borderRight: `1px solid ${RULE}` }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <Face p={p} />
+          <span title={p.name} style={{ maxWidth: narrow ? 84 : 130, fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{short(p.name)}</span>
+          {p.era && <span style={{ flex: 'none', fontFamily: MONO, fontSize: 9.5, color: FAINT, letterSpacing: '.04em' }}>’{p.era[0].slice(2, 4)}–’{p.era[1].slice(5)}</span>}
+        </span>
+      </td>
+      {doc.many && <td style={{ ...CELL, ...lock(0), color: '#b8b2ab', fontSize: 10.5 }}>’{p.season.slice(5)}</td>}
+      {BIO.map(([name, of], i) => <td key={name} style={{ ...CELL, ...lock(yr + i), textAlign: i < 2 ? 'left' : 'right', color: i < 2 ? '#b8b2ab' : DIM, fontSize: i < 2 ? 10.5 : 11.5, ...edge(i) }}>{of(p)}</td>)}
+      {group.stats.map(l => {
+        const k = doc.labels.indexOf(l)
+        const stat = doc.stats[l]
+        const v = p.v[k]
+        const pc = p.p[k]
+        const shade = v === null || pc === null ? undefined : stat.neutral ? plain(pc) : heat(pc)
+        return (
+          <td key={l} style={{ ...CELL, textAlign: 'right', background: shade, color: v === null ? FAINT : INK, fontWeight: sortLabel === l ? 600 : 400 }}>
+            {lit.has(k) && <span aria-label="clears the noise" style={{ display: 'inline-block', width: 4, height: 4, marginRight: 5, verticalAlign: 2, background: INK }} />}
+            {pct ? (v === null || pc === null ? '—' : pc) : fmt(stat, v)}
+          </td>
+        )
+      })}
+    </tr>
+  )
+})
+
 function LeaderTable({ doc, group, rows, before = 0, after = 0, rank, sortLabel, reverse, onSort, picked, onPick, scroller, pct = false }) {
-  const cell = { height: 26, padding: '0 7px', borderBottom: `1px solid ${RULE}`, whiteSpace: 'nowrap' }
   const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 7px 6px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', verticalAlign: 'bottom' }
-  const stick = left => ({ position: 'sticky', left, zIndex: 1 })
   // The season and details columns stay put where they sit: each held at its own offset,
   // measured (they're as wide as their widest value, which a span's totals widen).
   const headRow = useRef(null)
@@ -160,10 +200,8 @@ function LeaderTable({ doc, group, rows, before = 0, after = 0, rank, sortLabel,
     m.addEventListener('change', on)
     return () => m.removeEventListener('change', on)
   }, [])
-  const lock = k => (lefts.length && !narrow ? stick(lefts[k]) : {})
+  const lock = lockOf(lefts, narrow)
   const held = !lefts.length ? 0 : narrow ? lefts[0] : lefts[lefts.length - 1]
-  // The held block's right edge, a rule the stats slide under.
-  const edge = i => (i === BIO.length - 1 ? { borderRight: `1px solid ${RULE}` } : {})
   const yr = doc.many ? 1 : 0
   const span = 2 + yr + BIO.length + group.stats.length
   const room = height => height > 0 && <tr aria-hidden="true"><td colSpan={span} style={{ height, padding: 0, border: 0 }} /></tr>
@@ -196,36 +234,7 @@ function LeaderTable({ doc, group, rows, before = 0, after = 0, rank, sortLabel,
       </thead>
       <tbody>
         {room(before)}
-        {rows.map(p => {
-          const lit = new Set(p.lit || [])
-          return (
-            <tr key={p.id} data-id={p.id} className="lb-row" aria-selected={picked === p.id} onClick={() => onPick(p.id)}>
-              <td style={{ ...cell, ...stick(0), padding: 0, textAlign: 'center', color: DIM, fontSize: 10.5 }}><span style={{ display: 'inline-block', width: RANK_W }}>{rank.get(p.id) ?? '—'}</span></td>
-              <td style={{ ...cell, ...stick(RANK_W), padding: '0 8px 0 4px', borderRight: `1px solid ${RULE}` }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <Face p={p} />
-                  <span title={p.name} style={{ maxWidth: narrow ? 84 : 130, fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{short(p.name)}</span>
-                  {p.era && <span style={{ flex: 'none', fontFamily: MONO, fontSize: 9.5, color: FAINT, letterSpacing: '.04em' }}>’{p.era[0].slice(2, 4)}–’{p.era[1].slice(5)}</span>}
-                </span>
-              </td>
-              {doc.many && <td style={{ ...cell, ...lock(0), color: '#b8b2ab', fontSize: 10.5 }}>’{p.season.slice(5)}</td>}
-              {BIO.map(([name, of], i) => <td key={name} style={{ ...cell, ...lock(yr + i), textAlign: i < 2 ? 'left' : 'right', color: i < 2 ? '#b8b2ab' : DIM, fontSize: i < 2 ? 10.5 : 11.5, ...edge(i) }}>{of(p)}</td>)}
-              {group.stats.map(l => {
-                const k = doc.labels.indexOf(l)
-                const stat = doc.stats[l]
-                const v = p.v[k]
-                const pc = p.p[k]
-                const shade = v === null || pc === null ? undefined : stat.neutral ? plain(pc) : heat(pc)
-                return (
-                  <td key={l} style={{ ...cell, textAlign: 'right', background: shade, color: v === null ? FAINT : INK, fontWeight: sortLabel === l ? 600 : 400 }}>
-                    {lit.has(k) && <span aria-label="clears the noise" style={{ display: 'inline-block', width: 4, height: 4, marginRight: 5, verticalAlign: 2, background: INK }} />}
-                    {pct ? (v === null || pc === null ? '—' : pc) : fmt(stat, v)}
-                  </td>
-                )
-              })}
-            </tr>
-          )
-        })}
+        {rows.map(p => <Row key={p.id} p={p} rank={rank.get(p.id)} selected={picked === p.id} onPick={onPick} doc={doc} group={group} sortLabel={sortLabel} pct={pct} narrow={narrow} lefts={lefts} />)}
         {room(after)}
       </tbody>
       {scroller && lefts.length > 0 && <Rail scroller={scroller} held={held} span={span} />}

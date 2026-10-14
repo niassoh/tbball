@@ -362,3 +362,21 @@ a:hover > .lineup-tile > * { filter: none; }
   .lb-dot-in, .lb-bar-in, .lb-rise { animation: none; }
   .lb-dot { transition: none; }
 }
+/* The card's head (PlayerCard) on opening: his portrait settles out of grey, his bio
+   types in and his name wipes in; his footprint's icons light one after
+   another, each at its `--d`, their ribbons dropping on just after; each number's meter
+   lights step by step (from its `--d`) as the number counts up. */
+@keyframes pc-settle { from { opacity: 0; transform: scale(1.08); filter: grayscale(1); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes pc-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes pc-light { from { opacity: .1; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes pc-drop { from { opacity: 0; transform: translateY(-100%); } to { opacity: 1; transform: none; } }
+@keyframes pc-step { from { background: #34312e; } }
+.pc-portrait img { animation: pc-settle .8s cubic-bezier(.2, .7, .2, 1) both; }
+.pc-type { animation: pc-wipe .45s steps(28, end) both .08s; }
+.pc-name { animation: pc-wipe .6s cubic-bezier(.65, 0, .2, 1) both .16s; }
+.pc-icon { animation: pc-light .5s cubic-bezier(.2, .7, .2, 1) both var(--d, 0ms); }
+.pc-ribbon { animation: pc-drop .3s cubic-bezier(.2, .7, .2, 1) both calc(var(--d, 0ms) + 260ms); }
+.pc-step { animation: pc-step .01s steps(1, end) both var(--d, 0ms); }
+@media (prefers-reduced-motion: reduce) {
+  .pc-portrait img, .pc-type, .pc-name, .pc-icon, .pc-ribbon, .pc-step { animation: none; }
+}

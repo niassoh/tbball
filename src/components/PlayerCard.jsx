@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchLonestar, fetchProfile, headshotUrl } from '../api.js'
-import { unitOf } from '../lib/footprint.js'
-import { MONO, col, fmt, ord } from '../lib/format.js'
+import { fetchFootprint, fetchLonestar, fetchProfile, headshotUrl } from '../api.js'
+import { swingText, toneOf, topPlaceOf, unitOf, worstText } from '../lib/footprint.js'
+import { MONO, col, fmt } from '../lib/format.js'
 import { pctlOf, valueOf } from '../lib/leaderboard.js'
 import { rollingStat } from '../lib/span.js'
 import { starsText } from '../lib/lonestar.js'
@@ -11,15 +11,16 @@ import { useSeasonType } from '../useSeasonType.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
 
 // A player's card on the Leaderboard, in the scatter's place: a snapshot of his profile
-// for the season on show. His portrait, name, team and minutes, with his footprint as a
-// row of the Footprint tab's icons (those whose swing clears the noise lit in its colour;
-// hover one for its swing), and three numbers (the stat the table is sorted by, then BPM,
-// Load and rTS% as room allows) with their percentiles; his percentiles across the
+// for the season or span on show. Its head is a panel: his portrait,
+// name, team, position, age, games and minutes; his footprint as a line of the Footprint
+// tab's icons (those whose swing clears the noise, in its colour, with the tab's place
+// ribbon; hover one for its swing); and three numbers (the stat the table is sorted by,
+// then BPM, Load and rTS% as room allows) with their percentiles. Then his percentiles across the
 // profile's headline stats; two charts, his career (BPM as a moving average against the
 // league's, as his profile charts it) and Lonestar's that season (Load and Net with both
 // his stars on and off); and his best and most-used two- and three-man units that
-// season. The career and units come from his profile, Lonestar from its own document,
-// both fetched on opening. Its charts move: the percentile bars wipe in, the career dots
+// season. The career and units come from his profile, Lonestar and Footprint from their
+// own documents, all fetched on opening. Its charts move: the percentile bars wipe in, the career dots
 // pop in and Lonestar's arrow draws (index.css).
 const INK = '#ece8e3'
 const DIM = '#a09a93'
@@ -28,6 +29,11 @@ const RULE = '#3d3a37'
 const EDGE = '#544f4b'
 const BLUE = '#8fb0e6'
 const ORANGE = '#fa962a'
+// The Footprint tab's ribbon colors: gold for #1, silver for #2 to #10; its mark for the
+// 10 worst, a reddish orange.
+const GOLD = '#d4af37'
+const SILVER = '#c3c9cf'
+const WORST = '#ef5b30'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM, textTransform: 'uppercase' }
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 // The headline stats, as on his profile's percentile card: impact, offense, defense.
@@ -68,31 +74,109 @@ function Section({ title, children, right }) {
   )
 }
 
-// His footprint that season: the Footprint tab's icons for the swings that clear the
-// noise, in the swing's colour (blue a lift, orange a cost, ink a style effect), at the
-// end of his bio line; hovering one (`at`) puts its swing in place of the line's text.
-const footprintOf = (doc, pl) => (pl.lit || []).map(k => {
-  const l = doc.labels[k]
-  const stat = doc.stats[l]
-  const v = pl.v[k]
-  return { l, stat, v, tone: stat.neutral ? INK : (v > 0) !== !!stat.lowerBetter ? BLUE : ORANGE }
+// A view in a document with one per season and span (Lonestar's, Footprint's): the
+// season's, or over a span the one from his own first to last season in it.
+const viewIn = (d, season, span) => {
+  if (!d) return null
+  const ss = span ? d.seasons.filter(s => s >= span.from && s <= span.to) : [season]
+  const id = ss.length > 1 ? `${ss[0]}..${ss[ss.length - 1]}` : ss[0]
+  return d.views.find(v => v.id === id) || null
+}
+// His footprint that season or span: the Footprint tab's icons for the swings that clear
+// the noise, in the swing's colour (blue a lift, orange a cost, ink a style effect; red
+// when among the league's 10 worst), with the tab's ribbon on a top-10 place.
+const TONES = { good: BLUE, bad: ORANGE, neutral: INK }
+const footprintOf = view => (view ? view.effects.filter(e => e.status === 'notable') : []).map(e => {
+  const place = topPlaceOf(e)
+  return { l: e.effect, e, tone: place && place.worst ? WORST : TONES[toneOf(e)], place }
 })
-function Icons({ items, at, setAt }) {
+
+// The card's head: his portrait beside, in small type, his numbers (team, position, age,
+// games, minutes) over his name; under them his footprint, the Footprint tab's icons for
+// the swings that clear the noise, on one line as large as ICON_MAX while they fit (hovering
+// one reads it out in the bio line's place); and three numbers in a light grid, each with
+// its percentile on a ten-step meter. It comes in on opening: the portrait settles out of
+// grey, the name wipes in, the icons light one after another (their ribbons dropping on),
+// and the numbers count up as their meters fill (index.css .pc-*).
+const ICON_MAX = 32
+const small = { ...label, fontSize: 8.5, letterSpacing: '.14em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+const still = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+// A number counting up to its value, eased out over COUNT_MS after `delay` ms (the effect
+// writes its text, so the count runs between renders); straight to it with reduced motion.
+const COUNT_MS = 700
+function CountUp({ stat, value, delay }) {
+  const el = useRef(null)
+  useLayoutEffect(() => {
+    const node = el.current
+    if (value === null || value === undefined || still()) {
+      node.textContent = fmt(stat, value)
+      return undefined
+    }
+    node.textContent = fmt(stat, 0)
+    let raf = 0
+    const start = performance.now() + delay
+    const tick = now => {
+      const t = Math.min(1, Math.max(0, (now - start) / COUNT_MS))
+      node.textContent = fmt(stat, t < 1 ? value * (1 - (1 - t) ** 3) : value)
+      if (t < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [stat, value, delay])
+  return <span ref={el} />
+}
+
+// A percentile on ten steps, lit in its color one after another from `delay` ms.
+function Meter({ pc, delay }) {
+  const lit = pc === null ? 0 : Math.max(1, Math.round(pc / 10))
   return (
-    <div style={{ display: 'flex', gap: 2, flex: 'none' }} onMouseLeave={() => setAt(null)}>
-      {items.map(x => (
-        <span key={x.l} onMouseEnter={() => setAt(x.l)} aria-label={`${x.l}: ${fmt(x.stat, x.v)}`}
-          style={{ width: 16, height: 16, overflow: 'hidden', color: x.tone, outline: at === x.l ? `1px solid ${EDGE}` : 'none', outlineOffset: 1 }}>
-          <span style={{ display: 'block', transform: 'scale(.571)', transformOrigin: '0 0' }}><FootprintGlyph stat={x.stat.key} /></span>
-        </span>
-      ))}
+    <span aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(10, minmax(0, 1fr))', gap: 2 }}>
+      {Array.from({ length: 10 }, (_, i) => <span key={i} className={i < lit ? 'pc-step' : undefined} style={{ height: 4, background: i < lit ? col(pc) : '#34312e', '--d': `${delay + i * 40}ms` }} />)}
+    </span>
+  )
+}
+
+// The icons, the one under the pointer (`at`) bright as the rest dim. A few (up to LEGEND)
+// share the line, each with its name and swing beside it; more, the icons alone, as large
+// as ICON_MAX while they fit (their swings in the readout).
+const LEGEND = 4
+function Icons({ items, at, setAt }) {
+  const legend = items.length <= LEGEND
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: legend ? `repeat(${items.length}, minmax(0, 1fr))` : `repeat(${items.length}, minmax(0, ${ICON_MAX}px))`, columnGap: legend ? 16 : 10, alignItems: 'center' }} onMouseLeave={() => setAt(null)}>
+      {items.map((i, k) => {
+        const dim = { opacity: at && at !== i.l ? 0.3 : 1, transition: 'opacity .15s' }
+        return (
+          <span key={i.l} className="pc-icon" onMouseEnter={() => setAt(i.l)} aria-label={`${i.l}: ${swingText(i.e.diff)}${i.place ? `, #${i.place.place} ${i.place.worst ? 'from the bottom of' : 'in'} the league` : ''}`}
+            style={{ '--d': `${240 + k * 55}ms`, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, color: i.tone }}>
+            <span style={{ ...dim, position: 'relative', flex: 'none', width: legend ? 30 : '100%', aspectRatio: '1 / 1' }}>
+              <FootprintGlyph stat={i.e.key} size="100%" />
+              {i.place && !i.place.worst && (
+                // The tab's place ribbon, hung over the icon's top-right corner.
+                <span className="pc-ribbon" style={{ position: 'absolute', top: -5, right: -6, width: 12, height: 14, paddingTop: 2, boxSizing: 'border-box', background: i.place.place === 1 ? GOLD : SILVER, clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%)', color: '#1f1d1c', textAlign: 'center', fontSize: 7.5, fontWeight: 700, lineHeight: 1 }}>{i.place.place}</span>
+              )}
+            </span>
+            {legend && (
+              <span style={{ ...dim, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                <span style={{ ...label, fontSize: 8.5, letterSpacing: '.1em', lineHeight: 1.2, color: '#b8b2ab', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{i.l}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{swingText(i.e.diff)}</span>
+              </span>
+            )}
+          </span>
+        )
+      })}
     </div>
   )
 }
+// The icon under the pointer in words: its name, its swing in its colour and units, and
+// its place among the league's when it has one.
 function Readout({ x }) {
   return (
-    <span style={{ ...label, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-      {x.l} <span style={{ color: x.tone }}>{fmt(x.stat, x.v)} {x.stat.swing ? unitOf(x.stat.key, x.stat.swing).toLowerCase() : ''}</span> <span style={{ color: FAINT }}>on − off</span>
+    <span style={{ fontSize: 10, letterSpacing: '.04em', color: DIM, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <span style={{ color: INK, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>{x.l}</span>
+      {'  '}<span style={{ color: x.tone, fontWeight: 700 }}>{swingText(x.e.diff)}</span> {unitOf(x.e.key, x.e.unit).toLowerCase()} on vs off
+      {x.place && <span style={{ color: x.place.worst ? WORST : INK }}>{x.place.worst ? `  ▼ ${worstText(x.place.place).toLowerCase()}` : `  #${x.place.place} in the league`}</span>}
     </span>
   )
 }
@@ -228,11 +312,13 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
   const { playoffs, playerPath } = useSeasonType()
   const [profile, setProfile] = useState(null)
   const [lonestar, setLonestar] = useState(null)
+  const [footprint, setFootprint] = useState(null)
   const [fpAt, setFpAt] = useState(null)
   useEffect(() => {
     let live = true
     fetchProfile(pl.slug, playoffs).then(d => live && setProfile(d || false), () => live && setProfile(false))
     if (!playoffs) fetchLonestar(pl.slug).then(d => live && setLonestar(d || false), () => live && setLonestar(false))
+    if (!playoffs) fetchFootprint(pl.slug).then(d => live && setFootprint(d || false), () => live && setFootprint(false))
     return () => { live = false }
   }, [pl.slug, playoffs])
   useEffect(() => {
@@ -252,8 +338,9 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
   const at = profile ? profile.seasons.findIndex(s => s.season === season) : -1
   const heroes = [...new Set([sortLabel, 'BPM', 'Load', 'rTS%'])].filter(l => doc.labels.includes(l)).slice(0, 3)
   const rows = CARD_STATS.filter(l => doc.labels.includes(l))
-  const fp = doc.groups.find(g => g.id === 'footprint')
-  const fpItems = fp ? footprintOf(doc, pl) : []
+  // The Footprint tab is the regular season's, over whole seasons (not the last 30 days).
+  const fpView = doc.type === 'regular' ? viewIn(footprint, season, span) : null
+  const fpItems = footprintOf(fpView)
   const fpShown = fpAt && fpItems.find(x => x.l === fpAt)
   // His units that season: its bio card's, or for the depth chart's season (which has no
   // card) the profile's own.
@@ -261,43 +348,50 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
   const units = lineups && lineups.units
   // Lonestar's stretch that season (or over the span: its view by his own first and last
   // season in it) without both his stars, or his top one alone.
-  const lsSeasons = lonestar && span ? lonestar.seasons.filter(s => s >= span.from && s <= span.to) : []
-  const lsId = !span ? season : lsSeasons.length > 1 ? `${lsSeasons[0]}..${lsSeasons[lsSeasons.length - 1]}` : lsSeasons[0]
-  const view = lonestar && lonestar.views.find(v => v.id === lsId)
+  const view = viewIn(lonestar, season, span)
   const star = view && (view.scenarios.find(x => x.kind === 'two') || view.scenarios.find(x => x.kind === 'one'))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
         <span aria-hidden="true" style={{ width: 7, height: 7, background: 'var(--accent)' }} />
-        <span style={{ ...label, color: INK }}>Player card · {doc.type === 'recent' ? 'last 30 days' : doc.combined && spanText ? `${spanText} combined` : season.replace('-', '–')}{doc.type === 'delta' ? ' playoffs − reg' : playoffs ? ' playoffs' : ''}</span>
+        <span style={{ ...label, color: INK }}>Player card</span>
+        <span style={{ ...label, color: DIM }}>{doc.type === 'recent' ? 'last 30 days' : doc.combined && spanText ? `${spanText} combined` : season.replace('-', '–')}{doc.type === 'delta' ? ' playoffs − reg' : playoffs ? ' playoffs' : ''}</span>
         <Link to={playerPath(pl.slug)} state={{ season }} style={{ ...label, marginLeft: 'auto', color: INK, border: `1px solid ${EDGE}`, padding: '5px 8px' }}>Full profile →</Link>
         <button type="button" aria-label="Close the card" onClick={onClose} style={{ width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', gap: 14, padding: '0 14px 12px' }}>
-        <div style={{ width: 104, height: 104, background: PORTRAIT_BG, border: `1px solid ${RULE}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DIM }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', columnGap: 14, padding: '2px 14px 14px' }}>
+        <div className="pc-portrait" style={{ minHeight: 104, background: PORTRAIT_BG, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DIM }}>
           {pl.headshot
             ? <img src={headshotUrl(pl.slug, 400, pl.headshotVersion, pl.headshot)} alt="" width={104} height={104} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 15%' }} />
             : initials(pl.name)}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 21, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1.05, color: INK }}>{pl.name}</span>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', minHeight: 12, minWidth: 0 }}>
             {fpShown
               ? <Readout x={fpShown} />
-              : <span style={{ ...label, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[pl.teams ? pl.teams.join(' · ') : pl.team, pl.pos, pl.age !== null && `age ${Math.floor(pl.age)}`, pl.gp !== null && `${pl.gp} gp`, pl.mp !== null && `${pl.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>}
-            {fpItems.length > 0 && <Icons items={fpItems} at={fpAt} setAt={setFpAt} />}
+              : <span className="pc-type" style={small}>{[pl.teams ? pl.teams.join('/') : pl.team, pl.pos, pl.age !== null && pl.age !== undefined && `${Math.floor(pl.age)} yrs`, pl.gp !== null && `${pl.gp} gp`, pl.mp !== null && `${pl.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${heroes.length}, minmax(0, 1fr))`, gap: 1, background: RULE, border: `1px solid ${RULE}`, marginTop: 'auto' }}>
-            {heroes.map(l => {
+          <span className="pc-name" style={{ marginTop: 3, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pl.name}</span>
+          {/* The line is held while the footprint loads (and when it has none), so nothing moves. */}
+          {doc.type === 'regular' && <div style={{ marginTop: 11, minHeight: ICON_MAX }}>{fpItems.length > 0 && <Icons items={fpItems} at={fpAt} setAt={setFpAt} />}</div>}
+          <div style={{ marginTop: 'auto', paddingTop: 12, display: 'grid', gridTemplateColumns: `repeat(${heroes.length}, minmax(0, 1fr))` }}>
+            {heroes.map((l, k) => {
               const v = valueOf(doc, pl, l)
               const pc = pctlOf(doc, pl, l)
+              const delay = 400 + k * 90
               return (
-                <div key={l} style={{ background: '#262422', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                  <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}{doc.type === 'delta' ? ' Δ' : ''}{l === sortLabel && rank ? ` · #${rank}` : ''}</span>
-                  <span style={{ fontSize: 19, fontWeight: 600, lineHeight: 1, color: INK }}>{fmt(doc.stats[l], v)}</span>
-                  <span style={{ fontSize: 9, color: pc === null ? FAINT : col(pc) }}>{pc === null ? '—' : `${ord(pc)} pctl`}</span>
+                <div key={l} style={{ padding: k ? '0 0 0 12px' : '0 12px 0 0', borderLeft: k ? `1px solid ${RULE}` : 'none', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                  <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                    <span style={small}>{l}{doc.type === 'delta' ? ' Δ' : ''}</span>
+                    {l === sortLabel && rank ? <span style={{ ...small, flex: 'none', color: INK, letterSpacing: '.06em' }}>#{rank}</span> : null}
+                  </span>
+                  <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontSize: 18, fontWeight: 600, lineHeight: 1, color: INK, fontVariantNumeric: 'tabular-nums' }}><CountUp stat={doc.stats[l]} value={v} delay={delay} /></span>
+                    <Meter pc={pc} delay={delay} />
+                    <span style={{ fontSize: 9, color: pc === null ? FAINT : col(pc), fontVariantNumeric: 'tabular-nums' }}>{pc ?? '—'}</span>
+                  </span>
                 </div>
               )
             })}

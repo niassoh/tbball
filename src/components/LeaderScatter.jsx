@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
 import { axisOf, median, pctlOf, quadrantOf, radiusOf, valueOf } from '../lib/leaderboard.js'
@@ -120,11 +120,28 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   }, [])
   const sx = doc.stats[x]
   const sy = doc.stats[y]
-  const pts = doc.players.map(p => ({ p, vx: valueOf(doc, p, x), vy: valueOf(doc, p, y) })).filter(d => d.vx !== null && d.vy !== null)
-  const mx = median(pts.map(d => d.vx))
-  const my = median(pts.map(d => d.vy))
-  const xa = axisOf(pts.map(d => d.vx), sx.lowerBetter)
-  const ya = axisOf(pts.map(d => d.vy), sy.lowerBetter)
+  // The board's points and scales, kept between renders: the table's row under the pointer
+  // (`hot`) changes as it scrolls, and on a long board (eras, many seasons) redoing these
+  // and every dot for each row it passes made the table stutter.
+  const { pts, byId, mx, my, xa, ya, most, least, order, top } = useMemo(() => {
+    const pts = doc.players.map(p => ({ p, vx: valueOf(doc, p, x), vy: valueOf(doc, p, y) })).filter(d => d.vx !== null && d.vy !== null)
+    const mx = median(pts.map(d => d.vx))
+    const my = median(pts.map(d => d.vy))
+    const minutes = doc.players.map(p => p.mp || 0)
+    return {
+      pts,
+      byId: new Map(pts.map(d => [d.p.id, d])),
+      mx,
+      my,
+      xa: axisOf(pts.map(d => d.vx), sx.lowerBetter),
+      ya: axisOf(pts.map(d => d.vy), sy.lowerBetter),
+      most: Math.max(...minutes),
+      least: Math.min(...minutes),
+      // Big dots first, so small ones stay on top; the filters' players over the rest.
+      order: [...pts].sort((a, b) => (shown.has(a.p.id) - shown.has(b.p.id)) || (b.p.mp || 0) - (a.p.mp || 0)),
+      top: pts.filter(d => quadrantOf(d.vx, d.vy, mx, my, sx.lowerBetter, sy.lowerBetter) === 'both').length
+    }
+  }, [doc, x, y, sx, sy, shown])
   const [x0, x1, y0, y1] = [xa.lo, xa.hi, ya.lo, ya.hi]
   const ax = xa.pos
   const ay = ya.pos
@@ -133,17 +150,21 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const py = v => M.t + (1 - ay(v)) * (h - M.t - M.b)
   const cx = (M.l + w - M.r) / 2
   const cy = (M.t + h - M.b) / 2
-  const most = Math.max(...doc.players.map(p => p.mp || 0))
-  const least = Math.min(...doc.players.map(p => p.mp || 0))
   const radius = p => radiusOf(p.mp || 0, most, 2, 11, least)
   // Toward the top right, bluer; toward the bottom left, more orange (the percentile scale,
   // from how far up and right he sits, each axis 0 to 1 with its median at the middle).
   const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (ax(d.vx) + ay(d.vy) - 1))))
-  // Big dots first, so small ones stay on top; the filters' players over the rest.
-  const order = [...pts].sort((a, b) => (shown.has(a.p.id) - shown.has(b.p.id)) || (b.p.mp || 0) - (a.p.mp || 0))
-  const quad = d => quadrantOf(d.vx, d.vy, mx, my, sx.lowerBetter, sy.lowerBetter)
-  const top = pts.filter(d => quad(d) === 'both').length
-  const hv = (hover || hot) && pts.find(d => d.p.id === (hover || hot))
+  const hv = (hover || hot) && byId.get(hover || hot)
+  // The same elements while only the lit dot changes, so React passes over them.
+  const dots = useMemo(() => order.map(d => {
+    const on = shown.has(d.p.id)
+    return (
+      <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
+        fill={tint(d)} fillOpacity={on ? 0.82 : 0.08}
+        style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: on ? 'pointer' : 'default', pointerEvents: on ? 'auto' : 'none' }}
+        onMouseEnter={() => setHover(d.p.id)} onMouseLeave={() => setHover(id => (id === d.p.id ? null : id))} onClick={() => onPick(d.p.id)} />
+    )
+  }), [order, shown, xa, ya, most, least, w, h, onPick]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py, radius and tint are these
   // An axis's worse end on the left (or bottom), its better end on the right (or top).
   const ends = (stat, lo, hi) => (stat.lowerBetter ? [hi, lo] : [lo, hi])
   const [xl, xr] = ends(sx, x0, x1)
@@ -170,15 +191,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           <line x1={M.l} x2={w - M.r} y1={cy} y2={cy} stroke={EDGE} strokeDasharray="2 3" />
           <text x={w - M.r - 6} y={M.t + 12} textAnchor="end" style={{ ...label, fontSize: 9, fill: TONE.both }}>+ +</text>
           <text x={M.l + 6} y={h - M.b - 6} style={{ ...label, fontSize: 9, fill: TONE.neither }}>− −</text>
-          {order.map(d => {
-            const on = shown.has(d.p.id)
-            return (
-              <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
-                fill={tint(d)} fillOpacity={on ? 0.82 : 0.08}
-                style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: on ? 'pointer' : 'default', pointerEvents: on ? 'auto' : 'none' }}
-                onMouseEnter={() => setHover(d.p.id)} onMouseLeave={() => setHover(id => (id === d.p.id ? null : id))} onClick={() => onPick(d.p.id)} />
-            )
-          })}
+          {dots}
           {hv && <circle cx={px(hv.vx)} cy={py(hv.vy)} r={radius(hv.p) + 2.5} fill="none" stroke={INK} strokeWidth={1.5} pointerEvents="none" />}
           {/* Each axis: its ends' values and its name, the better end up and to the right. */}
           <text x={M.l} y={h - M.b + 14} style={{ ...label, fill: FAINT }}>{fmt(sx, xl)}</text>

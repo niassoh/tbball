@@ -310,17 +310,21 @@ export default function Leaderboard() {
 
   const q = fold(find.trim())
   // Kept between renders so lighting a dot doesn't redraw the table (LeaderTable is memo).
-  const { rank, rows, shown } = useMemo(() => {
-    if (!doc) return { rank: new Map(), rows: [], shown: new Set() }
+  // Ranked once per board and sort, so typing a name (on thousands of eras) only filters.
+  const sorted = useMemo(() => {
+    if (!doc) return null
     const best = ranked(doc, doc.players, sortLabel)
-    const keep = p => (!team || p.team === team || (p.teams || []).includes(team)) && (!q || fold(p.name).includes(q))
-    const list = (sort.reverse ? ranked(doc, doc.players, sortLabel, true) : best).filter(keep)
     return {
-      rank: new Map(best.map((p, i) => [p.id, valueOf(doc, p, sortLabel) === null ? null : i + 1])),
-      rows: list,
-      shown: new Set(list.map(p => p.id))
+      list: sort.reverse ? ranked(doc, doc.players, sortLabel, true) : best,
+      rank: new Map(best.map((p, i) => [p.id, valueOf(doc, p, sortLabel) === null ? null : i + 1]))
     }
-  }, [doc, sortLabel, sort.reverse, team, q])
+  }, [doc, sortLabel, sort.reverse])
+  const { rank, rows, shown } = useMemo(() => {
+    if (!sorted) return { rank: new Map(), rows: [], shown: new Set() }
+    const keep = p => (!team || p.team === team || (p.teams || []).includes(team)) && (!q || fold(p.name).includes(q))
+    const list = sorted.list.filter(keep)
+    return { rank: sorted.rank, rows: list, shown: new Set(list.map(p => p.id)) }
+  }, [sorted, team, q])
   // A long board (eras, many seasons) comes a page at a time, and the chart draws that page:
   // thousands of rows and dots at once make the table and chart crawl. A new list (another
   // sort, filter or span) starts at its first page.

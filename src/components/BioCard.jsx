@@ -55,7 +55,8 @@ function Headshot({ slug, version, source, name, team, layers, jersey, split }) 
     // would clip the hair flat.
     // Named for the view transition that carries the portrait in from the index.
     <div className="hero-face fade-in" style={{ position: 'absolute', right: 0, bottom: 0, width: size, height: size, WebkitMaskImage: mask, WebkitMaskComposite: 'source-in', maskImage: mask, maskComposite: 'intersect', viewTransitionName: 'player-portrait' }}>
-      <img src={headshotUrl(slug, 400, version, source)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
+      <img className={source === 'nba' ? 'tb-graded' : undefined} src={headshotUrl(slug, 400, version, source)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
+      {source === 'nba' && <div className="tb-halftone" style={{ '--src': `url(${headshotUrl(slug, 400, version, source)})` }} />}
       {source === 'jersey' && (split ? <SplitJersey slug={slug} size={400} layers={layers} ids={split} /> : <JerseyOverlay slug={slug} size={400} layers={layers} id={jersey} animate />)}
     </div>
   )

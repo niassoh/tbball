@@ -67,20 +67,21 @@ function Groups({ groups, active, pick }) {
   )
 }
 
-// A long board's pages: the rows on show of how many, and a step back or on.
+// A long board's pages, slim, in the table's Player header (so it adds no line to the
+// page): the rows on show of how many, and a step back or on.
 function Pager({ n, pages, total, turn }) {
   const step = (to, name, sign) => (
     <button type="button" aria-label={name} disabled={to < 0 || to >= pages} onClick={() => turn(to)}
-      style={{ width: 28, height: '100%', border: 0, borderLeft: sign > 0 ? `1px solid ${EDGE}` : 0, borderRight: sign < 0 ? `1px solid ${EDGE}` : 0, background: 'transparent', color: to < 0 || to >= pages ? FAINT : INK, fontFamily: MONO, fontSize: 13, cursor: to < 0 || to >= pages ? 'default' : 'pointer' }}>{sign < 0 ? '‹' : '›'}</button>
+      style={{ width: 16, height: 16, padding: 0, border: 0, background: 'transparent', color: to < 0 || to >= pages ? FAINT : INK, fontFamily: MONO, fontSize: 12, lineHeight: 1, cursor: to < 0 || to >= pages ? 'default' : 'pointer' }}>{sign < 0 ? '‹' : '›'}</button>
   )
   return (
-    <div role="group" aria-label="Pages" style={{ display: 'flex', alignItems: 'center', height: 28, border: `1px solid ${EDGE}` }}>
+    <span role="group" aria-label="Pages" style={{ display: 'inline-flex', alignItems: 'center', height: 16, whiteSpace: 'nowrap' }}>
       {step(n - 1, 'Previous page', -1)}
-      <span style={{ ...label, padding: '0 10px', color: INK, whiteSpace: 'nowrap' }}>
-        {(n * PAGE + 1).toLocaleString()}–{Math.min(total, (n + 1) * PAGE).toLocaleString()}<span style={{ color: DIM }}> of {total.toLocaleString()}</span>
+      <span style={{ ...label, fontSize: 8.5, letterSpacing: '.06em', color: INK }}>
+        {(n * PAGE + 1).toLocaleString()}–{Math.min(total, (n + 1) * PAGE).toLocaleString()}<span style={{ color: DIM }}> / {total.toLocaleString()}</span>
       </span>
       {step(n + 1, 'Next page', 1)}
-    </div>
+    </span>
   )
 }
 
@@ -333,6 +334,8 @@ export default function Leaderboard() {
   const pageN = paging.rows === rows ? Math.min(paging.n, pages - 1) : 0
   const drawn = useMemo(() => (pages > 1 ? rows.slice(pageN * PAGE, (pageN + 1) * PAGE) : rows), [rows, pages, pageN])
   useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [pageN])
+  // Made once per page, so the table (memo) isn't redrawn as a dot lights.
+  const pager = useMemo(() => (pages > 1 ? <Pager n={pageN} pages={pages} total={rows.length} turn={n => setPaging({ rows, n })} /> : null), [pageN, pages, rows])
   // The chart: the page's rows; on a board in one page, everyone, the filters' others faint
   // (in eras, each player's best era for its two stats, not every era).
   const chartDoc = useMemo(() => (!doc ? doc : pages > 1 ? { ...doc, players: drawn } : doc.eras && x && y ? bestEras(doc, x, y) : doc), [doc, pages, drawn, x, y])
@@ -369,7 +372,6 @@ export default function Leaderboard() {
         )}
         {doc && <Minutes top={top} set={setTop} playoffs={playoffs} />}
         {doc && <Groups groups={tabs} active={g.id} pick={choose} />}
-        {doc && pages > 1 && <Pager n={pageN} pages={pages} total={rows.length} turn={n => setPaging({ rows, n })} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', maxWidth: '100%' }}>
           <ModeSwitch mode={mode} setMode={setMode} height={28} />
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${EDGE}` }}>
@@ -391,7 +393,7 @@ export default function Leaderboard() {
       {doc && (
         <div className="lb-body">
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
-            <LeaderTable doc={doc} group={g} rows={drawn} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
+            <LeaderTable doc={doc} group={g} rows={drawn} pager={pager} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
               picked={picked} onPick={setPicked} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>No players match</div>}
           </div>

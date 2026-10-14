@@ -17,7 +17,7 @@ import { initials } from '../lib/teams.js'
 // row per season (`doc.many`, with a season column); rows carry their id (data-id), so
 // the page can light the one under the pointer in the scatter. The stats' sideways
 // scroll shows on a rail of its own under the stats alone (the browser's bar is hidden,
-// index.css).
+// index.css). A long board's page control (`pager`) sits in the Player header.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -164,7 +164,7 @@ const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel
   )
 })
 
-function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picked, onPick, scroller, pct = false }) {
+function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort, picked, onPick, scroller, pct = false }) {
   const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 7px 6px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', verticalAlign: 'bottom' }
   // The season and details columns stay put where they sit: each held at its own offset,
   // measured (they're as wide as their widest value, which a span's totals widen).
@@ -207,7 +207,9 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
       <thead>
         <tr ref={headRow}>
           <th style={{ ...head, ...stick(0), zIndex: 3, width: '1%', paddingLeft: 0, paddingRight: 0, textAlign: 'center' }}><span style={{ ...label, display: 'inline-block', width: RANK_W }}>#</span></th>
-          <th style={{ ...head, ...stick(RANK_W), zIndex: 3, width: '1%', textAlign: 'left', borderRight: `1px solid ${RULE}` }}><span style={label}>Player</span></th>
+          <th style={{ ...head, ...stick(RANK_W), zIndex: 3, width: '1%', textAlign: 'left', borderRight: `1px solid ${RULE}` }}>
+            <span style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}><span style={label}>Player</span>{pager}</span>
+          </th>
           {doc.many && <th data-lock style={{ ...head, ...lock(0), zIndex: narrow ? 2 : 3, width: '1%', textAlign: 'left' }}><span style={label}>Yr</span></th>}
           {BIO.map(([name], i) => <th key={name} data-lock style={{ ...head, ...lock(yr + i), zIndex: narrow ? 2 : 3, width: '1%', textAlign: i < 2 ? 'left' : 'right', ...edge(i) }}><span style={label}>{name}</span></th>)}
           {group.stats.map((l, i) => {

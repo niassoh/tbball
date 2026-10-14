@@ -24,6 +24,7 @@ const GLYPHS = {
   tm3Rate: <><Arc /><Dot x={5} y={13} r={1.5} /><Dot x={14} y={6} r={1.5} /><Dot x={23} y={13} r={1.5} /></>,
   // The arc with a made shot's check.
   tm3Pct: <><Arc /><path d="M9 12 L13 16 L20 8" /></>,
+  drtg: <><rect x={3} y={5} width={22} height={17} /><path d="M7 9 L12 14 L15 12 L21 18" /><path d="M17 18 L21 18 L21 14" /></>,
   oppRimPts: <><Hoop /><line x1={14} y1={2} x2={14} y2={9} /><line x1={8} y1={5} x2={20} y2={5} /></>,
   // The lane, walled off at its top.
   oppPaintPts: <><path d="M8 25 L8 11 L20 11 L20 25" /><path d="M8 18 Q14 23 20 18" /><line x1={6} y1={6} x2={22} y2={6} /><line x1={14} y1={2} x2={14} y2={6} /></>,

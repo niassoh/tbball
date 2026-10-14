@@ -104,18 +104,23 @@ function Each({ each, set }) {
   )
 }
 
-// Eras, in the season picker's panel: every player's runs of 3, 5 or 7 of his seasons
-// over all the years (lib/board.js eras), the span lightly beside his name; a lit length
-// again, or a season picked on the strip, goes back to seasons.
+// Eras, in the season picker's panel, set apart from the seasons under an OR (a run is
+// a view of its own, not a span): every player's runs of 3, 5 or 7 of his seasons over all
+// the years (lib/board.js eras), the span lightly beside his name; a lit length again, or a
+// season picked on the strip, goes back to seasons.
 const ERAS = [3, 5, 7]
 function Eras({ era, set }) {
+  const rule = <span style={{ flex: 1, height: 1, background: EDGE }} />
   return (
-    <div role="group" aria-label="Runs" style={{ display: 'flex', border: `1px solid ${era ? 'var(--accent)' : EDGE}` }}>
-      <span style={{ ...label, display: 'inline-flex', alignItems: 'center', padding: '0 10px', color: era ? 'var(--accent)' : DIM }}>Runs</span>
-      {ERAS.map(n => (
-        <button key={n} type="button" aria-pressed={era === n} onClick={() => set(era === n ? null : n)} title={era === n ? 'Back to seasons' : `Every ${n}-season run of every player, averaged`}
-          style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: `1px solid ${EDGE}`, background: era === n ? '#3a3734' : 'transparent', color: era === n ? INK : DIM, fontFamily: MONO, fontSize: 10, fontWeight: era === n ? 700 : 400, letterSpacing: '.1em', cursor: 'pointer' }}>{n} YR</button>
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+      <div aria-hidden="true" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>{rule}<span style={{ ...label, color: FAINT }}>or</span>{rule}</div>
+      <span style={{ ...label, color: era ? 'var(--accent)' : DIM }}>Runs <span style={{ color: FAINT }}>· every player's 3, 5 or 7 seasons in a row, across all years</span></span>
+      <div role="group" aria-label="Runs" style={{ display: 'flex', border: `1px solid ${era ? 'var(--accent)' : EDGE}` }}>
+        {ERAS.map(n => (
+          <button key={n} type="button" aria-pressed={era === n} onClick={() => set(era === n ? null : n)} title={era === n ? 'Back to seasons' : `Every ${n}-season run of every player, averaged`}
+            style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: n === ERAS[0] ? 0 : `1px solid ${EDGE}`, background: era === n ? '#3a3734' : 'transparent', color: era === n ? INK : DIM, fontFamily: MONO, fontSize: 10, fontWeight: era === n ? 700 : 400, letterSpacing: '.1em', cursor: 'pointer' }}>{n} YR</button>
+        ))}
+      </div>
     </div>
   )
 }

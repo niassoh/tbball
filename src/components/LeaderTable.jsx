@@ -1,12 +1,12 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO, fmt, heat } from '../lib/format.js'
 import { initials } from '../lib/teams.js'
 
 // The Leaderboard's table, compact: rank (in the sorted stat, among the whole season),
 // the player, his team, position, age, games and minutes that season, then the picked
-// group's stats; the player and his details take no more room than they need, the stats
-// share the rest; the rank, player and his details stay put when the stats scroll
+// group's stats; the player and his details take the room the board's widest values need
+// (the whole board's, so turning a page doesn't move them), the stats share the rest; the rank, player and his details stay put when the stats scroll
 // sideways. A header sorts by its stat, best first, and again for worst first. A
 // header keeps one size whatever the group or sort: two lines at most, the sorted one
 // marked by colour and a rule (not weight), with room kept for its arrow; neighbouring
@@ -131,7 +131,7 @@ const edge = i => (i === BIO.length - 1 ? { borderRight: `1px solid ${RULE}` } :
 
 // A player's row. Its own component, kept while its props hold, so when the drawn rows
 // move (Leaderboard.jsx) only the newly drawn ones are made.
-const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel, pct, narrow, lefts }) {
+const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel, pct, narrow, lefts, bioCh }) {
   const lock = lockOf(lefts, narrow)
   const yr = doc.many ? 1 : 0
   const lit = new Set(p.lit || [])
@@ -141,12 +141,12 @@ const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel
       <td style={{ ...CELL, ...stick(RANK_W), padding: '0 8px 0 4px', borderRight: `1px solid ${RULE}` }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <Face p={p} />
-          <span title={p.name} style={{ maxWidth: narrow ? 84 : 130, fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{short(p.name)}</span>
+          <span title={p.name} style={{ width: narrow ? 84 : 130, flex: 'none', fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{short(p.name)}</span>
           {p.era && <span style={{ flex: 'none', fontFamily: MONO, fontSize: 9.5, color: FAINT, letterSpacing: '.04em' }}>’{p.era[0].slice(2, 4)}–’{p.era[1].slice(5)}</span>}
         </span>
       </td>
       {doc.many && <td style={{ ...CELL, ...lock(0), color: '#b8b2ab', fontSize: 10.5 }}>’{p.season.slice(5)}</td>}
-      {BIO.map(([name, of], i) => <td key={name} style={{ ...CELL, ...lock(yr + i), textAlign: i < 2 ? 'left' : 'right', color: i < 2 ? '#b8b2ab' : DIM, fontSize: i < 2 ? 10.5 : 11.5, ...edge(i) }}>{of(p)}</td>)}
+      {BIO.map(([name, of], i) => <td key={name} style={{ ...CELL, ...lock(yr + i), minWidth: `${bioCh[i]}ch`, textAlign: i < 2 ? 'left' : 'right', color: i < 2 ? '#b8b2ab' : DIM, fontSize: i < 2 ? 10.5 : 11.5, ...edge(i) }}>{of(p)}</td>)}
       {group.stats.map(l => {
         const k = doc.labels.indexOf(l)
         const stat = doc.stats[l]
@@ -202,6 +202,9 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
   const lock = lockOf(lefts, narrow)
   const held = !lefts.length ? 0 : narrow ? lefts[0] : lefts[lefts.length - 1]
   const yr = doc.many ? 1 : 0
+  // Each detail column's widest value on the whole board (in characters: the table is
+  // monospaced), so a page of short values doesn't narrow it.
+  const bioCh = useMemo(() => BIO.map(([, of]) => Math.max(1, ...doc.players.map(p => String(of(p)).length))), [doc])
   return (
     <table className="lb-table" style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
       <thead>
@@ -232,7 +235,7 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
         </tr>
       </thead>
       <tbody>
-        {rows.map(p => <Row key={p.id} p={p} rank={rank.get(p.id)} selected={picked === p.id} onPick={onPick} doc={doc} group={group} sortLabel={sortLabel} pct={pct} narrow={narrow} lefts={lefts} />)}
+        {rows.map(p => <Row key={p.id} p={p} rank={rank.get(p.id)} selected={picked === p.id} onPick={onPick} doc={doc} group={group} sortLabel={sortLabel} pct={pct} narrow={narrow} lefts={lefts} bioCh={bioCh} />)}
       </tbody>
       {scroller && lefts.length > 0 && <Rail scroller={scroller} held={held} span={2 + yr + BIO.length + group.stats.length} />}
     </table>

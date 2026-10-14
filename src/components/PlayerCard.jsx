@@ -6,9 +6,12 @@ import { MONO, col, fmt } from '../lib/format.js'
 import { pctlOf, valueOf } from '../lib/leaderboard.js'
 import { rollingStat } from '../lib/span.js'
 import { starsText } from '../lib/lonestar.js'
+import { jerseysOver, splitIds } from '../lib/jersey.js'
 import { initials } from '../lib/teams.js'
 import { useSeasonType } from '../useSeasonType.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
+import JerseyOverlay from './JerseyOverlay.jsx'
+import SplitJersey from './SplitJersey.jsx'
 
 // A player's card on the Leaderboard, in the scatter's place: a snapshot of his profile
 // for the season or span on show. Its head is a panel: his portrait,
@@ -343,6 +346,10 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
   const heroes = [...new Set([sortLabel, 'BPM', 'Load', 'rTS%'])].filter(l => doc.labels.includes(l)).slice(0, 3)
   const rows = CARD_STATS.filter(l => doc.labels.includes(l))
   // The Footprint tab is the regular season's, over whole seasons (not the last 30 days).
+  // His jerseys that season or over the span, in the order he wore them (his profile's).
+  const layers = profile && profile.jerseys ? profile.jerseys[pl.slug] : null
+  const worn = profile ? jerseysOver(profile.seasons, span ? span.from : season, span ? span.to : season) : []
+  const split = splitIds(layers, worn)
   const fpView = doc.type === 'regular' ? viewIn(footprint, season, span) : null
   const fpItems = footprintOf(fpView)
   const fpShown = fpAt && fpItems.find(x => x.l === fpAt)
@@ -368,9 +375,16 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', columnGap: 14, padding: '2px 14px 14px' }}>
-        <div className="pc-portrait" style={{ minHeight: 104, background: PORTRAIT_BG, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DIM }}>
+        {/* Square, so his jersey's bands sit on the portrait: dressed in the season's or the
+            span's jersey, split between its teams' in order when he wore more than one. */}
+        <div style={{ position: 'relative', width: 104, height: 104, background: PORTRAIT_BG, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DIM }}>
           {pl.headshot
-            ? <img src={headshotUrl(pl.slug, 400, pl.headshotVersion, pl.headshot)} alt="" width={104} height={104} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 15%' }} />
+            ? (
+              <div className="pc-face" style={{ position: 'absolute', inset: 0 }}>
+                <img src={headshotUrl(pl.slug, 400, pl.headshotVersion, pl.headshot)} alt="" width={104} height={104} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                {pl.headshot === 'jersey' && layers && (split ? <SplitJersey slug={pl.slug} size={400} layers={layers} ids={split} /> : <JerseyOverlay slug={pl.slug} size={400} layers={layers} id={worn[worn.length - 1]} />)}
+              </div>
+            )
             : initials(pl.name)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>

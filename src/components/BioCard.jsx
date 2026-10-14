@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom'
 import { headshotUrl, jerseyUrl, loadTeams } from '../api.js'
 import { ageIn } from '../lib/age.js'
 import { MONO } from '../lib/format.js'
+import { splitIds } from '../lib/jersey.js'
 import TeamInitials from './TeamInitials.jsx'
 import TeamPicker from './TeamPicker.jsx'
 import LineupPanel from './LineupPanel.jsx'
 import JerseyOverlay from './JerseyOverlay.jsx'
+import SplitJersey from './SplitJersey.jsx'
 import { TEAM_COLORS } from '../lib/teams.js'
 import { asset } from '../lib/static.js'
 import { useSeasonType } from '../useSeasonType.js'
@@ -34,8 +36,9 @@ const fadeIn = size => `radial-gradient(ellipse 80% 115% at 76% 72%, #000 70%, t
 // fades in from the left, dimmed so it reads as a backdrop rather than a box.
 const panelFade = 'linear-gradient(90deg, transparent 0%, #000 55%)'
 
-// In the season's jersey (JerseyOverlay) when his portrait has jersey layers.
-function Headshot({ slug, version, source, name, team, layers, jersey }) {
+// In the season's jersey (JerseyOverlay) when his portrait has jersey layers; a season
+// he was traded in, split between its teams' (`split`, SplitJersey).
+function Headshot({ slug, version, source, name, team, layers, jersey, split }) {
   const [failed, setFailed] = useState(false)
   if (failed) {
     return (
@@ -53,7 +56,7 @@ function Headshot({ slug, version, source, name, team, layers, jersey }) {
     // Named for the view transition that carries the portrait in from the index.
     <div className="hero-face fade-in" style={{ position: 'absolute', right: 0, bottom: 0, width: size, height: size, WebkitMaskImage: mask, WebkitMaskComposite: 'source-in', maskImage: mask, maskComposite: 'intersect', viewTransitionName: 'player-portrait' }}>
       <img src={headshotUrl(slug, 400, version, source)} alt={name} onError={() => setFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }} />
-      {source === 'jersey' && <JerseyOverlay slug={slug} size={400} layers={layers} id={jersey} animate />}
+      {source === 'jersey' && (split ? <SplitJersey slug={slug} size={400} layers={layers} ids={split} /> : <JerseyOverlay slug={slug} size={400} layers={layers} id={jersey} animate />)}
     </div>
   )
 }
@@ -150,7 +153,7 @@ export default function BioCard({ profile: p, season, loading = false }) {
     <div ref={cardRef} style={card}>
       <div className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid var(--trim)', overflow: 'hidden' }}>
         <img className="hero-bokeh" src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
-        <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={v.team} layers={layers} jersey={p.seasons[season] ? p.seasons[season].jersey : null} />
+        <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={v.team} layers={layers} jersey={p.seasons[season] ? p.seasons[season].jersey : null} split={splitIds(layers, p.seasons[season] && p.seasons[season].jerseys)} />
         {/* A soft overhead light along the top-right hides the seam where the headshot box begins. */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(ellipse 42% 60% at 84% -8%, rgba(236,232,227,.16), rgba(236,232,227,.06) 45%, transparent 75%)' }} />
         <div key={`specs-${p.slug}-${v.team}`} className="swap-in" style={{ position: 'absolute', left: 14, top: 12, display: 'flex', alignItems: 'stretch', fontFamily: MONO }}>

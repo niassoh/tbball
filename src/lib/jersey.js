@@ -23,4 +23,16 @@ export const frameStyle = (url, layers, k) => {
   }
 }
 
+// His jerseys over a season or a span of a profile's `seasons` (from..to, 'YYYY-YY'), in
+// the order he played for the teams: a traded season's each (`jerseys`), else its own; one
+// worn on into the next season counts once.
+export const jerseysOver = (seasons, from, to) => seasons
+  .filter(s => s.season >= from && s.season <= to)
+  .flatMap(s => s.jerseys || [s.jersey])
+  .filter((id, i, all) => id && id !== all[i - 1])
+
+// The jerseys to split a portrait between (SplitJersey): two or more, each one he has
+// (built in his sprite, or the base portrait's own); else null, for one jersey instead.
+export const splitIds = (layers, ids) => (layers && ids && ids.length > 1 && ids.every(id => id === layers.current || layers.ids.includes(id)) ? ids : null)
+
 export const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches

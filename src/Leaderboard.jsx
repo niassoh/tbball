@@ -266,7 +266,9 @@ export default function Leaderboard() {
   // days, falls back to the first;
   // a sort or axis the document lacks, to the group's own. A default axis with no values (a
   // stat its season's data doesn't have yet) gives way to the group's next one that has.
-  const g = doc ? doc.groups.find(x => x.id === group && !x.na) || doc.groups[0] : null
+  // The table's tabs: every group but those only for the chart's axes (Player).
+  const tabs = doc ? doc.groups.filter(x => !x.axesOnly) : []
+  const g = doc ? tabs.find(x => x.id === group && !x.na) || tabs[0] : null
   const has = l => doc && doc.labels.includes(l)
   const filled = l => has(l) && doc.players.some(p => p.v[doc.labels.indexOf(l)] !== null)
   const axesOf = gr => [...new Set([...(AXES[gr.id] || []), ...gr.stats])].filter(filled).slice(0, 2)
@@ -355,7 +357,7 @@ export default function Leaderboard() {
             </>} />
         )}
         {doc && <Minutes top={top} set={setTop} playoffs={playoffs} />}
-        {doc && <Groups groups={doc.groups} active={g.id} pick={choose} />}
+        {doc && <Groups groups={tabs} active={g.id} pick={choose} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', maxWidth: '100%' }}>
           <ModeSwitch mode={mode} setMode={setMode} height={28} />
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${EDGE}` }}>

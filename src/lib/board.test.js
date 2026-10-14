@@ -16,10 +16,10 @@ describe('board', () => {
     expect(percentileOf(null, [1, 2])).toBe(null)
   })
 
-  test('withPlayer: age and height as a Player group, with their own percentiles', () => {
+  test('withPlayer: age and height as a Player group for the chart axes, with their own percentiles', () => {
     const d = withPlayer(doc('2024-25', [P('a', 1000, [1, 30, 2], { age: 24.5, ht: 80 }), P('b', 900, [0, 30, 2], { age: 31, ht: null })]))
     expect(d.labels.slice(-2)).toEqual(['Age', 'Height'])
-    expect(d.groups.at(-1)).toEqual({ id: 'player', name: 'Player', stats: ['Age', 'Height'] })
+    expect(d.groups.at(-1)).toEqual({ id: 'player', name: 'Player', stats: ['Age', 'Height'], axesOnly: true })
     expect(d.players[0].v.slice(-2)).toEqual([24.5, 80])
     expect(d.players[1].v.slice(-1)).toEqual([null])
     expect(d.players[1].p.at(-2)).toBe(50)

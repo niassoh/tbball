@@ -16,8 +16,8 @@ export const percentileOf = (value, pool, lowerBetter = false) => {
 }
 
 // The Player group: each row's age (the site's own, on the day: lib/age.js liveAges) and
-// listed height in inches (`ht`) as stats, so the table can sort by them and the chart
-// plot them; their percentiles are a style's (neither end is better).
+// listed height in inches (`ht`) as stats, for the chart's axes only (`axesOnly`: not one
+// of the table's tabs); their percentiles are a style's (neither end is better).
 export const withPlayer = doc => {
   if (doc.labels.includes('Age')) return doc
   const vals = doc.players.map(p => [p.age ?? null, p.ht ?? null])
@@ -26,7 +26,7 @@ export const withPlayer = doc => {
     ...doc,
     labels: [...doc.labels, 'Age', 'Height'],
     stats: { ...doc.stats, Age: { dec: 1, neutral: true }, Height: { dec: 0, neutral: true, feet: true } },
-    groups: [...doc.groups, { id: 'player', name: 'Player', stats: ['Age', 'Height'] }],
+    groups: [...doc.groups, { id: 'player', name: 'Player', stats: ['Age', 'Height'], axesOnly: true }],
     players: doc.players.map((p, i) => ({ ...p, v: [...p.v, ...vals[i]], p: [...p.p, ...vals[i].map((v, k) => percentileOf(v, pools[k]))] }))
   }
 }

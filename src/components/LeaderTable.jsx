@@ -1,4 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { headshotUrl } from '../api.js'
 import { MONO, fmt, heat } from '../lib/format.js'
 import { initials } from '../lib/teams.js'
@@ -17,7 +18,9 @@ import { initials } from '../lib/teams.js'
 // row per season (`doc.many`, with a season column); rows carry their id (data-id), so
 // the page can light the one under the pointer in the scatter. The stats' sideways
 // scroll shows on a rail of its own under the stats alone (the browser's bar is hidden,
-// index.css). A long board's page control (`pager`) sits in the Player header.
+// index.css). A long board's page control (`pager`) sits in the Player header. A stat's
+// head carries its percentile filter (`filters`: label -> the top share kept), marked
+// there while on.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -164,7 +167,69 @@ const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel
   )
 })
 
-function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort, picked, onPick, scroller, pct = false }) {
+// The percentile filter's mark: three bars narrowing, a sieve, in its holder's colour (the
+// accent where a filter is on: a stat's head here, its group's tab in Leaderboard.jsx).
+export function FilterMark({ size = 9 }) {
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 9 9" style={{ display: 'block', flex: 'none' }}>
+      <rect x="0" y="0.5" width="9" height="1.6" fill="currentColor" />
+      <rect x="2" y="3.7" width="5" height="1.6" fill="currentColor" />
+      <rect x="3.6" y="6.9" width="1.8" height="1.6" fill="currentColor" />
+    </svg>
+  )
+}
+
+// A stat's percentile filter: keep the rows in its top 75%, 50% or 25% on the board, or all.
+// Its mark sits at the head's foot (faint until the head is hovered, lit in the accent with
+// its share while on) and opens a panel drawn over the page (the table's box would cut it
+// off); a press outside, Escape or a scroll closes it.
+const SHARES = [[null, 'All'], [0.75, 'Top 75%'], [0.5, 'Top 50%'], [0.25, 'Top 25%']]
+const PANEL_W = 260
+function ColumnFilter({ stat, share, set }) {
+  const btn = useRef(null)
+  const panel = useRef(null)
+  const [at, setAt] = useState(null)
+  useEffect(() => {
+    if (!at) return
+    const close = () => setAt(null)
+    const outside = e => { if (!panel.current.contains(e.target) && !btn.current.contains(e.target)) close() }
+    const escape = e => { if (e.key === 'Escape') close() }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape)
+    document.addEventListener('scroll', close, true)
+    return () => {
+      document.removeEventListener('pointerdown', outside)
+      document.removeEventListener('keydown', escape)
+      document.removeEventListener('scroll', close, true)
+    }
+  }, [at])
+  return (
+    <>
+      <button ref={btn} type="button" className={`lb-filter${share ? ' lb-filter-on' : ''}`} aria-haspopup="dialog" aria-expanded={!!at}
+        aria-label={`Filter ${stat} by percentile${share ? `: top ${share * 100}%` : ''}`} title={share ? `Top ${share * 100}% in ${stat}` : `Filter by ${stat}`}
+        onClick={() => setAt(a => (a ? null : btn.current.getBoundingClientRect()))}
+        style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 3, height: 13, padding: '0 2px', border: 0, background: 'transparent', color: share ? 'var(--accent)' : DIM, fontFamily: MONO, fontSize: 8, fontWeight: 700, letterSpacing: '.04em', cursor: 'pointer' }}>
+        <FilterMark />{share && <span>{share * 100}</span>}
+      </button>
+      {at && createPortal(
+        <div ref={panel} role="dialog" aria-label={`Filter ${stat}`}
+          style={{ position: 'fixed', top: at.bottom + 6, left: Math.max(16, Math.min(at.left, document.documentElement.clientWidth - 16 - PANEL_W)), width: PANEL_W, zIndex: 40, display: 'flex', flexDirection: 'column', gap: 10, padding: 12, background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 8px 24px rgba(0,0,0,.5)', fontFamily: MONO }}>
+          <span style={{ ...label, display: 'flex', alignItems: 'center', gap: 6, color: INK }}><FilterMark />{stat}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: '1px solid #544f4b' }}>
+            {SHARES.map(([s, name], i) => (
+              <button key={name} type="button" className="lb-group" aria-pressed={s === (share || null)} onClick={() => { set(stat, s); setAt(null) }}
+                style={{ height: 28, padding: 0, border: 0, borderLeft: i ? '1px solid #544f4b' : 0, background: s === (share || null) ? '#3a3734' : 'transparent', color: s === (share || null) ? INK : DIM, fontFamily: MONO, fontSize: 9.5, fontWeight: s === (share || null) ? 700 : 400, letterSpacing: '.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer' }}>{name}</button>
+            ))}
+          </div>
+          <span style={{ ...label, fontSize: 8, color: FAINT }}>By percentile on the board · filters add up across stats</span>
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
+
+function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort, picked, onPick, scroller, pct = false, filters = {}, setFilter }) {
   const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 7px 6px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', verticalAlign: 'bottom' }
   // The season and details columns stay put where they sit: each held at its own offset,
   // measured (they're as wide as their widest value, which a span's totals widen).
@@ -224,11 +289,14 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
             return (
               <th key={l} style={{ ...head, minWidth: 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none' }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
                 {years && <Bracket years={years} start={yearsAt(i - 1) !== years} end={yearsAt(i + 1) !== years} />}
-                <button type="button" className="lb-head-cell" disabled={na} onClick={() => onSort(l)} title={na ? 'Unavailable for the last 30 days' : on ? 'Sorted best first; click for worst first' : 'Sort by this stat, best first'}
-                  style={{ ...label, display: 'flex', width: '100%', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 3, padding: 0, border: 0, background: 'transparent', cursor: na ? 'not-allowed' : 'pointer', textAlign: 'right', lineHeight: 1.25, color: na ? '#6a645e' : on ? INK : DIM, textDecoration: na ? 'line-through' : 'none' }}>
-                  <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={na ? undefined : l}>{l}</span>
-                  <span aria-hidden="true" style={{ width: 7, flex: 'none', textAlign: 'left', color: on ? INK : 'transparent' }}>{reverse ? '↑' : '↓'}</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4 }}>
+                  {!na && setFilter && <ColumnFilter stat={l} share={filters[l]} set={setFilter} />}
+                  <button type="button" className="lb-head-cell" disabled={na} onClick={() => onSort(l)} title={na ? 'Unavailable for the last 30 days' : on ? 'Sorted best first; click for worst first' : 'Sort by this stat, best first'}
+                    style={{ ...label, display: 'flex', width: '100%', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 3, padding: 0, border: 0, background: 'transparent', cursor: na ? 'not-allowed' : 'pointer', textAlign: 'right', lineHeight: 1.25, color: na ? '#6a645e' : on ? INK : DIM, textDecoration: na ? 'line-through' : 'none' }}>
+                    <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={na ? undefined : l}>{l}</span>
+                    <span aria-hidden="true" style={{ width: 7, flex: 'none', textAlign: 'left', color: on ? INK : 'transparent' }}>{reverse ? '↑' : '↓'}</span>
+                  </button>
+                </div>
               </th>
             )
           })}

@@ -8,7 +8,7 @@ import { ranked, valueOf } from './lib/leaderboard.js'
 import { seasonsBetween } from './lib/seasons.js'
 import { useSeasonType } from './useSeasonType.js'
 import LeaderScatter from './components/LeaderScatter.jsx'
-import LeaderTable from './components/LeaderTable.jsx'
+import LeaderTable, { FilterMark } from './components/LeaderTable.jsx'
 import ModeSwitch from './components/ModeSwitch.jsx'
 import PlayerCard from './components/PlayerCard.jsx'
 import Popover from './components/Popover.jsx'
@@ -26,7 +26,9 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // season's board into every player's runs of 3, 5 or 7 seasons over all the years, each
 // averaged; RAW | PCTL sets what the table's cells read in; the row under the pointer,
 // as it moves or as the table scrolls beneath it, lights its player's dot. A board longer
-// than any season's (eras, many seasons) comes in pages, the scatter drawing the page.
+// than any season's (eras, many seasons) comes in pages, the scatter drawing the page. A
+// stat's head filters the board to its top 75, 50 or 25% by percentile; filters add up
+// across stats and groups, each marked on its head and its group's tab.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -51,15 +53,19 @@ const PAGE = 200
 // What a greyed group or column says on hover in the last 30 days.
 const NA = 'Unavailable for the last 30 days'
 
-function Groups({ groups, active, pick }) {
+// The stat groups, a tab each; a group with a stat filtered (`filtered`: labels) carries
+// the filter's mark beside its name.
+function Groups({ groups, active, pick, filtered }) {
   return (
     <div role="group" aria-label="Stat group" style={{ display: 'flex', border: `1px solid ${EDGE}`, overflowX: 'auto', minWidth: 0, scrollbarWidth: 'none' }}>
       {groups.map((g, i) => {
         const on = g.id === active
+        const sieved = g.stats.some(l => filtered.has(l))
         return (
           <button key={g.id} type="button" className="lb-group" aria-pressed={on} aria-disabled={g.na || undefined} onClick={() => !g.na && pick(g.id)} title={g.na ? NA : undefined}
             style={{ flex: 'none', height: 28, padding: '0 11px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: g.na ? FAINT : on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: g.na ? 'not-allowed' : 'pointer' }}>
             {g.name}
+            {sieved && <span title="A stat here is filtered" style={{ color: 'var(--accent)', marginLeft: -1 }}><FilterMark size={8} /></span>}
           </button>
         )
       })}
@@ -349,6 +355,15 @@ export default function Leaderboard() {
     setAxes({ x: ax, y: ay })
   }
   const onSort = useCallback(l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false })), [])
+  // Percentile filters by stat (label -> the top share kept), across groups and boards.
+  const [filters, setFilters] = useState({})
+  const setFilter = useCallback((l, share) => setFilters(f => {
+    const next = { ...f }
+    if (share) next[l] = share
+    else delete next[l]
+    return next
+  }), [])
+  const filtered = useMemo(() => new Set(Object.keys(filters)), [filters])
   // A new season, group or sort starts the table at its top; only a new group (other
   // columns) starts it at its left as well, so a sort keeps the stats in view.
   const gid = g ? g.id : null
@@ -366,12 +381,15 @@ export default function Leaderboard() {
       rank: new Map(best.map((p, i) => [p.id, valueOf(doc, p, sortLabel) === null ? null : i + 1]))
     }
   }, [doc, sortLabel, sort.reverse])
+  // A stat's filter keeps the rows at or above its share's percentile (the top 25%: the
+  // 75th and up); a stat this board lacks (the last 30 days lack some) filters nothing.
+  const sieve = useMemo(() => (!doc ? [] : Object.entries(filters).map(([l, share]) => [doc.labels.indexOf(l), 100 - share * 100]).filter(([k]) => k >= 0)), [doc, filters])
   const { rank, rows, shown } = useMemo(() => {
     if (!sorted) return { rank: new Map(), rows: [], shown: new Set() }
-    const keep = p => (!team || p.team === team || (p.teams || []).includes(team)) && (!q || fold(p.name).includes(q))
+    const keep = p => (!team || p.team === team || (p.teams || []).includes(team)) && (!q || fold(p.name).includes(q)) && sieve.every(([k, least]) => p.p[k] !== null && p.p[k] !== undefined && p.p[k] >= least)
     const list = sorted.list.filter(keep)
     return { rank: sorted.rank, rows: list, shown: new Set(list.map(p => p.id)) }
-  }, [sorted, team, q])
+  }, [sorted, team, q, sieve])
   // A long board (eras, many seasons) comes a page at a time, and the chart draws that page:
   // thousands of rows and dots at once make the table and chart crawl. A new list (another
   // sort, filter or span) starts at its first page.
@@ -417,7 +435,7 @@ export default function Leaderboard() {
             </>} />
         )}
         {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : doc === null && <Skel w={90} h={30} />}
-        {doc ? <Groups groups={tabs} active={g.id} pick={choose} /> : doc === null && <Skel w={586} h={30} />}
+        {doc ? <Groups groups={tabs} active={g.id} pick={choose} filtered={filtered} /> : doc === null && <Skel w={586} h={30} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', maxWidth: '100%' }}>
           <ModeSwitch mode={mode} setMode={setMode} height={28} />
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${EDGE}` }}>
@@ -436,7 +454,7 @@ export default function Leaderboard() {
           {/* Many seasons (a long span, or eras' every one) fill it as they come in. */}
           {loading && <Progress share={progress} />}
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
-            <LeaderTable doc={doc} group={g} rows={drawn} pager={pager} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
+            <LeaderTable doc={doc} group={g} rows={drawn} pager={pager} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'} filters={filters} setFilter={setFilter}
               picked={picked} onPick={setPicked} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>No players match</div>}
           </div>

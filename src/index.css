@@ -336,6 +336,10 @@ a:hover > .lineup-tile > * { filter: none; }
 .lb-row[aria-selected="true"] td { box-shadow: inset 0 0 0 100px rgba(236, 232, 227, .09); }
 .lb-row[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--accent), inset 0 0 0 100px rgba(236, 232, 227, .09); }
 .lb-group:hover, .lb-head-cell:hover { color: #ece8e3 !important; }
+/* A stat head's percentile filter: faint until the head is hovered, lit while on or open. */
+.lb-filter { opacity: .35; transition: opacity .15s, color .15s; }
+.lb-table th:hover .lb-filter, .lb-filter:focus-visible, .lb-filter[aria-expanded="true"], .lb-filter-on { opacity: 1; }
+.lb-filter:hover { color: #ece8e3 !important; }
 .lb-chip:hover { border-color: #a09a93 !important; color: #ece8e3 !important; }
 @media (max-width: 1000px), (max-height: 600px) {
   .lb { height: auto; }

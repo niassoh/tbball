@@ -34,7 +34,7 @@ describe('span averages', () => {
 
   test('label and teams', () => {
     const s = seasons([1, 1, 1], ['BOS', 'BOS', 'PHI'])
-    expect(spanLabel(s, 0, 2)).toBe('2016–19')
+    expect(spanLabel(s, 0, 2)).toBe('2017–19')
     expect(spanTeams(s, 0, 1)).toBe('BOS')
     expect(spanTeams(s, 0, 2)).toBe('2 TM')
   })
@@ -45,7 +45,7 @@ describe('rolling averages', () => {
     const p = { seasons: seasons([1000, 1000, 2000, 1000]), stats: { BPM: { ...stat([2, 4, 7, 1]), lg: [0, 0, 0, 0] } } }
     const r = rollingStat(p, 'BPM', 2)
     expect(r.vals.map(v => v && v.n)).toEqual([null, 3, 6, 5])
-    expect(r.vals[3].detail).toBe('2-YR AVG · 2018–20')
+    expect(r.vals[3].detail).toBe('2-YR AVG · 2019–20')
     expect(r.derived).toBe(true)
   })
 

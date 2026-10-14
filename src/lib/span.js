@@ -55,8 +55,8 @@ export const spanPctl = (profile, label, from, to) => {
   return weight ? Math.round(sum / weight) : null
 }
 
-// "2016–19" for 2016–17 through 2018–19.
-export const spanLabel = (seasons, from, to) => `${seasons[from].label.slice(0, 4)}–${seasons[to].label.slice(-2)}`
+// "2017–19" for 2016–17 through 2018–19: the years the seasons end, as the site writes spans.
+export const spanLabel = (seasons, from, to) => `${Number(seasons[from].label.slice(0, 4)) + 1}–${seasons[to].label.slice(-2)}`
 
 // The stat as an n-season rolling average, for the chart: each season averages itself
 // and the n-1 before it with spanMean (so shooting stays attempts-weighted), the league

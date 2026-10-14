@@ -5,7 +5,7 @@ import { liveAges } from './lib/age.js'
 import { bestEras, combined, combinedDelta, eachSeason, eras, qualified, singleYear, withPlayer } from './lib/board.js'
 import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
-import { seasonsBetween } from './lib/seasons.js'
+import { seasonsBetween, spanYears } from './lib/seasons.js'
 import { useSeasonType } from './useSeasonType.js'
 import LeaderScatter from './components/LeaderScatter.jsx'
 import LeaderTable, { FilterMark } from './components/LeaderTable.jsx'
@@ -22,9 +22,9 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // name) narrow the table and fade the scatter's other dots. In the playoffs a small Δ
 // toggle turns it to each player's playoffs minus regular season, and in the regular season
 // a small calendar beside it switches to the latest season's last 30 days (its
-// stats that can't be scoped to dates, and Footprint, greyed); ERAS turns the regular
-// season's board into every player's runs of 3, 5 or 7 seasons over all the years, each
-// averaged; RAW | PCTL sets what the table's cells read in; the row under the pointer,
+// stats that can't be scoped to dates, and Footprint, greyed); RUNS (eras in the code)
+// turns the regular season's board into every player's runs of 3, 5 or 7 seasons over all
+// the years, each averaged; spans read by the years their seasons end ("2023–25"); RAW | PCTL sets what the table's cells read in; the row under the pointer,
 // as it moves or as the table scrolls beneath it, lights its player's dot. A board longer
 // than any season's (eras, many seasons) comes in pages, the scatter drawing the page. A
 // stat's head filters the board to its top 75, 50 or 25% by percentile; filters add up
@@ -110,8 +110,8 @@ function Each({ each, set }) {
 const ERAS = [3, 5, 7]
 function Eras({ era, set }) {
   return (
-    <div role="group" aria-label="Eras" style={{ display: 'flex', border: `1px solid ${era ? 'var(--accent)' : EDGE}` }}>
-      <span style={{ ...label, display: 'inline-flex', alignItems: 'center', padding: '0 10px', color: era ? 'var(--accent)' : DIM }}>Eras</span>
+    <div role="group" aria-label="Runs" style={{ display: 'flex', border: `1px solid ${era ? 'var(--accent)' : EDGE}` }}>
+      <span style={{ ...label, display: 'inline-flex', alignItems: 'center', padding: '0 10px', color: era ? 'var(--accent)' : DIM }}>Runs</span>
       {ERAS.map(n => (
         <button key={n} type="button" aria-pressed={era === n} onClick={() => set(era === n ? null : n)} title={era === n ? 'Back to seasons' : `Every ${n}-season run of every player, averaged`}
           style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: `1px solid ${EDGE}`, background: era === n ? '#3a3734' : 'transparent', color: era === n ? INK : DIM, fontFamily: MONO, fontSize: 10, fontWeight: era === n ? 700 : 400, letterSpacing: '.1em', cursor: 'pointer' }}>{n} YR</button>
@@ -405,7 +405,7 @@ export default function Leaderboard() {
   const chartDoc = useMemo(() => (!doc ? doc : pages > 1 ? { ...doc, players: drawn } : doc.eras && x && y ? bestEras(doc, x, y) : doc), [doc, pages, drawn, x, y])
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
   const player = doc && picked ? doc.players.find(p => p.id === picked) : null
-  const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season eras` : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : `${span.from.slice(0, 4)}–${span.to.slice(5)}`
+  const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season runs` : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : spanYears(span.from, span.to)
 
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
@@ -428,7 +428,7 @@ export default function Leaderboard() {
         {!windowed && seasons && span && (
           <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length}
             pick={(from, to) => { setSpan({ from, to }); setEra(null) }}
-            readout={eraOn ? `${eraOn}-yr eras · ’${seasons[0].slice(5)}–’${seasons[seasons.length - 1].slice(5)}` : null}
+            readout={eraOn ? `${eraOn}-yr runs · ’${seasons[0].slice(5)}–’${seasons[seasons.length - 1].slice(5)}` : null}
             extra={<>
               {many && !eraOn && <Each each={each} set={setEach} />}
               {!playoffs && <Eras era={eraOn} set={setEra} />}
@@ -460,7 +460,7 @@ export default function Leaderboard() {
           </div>
           <div className={`lb-side${player ? ' lb-carded' : ''}`}>
             {player
-              ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? `${player.era[0].slice(0, 4)}–${player.era[1].slice(5)}` : spanText} />
+              ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? spanYears(player.era[0], player.era[1]) : spanText} />
               : <LeaderScatter doc={chartDoc} shown={shown} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />}
           </div>
         </div>

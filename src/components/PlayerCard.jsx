@@ -306,7 +306,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
       </div>
 
 
-      <Section title={doc.type === 'delta' ? 'Δ percentiles' : 'Percentiles'} right={doc.type === 'delta' ? 'among playoff players' : doc.type === 'recent' ? 'last 30 days' : span ? `${spanText || spanYy} ${doc.eras ? `· among ${doc.eras}-yr eras` : 'combined'}` : season.replace('-', '–')}>
+      <Section title={doc.type === 'delta' ? 'Δ percentiles' : 'Percentiles'} right={doc.type === 'delta' ? 'among playoff players' : doc.type === 'recent' ? 'last 30 days' : span ? `${spanText || spanYy} ${doc.eras ? `· among ${doc.eras}-yr runs` : 'combined'}` : season.replace('-', '–')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 16, rowGap: 5 }}>
           {rows.map((l, i) => {
             const pc = pctlOf(doc, pl, l)

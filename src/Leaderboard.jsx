@@ -44,8 +44,10 @@ const AXES = {
   footprint: ['Rim scoring', 'Rim protection']
 }
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-// Rows drawn at a time on a long board.
-const PAGE = 200
+// Rows drawn at a time on a long board, and how far the table scrolls (in rows) before
+// they move.
+const DRAWN = 200
+const STEP = 50
 // What a greyed group or column says on hover in the last 30 days.
 const NA = 'Unavailable for the last 30 days'
 
@@ -302,15 +304,24 @@ export default function Leaderboard() {
   }, [doc, sortLabel, sort.reverse, team, q])
   // In eras the scatter draws each player's best era for its two stats, not every era.
   const chartDoc = useMemo(() => (doc && doc.eras && x && y ? bestEras(doc, x, y) : doc), [doc, x, y])
-  // A long board (eras, or many seasons each a row) draws its rows a page at a time as the
-  // table scrolls: thousands of rows at once take seconds. A new list starts at one page.
-  const [paged, setPaged] = useState({ rows: null, n: PAGE })
-  const limit = paged.rows === rows ? paged.n : PAGE
-  const drawn = useMemo(() => (rows.length > limit ? rows.slice(0, limit) : rows), [rows, limit])
+  // A long board (eras, or many seasons each a row) draws only the rows around the table's
+  // view, the rows above and below held by empty space as tall as they are: thousands of
+  // rows at once take seconds to draw and make every scroll step crawl (each row's held
+  // columns stay put as the stats scroll). The drawn rows move STEP rows at a time, so most
+  // scroll steps redraw nothing; a shorter list (a filter) moves them back into it.
+  const [first, setFirst] = useState(0)
+  const [rowH, setRowH] = useState(26)
+  const start = Math.min(first, Math.max(0, rows.length - DRAWN))
+  const drawn = useMemo(() => rows.slice(start, start + DRAWN), [rows, start])
   const onTableScroll = () => {
     under()
     const el = wrap.current
-    if (el && limit < rows.length && el.scrollTop + el.clientHeight > el.scrollHeight - 800) setPaged({ rows, n: limit + PAGE })
+    const tr = el && el.querySelector('tr[data-id]')
+    if (!tr) return
+    const h = tr.getBoundingClientRect().height
+    const at = Math.max(0, Math.floor(el.scrollTop / h) - STEP)
+    setFirst(at - (at % STEP))
+    setRowH(h)
   }
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
   const player = doc && picked ? doc.players.find(p => p.id === picked) : null
@@ -366,7 +377,7 @@ export default function Leaderboard() {
       {doc && (
         <div className="lb-body">
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={onTableScroll}>
-            <LeaderTable doc={doc} group={g} rows={drawn} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
+            <LeaderTable doc={doc} group={g} rows={drawn} before={start * rowH} after={(rows.length - start - drawn.length) * rowH} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
               picked={picked} onPick={setPicked} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>No players match</div>}
           </div>

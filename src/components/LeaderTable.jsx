@@ -17,7 +17,8 @@ import { initials } from '../lib/teams.js'
 // row per season (`doc.many`, with a season column); rows carry their id (data-id), so
 // the page can light the one under the pointer in the scatter. The stats' sideways
 // scroll shows on a rail of its own under the stats alone (the browser's bar is hidden,
-// index.css).
+// index.css). On a long board the page draws only the rows near the view; `before` and
+// `after` keep the room of the rest above and below them (px).
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -122,7 +123,7 @@ function Face({ p }) {
   )
 }
 
-function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picked, onPick, scroller, pct = false }) {
+function LeaderTable({ doc, group, rows, before = 0, after = 0, rank, sortLabel, reverse, onSort, picked, onPick, scroller, pct = false }) {
   const cell = { height: 26, padding: '0 7px', borderBottom: `1px solid ${RULE}`, whiteSpace: 'nowrap' }
   const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 7px 6px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', verticalAlign: 'bottom' }
   const stick = left => ({ position: 'sticky', left, zIndex: 1 })
@@ -164,6 +165,8 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
   // The held block's right edge, a rule the stats slide under.
   const edge = i => (i === BIO.length - 1 ? { borderRight: `1px solid ${RULE}` } : {})
   const yr = doc.many ? 1 : 0
+  const span = 2 + yr + BIO.length + group.stats.length
+  const room = height => height > 0 && <tr aria-hidden="true"><td colSpan={span} style={{ height, padding: 0, border: 0 }} /></tr>
   return (
     <table className="lb-table" style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
       <thead>
@@ -192,6 +195,7 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
         </tr>
       </thead>
       <tbody>
+        {room(before)}
         {rows.map(p => {
           const lit = new Set(p.lit || [])
           return (
@@ -222,8 +226,9 @@ function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picke
             </tr>
           )
         })}
+        {room(after)}
       </tbody>
-      {scroller && lefts.length > 0 && <Rail scroller={scroller} held={held} span={2 + yr + BIO.length + group.stats.length} />}
+      {scroller && lefts.length > 0 && <Rail scroller={scroller} held={held} span={span} />}
     </table>
   )
 }

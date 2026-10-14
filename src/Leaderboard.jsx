@@ -25,7 +25,8 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // stats that can't be scoped to dates, and Footprint, greyed); ERAS turns the regular
 // season's board into every player's runs of 3, 5 or 7 seasons over all the years, each
 // averaged; RAW | PCTL sets what the table's cells read in; the row under the pointer,
-// as it moves or as the table scrolls beneath it, lights its player's dot.
+// as it moves or as the table scrolls beneath it, lights its player's dot. A board longer
+// than any season's (eras, many seasons) comes in pages, the scatter drawing the page.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -44,10 +45,9 @@ const AXES = {
   footprint: ['Rim scoring', 'Rim protection']
 }
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-// Rows drawn at a time on a long board, and how far the table scrolls (in rows) before
-// they move.
-const DRAWN = 200
-const STEP = 50
+// A board longer than any one season's (eras, many seasons) comes in pages of PAGE rows.
+const LONG = 600
+const PAGE = 200
 // What a greyed group or column says on hover in the last 30 days.
 const NA = 'Unavailable for the last 30 days'
 
@@ -63,6 +63,23 @@ function Groups({ groups, active, pick }) {
           </button>
         )
       })}
+    </div>
+  )
+}
+
+// A long board's pages: the rows on show of how many, and a step back or on.
+function Pager({ n, pages, total, turn }) {
+  const step = (to, name, sign) => (
+    <button type="button" aria-label={name} disabled={to < 0 || to >= pages} onClick={() => turn(to)}
+      style={{ width: 28, height: '100%', border: 0, borderLeft: sign > 0 ? `1px solid ${EDGE}` : 0, borderRight: sign < 0 ? `1px solid ${EDGE}` : 0, background: 'transparent', color: to < 0 || to >= pages ? FAINT : INK, fontFamily: MONO, fontSize: 13, cursor: to < 0 || to >= pages ? 'default' : 'pointer' }}>{sign < 0 ? '‹' : '›'}</button>
+  )
+  return (
+    <div role="group" aria-label="Pages" style={{ display: 'flex', alignItems: 'center', height: 28, border: `1px solid ${EDGE}` }}>
+      {step(n - 1, 'Previous page', -1)}
+      <span style={{ ...label, padding: '0 10px', color: INK, whiteSpace: 'nowrap' }}>
+        {(n * PAGE + 1).toLocaleString()}–{Math.min(total, (n + 1) * PAGE).toLocaleString()}<span style={{ color: DIM }}> of {total.toLocaleString()}</span>
+      </span>
+      {step(n + 1, 'Next page', 1)}
     </div>
   )
 }
@@ -304,27 +321,17 @@ export default function Leaderboard() {
       shown: new Set(list.map(p => p.id))
     }
   }, [doc, sortLabel, sort.reverse, team, q])
-  // In eras the scatter draws each player's best era for its two stats, not every era.
-  const chartDoc = useMemo(() => (doc && doc.eras && x && y ? bestEras(doc, x, y) : doc), [doc, x, y])
-  // A long board (eras, or many seasons each a row) draws only the rows around the table's
-  // view, the rows above and below held by empty space as tall as they are: thousands of
-  // rows at once take seconds to draw and make every scroll step crawl (each row's held
-  // columns stay put as the stats scroll). The drawn rows move STEP rows at a time, so most
-  // scroll steps redraw nothing; a shorter list (a filter) moves them back into it.
-  const [first, setFirst] = useState(0)
-  const [rowH, setRowH] = useState(26)
-  const start = Math.min(first, Math.max(0, rows.length - DRAWN))
-  const drawn = useMemo(() => rows.slice(start, start + DRAWN), [rows, start])
-  const onTableScroll = () => {
-    under()
-    const el = wrap.current
-    const tr = el && el.querySelector('tr[data-id]')
-    if (!tr) return
-    const h = tr.getBoundingClientRect().height
-    const at = Math.max(0, Math.floor(el.scrollTop / h) - STEP)
-    setFirst(at - (at % STEP))
-    setRowH(h)
-  }
+  // A long board (eras, many seasons) comes a page at a time, and the chart draws that page:
+  // thousands of rows and dots at once make the table and chart crawl. A new list (another
+  // sort, filter or span) starts at its first page.
+  const [paging, setPaging] = useState({ rows: null, n: 0 })
+  const pages = rows.length > LONG ? Math.ceil(rows.length / PAGE) : 1
+  const pageN = paging.rows === rows ? Math.min(paging.n, pages - 1) : 0
+  const drawn = useMemo(() => (pages > 1 ? rows.slice(pageN * PAGE, (pageN + 1) * PAGE) : rows), [rows, pages, pageN])
+  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [pageN])
+  // The chart: the page's rows; on a board in one page, everyone, the filters' others faint
+  // (in eras, each player's best era for its two stats, not every era).
+  const chartDoc = useMemo(() => (!doc ? doc : pages > 1 ? { ...doc, players: drawn } : doc.eras && x && y ? bestEras(doc, x, y) : doc), [doc, pages, drawn, x, y])
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
   const player = doc && picked ? doc.players.find(p => p.id === picked) : null
   const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season eras` : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : `${span.from.slice(0, 4)}–${span.to.slice(5)}`
@@ -358,6 +365,7 @@ export default function Leaderboard() {
         )}
         {doc && <Minutes top={top} set={setTop} playoffs={playoffs} />}
         {doc && <Groups groups={tabs} active={g.id} pick={choose} />}
+        {doc && pages > 1 && <Pager n={pageN} pages={pages} total={rows.length} turn={n => setPaging({ rows, n })} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', maxWidth: '100%' }}>
           <ModeSwitch mode={mode} setMode={setMode} height={28} />
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${EDGE}` }}>
@@ -378,8 +386,8 @@ export default function Leaderboard() {
       )}
       {doc && (
         <div className="lb-body">
-          <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={onTableScroll}>
-            <LeaderTable doc={doc} group={g} rows={drawn} before={start * rowH} after={(rows.length - start - drawn.length) * rowH} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
+          <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
+            <LeaderTable doc={doc} group={g} rows={drawn} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'}
               picked={picked} onPick={setPicked} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>No players match</div>}
           </div>

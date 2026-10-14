@@ -17,8 +17,7 @@ import { initials } from '../lib/teams.js'
 // row per season (`doc.many`, with a season column); rows carry their id (data-id), so
 // the page can light the one under the pointer in the scatter. The stats' sideways
 // scroll shows on a rail of its own under the stats alone (the browser's bar is hidden,
-// index.css). On a long board the page draws only the rows near the view; `before` and
-// `after` keep the room of the rest above and below them (px).
+// index.css).
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -165,7 +164,7 @@ const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel
   )
 })
 
-function LeaderTable({ doc, group, rows, before = 0, after = 0, rank, sortLabel, reverse, onSort, picked, onPick, scroller, pct = false }) {
+function LeaderTable({ doc, group, rows, rank, sortLabel, reverse, onSort, picked, onPick, scroller, pct = false }) {
   const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 7px 6px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', verticalAlign: 'bottom' }
   // The season and details columns stay put where they sit: each held at its own offset,
   // measured (they're as wide as their widest value, which a span's totals widen).
@@ -203,8 +202,6 @@ function LeaderTable({ doc, group, rows, before = 0, after = 0, rank, sortLabel,
   const lock = lockOf(lefts, narrow)
   const held = !lefts.length ? 0 : narrow ? lefts[0] : lefts[lefts.length - 1]
   const yr = doc.many ? 1 : 0
-  const span = 2 + yr + BIO.length + group.stats.length
-  const room = height => height > 0 && <tr aria-hidden="true"><td colSpan={span} style={{ height, padding: 0, border: 0 }} /></tr>
   return (
     <table className="lb-table" style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
       <thead>
@@ -233,11 +230,9 @@ function LeaderTable({ doc, group, rows, before = 0, after = 0, rank, sortLabel,
         </tr>
       </thead>
       <tbody>
-        {room(before)}
         {rows.map(p => <Row key={p.id} p={p} rank={rank.get(p.id)} selected={picked === p.id} onPick={onPick} doc={doc} group={group} sortLabel={sortLabel} pct={pct} narrow={narrow} lefts={lefts} />)}
-        {room(after)}
       </tbody>
-      {scroller && lefts.length > 0 && <Rail scroller={scroller} held={held} span={span} />}
+      {scroller && lefts.length > 0 && <Rail scroller={scroller} held={held} span={2 + yr + BIO.length + group.stats.length} />}
     </table>
   )
 }

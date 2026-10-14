@@ -15,6 +15,22 @@ export const percentileOf = (value, pool, lowerBetter = false) => {
   return Math.round((worse / nums.length) * 100)
 }
 
+// The Player group: each row's age (the site's own, on the day: lib/age.js liveAges) and
+// listed height in inches (`ht`) as stats, so the table can sort by them and the chart
+// plot them; their percentiles are a style's (neither end is better).
+export const withPlayer = doc => {
+  if (doc.labels.includes('Age')) return doc
+  const vals = doc.players.map(p => [p.age ?? null, p.ht ?? null])
+  const pools = [0, 1].map(k => vals.map(v => v[k]))
+  return {
+    ...doc,
+    labels: [...doc.labels, 'Age', 'Height'],
+    stats: { ...doc.stats, Age: { dec: 1, neutral: true }, Height: { dec: 0, neutral: true, feet: true } },
+    groups: [...doc.groups, { id: 'player', name: 'Player', stats: ['Age', 'Height'] }],
+    players: doc.players.map((p, i) => ({ ...p, v: [...p.v, ...vals[i]], p: [...p.p, ...vals[i].map((v, k) => percentileOf(v, pools[k]))] }))
+  }
+}
+
 // A regular season's document with its rolling-window shooting stats (the sheet's 3yr)
 // replaced by that season alone (the document's hidden `1yr` columns), values and
 // percentiles, for views over many seasons, whose windows would overlap. A stat with no

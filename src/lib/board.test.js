@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { bestEras, combined, combinedDelta, eachSeason, eras, percentileOf, qualified, singleYear } from './board.js'
+import { bestEras, combined, combinedDelta, eachSeason, eras, percentileOf, qualified, singleYear, withPlayer } from './board.js'
 
 // Two seasons' documents: BPM, and C&S 3% weighted by C&S 3s/36.
 const labels = ['BPM', 'C&S 3%', 'C&S 3s/36']
@@ -14,6 +14,18 @@ describe('board', () => {
     expect(percentileOf(3, [1, 2, 3, 4])).toBe(50)
     expect(percentileOf(1, [1, 2, 3, 4], true)).toBe(75)
     expect(percentileOf(null, [1, 2])).toBe(null)
+  })
+
+  test('withPlayer: age and height as a Player group, with their own percentiles', () => {
+    const d = withPlayer(doc('2024-25', [P('a', 1000, [1, 30, 2], { age: 24.5, ht: 80 }), P('b', 900, [0, 30, 2], { age: 31, ht: null })]))
+    expect(d.labels.slice(-2)).toEqual(['Age', 'Height'])
+    expect(d.groups.at(-1)).toEqual({ id: 'player', name: 'Player', stats: ['Age', 'Height'] })
+    expect(d.players[0].v.slice(-2)).toEqual([24.5, 80])
+    expect(d.players[1].v.slice(-1)).toEqual([null])
+    expect(d.players[1].p.at(-2)).toBe(50)
+    expect(d.stats.Height.feet).toBe(true)
+    // Once only.
+    expect(withPlayer(d).labels.length).toBe(d.labels.length)
   })
 
   test('each season: a row per player-season, ids telling them apart', () => {

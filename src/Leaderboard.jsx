@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardRecent, fetchLeaderboardSeasons } from './api.js'
 import { liveAges } from './lib/age.js'
-import { bestEras, combined, combinedDelta, eachSeason, eras, qualified, singleYear } from './lib/board.js'
+import { bestEras, combined, combinedDelta, eachSeason, eras, qualified, singleYear, withPlayer } from './lib/board.js'
 import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
 import { seasonsBetween } from './lib/seasons.js'
@@ -233,7 +233,10 @@ export default function Leaderboard() {
     for (const key of missingKey.split(',')) {
       const [kind, x] = key.split('|')
       const load = kind === 'recent' ? fetchLeaderboardRecent() : fetchLeaderboard(x, kind !== 'regular', kind === 'delta')
-      load.then(d => live && setCache(c => ({ ...c, [key]: d ? liveAges(d) : false })), () => live && setCache(c => ({ ...c, [key]: false })))
+      // Each season with its Player group (age and height), but for playoffs minus regular
+      // season, where neither is a change.
+      const ready = d => (kind === 'delta' ? liveAges(d) : withPlayer(liveAges(d)))
+      load.then(d => live && setCache(c => ({ ...c, [key]: d ? ready(d) : false })), () => live && setCache(c => ({ ...c, [key]: false })))
     }
     return () => { live = false }
   }, [missingKey])

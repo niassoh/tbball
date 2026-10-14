@@ -4,6 +4,11 @@ import { chartModel, seasonTick } from './chart.js'
 import { BANDS, shotModel, zoneFill } from './shot.js'
 
 describe('format', () => {
+  test('a height in inches reads as feet and inches', () => {
+    expect(fmt({ dec: 0, feet: true }, 82)).toBe(`6'10"`)
+    expect(fmt({ dec: 0, feet: true }, 83.6)).toBe(`7'0"`)
+    expect(fmt({ dec: 0, feet: true }, null)).toBe('—')
+  })
   test('percentile color endpoints', () => {
     expect(col(100)).toBe('rgb(89,126,193)')
     expect(col(0)).toBe('rgb(250,150,42)')

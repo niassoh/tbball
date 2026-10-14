@@ -73,7 +73,7 @@ const EMBLEMS = {
 }
 
 // A trophy's size in the banner: its drawing at SIZE × 32 px, its plinth TROPHY_W wide.
-const SIZE = 1.3
+const SIZE = 1.05
 const TROPHY_W = 38 * SIZE
 
 function Trophy({ award, scale: k = 1 }) {

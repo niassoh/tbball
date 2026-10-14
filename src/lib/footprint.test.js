@@ -13,7 +13,7 @@ describe('footprint', () => {
     expect(strengthOf({ z: 2.5 })).toBe(0)
     expect(strengthOf({ z: -4.75 })).toBeCloseTo(0.5)
     expect(strengthOf({ z: 10.8 })).toBe(1)
-    expect(shade('#fa962a', 0)).toBe('color-mix(in srgb, #fa962a 50%, #5a5550)')
+    expect(shade('#fa962a', 0)).toBe('color-mix(in srgb, #fa962a 60%, #5a5550)')
     expect(shade('#fa962a', 1)).toBe('color-mix(in srgb, #fa962a 100%, #5a5550)')
   })
 

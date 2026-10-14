@@ -1,16 +1,16 @@
 // The Footprint tab's helpers: how to read each effect of the profile's `footprint`
 // (thinking-bball lib/footprint.js): his team's stat with him on the floor minus off.
 
-// A lift (his team is better for it), a cost, or neither (a style stat, such as tempo).
+// A lift (his team is better for it), a cost, or neither (a style stat, such as pace).
 export const toneOf = e => (!e.good ? 'neutral' : e.good * e.diff >= 0 ? 'good' : 'bad')
 
 // How strong a lit tile is, 0–1: how far its z clears the 2.5 bar, full at 7.
 const clamp01 = v => Math.max(0, Math.min(1, v))
 export const strengthOf = e => clamp01((Math.abs(e.z) - 2.5) / 4.5)
 
-// A lit tile's color at its strength: the weakest half grey (still brighter than any unlit
-// tile's grey), the strongest the full color.
-export const shade = (color, strength) => `color-mix(in srgb, ${color} ${Math.round(50 + 50 * strength)}%, #5a5550)`
+// A lit tile's color at its strength: the weakest 60% of it (in colour where an unlit
+// tile is grey), the strongest the full color.
+export const shade = (color, strength) => `color-mix(in srgb, ${color} ${Math.round(60 + 40 * strength)}%, #5a5550)`
 
 // The tile's bar: from the middle, as long as the swing ranks among players' swings in
 // that stat (its percentile, left/width in percent), toward the lift side (right) or the

@@ -194,7 +194,7 @@ function FootprintTile({ e, anchors, right, delay = 0 }) {
       style={{ position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', aspectRatio: '1 / 1', minHeight: TILE_MIN_H, alignSelf: 'start', minWidth: 0, background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
       {mate && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
       {place && <Ribbon place={place.place} worst={place.worst} />}
-      <div style={{ flex: 1, minWidth: 0, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.45 + 0.25 * size, transition: `opacity .35s ${delay}ms`, fontFamily: MONO }}>
+      <div style={{ flex: 1, minWidth: 0, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.62 + 0.3 * size, transition: `opacity .35s ${delay}ms`, fontFamily: MONO }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: place ? 32 : 0 }}>
           <div style={{ flex: 'none', width: 22, height: 22, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} size={22} /></div>
           <span style={{ minWidth: 0, paddingTop: 3, fontSize: 12.5, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', lineHeight: 1.25, color: INK }}>{e.effect}</span>

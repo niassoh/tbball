@@ -143,12 +143,12 @@ function ProfilePage({ slug, playoffs }) {
   // belong to one profile).
   const fold = `${p.slug}-${p.seasonType}`
   const tabs = [
-    ...p.tabs.filter(t => t.stats.some(l => p.stats[l].available)).map(t => ({ id: t.id, name: t.name })),
-    { id: 'yoy', name: 'Year to Year' },
-    // The views (a picked season or span on its own module, not a stat table), grouped
-    // apart in the tab bar. Regular season only (the backend has none in the playoffs).
+    // The views (a picked season or span on its own module, not a stat table) lead the
+    // tab bar, grouped apart. Regular season only (the backend has none in the playoffs).
     ...(p.footprint ? [{ id: 'footprint', name: 'Footprint', kind: 'view' }] : []),
-    ...(p.lonestar ? [{ id: 'lonestar', name: 'Lonestar', kind: 'view' }] : [])
+    ...(p.lonestar ? [{ id: 'lonestar', name: 'Lonestar', kind: 'view' }] : []),
+    ...p.tabs.filter(t => t.stats.some(l => p.stats[l].available)).map(t => ({ id: t.id, name: t.name })),
+    { id: 'yoy', name: 'Year to Year' }
   ]
   // Keep the open tab across players when the new one has it.
   const activeTab = tabs.some(t => t.id === tab) ? tab : tabs[0].id

@@ -92,13 +92,14 @@ function Pager({ n, pages, total, turn }) {
 }
 
 // A span's rows: each player-season, or one per player combined over the span (the
-// profile's span averages). In the season picker's panel.
+// profile's span averages): SINGLE | COMBINED, small, beside the span's readout in the
+// season picker's panel.
 function Each({ each, set }) {
   return (
-    <div role="group" aria-label="Rows" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
-      {[[true, 'Each season'], [false, 'Combined']].map(([on, name]) => (
-        <button key={name} type="button" aria-pressed={each === on} onClick={() => set(on)}
-          style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: on ? 0 : `1px solid ${EDGE}`, background: each === on ? '#3a3734' : 'transparent', color: each === on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 9, fontWeight: each === on ? 700 : 400, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
+    <div role="group" aria-label="Rows" style={{ display: 'flex', flex: 'none', border: `1px solid ${EDGE}` }}>
+      {[[true, 'Single', 'A row for each of his seasons'], [false, 'Combined', 'One row for his seasons together']].map(([on, name, tip]) => (
+        <button key={name} type="button" aria-pressed={each === on} onClick={() => set(on)} title={tip}
+          style={{ height: 22, padding: '0 8px', border: 0, borderLeft: on ? 0 : `1px solid ${EDGE}`, background: each === on ? '#3a3734' : 'transparent', color: each === on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 9, fontWeight: each === on ? 700 : 400, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
       ))}
     </div>
   )
@@ -440,10 +441,8 @@ export default function Leaderboard() {
               title={windowed ? '30 days' : 'Seasons'} disabled={windowed}
               pick={(from, to) => { setSpan({ from, to }); setEra(null) }}
               readout={windowed ? (doc && doc.window ? `${day(doc.window.start)}–${day(doc.window.end)}` : '…') : eraOn ? `${eraOn}-yr runs` : null}
-              extra={<>
-                {many && !eraOn && <Each each={each} set={setEach} />}
-                {!playoffs && <Eras era={eraOn} set={setEra} />}
-              </>} />
+              aside={many && !eraOn ? <Each each={each} set={setEach} /> : null}
+              extra={!playoffs ? <Eras era={eraOn} set={setEra} /> : null} />
           )
           : <Skel w={SEASONS_W} h={30} />}
         {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : <Skel w={MIN_W} h={30} />}

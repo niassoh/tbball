@@ -5,7 +5,7 @@ import Popover from './Popover.jsx'
 
 // The season picker shared by the Footprint and Lonestar tabs and the Leaderboard: one
 // season or a span of them, from the seasons there are; `extra` adds a control to its
-// panel (the Leaderboard's each season | combined).
+// panel (the Leaderboard's runs).
 const INK = '#ece8e3'
 const SOFT = '#d9d3cc'
 const MID = '#b8b2ab'
@@ -112,9 +112,10 @@ function SeasonRange({ seasons, from, to, pick }) {
 // that opens the span slider in a panel under it (Popover), its last handle taking the
 // arrow keys at once; a pick shows behind it as it's made. The slider sets the panel's
 // width (the readout wraps inside it, so a pick never resizes it). With one season there's
-// nothing to pick. `readout`: what the box says in place of the span (the Leaderboard's
+// nothing to pick. `aside`: a small control beside the span's readout (the Leaderboard's
+// single | combined). `readout`: what the box says in place of the span (the Leaderboard's
 // eras).
-export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, readout = null, title = 'Seasons', disabled = false, width }) {
+export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, aside = null, readout = null, title = 'Seasons', disabled = false, width }) {
   return (
     <Popover name={`${title}: ${readout || spanText(from, to)}`} disabled={disabled || seasons.length < 2} width={width}
       trigger={<>
@@ -124,9 +125,12 @@ export default function SeasonPicker({ seasons, from, to, n, pick, extra = null,
       {() => (
         <>
           <SeasonRange seasons={seasons} from={from} to={to} pick={pick} />
-          <div style={{ contain: 'inline-size', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ ...label, color: MID }}>{spanText(from, to)}{n > 1 ? ` · ${n} seasons` : ''}</span>
-            <span style={{ ...label, color: MID }}>Tap a season · drag a handle for a span</span>
+          <div style={{ contain: 'inline-size', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+              <span style={{ ...label, color: MID }}>{spanText(from, to)}{n > 1 ? ` · ${n} seasons` : ''}</span>
+              <span style={{ ...label, color: MID }}>Tap a season · drag a handle for a span</span>
+            </div>
+            {aside}
           </div>
           {extra}
         </>

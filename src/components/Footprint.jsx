@@ -177,13 +177,14 @@ function FootprintTile({ e, anchors, right, delay = 0 }) {
     // A lit tile carries a bar of its color across the top edge (hatched for a teammate
     // effect); an unlit one is dimmed. It stretches to its row's tallest tile (a grid item
     // with an aspect ratio otherwise keeps its own height, and a title on two lines makes
-    // a tile taller than one on one), so a row's values line up.
+    // a tile taller than one on one), so a row's values line up, and it never grows past
+    // its column (minWidth 0: a long unit line would otherwise widen it over the next).
     <div tabIndex={0} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
       onPointerUp={ev => { if (ev.pointerType !== 'mouse') setOpen(o => !o) }}
-      style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', alignSelf: 'stretch', background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', aspectRatio: '1 / .9', alignSelf: 'stretch', minWidth: 0, background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
       {mate && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
       {place && <Ribbon place={place} />}
-      <div style={{ flex: 1, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.6, transition: `opacity .35s ${delay}ms`, fontFamily: MONO }}>
+      <div style={{ flex: 1, minWidth: 0, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.6, transition: `opacity .35s ${delay}ms`, fontFamily: MONO }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: place ? 32 : 0 }}>
           <div style={{ flex: 'none', width: 22, height: 22, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} size={22} /></div>
           <span style={{ minWidth: 0, paddingTop: 3, fontSize: 12.5, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', lineHeight: 1.25, color: INK }}>{e.effect}</span>
@@ -193,7 +194,9 @@ function FootprintTile({ e, anchors, right, delay = 0 }) {
           <Ticker value={e.diff} delay={delay} style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums', transition: `color .35s ${delay}ms` }} />
           <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {unitOf(e.key, e.unit)}
-            {mate && <span title="Teammate effect: most of this swing is his best teammate's minutes, not his" style={{ color: '#b9a45f' }}> · TEAMMATE</span>}
+            {/* A teammate effect: the legend's hatched mark, in the tile's color. */}
+            {mate && <span title="Teammate effect: most of this swing is his best teammate's minutes, not his" aria-label="teammate effect"
+              style={{ display: 'inline-block', width: 14, height: 3, marginLeft: 7, verticalAlign: 'middle', background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
           </span>
         </span>
         {/* How big the swing is among players' swings in this stat: right a lift, left a cost. */}

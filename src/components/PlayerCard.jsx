@@ -7,6 +7,7 @@ import { pctlOf, valueOf } from '../lib/leaderboard.js'
 import { rollingStat } from '../lib/span.js'
 import { starsText } from '../lib/lonestar.js'
 import { jerseysOver, splitIds } from '../lib/jersey.js'
+import { asset } from '../lib/static.js'
 import { initials } from '../lib/teams.js'
 import { useSeasonType } from '../useSeasonType.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
@@ -376,8 +377,10 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
 
       <div style={{ display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', columnGap: 14, padding: '2px 14px 14px' }}>
         {/* Square, so his jersey's bands sit on the portrait: dressed in the season's or the
-            span's jersey, split between its teams' in order when he wore more than one. */}
-        <div style={{ position: 'relative', width: 104, height: 104, background: PORTRAIT_BG, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DIM }}>
+            span's jersey, split between its teams' in order when he wore more than one. Behind
+            him, faintly, the profile banner's bokeh. */}
+        <div style={{ position: 'relative', width: 104, height: 104, background: '#1f1d1c', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DIM }}>
+          <img src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '30% 0%', opacity: 0.75, display: 'block' }} />
           {pl.headshot
             ? (
               <div className="pc-face" style={{ position: 'absolute', inset: 0 }}>

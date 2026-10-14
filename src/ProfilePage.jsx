@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { useParams, useLocation, Link } from 'react-router-dom'
 import { fetchProfile, peekProfile } from './api.js'
 import { MONO } from './lib/format.js'
@@ -21,6 +21,10 @@ import { useSeasonType } from './useSeasonType.js'
 export default function ProfilePageRoute() {
   const { slug } = useParams()
   const { playoffs } = useSeasonType()
+  // Coming from another page (All players, the Leaderboard) starts at the top: the
+  // browser would otherwise keep that page's scroll. Moving between players doesn't
+  // remount this, so it keeps its place.
+  useLayoutEffect(() => { window.scrollTo(0, 0) }, [])
   return <ProfilePage slug={slug} playoffs={playoffs} />
 }
 

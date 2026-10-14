@@ -37,7 +37,12 @@ export const fetchProfile = (slug, playoffs = false) => {
 }
 export const prefetchProfile = (slug, playoffs = false) => { fetchProfile(slug, playoffs).catch(() => {}) }
 export const peekProfile = (slug, playoffs = false) => arrived.get(profileKey(slug, playoffs))
-export const fetchPlayers = () => getJson(api('profiles', 'profiles.json'))
+// The players index, fetched once a session (the cards and tabs that read it share it).
+let players = null
+export const fetchPlayers = () => {
+  if (!players) players = getJson(api('profiles', 'profiles.json')).catch(err => { players = null; throw err })
+  return players
+}
 // The Leaderboard page's seasons, and one season's players with every stat.
 export const fetchLeaderboardSeasons = (playoffs = false) => getJson(api(`${pre(playoffs)}leaderboard`, `${pre(playoffs)}leaderboard/index.json`))
 // `delta`: playoffs minus regular season (playoffs only).

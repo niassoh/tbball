@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchFootprint, fetchLonestar, fetchProfile, headshotUrl } from '../api.js'
+import { fetchFootprint, fetchLonestar, fetchPlayers, fetchProfile, headshotUrl } from '../api.js'
 import { swingText, toneOf, topPlaceOf, unitOf, worstText } from '../lib/footprint.js'
 import { MONO, col, fmt } from '../lib/format.js'
 import { pctlOf, valueOf } from '../lib/leaderboard.js'
@@ -314,8 +314,12 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
   const [lonestar, setLonestar] = useState(null)
   const [footprint, setFootprint] = useState(null)
   const [fpAt, setFpAt] = useState(null)
+  // Whether he's on a roster now: the players index's `active` (he played in the latest
+  // season); null until it's read.
+  const [active, setActive] = useState(null)
   useEffect(() => {
     let live = true
+    fetchPlayers().then(list => live && setActive(!!((list || []).find(x => x.slug === pl.slug) || {}).active), () => {})
     fetchProfile(pl.slug, playoffs).then(d => live && setProfile(d || false), () => live && setProfile(false))
     if (!playoffs) fetchLonestar(pl.slug).then(d => live && setLonestar(d || false), () => live && setLonestar(false))
     if (!playoffs) fetchFootprint(pl.slug).then(d => live && setFootprint(d || false), () => live && setFootprint(false))
@@ -354,8 +358,10 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
-        <span aria-hidden="true" style={{ width: 7, height: 7, background: 'var(--accent)' }} />
-        <span style={{ ...label, color: INK }}>Player card</span>
+        {/* His status where the card named itself: green and ACTIVE on a roster now, grey
+            and INACTIVE otherwise (held to its width while it's read). */}
+        <span aria-hidden="true" style={{ width: 7, height: 7, background: active ? 'var(--accent)' : '#5a5550', transition: 'background .2s' }} />
+        <span style={{ ...label, minWidth: 62, color: active ? INK : DIM }}>{active === null ? '' : active ? 'Active' : 'Inactive'}</span>
         <span style={{ ...label, color: DIM }}>{doc.type === 'recent' ? 'last 30 days' : doc.combined && spanText ? `${spanText} combined` : season.replace('-', '–')}{doc.type === 'delta' ? ' playoffs − reg' : playoffs ? ' playoffs' : ''}</span>
         <Link to={playerPath(pl.slug)} state={{ season }} style={{ ...label, marginLeft: 'auto', color: INK, border: `1px solid ${EDGE}`, padding: '5px 8px' }}>Full profile →</Link>
         <button type="button" aria-label="Close the card" onClick={onClose} style={{ width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>

@@ -130,7 +130,7 @@ function Eras({ era, set }) {
 const TOPS = [[1, 'All'], [0.75, 'Top 75%'], [0.5, 'Top 50%'], [0.25, 'Top 25%']]
 function Minutes({ top, set, playoffs }) {
   return (
-    <Popover name={`Minutes: ${top === 1 ? 'all' : `top ${top * 100}%`}`} minWidth={220} width={MIN_W} trigger={<><span style={{ ...label, fontWeight: 400 }}>Min</span>{TOPS.find(([t]) => t === top)[1]}</>}>
+    <Popover name={`Minutes: ${top === 1 ? 'all' : `top ${top * 100}%`}`} minWidth={220} width={MIN_W} trigger={<><span style={{ ...label, fontWeight: 400 }}>Min</span>{top === 1 ? 'All' : `${top * 100}%`}</>}>
       {close => (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: `1px solid ${EDGE}` }}>
@@ -139,7 +139,7 @@ function Minutes({ top, set, playoffs }) {
                 style={{ height: 28, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: t === top ? '#3a3734' : 'transparent', color: t === top ? INK : DIM, fontFamily: MONO, fontSize: 9.5, fontWeight: t === top ? 700 : 400, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', padding: '0 8px' }}>{name}</button>
             ))}
           </div>
-          <span style={{ ...label, color: FAINT }}>By {playoffs ? 'playoff ' : ''}minutes, among the rows on show</span>
+          <span style={{ ...label, color: '#b8b2ab' }}>The top share by {playoffs ? 'playoff ' : ''}minutes, among the rows on show</span>
         </>
       )}
     </Popover>
@@ -162,10 +162,10 @@ function RecentButton({ on, set, disabled }) {
   )
 }
 
-// The top boxes' widths, each its longest reading's ("30 days Mar 14–Apr 12", "Top 75%"),
-// so a choice never moves the controls.
+// The top boxes' widths, each its longest reading's ("30 days Mar 14–Apr 12", "Min 75%":
+// the box says the share, its panel says top), so a choice never moves the controls.
 const SEASONS_W = 200
-const MIN_W = 122
+const MIN_W = 94
 const TEAM_W = 104
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']

@@ -8,8 +8,9 @@ export const toneOf = e => (!e.good ? 'neutral' : e.good * e.diff >= 0 ? 'good' 
 const clamp01 = v => Math.max(0, Math.min(1, v))
 export const strengthOf = e => clamp01((Math.abs(e.z) - 2.5) / 4.5)
 
-// A lit tile's color at its strength: the weakest is mostly grey, the strongest the full color.
-export const shade = (color, strength) => `color-mix(in srgb, ${color} ${Math.round(40 + 60 * strength)}%, #5a5550)`
+// A lit tile's color at its strength: the weakest half grey (still brighter than any unlit
+// tile's grey), the strongest the full color.
+export const shade = (color, strength) => `color-mix(in srgb, ${color} ${Math.round(50 + 50 * strength)}%, #5a5550)`
 
 // The tile's bar: from the middle, as long as the swing ranks among players' swings in
 // that stat (its percentile, left/width in percent), toward the lift side (right) or the
@@ -43,12 +44,13 @@ export const pctlText = p => (p === null || p === undefined ? null : `${ordinal(
 // season's in a span that has more than one ("GREEN/BUTLER III").
 export const anchorName = anchors => [...new Set((anchors || []).map(a => ((a.name || '').split(' ').slice(1).join(' ') || a.name || '').toUpperCase()))].join('/')
 
-// A medal for an on value in the league's top 3% at the end that helps his team, so few
+// A medal for a lit swing in the league's top 3% at the end that helps his team, so few
 // players hold one: 1 (gold) for the top 1%, 2 (silver) the top 2%, 3 (bronze) the top 3%,
-// by its place among every qualified player's that season or span. A style stat helps
-// neither way, so it has none.
+// by its place among every qualified player's swing that season or span (`rank`: [place,
+// of, 'best' | 'worst'], counted from its nearer end; the backend places only lit swings,
+// and no style stat).
 export const MEDAL_SHARES = [0.01, 0.02, 0.03]
-const goodPlace = e => (e.rank && e.good && (e.rank[2] === 'high') === (e.good > 0) ? e.rank[0] : null)
+const goodPlace = e => (e.rank && e.rank[2] === 'best' ? e.rank[0] : null)
 export const medalOf = e => {
   const place = goodPlace(e)
   if (!place) return null
@@ -56,10 +58,9 @@ export const medalOf = e => {
   return tier < 0 ? null : tier + 1
 }
 
-// His place when his on value is in the league's top 10 at the end that helps his team
-// (the tile's badge), else null.
+// His place when his swing is among the league's 10 best, or 10 worst (`worst`), else null:
+// the tile's badge.
 export const TOP_PLACES = 10
-export const topPlaceOf = e => {
-  const place = goodPlace(e)
-  return place && place <= TOP_PLACES ? place : null
-}
+export const topPlaceOf = e => (e.rank && e.rank[0] <= TOP_PLACES ? { place: e.rank[0], worst: e.rank[2] === 'worst' } : null)
+// A place among the league's 10 worst, in words: "LEAGUE WORST", "2ND WORST".
+export const worstText = place => (place === 1 ? 'LEAGUE WORST' : `${ordinal(place)} WORST`)

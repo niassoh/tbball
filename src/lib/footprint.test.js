@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { UNITS, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText } from './footprint.js'
+import { UNITS, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -13,7 +13,7 @@ describe('footprint', () => {
     expect(strengthOf({ z: 2.5 })).toBe(0)
     expect(strengthOf({ z: -4.75 })).toBeCloseTo(0.5)
     expect(strengthOf({ z: 10.8 })).toBe(1)
-    expect(shade('#fa962a', 0)).toBe('color-mix(in srgb, #fa962a 40%, #5a5550)')
+    expect(shade('#fa962a', 0)).toBe('color-mix(in srgb, #fa962a 50%, #5a5550)')
     expect(shade('#fa962a', 1)).toBe('color-mix(in srgb, #fa962a 100%, #5a5550)')
   })
 
@@ -61,25 +61,26 @@ describe('footprint', () => {
 
   test("a medal for the league's top 1, 2 or 3% at the end that helps his team", () => {
     // Of 500: places 1–5 gold, 6–10 silver, 11–15 bronze.
-    expect(medalOf({ good: 1, rank: [1, 500, 'high'] })).toBe(1)
-    expect(medalOf({ good: 1, rank: [5, 500, 'high'] })).toBe(1)
-    expect(medalOf({ good: 1, rank: [6, 500, 'high'] })).toBe(2)
-    expect(medalOf({ good: -1, rank: [15, 500, 'low'] })).toBe(3)
-    expect(medalOf({ good: 1, rank: [16, 500, 'high'] })).toBe(null)
+    expect(medalOf({ good: 1, rank: [1, 500, 'best'] })).toBe(1)
+    expect(medalOf({ good: 1, rank: [5, 500, 'best'] })).toBe(1)
+    expect(medalOf({ good: 1, rank: [6, 500, 'best'] })).toBe(2)
+    expect(medalOf({ good: -1, rank: [15, 500, 'best'] })).toBe(3)
+    expect(medalOf({ good: 1, rank: [16, 500, 'best'] })).toBe(null)
     // A smaller league (a span's top half by minutes) has fewer: of 305, gold is 1–3.
-    expect(medalOf({ good: 1, rank: [4, 305, 'high'] })).toBe(2)
-    // The wrong end, or a style stat: none.
-    expect(medalOf({ good: 1, rank: [1, 500, 'low'] })).toBe(null)
-    expect(medalOf({ good: 0, rank: [1, 500, 'high'] })).toBe(null)
+    expect(medalOf({ good: 1, rank: [4, 305, 'best'] })).toBe(2)
+    // The worst end, or unplaced (unlit, or a style stat): none.
+    expect(medalOf({ good: 1, rank: [1, 500, 'worst'] })).toBe(null)
     expect(medalOf({ good: 1, rank: null })).toBe(null)
   })
 
-  test('a badge for a top-10 place at the end that helps his team', () => {
-    expect(topPlaceOf({ good: 1, rank: [1, 500, 'high'] })).toBe(1)
-    expect(topPlaceOf({ good: -1, rank: [10, 500, 'low'] })).toBe(10)
-    expect(topPlaceOf({ good: 1, rank: [11, 500, 'high'] })).toBe(null)
-    expect(topPlaceOf({ good: 1, rank: [3, 500, 'low'] })).toBe(null)
-    expect(topPlaceOf({ good: 0, rank: [1, 500, 'high'] })).toBe(null)
+  test("a badge for a place among the league's 10 best or 10 worst", () => {
+    expect(topPlaceOf({ good: 1, rank: [1, 500, 'best'] })).toEqual({ place: 1, worst: false })
+    expect(topPlaceOf({ good: -1, rank: [10, 500, 'best'] })).toEqual({ place: 10, worst: false })
+    expect(topPlaceOf({ good: 1, rank: [3, 500, 'worst'] })).toEqual({ place: 3, worst: true })
+    expect(topPlaceOf({ good: 1, rank: [11, 500, 'best'] })).toBe(null)
     expect(topPlaceOf({ good: 1, rank: null })).toBe(null)
+    expect(worstText(1)).toBe('LEAGUE WORST')
+    expect(worstText(2)).toBe('2ND WORST')
+    expect(worstText(10)).toBe('10TH WORST')
   })
 })

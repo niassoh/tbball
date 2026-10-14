@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { MEDAL_SHARES, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText } from '../lib/footprint.js'
+import { MEDAL_SHARES, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from '../lib/footprint.js'
 import { spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
@@ -13,9 +13,10 @@ import SectionHeader from './SectionHeader.jsx'
 // "Footprint" module. Each tile is a stat with him on minus off: his teammates' alone in
 // the TEAM MATES row (his own shots left out), his team's otherwise. Those that clear the
 // noise and stand out against the league's swings are lit (blue for a lift, orange for a
-// cost, ink for a style stat, as strong as the evidence). Each tile has its on value
-// against the league's, a medal when that's in the league's top 3% at the end that helps
-// his team, and a teammate stat its swing with and without his best-OBPM teammate.
+// cost, ink for a style stat, as strong as the evidence); the rest are grey, brighter the
+// bigger the swing. Each tile has its on value against the league's, a badge or medal when
+// its lit swing is among the league's best (a red badge, its place from the bottom, when
+// among the worst), and a teammate stat its swing with and without his best-OBPM teammate.
 const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#c9c3bc' }
 const INK = '#ece8e3'
 const DIM = '#a09a93'
@@ -25,6 +26,8 @@ const tone = (v, good) => (v === null || v === undefined ? DIM : v * good >= 0 ?
 const initialsOf = name => (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 // The medals' colors: gold, silver and bronze for the league's top 1, 2 and 3%.
 const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a']
+// A swing among the league's 10 worst: a reddish orange, apart from the cost's.
+const WORST = '#ef5b30'
 // What a tile without a swing to show says, in its details.
 const MISSING = { thin: 'TOO FEW MINUTES ON A SIDE TO JUDGE', na: "NOT IN THIS SEASON'S DATA YET" }
 
@@ -34,10 +37,11 @@ function Medal({ tier }) {
 }
 
 // A top-10 place in the league: a flat tab hanging from the tile's top edge, notched like
-// a bookmark, the place on it in the tile's dark; gold for #1, silver for #2 to #10.
-function Ribbon({ place }) {
+// a bookmark, the place on it in the tile's dark; gold for #1, silver for #2 to #10, and
+// red for one among the 10 worst (`worst`: its place from the bottom).
+function Ribbon({ place, worst }) {
   return (
-    <span title={place === 1 ? "The league's best" : `${place} in the league`} style={{ position: 'absolute', top: 0, right: 12, zIndex: 1, width: place < 10 ? 22 : 28, height: 28, boxSizing: 'border-box', paddingTop: 6, background: MEDALS[place === 1 ? 0 : 1], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)', color: '#1f1d1c', textAlign: 'center', fontFamily: MONO, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
+    <span title={worst ? (place === 1 ? "The league's worst" : `${worstText(place).toLowerCase()} in the league`) : place === 1 ? "The league's best" : `${place} in the league`} style={{ position: 'absolute', top: 0, right: 12, zIndex: 1, width: place < 10 ? 22 : 28, height: 28, boxSizing: 'border-box', paddingTop: 6, background: worst ? WORST : MEDALS[place === 1 ? 0 : 1], clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)', color: '#1f1d1c', textAlign: 'center', fontFamily: MONO, fontSize: 10, fontWeight: 700, lineHeight: 1 }}>
       #{place}
     </span>
   )
@@ -115,8 +119,8 @@ function MateMark({ size = 15 }) {
 }
 
 // A tile's details, on hover (a tap on a phone), as a sheet: his team's value off and on,
-// the swing (its unit and size among players' swings), the on value's league and
-// percentile; in LONE, his minutes on and off too; and, for a tile lit by a teammate
+// the swing (its unit and size among players' swings, with its medal), the on value's
+// league and percentile; in LONE, his minutes on and off too; and, for a tile lit by a teammate
 // effect, what its swing comes to in LONE. Opens leftward from a tile on the right of its
 // row.
 // `color`: a lit tile's; an unlit one's swing is ink.
@@ -143,8 +147,8 @@ function Details({ e, anchors, color, right }) {
           <span style={sub}>LG {valueText(e, e.lg)}</span>
           <span style={sub}>{unitOf(e.key, e.unit)}</span>
           <span />
-          <span style={{ ...sub, display: 'inline-flex', alignItems: 'center', gap: 5, color: medal ? MEDALS[medal - 1] : DIM }}>{medal && <Medal tier={medal} />}{pctlText(e.onPctl)}</span>
-          <span style={sub}>{e.pctl !== null && e.pctl !== undefined ? pctlText(e.pctl) : MISSING[e.status]}</span>
+          <span style={sub}>{pctlText(e.onPctl)}</span>
+          <span style={{ ...sub, display: 'inline-flex', alignItems: 'center', gap: 5, color: medal ? MEDALS[medal - 1] : DIM }}>{medal && <Medal tier={medal} />}{e.pctl !== null && e.pctl !== undefined ? pctlText(e.pctl) : MISSING[e.status]}</span>
           {e.isLone && <><span style={sub}>{e.min[1].toLocaleString()} MIN</span><span style={sub}>{e.min[0].toLocaleString()} MIN</span><span /></>}
         </div>
       ) : MISSING[e.status] && <span style={sub}>{MISSING[e.status]}</span>}
@@ -168,9 +172,12 @@ function Details({ e, anchors, color, right }) {
 // A tile is square and never under TILE_MIN_H, the height of its fullest content (a title on
 // three lines beside a place ribbon): its size never depends on what it says.
 const TILE_MIN_H = 158
-function FootprintTile({ e, anchors, right, delay = 0, framed = false }) {
+function FootprintTile({ e, anchors, right, delay = 0 }) {
   const [open, setOpen] = useState(false)
   const lit = e.status === 'notable'
+  // An unlit swing stays grey, brighter the bigger it is among players' swings, never as
+  // bright as a lit one.
+  const size = lit ? 1 : (e.pctl || 0) / 100
   const color = lit ? shade(TONES[toneOf(e)], strengthOf(e)) : DIM
   const b = bar(e)
   const medal = medalOf(e)
@@ -178,24 +185,23 @@ function FootprintTile({ e, anchors, right, delay = 0, framed = false }) {
   const mate = lit && e.mate
   return (
     // A lit tile carries a bar of its color across the top edge (hatched for a teammate
-    // effect); an unlit one is dimmed; with REMOVE BEST on (`framed`) its edge takes the
-    // switch's accent. It is its column's width and square (stretching to
+    // effect); an unlit one is dimmed. It is its column's width and square (stretching to
     // a row's tallest tile let a long title make a whole row taller and wider than its
     // columns, so tiles changed size with the player or span); minWidth 0: a long unit line
     // would otherwise widen it over the next.
     <div tabIndex={0} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
       onPointerUp={ev => { if (ev.pointerType !== 'mouse') setOpen(o => !o) }}
-      style={{ position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', aspectRatio: '1 / 1', minHeight: TILE_MIN_H, alignSelf: 'start', minWidth: 0, background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${framed ? 'color-mix(in srgb, var(--accent) 55%, transparent)' : RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', aspectRatio: '1 / 1', minHeight: TILE_MIN_H, alignSelf: 'start', minWidth: 0, background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
       {mate && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
-      {place && <Ribbon place={place} />}
-      <div style={{ flex: 1, minWidth: 0, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.6, transition: `opacity .35s ${delay}ms`, fontFamily: MONO }}>
+      {place && <Ribbon place={place.place} worst={place.worst} />}
+      <div style={{ flex: 1, minWidth: 0, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.45 + 0.25 * size, transition: `opacity .35s ${delay}ms`, fontFamily: MONO }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: place ? 32 : 0 }}>
           <div style={{ flex: 'none', width: 22, height: 22, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} size={22} /></div>
           <span style={{ minWidth: 0, paddingTop: 3, fontSize: 12.5, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', lineHeight: 1.25, color: INK }}>{e.effect}</span>
           {medal && !place && <span style={{ marginLeft: 'auto', paddingTop: 6, display: 'flex' }}><Medal tier={medal} /></span>}
         </div>
         <span style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <Ticker value={e.diff} delay={delay} style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color: lit ? color : DIM, fontVariantNumeric: 'tabular-nums', transition: `color .35s ${delay}ms` }} />
+          <Ticker value={e.diff} delay={delay} style={{ fontSize: 32, fontWeight: 500, lineHeight: 1, letterSpacing: '-.02em', color, fontVariantNumeric: 'tabular-nums', transition: `color .35s ${delay}ms` }} />
           <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {unitOf(e.key, e.unit)}
             {/* A teammate effect: the legend's hatched mark, in the tile's color. */}
@@ -229,11 +235,11 @@ function Method({ fp, from, to }) {
             <li>Teammate stats leave his own shots out: with him on, only his teammates&apos; shots count; with him off, everyone&apos;s. Their rim scoring is per 100 of their own shots, so a high-usage player doesn&apos;t drag it down by shooting more himself.</li>
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
-            <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them.</li>
-            <li>REMOVE BEST shows the MATES and OFFENSE tiles again over only the minutes his best-OBPM teammate sits (off the floor on both sides), measured and lit the same way; DEFENSE stays on all his minutes.</li>
+            <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them. An unlit swing stays grey, brighter the bigger it is among players&apos;.</li>
+            <li>REMOVE BEST shows the MATES and OFFENSE tiles again over only the minutes his best-OBPM teammate sits (off the floor on both sides), measured and lit the same way, except that a tile lit on all his minutes stays lit while its swing keeps at least half of itself there; DEFENSE stays on all his minutes.</li>
             <li>A lit tile is marked as a teammate effect when its swing keeps less than half of itself, or turns round, with REMOVE BEST: most of it is that teammate&apos;s minutes.</li>
             <li>In a tile&apos;s details, the percentile under SWING is the swing&apos;s size among players&apos; swings in that stat; LG and the percentile under ON place his team&apos;s on value against the league&apos;s that season.</li>
-            <li>An on value in the league&apos;s top 10 at the end that helps his team gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%.</li>
+            <li>A lit swing among the league&apos;s 10 best gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%. One among the 10 worst gets a red badge with its place from the bottom.</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: DIM, fontSize: 10, letterSpacing: '.08em' }}>MINUTES ON AND OFF</span>
@@ -279,8 +285,15 @@ export default function Footprint({ profile: p }) {
 }
 
 // A tile as LONE has it: the stat over only the minutes his anchor sits, with no badge (a
-// place is among players' whole on/off) and no teammate mark.
-const loneTile = e => ({ ...e, ...(e.lone || { status: 'na', on: null, off: null, diff: null, pctl: null, onPctl: null }), rank: null, mate: false, isLone: true })
+// place is among players' whole on/off) and no teammate mark. A tile lit on all his minutes
+// stays lit while its swing holds up there (at least half of it, the same way: not a
+// teammate effect), as strong as the smaller sample makes it: fewer minutes rarely clear
+// the noise bar alone, and a swing that grew going grey read as a loss.
+const loneTile = e => {
+  const l = e.lone || { status: 'na', on: null, off: null, diff: null, pctl: null, onPctl: null }
+  const holds = e.status === 'notable' && !e.mate && l.status !== 'na' && l.status !== 'thin'
+  return { ...e, ...l, status: holds ? 'notable' : l.status, rank: null, mate: false, isLone: true }
+}
 // What hovering an anchor's face says: who, which seasons, why him (his OBPM, or its
 // estimate from play-by-play where the sheet has none; how much he played), and this
 // player's minutes on and off with him sitting.
@@ -339,8 +352,9 @@ function Views({ p, doc, faces }) {
   // A row: TEAM and its word on the left, its tiles side by side, every row on the widest
   // one's columns so the tiles are the same boxes throughout.
   const cols = Math.max(...sections.map(sec => sec.tiles.length))
-  // With REMOVE BEST, MATES and OFFENSE show LONE's tiles, framed in the switch's accent;
-  // DEFENSE stays on all his minutes, dimmed (the only row greyed).
+  // With REMOVE BEST, MATES and OFFENSE show LONE's tiles, marked by a rule in the switch's
+  // green down their left edge (the tiles keep their own colors, so the switch doesn't read
+  // as a lift); DEFENSE stays on all his minutes, dimmed (the only row greyed).
   const row = sec => {
     const changes = sec.id !== 'def'
     const kept = loneOn && !changes
@@ -351,9 +365,10 @@ function Views({ p, doc, faces }) {
           <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '.1em', lineHeight: 1.1, color: INK }}>{sec.title}</span>
           {kept && <span style={{ fontSize: 9, letterSpacing: '.12em', color: DIM, marginTop: 4 }}>ALL MINUTES</span>}
         </div>
-        <div className="fp-row-tiles" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, padding: 1, alignSelf: 'start' }}>
+        <div className="fp-row-tiles" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, padding: 1, alignSelf: 'start' }}>
+          <span aria-hidden="true" style={{ position: 'absolute', left: -8, top: 1, bottom: 1, width: 2, background: 'var(--accent)', opacity: loneOn && changes ? 1 : 0, transition: 'opacity .3s' }} />
           {sec.tiles.map((e, i) => (
-            <FootprintTile key={e.key} e={loneOn && changes ? loneTile(e) : e} framed={loneOn && changes} anchors={anchors} right={i >= cols / 2}
+            <FootprintTile key={e.key} e={loneOn && changes ? loneTile(e) : e} anchors={anchors} right={i >= cols / 2}
               delay={45 * (sections.slice(0, sections.indexOf(sec)).reduce((n, x) => n + x.tiles.length, 0) + i)} />
           ))}
         </div>

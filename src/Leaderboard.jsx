@@ -62,7 +62,7 @@ function Groups({ groups, active, pick, filtered }) {
         const on = g.id === active
         const sieved = g.stats.some(l => filtered.has(l))
         return (
-          <button key={g.id} type="button" className="lb-group" aria-pressed={on} aria-disabled={g.na || undefined} onClick={() => !g.na && pick(g.id)} title={g.na ? NA : undefined}
+          <button key={g.id} type="button" className="lb-group" aria-pressed={on} aria-disabled={g.na || undefined} onClick={() => !g.na && pick(g.id)} title={g.na ? (typeof g.na === 'string' ? g.na : NA) : undefined}
             style={{ flex: 'none', height: 28, padding: '0 11px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: g.na ? FAINT : on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: g.na ? 'not-allowed' : 'pointer' }}>
             {g.name}
             {sieved && <span title="A stat here is filtered" style={{ color: 'var(--accent)', marginLeft: -1 }}><FilterMark size={8} /></span>}
@@ -98,7 +98,7 @@ function Each({ each, set }) {
     <div role="group" aria-label="Rows" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
       {[[true, 'Each season'], [false, 'Combined']].map(([on, name]) => (
         <button key={name} type="button" aria-pressed={each === on} onClick={() => set(on)}
-          style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: on ? 0 : `1px solid ${EDGE}`, background: each === on ? '#3a3734' : 'transparent', color: each === on ? INK : DIM, fontFamily: MONO, fontSize: 9, fontWeight: each === on ? 700 : 400, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
+          style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: on ? 0 : `1px solid ${EDGE}`, background: each === on ? '#3a3734' : 'transparent', color: each === on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 9, fontWeight: each === on ? 700 : 400, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
       ))}
     </div>
   )
@@ -113,12 +113,12 @@ function Eras({ era, set }) {
   const rule = <span style={{ flex: 1, height: 1, background: EDGE }} />
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-      <div aria-hidden="true" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>{rule}<span style={{ ...label, color: FAINT }}>or</span>{rule}</div>
-      <span style={{ ...label, color: era ? 'var(--accent)' : DIM }}>Runs <span style={{ color: FAINT }}>· every player's 3, 5 or 7 seasons in a row, across all years</span></span>
+      <div aria-hidden="true" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>{rule}<span style={{ ...label, color: DIM }}>or</span>{rule}</div>
+      <span style={{ ...label, color: era ? 'var(--accent)' : INK }}>Runs <span style={{ color: '#b8b2ab' }}>· every player's 3, 5 or 7 seasons in a row, across all years</span></span>
       <div role="group" aria-label="Runs" style={{ display: 'flex', border: `1px solid ${era ? 'var(--accent)' : EDGE}` }}>
         {ERAS.map(n => (
           <button key={n} type="button" aria-pressed={era === n} onClick={() => set(era === n ? null : n)} title={era === n ? 'Back to seasons' : `Every ${n}-season run of every player, averaged`}
-            style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: n === ERAS[0] ? 0 : `1px solid ${EDGE}`, background: era === n ? '#3a3734' : 'transparent', color: era === n ? INK : DIM, fontFamily: MONO, fontSize: 10, fontWeight: era === n ? 700 : 400, letterSpacing: '.1em', cursor: 'pointer' }}>{n} YR</button>
+            style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: n === ERAS[0] ? 0 : `1px solid ${EDGE}`, background: era === n ? '#3a3734' : 'transparent', color: era === n ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: era === n ? 700 : 400, letterSpacing: '.1em', cursor: 'pointer' }}>{n} YR</button>
         ))}
       </div>
     </div>
@@ -130,7 +130,7 @@ function Eras({ era, set }) {
 const TOPS = [[1, 'All'], [0.75, 'Top 75%'], [0.5, 'Top 50%'], [0.25, 'Top 25%']]
 function Minutes({ top, set, playoffs }) {
   return (
-    <Popover name={`Minutes: ${top === 1 ? 'all' : `top ${top * 100}%`}`} minWidth={220} trigger={<><span style={{ ...label, fontWeight: 400 }}>Min</span>{TOPS.find(([t]) => t === top)[1]}</>}>
+    <Popover name={`Minutes: ${top === 1 ? 'all' : `top ${top * 100}%`}`} minWidth={220} width={MIN_W} trigger={<><span style={{ ...label, fontWeight: 400 }}>Min</span>{TOPS.find(([t]) => t === top)[1]}</>}>
       {close => (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: `1px solid ${EDGE}` }}>
@@ -147,12 +147,12 @@ function Minutes({ top, set, playoffs }) {
 }
 
 // The latest season's last 30 days: a small calendar reading 30, a sub-switch of the
-// season toggle like the playoffs' Δ, there only in the regular season (the window is the
-// latest regular season's), lit while on.
-function RecentButton({ on, set }) {
+// season toggle like the playoffs' Δ, lit while on; off (greyed, in its place) in the
+// playoffs, as the window is the latest regular season's.
+function RecentButton({ on, set, disabled }) {
   return (
-    <button type="button" aria-pressed={on} aria-label="Last 30 days" onClick={() => set(!on)} title={on ? 'Back to the full season' : 'The last 30 days'}
-      style={{ flex: 'none', width: 30, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, cursor: 'pointer' }}>
+    <button type="button" aria-pressed={on} aria-label="Last 30 days" disabled={disabled} onClick={() => set(!on)} title={disabled ? 'The last 30 days are the regular season’s' : on ? 'Back to the full season' : 'The last 30 days'}
+      style={{ flex: 'none', width: 30, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, opacity: disabled ? 0.35 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
         <rect x="2.5" y="4" width="15" height="13.5" />
         <path d="M2.5 7.5H17.5M6.5 2V5.5M13.5 2V5.5" />
@@ -162,15 +162,21 @@ function RecentButton({ on, set }) {
   )
 }
 
+// The top boxes' widths, each its longest reading's ("30 days Mar 14–Apr 12", "Top 75%"),
+// so a choice never moves the controls.
+const SEASONS_W = 200
+const MIN_W = 122
+const TEAM_W = 104
+
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 const day = d => `${MONTHS[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8))}`
 
-// Playoffs minus regular season: a small switch beside the season toggle, there only in
-// the playoffs, so the toggle stays the choice that matters.
-function DeltaToggle({ on, set }) {
+// Playoffs minus regular season: a small switch beside the season toggle, so the toggle
+// stays the choice that matters; off (greyed, in its place) in the regular season.
+function DeltaToggle({ on, set, disabled }) {
   return (
-    <button type="button" aria-pressed={on} onClick={() => set(!on)} title="Each player's playoffs minus his regular season"
-      style={{ height: 26, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 9px', border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 400, letterSpacing: '.08em', cursor: 'pointer' }}>
+    <button type="button" aria-pressed={on} disabled={disabled} onClick={() => set(!on)} title={disabled ? 'In the playoffs: each player’s playoffs minus his regular season' : "Each player's playoffs minus his regular season"}
+      style={{ height: 26, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 9px', border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 400, letterSpacing: '.08em', opacity: disabled ? 0.35 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
       <span aria-hidden="true" style={{ width: 6, height: 6, border: '1px solid currentColor', background: on ? 'currentColor' : 'transparent' }} />
       Δ VS REG
     </button>
@@ -179,7 +185,7 @@ function DeltaToggle({ on, set }) {
 
 function Teams({ teams, team, set }) {
   return (
-    <Popover name={`Team: ${team || 'all'}`} align="right" minWidth={280} trigger={<><span style={{ ...label, fontWeight: 400 }}>Team</span>{team || 'All'}</>}>
+    <Popover name={`Team: ${team || 'all'}`} align="right" minWidth={280} width={TEAM_W} trigger={<><span style={{ ...label, fontWeight: 400 }}>Team</span>{team || 'All'}</>}>
       {close => (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', border: `1px solid ${EDGE}` }}>
           {[null, ...teams].map((t, i) => (
@@ -342,7 +348,8 @@ export default function Leaderboard() {
   // a sort or axis the document lacks, to the group's own. A default axis with no values (a
   // stat its season's data doesn't have yet) gives way to the group's next one that has.
   // The table's tabs: every group but those only for the chart's axes (Player).
-  const tabs = doc ? doc.groups.filter(x => !x.axesOnly) : []
+  // A board without Footprint (the playoffs') keeps its tab in place, greyed.
+  const tabs = !doc ? [] : [...doc.groups.filter(x => !x.axesOnly), ...(doc.groups.some(x => x.id === 'footprint') ? [] : [{ id: 'footprint', name: 'Footprint', stats: [], na: 'Regular season only' }])]
   const g = doc ? tabs.find(x => x.id === group && !x.na) || tabs[0] : null
   const has = l => doc && doc.labels.includes(l)
   const filled = l => has(l) && doc.players.some(p => p.v[doc.labels.indexOf(l)] !== null)
@@ -418,28 +425,28 @@ export default function Leaderboard() {
         <Link to="/" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>← All players</Link>
         <span style={{ ...label, fontSize: 10, color: INK, fontWeight: 700, border: `1px solid ${EDGE}`, padding: '5px 9px' }}>Leaderboard</span>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          {!playoffs && <RecentButton on={recent} set={setRecent} />}
+          <RecentButton on={recent && !playoffs} set={setRecent} disabled={playoffs} />
           <SeasonToggle regularLit={!recent} onRegular={() => setRecent(false)} />
-          {playoffs && <DeltaToggle on={delta} set={setDelta} />}
+          <DeltaToggle on={delta && playoffs} set={setDelta} disabled={!playoffs} />
         </span>
       </header>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>
-        {windowed && doc && doc.window && (
-          <span style={{ ...label, height: 30, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 10px', border: `1px solid ${EDGE}`, color: INK }}>
-            <span style={{ color: DIM }}>Last 30 days</span>{day(doc.window.start)} – {day(doc.window.end)}, {doc.window.end.slice(0, 4)}
-          </span>
-        )}
-        {!windowed && seasons && span && (
-          <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length}
-            pick={(from, to) => { setSpan({ from, to }); setEra(null) }}
-            readout={eraOn ? `${eraOn}-yr runs · ’${seasons[0].slice(5)}–’${seasons[seasons.length - 1].slice(5)}` : null}
-            extra={<>
-              {many && !eraOn && <Each each={each} set={setEach} />}
-              {!playoffs && <Eras era={eraOn} set={setEra} />}
-            </>} />
-        )}
-        {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : doc === null && <Skel w={90} h={30} />}
+        {/* One box for the seasons whatever's on: the last 30 days read their dates in it, the
+            picker off; it's a placeholder of its size until the seasons are known. */}
+        {seasons && span
+          ? (
+            <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} width={SEASONS_W}
+              title={windowed ? '30 days' : 'Seasons'} disabled={windowed}
+              pick={(from, to) => { setSpan({ from, to }); setEra(null) }}
+              readout={windowed ? (doc && doc.window ? `${day(doc.window.start)}–${day(doc.window.end)}` : '…') : eraOn ? `${eraOn}-yr runs` : null}
+              extra={<>
+                {many && !eraOn && <Each each={each} set={setEach} />}
+                {!playoffs && <Eras era={eraOn} set={setEra} />}
+              </>} />
+          )
+          : <Skel w={SEASONS_W} h={30} />}
+        {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : <Skel w={MIN_W} h={30} />}
         {doc ? <Groups groups={tabs} active={g.id} pick={choose} filtered={filtered} /> : doc === null && <Skel w={586} h={30} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', maxWidth: '100%' }}>
           <ModeSwitch mode={mode} setMode={setMode} height={28} />
@@ -448,7 +455,7 @@ export default function Leaderboard() {
             <input value={find} onChange={e => setFind(e.target.value)} aria-label="Find a player" spellCheck={false}
               style={{ width: 96, background: 'transparent', border: 0, outline: 'none', color: INK, fontFamily: MONO, fontSize: 11, caretColor: 'var(--accent)' }} />
           </label>
-          {doc ? <Teams teams={teams} team={team} set={setTeam} /> : doc === null && <Skel w={96} h={30} />}
+          {doc ? <Teams teams={teams} team={team} set={setTeam} /> : <Skel w={TEAM_W} h={30} />}
         </span>
       </div>
 

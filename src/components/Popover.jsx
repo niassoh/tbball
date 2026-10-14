@@ -9,8 +9,9 @@ const GUTTER = 16
 
 // A box that opens a panel under it (the season, team and axis pickers): it closes on a
 // press outside or Escape, and on a phone the panel shifts left to stay on screen.
-// `trigger` is the box's content; `children(close)` the panel's.
-export default function Popover({ name, trigger, children, disabled = false, align = 'left', minWidth = 240 }) {
+// `trigger` is the box's content; `children(close)` the panel's. `width` fixes the box's
+// width, so what it says never resizes it (a disabled box keeps its caret's room too).
+export default function Popover({ name, trigger, children, disabled = false, align = 'left', minWidth = 240, width }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const panel = useRef(null)
@@ -37,9 +38,9 @@ export default function Popover({ name, trigger, children, disabled = false, ali
   return (
     <span ref={ref} style={{ position: 'relative', flex: 'none' }}>
       <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-label={name} disabled={disabled} onClick={() => setOpen(o => !o)}
-        style={{ height: 30, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 10, border: `1px solid ${open ? DIM : EDGE}`, background: open ? '#3a3734' : 'transparent', color: INK, fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', cursor: disabled ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
-        {trigger}
-        {!disabled && <span aria-hidden="true" style={{ fontSize: 7, color: DIM }}>{open ? '▲' : '▼'}</span>}
+        style={{ height: 30, width, boxSizing: 'border-box', padding: '0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, border: `1px solid ${open ? DIM : EDGE}`, background: open ? '#3a3734' : 'transparent', color: INK, fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', cursor: disabled ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, minWidth: 0, overflow: 'hidden' }}>{trigger}</span>
+        <span aria-hidden="true" style={{ fontSize: 7, color: DIM, visibility: disabled ? 'hidden' : 'visible' }}>{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div ref={panel} role="dialog" aria-label={name} style={{ position: 'absolute', ...side, top: 'calc(100% + 6px)', zIndex: 20, width: 'max-content', minWidth, maxWidth: `calc(100vw - ${2 * GUTTER}px)`, display: 'flex', flexDirection: 'column', gap: 10, padding: 12, background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 8px 24px rgba(0,0,0,.5)' }}>

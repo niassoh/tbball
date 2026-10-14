@@ -80,11 +80,11 @@ function YearRange({ seasons, from, to, pick }) {
 // (the readout wraps inside it, so a pick never resizes it). With one season there's
 // nothing to pick. `readout`: what the box says in place of the span (the Leaderboard's
 // eras).
-export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, readout = null }) {
+export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, readout = null, title = 'Seasons', disabled = false, width }) {
   return (
-    <Popover name={`Seasons: ${readout || spanText(from, to)}`} disabled={seasons.length < 2}
+    <Popover name={`${title}: ${readout || spanText(from, to)}`} disabled={disabled || seasons.length < 2} width={width}
       trigger={<>
-        <span style={{ ...label, fontWeight: 400 }}>Seasons</span>
+        <span style={{ ...label, fontWeight: 400 }}>{title}</span>
         {readout || (from === to ? from.replace('-', '–') : `${shortSeason(from)}–${shortSeason(to)} · ${n}`)}
       </>}>
       {() => (
@@ -92,7 +92,7 @@ export default function SeasonPicker({ seasons, from, to, n, pick, extra = null,
           <YearRange seasons={seasons} from={from} to={to} pick={pick} />
           <div style={{ contain: 'inline-size', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ ...label, color: MID }}>{spanText(from, to)}{n > 1 ? ` · ${n} seasons` : ''}</span>
-            <span style={{ ...label, color: FAINT }}>Click a season · drag for a span</span>
+            <span style={{ ...label, color: MID }}>Click a season · drag for a span</span>
           </div>
           {extra}
         </>

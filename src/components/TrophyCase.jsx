@@ -4,8 +4,10 @@
 // hover, TrophyCase). Each
 // shaped so it reads as its award: the title the Larry O'Brien trophy (a ball on a
 // tapering net), Finals MVP a two-handled cup with a star, MVP a crown, Defensive Player a
-// shield, Rookie a medallion with a sprout, Sixth Man a jersey numbered 6, Most Improved
-// an arrow climbing, Clutch a stopwatch, All-Star a star. Drawn on 32 × 34 (the plinth
+// shield, All-NBA a laurel wreath round its team's number and All-Defensive one round a
+// shield (in the team's metal: first gold, second silver, third bronze), Rookie a
+// medallion with a sprout, Sixth Man a jersey numbered 6, Most Improved an arrow climbing,
+// Clutch a stopwatch, All-Star a star. Drawn on 32 × 34 (the plinth
 // under it in type), shown at SIZE × `scale`.
 import { MONO } from '../lib/format.js'
 
@@ -13,8 +15,25 @@ const GOLD = '#d4af37'
 const GOLD_DARK = '#a8852a'
 const SILVER = '#c9ced3'
 const SILVER_DARK = '#8f969d'
+const BRONZE = '#b8794a'
+const BRONZE_DARK = '#8a5a35'
 const INK = '#ece8e3'
 const CUT = '#2a2622'
+const TIERS = { 1: [GOLD, GOLD_DARK], 2: [SILVER, SILVER_DARK], 3: [BRONZE, BRONZE_DARK] }
+
+// A laurel wreath (five leaves a side on a ring round 16, 12.5, tied at the foot) in
+// `metal`, round `center`.
+const Wreath = ({ metal, center }) => <>
+  {[110, 135, 160, 185, 210, 70, 45, 20, -5, -30].map(a => {
+    const x = 16 + 9 * Math.cos((a * Math.PI) / 180)
+    const y = 12.5 + 9 * Math.sin((a * Math.PI) / 180)
+    return <ellipse key={a} cx={x} cy={y} rx={1.5} ry={3.1} fill={metal} transform={`rotate(${a} ${x} ${y})`} />
+  })}
+  <path d="M12.6 21 Q16 23.6 19.4 21" stroke={metal} strokeWidth={1.2} fill="none" />
+  {center}
+</>
+const allNba = tier => ({ label: 'All-NBA', metal: TIERS[tier], draw: <Wreath metal={TIERS[tier][0]} center={<text x={16} y={16.2} textAnchor="middle" fontFamily={MONO} fontSize={10} fontWeight={700} fill={TIERS[tier][0]}>{tier}</text>} /> })
+const allDefense = tier => ({ label: 'All-D', metal: TIERS[tier], draw: <Wreath metal={TIERS[tier][0]} center={<path d="M16 7.6 L20.2 9.1 V12.2 C20.2 14.7 18.4 16.3 16 17.1 C13.6 16.3 11.8 14.7 11.8 12.2 V9.1 Z" fill={TIERS[tier][0]} />} /> })
 
 // Stem and pedestal under every emblem.
 const Stand = ({ light, dark }) => <>
@@ -48,6 +67,11 @@ const EMBLEMS = {
     <path d="M16 2 L26 5.6 V12.6 C26 18.4 21.6 22.2 16 24 C10.4 22.2 6 18.4 6 12.6 V5.6 Z" fill={SILVER} />
     <path d="M16 5.5 V20.5 M10 11.5 H22" stroke={CUT} strokeWidth={1.2} fill="none" />
   </> },
+  allnba1: allNba(1),
+  allnba2: allNba(2),
+  allnba3: allNba(3),
+  alldef1: allDefense(1),
+  alldef2: allDefense(2),
   roy: { label: 'ROY', metal: [SILVER, SILVER_DARK], draw: <>
     <circle cx={16} cy={12.5} r={10} fill={SILVER} />
     <path d="M16 19 V11.5" stroke={CUT} strokeWidth={1.2} fill="none" />
@@ -95,17 +119,23 @@ function Trophy({ award, scale: k = 1 }) {
 
 // The bio card's trophy case, in its banner just left of his portrait: the awards he won
 // in the season on show (`season`, from profile.awards, thinking-bball scripts/awards.js),
-// each a trophy on its plinth (Trophy) standing on the banner's bottom edge, side by side;
-// hovering one (or a tap, which focuses it) raises a tag over it with its name and the
-// season (index.css .tc-tag). They keep their size while they fit in `room` (the banner
-// between his name and his portrait, measured by the card), then shrink to fit, to
-// MIN_SCALE, past which the last fold into a "+n". They rise into place in turn as each
-// season comes in (index.css .tc-item). Nothing in a season he won none.
+// each a trophy on its plinth (Trophy) standing flush on the banner's bottom edge (over its
+// team bar), side by side, each with its name over it. The case shows only while the
+// banner is under the pointer (or holds focus, as a tap gives it), the trophies rising in
+// turn (index.css .tc-item, .tc-tag); a screen without hover shows them throughout, their
+// names on a tap. They keep their size while they fit in `room` (the banner between his
+// name and his portrait, measured by the card), then shrink to fit, to MIN_SCALE, past
+// which the last fold into a "+n". Nothing in a season he won none.
 const AWARDS = [
   ['champion', 'NBA champion'],
   ['fmvp', 'Finals MVP'],
   ['mvp', 'Most Valuable Player'],
   ['dpoy', 'Defensive Player of the Year'],
+  ['allnba1', 'All-NBA First Team'],
+  ['allnba2', 'All-NBA Second Team'],
+  ['allnba3', 'All-NBA Third Team'],
+  ['alldef1', 'All-Defensive First Team'],
+  ['alldef2', 'All-Defensive Second Team'],
   ['roy', 'Rookie of the Year'],
   ['smoy', 'Sixth Man of the Year'],
   ['mip', 'Most Improved Player'],
@@ -124,19 +154,20 @@ export default function TrophyCase({ awards, season, room, right }) {
   if (!shown.length || width(1) * MIN_SCALE > room) return null
   const more = items.length - shown.length
   return (
-    <div style={{ position: 'absolute', right, bottom: 3, display: 'flex', alignItems: 'flex-end', gap: GAP * scale, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.6))' }}>
+    <div style={{ position: 'absolute', right, bottom: 0, display: 'flex', alignItems: 'flex-end', gap: GAP * scale, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.6))' }}>
       {shown.map(([key, long], i) => {
         const tip = `${long} · ${season.replace('-', '–')}`
         return (
-          <span key={key} className="tc-item" tabIndex={0} aria-label={tip} style={{ '--d': `${160 + i * 80}ms`, position: 'relative', display: 'flex', cursor: 'default', outline: 'none' }}>
+          <span key={key} className="tc-item" tabIndex={0} aria-label={tip} style={{ '--d': `${40 + i * 55}ms`, position: 'relative', display: 'flex', cursor: 'default', outline: 'none' }}>
             <Trophy award={key} scale={scale} />
-            <span className="tc-tag" aria-hidden="true" style={{ position: 'absolute', left: '50%', bottom: 'calc(100% + 5px)', padding: '3px 6px', background: '#141312', border: '1px solid #4a4642', fontFamily: MONO, fontSize: 8, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: '#ece8e3', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
-              {EMBLEMS[key].label}<span style={{ color: '#a09a93', fontWeight: 400 }}> · {season.replace('-', '–')}</span>
+            {/* Every other name a line higher, so neighbours never touch. */}
+            <span className="tc-tag" aria-hidden="true" style={{ position: 'absolute', left: '50%', bottom: `calc(100% + ${i % 2 ? 13 : 3}px)`, fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+              {EMBLEMS[key].label}
             </span>
           </span>
         )
       })}
-      {more > 0 && <span style={{ fontSize: 9, letterSpacing: '.06em', color: '#b3ada6' }} title={items.slice(shown.length).map(([, l]) => l).join(', ')}>+{more}</span>}
+      {more > 0 && <span className="tc-item" style={{ '--d': `${40 + shown.length * 55}ms`, fontSize: 9, letterSpacing: '.06em', color: '#b3ada6' }} title={items.slice(shown.length).map(([, l]) => l).join(', ')}>+{more}</span>}
     </div>
   )
 }

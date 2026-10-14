@@ -9,6 +9,7 @@ import TeamPicker from './TeamPicker.jsx'
 import LineupPanel from './LineupPanel.jsx'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import SplitJersey from './SplitJersey.jsx'
+import TrophyCase from './TrophyCase.jsx'
 import { TEAM_COLORS } from '../lib/teams.js'
 import { asset } from '../lib/static.js'
 import { useSeasonType } from '../useSeasonType.js'
@@ -23,6 +24,10 @@ const PORTRAIT = 116
 // Our illustrated portraits fill their frame more than the NBA.com fallbacks, so they
 // sit a touch smaller (the hover zoom scales from this).
 const GENERATED_PORTRAIT = 108
+// The trophy case reaches this far into the portrait's faded left edge, and keeps this
+// far from his name.
+const TROPHY_OVERLAP = 6
+const TROPHY_GAP = 16
 // The portrait (or team-initials block) sits in the banner's bottom-right corner,
 // standing on the rule like a thumbnail subject, and fades into the bokeh on its
 // left and top edges; portraits share the banner's charcoal, so no edge shows.
@@ -103,6 +108,26 @@ export default function BioCard({ profile: p, season, loading = false }) {
   // Spec strip: team logo, then position / height / age split by hard rules (labels as tooltips).
   const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', v.age !== null ? v.age.toFixed(1) : null]].filter(([, x]) => x)
   const lines = nameLines(p.name)
+  // The season on show, for the trophies won in it.
+  const shown = p.seasons[season] ? p.seasons[season].season : null
+  // The trophy case's room: the banner between the end of his name and his portrait (a
+  // little into its faded edge), re-measured as the card resizes. Layout offsets, not
+  // on-screen boxes, so the name's swap-in doesn't throw it.
+  const heroRef = useRef(null)
+  const nameRef = useRef(null)
+  const portraitW = p.headshot === 'portrait' ? GENERATED_PORTRAIT : PORTRAIT
+  const [trophyRoom, setTrophyRoom] = useState(0)
+  useLayoutEffect(() => {
+    const hero = heroRef.current
+    const name = nameRef.current
+    if (!hero || !name) return undefined
+    const measure = () => setTrophyRoom(Math.max(0, hero.clientWidth - (portraitW - TROPHY_OVERLAP) - (name.offsetLeft + name.offsetWidth) - TROPHY_GAP))
+    measure()
+    const watch = new ResizeObserver(measure)
+    watch.observe(hero)
+    watch.observe(name)
+    return () => watch.disconnect()
+  }, [p.slug, portraitW])
   const color = TEAM_COLORS[v.team]
   // Black (BKN, SAS) would vanish on the dark banner, so those teams' bar is silver.
   const accent = color === '#000000' ? '#c4ced4' : color
@@ -151,7 +176,7 @@ export default function BioCard({ profile: p, season, loading = false }) {
 
   return (
     <div ref={cardRef} style={card}>
-      <div className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid var(--trim)', overflow: 'hidden' }}>
+      <div ref={heroRef} className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid var(--trim)', overflow: 'hidden' }}>
         <img className="hero-bokeh" src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
         <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={v.team} layers={layers} jersey={p.seasons[season] ? p.seasons[season].jersey : null} split={splitIds(layers, p.seasons[season] && p.seasons[season].jerseys)} />
         {/* A soft overhead light along the top-right hides the seam where the headshot box begins. */}
@@ -176,9 +201,10 @@ export default function BioCard({ profile: p, season, loading = false }) {
           <span key={`draft-${p.slug}`} className="hero-more" style={{ position: 'absolute', left: color ? 89 : 14, top: 43, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#b3ada6', whiteSpace: 'nowrap' }}>{draft}</span>
         )}
         {accent && <div className="hero-bar" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: accent }} />}
-        <h1 key={`name-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
+        <h1 ref={nameRef} key={`name-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
           {lines.map(l => <span key={l} style={{ display: 'block', whiteSpace: 'nowrap' }}>{l}</span>)}
         </h1>
+        <TrophyCase key={`awards-${p.slug}-${shown}`} awards={p.awards} season={shown} room={trophyRoom} right={portraitW - TROPHY_OVERLAP} />
       </div>
 
       {/* Remounted per season type: its chosen minimums belong to that type's pools. */}

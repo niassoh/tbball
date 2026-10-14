@@ -1,6 +1,7 @@
 // A trophy for the profile banner's case: a flat, solid silhouette in its metal (titles
 // gold, the season's honours silver, All-Star ink), its details cut in as dark
-// engraving, on a stem and pedestal, standing on a plinth engraved with its name. Each
+// engraving, on a stem and pedestal, standing on a plain dark plinth (its name comes up on
+// hover, TrophyCase). Each
 // shaped so it reads as its award: the title the Larry O'Brien trophy (a ball on a
 // tapering net), Finals MVP a two-handled cup with a star, MVP a crown, Defensive Player a
 // shield, Rookie a medallion with a sprout, Sixth Man a jersey numbered 6, Most Improved
@@ -87,9 +88,7 @@ function Trophy({ award, scale: k = 1 }) {
         {e.draw}
         <Stand light={light} dark={dark} />
       </svg>
-      <span style={{ width: TROPHY_W * k, height: 11 * scale, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#141312', borderTop: '1px solid #4a4642', fontFamily: MONO, fontSize: 6.5 * scale, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: '#b3ada6', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-        {e.label}
-      </span>
+      <span style={{ width: TROPHY_W * k, height: 4 * scale, background: '#141312', borderTop: '1px solid #4a4642' }} />
     </span>
   )
 }
@@ -97,7 +96,8 @@ function Trophy({ award, scale: k = 1 }) {
 // The bio card's trophy case, in its banner just left of his portrait: the awards he won
 // in the season on show (`season`, from profile.awards, thinking-bball scripts/awards.js),
 // each a trophy on its plinth (Trophy) standing on the banner's bottom edge, side by side;
-// hovering one names it. They keep their size while they fit in `room` (the banner
+// hovering one (or a tap, which focuses it) raises a tag over it with its name and the
+// season (index.css .tc-tag). They keep their size while they fit in `room` (the banner
 // between his name and his portrait, measured by the card), then shrink to fit, to
 // MIN_SCALE, past which the last fold into a "+n". They rise into place in turn as each
 // season comes in (index.css .tc-item). Nothing in a season he won none.
@@ -128,8 +128,11 @@ export default function TrophyCase({ awards, season, room, right }) {
       {shown.map(([key, long], i) => {
         const tip = `${long} · ${season.replace('-', '–')}`
         return (
-          <span key={key} className="tc-item" title={tip} aria-label={tip} style={{ '--d': `${160 + i * 80}ms`, display: 'flex', cursor: 'default' }}>
+          <span key={key} className="tc-item" tabIndex={0} aria-label={tip} style={{ '--d': `${160 + i * 80}ms`, position: 'relative', display: 'flex', cursor: 'default', outline: 'none' }}>
             <Trophy award={key} scale={scale} />
+            <span className="tc-tag" aria-hidden="true" style={{ position: 'absolute', left: '50%', bottom: 'calc(100% + 5px)', padding: '3px 6px', background: '#141312', border: '1px solid #4a4642', fontFamily: MONO, fontSize: 8, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: '#ece8e3', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+              {EMBLEMS[key].label}<span style={{ color: '#a09a93', fontWeight: 400 }}> · {season.replace('-', '–')}</span>
+            </span>
           </span>
         )
       })}

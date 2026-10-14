@@ -359,9 +359,12 @@ a:hover > .lineup-tile > * { filter: none; }
   .lb-dot-in, .lb-bar-in, .lb-rise { animation: none; }
   .lb-dot { transition: none; }
 }
-/* The bio card's trophy case: each trophy rises onto the shelf in turn (`--d`). */
+/* The bio card's trophy case: each trophy rises into place in turn (`--d`); hovering or
+   focusing one raises its name tag over it. */
 .tc-item { animation: pf-in .45s cubic-bezier(.2, .7, .2, 1) both var(--d, 0ms); }
-@media (prefers-reduced-motion: reduce) { .tc-item { animation: none; } }
+.tc-tag { opacity: 0; transform: translate(-50%, 3px); transition: opacity .15s, transform .15s; }
+.tc-item:hover .tc-tag, .tc-item:focus .tc-tag { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .tc-item { animation: none; } .tc-tag { transition: none; } }
 /* The card's head (PlayerCard) on opening: his portrait settles out of grey, his bio
    types in and his name wipes in; his footprint's icons light one after
    another, each at its `--d`, their ribbons dropping on just after; each number's meter

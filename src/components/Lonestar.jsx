@@ -335,10 +335,12 @@ const benched = x => {
 // it combines, joined by +), opening a list of them in two sections, without top star and
 // without top two stars: most minutes without first (his sample in it), then ALL as the
 // section's total, under a heavier rule, saying what it combines (cut short, in full on
-// hover, so the panel keeps its width); its minutes are the rows' above summed. Each row has its stars' faces in the stretch's
-// jersey, standing on the row's rule as the cast stands on its own, in colour but on the
-// picked row, greyed as the cast's stars who sit are; its team and seasons under the
-// names; and a bar for those minutes (not on a phone, where the names need the room). The
+// hover, so the panel keeps its width); its minutes are the rows' above summed. Each row
+// has its stars' faces in the stretch's jersey, standing on the row's rule as the cast
+// stands on its own, in colour but on the picked row, greyed as the cast's stars who sit
+// are; its team and seasons under the names; a bar for his minutes without; and his
+// minutes with and without, the two samples it compares. On a phone the names get the
+// room: two faces, no bar, narrower minutes (index.css .ls-stretch). The
 // picked row is lit as the year strip's pick is. A click picks and closes; the arrow keys
 // move the pick with the panel open, the module following behind it; Enter closes.
 const SECTIONS = [['one', 'Without top star'], ['two', 'Without top two stars']]
@@ -362,6 +364,8 @@ function StretchList({ scenarios, s, pick, names, meta, text, layersOf }) {
 // the most any row shows.
 const FACE = 34
 const FACES = 4
+// The minutes columns, with and without, wide enough for their heads.
+const MIN_COL = 56
 function Stretches({ scenarios, sections, order, at, pick, close, names, meta, layersOf }) {
   const list = useRef(null)
   useEffect(() => {
@@ -377,7 +381,7 @@ function Stretches({ scenarios, sections, order, at, pick, close, names, meta, l
     return (
       <div key={starsKey(x)} role="option" aria-selected={on} className="ls-stretch" onClick={() => { pick(i); close() }}
         style={{ display: 'flex', alignItems: 'center', gap: 14, height: 42, padding: '0 10px 0 12px', borderTop: x.all ? `1px solid ${FAINT}` : undefined, borderBottom: `1px solid ${RULE}`, background: on ? '#3d3a37' : undefined, boxShadow: on ? 'inset 2px 0 0 var(--accent)' : 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-        <span aria-hidden="true" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', width: FACE + (slots - 1) * (FACE - 10), filter: on ? 'grayscale(1)' : 'none', opacity: on ? 0.5 : 1 }}>
+        <span aria-hidden="true" className="ls-stretch-faces" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', width: FACE + (slots - 1) * (FACE - 10), filter: on ? 'grayscale(1)' : 'none', opacity: on ? 0.5 : 1 }}>
           {(sat.length > FACES ? sat.slice(0, FACES - 1) : sat).map((b, k) => (
             <span key={b.who.id} style={{ display: 'grid', width: FACE, height: FACE, marginLeft: k ? -10 : 0 }}>
               <Portrait who={b.who} team={b.team} on size={FACE} layers={layersOf(b.who)} jersey={b.jersey} />
@@ -391,7 +395,8 @@ function Stretches({ scenarios, sections, order, at, pick, close, names, meta, l
         </span>
         <span style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
           <span className="ls-stretch-bar" style={{ width: 56, height: 2, background: RULE }}><span style={{ display: 'block', height: 2, width: `${(100 * x.off.minutes) / most}%`, background: on ? 'var(--accent)' : FAINT }} /></span>
-          <span style={{ width: 40, textAlign: 'right', color: on ? INK : MID }}>{Math.round(x.off.minutes).toLocaleString()}</span>
+          <span className="ls-min" style={{ width: MIN_COL, textAlign: 'right', color: DIM }}>{Math.round(x.on.minutes).toLocaleString()}</span>
+          <span className="ls-min" style={{ width: MIN_COL, textAlign: 'right', color: on ? INK : MID }}>{Math.round(x.off.minutes).toLocaleString()}</span>
         </span>
       </div>
     )
@@ -405,8 +410,9 @@ function Stretches({ scenarios, sections, order, at, pick, close, names, meta, l
         e.preventDefault()
         pick(order[Math.min(order.length - 1, Math.max(0, order.indexOf(at) + step))])
       }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 10px 6px 12px' }}>
-        <span style={label}>W/O min</span>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '0 10px 6px 12px' }}>
+        <span className="ls-min" style={{ ...label, width: MIN_COL, textAlign: 'right' }}>With<span className="ls-min-unit"> min</span></span>
+        <span className="ls-min" style={{ ...label, width: MIN_COL, textAlign: 'right' }}>W/O<span className="ls-min-unit"> min</span></span>
       </div>
       <div style={{ maxHeight: 'min(440px, 62vh)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: `${EDGE} transparent` }}>
         {sections.map(sec => (

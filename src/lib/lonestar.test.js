@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, change, namesText, posOf, seasonTag, starsText, toneOf, value } from './lonestar.js'
+import { STATS, change, namesText, posOf, seasonRanges, seasonTag, starsText, toneOf, unpackLonestar, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -43,5 +43,22 @@ describe('lonestar', () => {
     expect(namesText([{ name: null }])).toBe('?')
     expect(seasonTag(['2025-26'])).toBe('25–26')
     expect(seasonTag(['2018-19', '2019-20', '2020-21'])).toBe('’19–’21')
+    // With a gap, in runs: Curry for Green, without his lost 2019-20.
+    expect(seasonRanges(['2017-18', '2018-19', '2020-21', '2021-22'])).toBe('’18–’19, ’21–’22')
+    expect(seasonRanges(['2018-19', '2020-21'])).toBe('18–19, 20–21')
+  })
+
+  test('a packed document reads back as objects per stat, its change taken here', () => {
+    const doc = unpackLonestar({
+      fields: ['minutes', 'load', 'pct3'],
+      views: [{ id: '2025-26', scenarios: [{ kind: 'one', on: [900, 25.4, null], off: [400, 31.1, 0.36], pctl: [[60, 40, null], [20, 70, 55]], ranks: { rank: [12, 3, null], of: [395, 395, null] } }] }]
+    })
+    const s = doc.views[0].scenarios[0]
+    expect(s.on).toEqual({ minutes: 900, load: 25.4, pct3: null })
+    expect(s.change.load).toBeCloseTo(5.7, 6)
+    expect(s.change.pct3).toBe(null)
+    expect(s.pctl.off).toEqual({ minutes: 20, load: 70, pct3: 55 })
+    expect(s.ranks).toEqual({ minutes: { rank: 12, of: 395 }, load: { rank: 3, of: 395 } })
+    expect(s.kind).toBe('one')
   })
 })

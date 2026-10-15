@@ -1,3 +1,4 @@
+import { unpackLonestar } from './lib/lonestar.js'
 import { statKey } from './lib/static.js'
 
 // Profile data comes from the thinking-bball API (GET /api/profile/:slug) in dev. A
@@ -54,7 +55,7 @@ export const fetchLeaderboard = (season, playoffs = false, delta = false) => {
 export const fetchLeaderboardRecent = () => getJson(api('leaderboard/recent', 'leaderboard/recent.json'))
 // The Footprint and Lonestar tabs' views (every season and span), fetched when the tab opens.
 export const fetchFootprint = slug => getJson(api(`footprint/${encodeURIComponent(slug)}`, `footprint/${encodeURIComponent(slug)}.json`))
-export const fetchLonestar = slug => getJson(api(`lonestar/${encodeURIComponent(slug)}`, `lonestar/${encodeURIComponent(slug)}.json`))
+export const fetchLonestar = slug => getJson(api(`lonestar/${encodeURIComponent(slug)}`, `lonestar/${encodeURIComponent(slug)}.json`)).then(d => (d && d.fields ? unpackLonestar(d) : d))
 // Every team with its nickname and depth chart (the team switcher). Fetched once per
 // page load; the switcher's triggers start it on hover so the grid is ready on click.
 let teamsRequest = null

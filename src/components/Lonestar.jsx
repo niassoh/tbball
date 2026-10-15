@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchLonestar, headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, lastName, namesText, posOf, seasonTag, starsText, toneOf, value } from '../lib/lonestar.js'
-import { spanId, spanText } from '../lib/seasons.js'
+import { STATS, change, lastName, namesText, posOf, seasonRanges, starsText, toneOf, value } from '../lib/lonestar.js'
+import { seasonsBetween, spanId, spanText } from '../lib/seasons.js'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import ModeSwitch from './ModeSwitch.jsx'
 import Popover from './Popover.jsx'
@@ -449,38 +449,43 @@ export default function Lonestar({ profile: p }) {
 }
 
 function Frame({ p, ls }) {
-  // The span first (his last two seasons, or his only one), then the scenario within it.
+  // The span first (his last two seasons, or the first with something to offer), then the
+  // scenario within it. A season or span with nothing to offer has no view: the module says
+  // so in place of its body.
   const viewOf = (from, to) => ls.views.find(v => v.id === spanId(from, to))
   const [span, setSpan] = useState(() => {
     const [a, b] = ls.seasons.slice(-2)
-    return b && viewOf(a, b) ? { from: a, to: b } : { from: ls.views[0].id, to: ls.views[0].id }
+    if (b && viewOf(a, b)) return { from: a, to: b }
+    const first = ls.views[0].seasons
+    return { from: first[0], to: first[first.length - 1] }
   })
   const [pick, setPick] = useState(0)
   const [mode, setMode] = useState('raw')
   const [plotRef, plotWidth] = useWidth(304)
   const view = viewOf(span.from, span.to)
-  const scenarios = view.scenarios
+  const scenarios = view ? view.scenarios : []
   const s = scenarios[Math.min(pick, scenarios.length - 1)]
   const teams = new Set(scenarios.map(x => x.team).filter(Boolean))
   // Another span opens on its top star combined (ALL) where it has one, else on the same
   // stars where it has them, else its first stretch; a view opens the same way, the
   // server putting ALL first.
   const choose = (from, to) => {
-    const next = viewOf(from, to)
-    if (!next || next === view) return
+    if (from === span.from && to === span.to) return
     setSpan({ from, to })
+    const next = viewOf(from, to)
+    if (!next) return setPick(0)
     const all = next.scenarios.findIndex(x => x.all && x.kind === 'one')
-    setPick(all >= 0 ? all : Math.max(0, next.scenarios.findIndex(x => starsKey(x) === starsKey(s))))
+    setPick(all >= 0 ? all : Math.max(0, s ? next.scenarios.findIndex(x => starsKey(x) === starsKey(s)) : 0))
   }
   // The picked span and scenario: the animated parts remount on it, so each pick replays.
-  const skey = `${view.id}-${starsKey(s)}`
-  const n = view.seasons.length
+  const skey = view ? `${view.id}-${starsKey(s)}` : 'none'
+  const n = view ? view.seasons.length : seasonsBetween(span.from, span.to).filter(x => ls.seasons.includes(x)).length
   // A stretch's team (a span with several) and seasons (fewer than the span's). ALL: the
   // stars it combines, joined by + (its parts, a pair as "Paul & Gordon").
   const combined = x => x.parts.map(part => starsText(part.stars))
   const meta = x => (x.all
-    ? combined(x).join(' + ')
-    : [teams.size > 1 && x.team, x.seasons.length < n && seasonTag(x.seasons)].filter(Boolean).join(' · '))
+    ? x.parts.map(part => `${starsText(part.stars)} ${seasonRanges(part.seasons)}`).join(' · ')
+    : [teams.size > 1 && x.team, x.seasons.length < n && seasonRanges(x.seasons)].filter(Boolean).join(' · '))
   const names = x => namesText(x.stars)
   // The box: who sits. ALL past three parts: the first two and how many more.
   const text = x => {
@@ -500,11 +505,18 @@ function Frame({ p, ls }) {
           <span style={{ ...label, margin: '0 6px 0 10px' }}>Without</span>
           {scenarios.length > 1
             ? <StretchList scenarios={scenarios} s={s} pick={setPick} names={names} meta={meta} text={text} layersOf={t => (p.jerseys ? p.jerseys[t.slug] : null)} />
-            : <Key on>{text(s)}</Key>}
+            : s ? <Key on>{text(s)}</Key> : <span style={{ ...label, color: FAINT }}>—</span>}
         </div>
         <span style={{ marginLeft: 'auto', flex: 'none' }}><ModeSwitch mode={mode} setMode={setMode} /></span>
       </div>
 
+      {!s ? (
+        <div style={{ minHeight: 560, display: 'grid', placeItems: 'center', padding: 24 }}>
+          <p style={{ ...label, margin: 0, maxWidth: '52ch', textAlign: 'center', lineHeight: 1.8, color: MID }}>
+            No star sat enough here to compare. Each option needs his minutes with and without the star to be in the league&apos;s top 80%. Add seasons to the span.
+          </p>
+        </div>
+      ) : (
       <div className="ls-body">
           <div className="ls-side" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="ls-plot" style={{ padding: `20px ${PAD}px 12px` }}><div ref={plotRef}><Plot s={s} width={plotWidth} skey={skey} /></div></div>
@@ -529,6 +541,7 @@ function Frame({ p, ls }) {
             </div>
           </div>
         </div>
+      )}
     </div>
   )
 }

@@ -55,3 +55,35 @@ export const namesText = stars => stars.map(s => s.name || '?').join(' & ')
 export const seasonTag = seasons => (seasons.length === 1
   ? seasons[0].slice(2).replace('-', '–')
   : `${shortSeason(seasons[0])}–${shortSeason(seasons[seasons.length - 1])}`)
+
+// A stretch's seasons in runs, for one with a gap (Curry sat out Green's 2019-20):
+// "’13–’19, ’21–’23".
+export const seasonRanges = seasons => {
+  const runs = []
+  for (const s of seasons) {
+    const run = runs[runs.length - 1]
+    if (run && Number(s.slice(0, 4)) === Number(run[run.length - 1].slice(0, 4)) + 1) run.push(s)
+    else runs.push([s])
+  }
+  return runs.map(seasonTag).join(', ')
+}
+
+// The Lonestar document comes packed (thinking-bball lib/profile.js lonestarDoc): each
+// stretch's per-stat values as arrays in `fields` order, its change (off less on) left to
+// take here. Back to { on, off, change, pctl: { on, off }, ranks: { [stat]: { rank, of } } }.
+export const unpackLonestar = doc => {
+  const byField = a => Object.fromEntries(doc.fields.map((k, i) => [k, a[i]]))
+  const scenario = ({ on: onRow, off: offRow, pctl, ranks, ...s }) => {
+    const on = byField(onRow)
+    const off = byField(offRow)
+    return {
+      ...s,
+      on,
+      off,
+      change: Object.fromEntries(doc.fields.map(k => [k, on[k] === null || off[k] === null ? null : off[k] - on[k]])),
+      pctl: { on: byField(pctl[0]), off: byField(pctl[1]) },
+      ranks: ranks && Object.fromEntries(doc.fields.flatMap((k, i) => (ranks.rank[i] === null ? [] : [[k, { rank: ranks.rank[i], of: ranks.of[i] }]])))
+    }
+  }
+  return { ...doc, views: doc.views.map(v => ({ ...v, scenarios: v.scenarios.map(scenario) })) }
+}

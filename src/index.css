@@ -51,6 +51,9 @@ html { scroll-behavior: smooth; }
   .fp-lone-faces { margin-bottom: 0; align-self: center !important; }
   .fp-lone-faces > span { width: 30px !important; height: 30px !important; }
 }
+/* On a phone the line takes a row of its own under the picker and switch: beside them it
+   has room for one face, and REMOVE BEST can name two kinds of teammate. */
+@media (max-width: 640px) { .fp-lone-line { flex-basis: 100% !important; } }
 /* Footprint's LONE line comes in like the tiles' data: each face rises from behind the
    rule, one after another; the bracket draws out from its middle and its WITHOUT runs in;
    a single teammate's sentence runs in left to right, in steps (Footprint.jsx). */

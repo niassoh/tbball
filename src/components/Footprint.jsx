@@ -21,6 +21,10 @@ const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#c9c3bc' }
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const RULE = '#3d3a37'
+// REMOVE BEST's colors: the switch's green for MATES and OFFENSE without the best-OBPM
+// teammate, lavender for DEFENSE without a defensive monster (for one himself, his
+// next-best defender).
+const DEF_LONE = '#b8a1e8'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 const tone = (v, good) => (v === null || v === undefined ? DIM : v * good >= 0 ? TONES.good : TONES.bad)
 const initialsOf = name => (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -135,7 +139,7 @@ function Details({ e, anchors, color, right }) {
   const has = e.on !== null && e.on !== undefined
   return (
     <div role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 4px)', ...(right ? { right: 0 } : { left: 0 }), zIndex: 30, width: 340, maxWidth: 'calc(100vw - 32px)', background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10, fontFamily: MONO, fontSize: 10.5, lineHeight: 1.4, letterSpacing: '.04em', color: '#d8d2cb', fontVariantNumeric: 'tabular-nums', textAlign: 'left' }}>
-      <span style={{ color: INK, textTransform: 'uppercase', letterSpacing: '.08em' }}>{e.label}{e.isLone && <span style={{ color: 'var(--accent)' }}> · REMOVE BEST</span>}</span>
+      <span style={{ color: INK, textTransform: 'uppercase', letterSpacing: '.08em' }}>{e.label}{e.isLone && <span style={{ color: e.side === 'def' ? DEF_LONE : 'var(--accent)' }}> · REMOVE BEST</span>}</span>
       {has ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.45fr', columnGap: 12, rowGap: 2, paddingTop: 9, borderTop: rule }}>
           <span style={head}>OFF</span>
@@ -206,7 +210,7 @@ function FootprintTile({ e, anchors, right, delay = 0 }) {
           <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {unitOf(e.key, e.unit)}
             {/* A teammate effect: the legend's hatched mark, in the tile's color. */}
-            {mate && <span title="Teammate effect: most of this swing is his best teammate's minutes, not his" aria-label="teammate effect"
+            {mate && <span title={`Teammate effect: most of this swing is ${e.side === 'def' ? 'his top defender' : 'his best teammate'}'s minutes, not his`} aria-label="teammate effect"
               style={{ display: 'inline-block', width: 14, height: 3, marginLeft: 7, verticalAlign: 'middle', background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
           </span>
         </span>
@@ -237,7 +241,7 @@ function Method({ fp, from, to }) {
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them. An unlit swing stays grey, brighter the bigger it is among players&apos;.</li>
-            <li>REMOVE BEST shows the MATES and OFFENSE tiles again over only the minutes his best-OBPM teammate sits (off the floor on both sides), measured and lit the same way, except that a tile lit on all his minutes stays lit while its swing keeps at least half of itself there; DEFENSE stays on all his minutes.</li>
+            <li>REMOVE BEST shows the MATES and OFFENSE tiles again over only the minutes his best-OBPM teammate sits (off the floor on both sides), measured and lit the same way, except that a tile lit on all his minutes stays lit while its swing keeps at least half of itself there. DEFENSE does the same without a defensive monster: a teammate on the floor for a quarter of the minutes whose defensive EPM (Dunks &amp; Threes, 2001-02 on) is in the top 10% of the league&apos;s rotation players that season; for a player who is one himself, his next-best defender by it. A row with no such teammate stays on all his minutes.</li>
             <li>A lit tile is marked as a teammate effect when its swing keeps less than half of itself, or turns round, with REMOVE BEST: most of it is that teammate&apos;s minutes.</li>
             <li>In a tile&apos;s details, the percentile under SWING is the swing&apos;s size among players&apos; swings in that stat; LG and the percentile under ON place his team&apos;s on value against the league&apos;s that season.</li>
             <li>A lit swing among the league&apos;s 10 best gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%. One among the 10 worst gets a red badge with its place from the bottom.</li>
@@ -295,27 +299,57 @@ const loneTile = e => {
   const holds = e.status === 'notable' && !e.mate && l.status !== 'na' && l.status !== 'thin'
   return { ...e, ...l, status: holds ? 'notable' : l.status, rank: null, mate: false, isLone: true }
 }
-// What hovering an anchor's face says: who, which seasons, why him (his OBPM, or its
-// estimate from play-by-play where the sheet has none; how much he played), and this
-// player's minutes on and off with him sitting.
-const anchorTip = (a, p) => [
+// What hovering an anchor's face says: who, which seasons, why him (`why`: his OBPM, or its
+// estimate from play-by-play where the sheet has none; for a defensive anchor, his
+// defensive EPM), how much he played, and this player's minutes on and off with him
+// sitting.
+const anchorTip = (a, p, why) => [
   `${lastName(a.name).toUpperCase()}  ${seasonsText(a.seasons)}`,
-  [a.rating && `${a.rating.by.toUpperCase()} ${swingText(a.rating.value)}`, a.share && `ON THE FLOOR ${a.share}% OF THE MINUTES`].filter(Boolean).join(' · '),
+  [a.rating && why(a.rating), a.share && `ON THE FLOOR ${a.share}% OF THE MINUTES`].filter(Boolean).join(' · '),
   a.min ? `${lastName(p.name).toUpperCase()} WITHOUT HIM: ${a.min[0].toLocaleString()} ON · ${a.min[1].toLocaleString()} OFF` : null
 ].filter(Boolean)
+const obpmWhy = r => `${r.by.toUpperCase()} ${swingText(r.value)}`
+const defWhy = r => `DEFENSIVE EPM ${swingText(r.value)}`
 // His anchor's seasons as a span, "2019–20 → 2021–22".
 const seasonsText = seasons => spanText(seasons[0], seasons[seasons.length - 1])
 
 // REMOVE BEST (LONE in the code and data): the MATES and OFFENSE tiles over only the
-// minutes his best-OBPM teammate sits.
+// minutes his best-OBPM teammate sits, the DEFENSE tiles over only those a defensive
+// monster sits (for one himself, his next-best defender).
 function LoneSwitch({ on, set, disabled }) {
   return (
     <button type="button" aria-pressed={on} disabled={disabled} onClick={() => set(!on)}
-      title={disabled ? 'No teammate to set aside in these seasons' : on ? 'Back to all his minutes' : 'Only the minutes his best teammate sits'}
+      title={disabled ? 'No teammate to set aside in these seasons' : on ? 'Back to all his minutes' : 'Only the minutes his best teammate, or a defensive monster, sits'}
       style={{ height: 30, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 12px', border: `1px solid ${on ? 'var(--accent)' : '#544f4b'}`, background: on ? '#3a3734' : 'transparent', color: on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10.5, fontWeight: on ? 700 : 500, letterSpacing: '.16em', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1 }}>
       <span aria-hidden="true" style={{ width: 8, height: 8, border: `1px solid ${on ? 'var(--accent)' : '#837d76'}`, background: on ? 'var(--accent)' : 'transparent', transition: 'background .15s' }} />
       REMOVE BEST
     </button>
+  )
+}
+
+// One kind of anchor in REMOVE BEST's line, in its color: their faces, standing on the rule
+// under the line (index.css .fp-lone-faces), each naming himself on hover (`tip`); several
+// under a bracket with WITHOUT on it, as the Leaderboard brackets its rolling windows; one
+// by name, his seasons and `more`, cut short rather than wrapping. `order`: the first
+// face's place in the line, for the rise; a second kind stands apart from the first.
+function Sitters({ list, color, tip, more, order = 0 }) {
+  return (
+    <>
+      <span className="fp-lone-faces" style={{ position: 'relative', display: 'flex', gap: 12, flex: 'none', alignSelf: 'flex-end', marginLeft: order ? 14 : 0 }}>
+        {list.length > 1 && (
+          <>
+            <span aria-hidden="true" className="fp-bracket" style={{ position: 'absolute', top: -8, left: 4, right: 4, height: 5, borderTop: '1px solid #837d76', borderLeft: '1px solid #837d76', borderRight: '1px solid #837d76' }} />
+            <span className="fp-bracket-label" style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', padding: '0 5px', background: '#262422', fontSize: 8.5, lineHeight: '12px', letterSpacing: '.16em', color }}>WITHOUT</span>
+          </>
+        )}
+        {list.map((a, i) => <Face key={a.slug || i} who={a} size={46} tip={tip(a)} order={order + i} />)}
+      </span>
+      {list.length === 1 && (
+        <span className="fp-lone-text" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ color }}>without</span> <span style={{ color: INK, fontWeight: 700, letterSpacing: '.06em' }}>{lastName(list[0].name).toUpperCase()}</span> <span style={{ color: DIM }}>{seasonsText(list[0].seasons)}</span>{more}
+        </span>
+      )}
+    </>
   )
 }
 
@@ -330,22 +364,30 @@ function Views({ p, doc, faces }) {
   const pick = (from, to) => { if (viewOf(from, to)) setSpan({ from, to }) }
   const [lone, setLone] = useState(false)
   // A teammate with no profile (an older one) brings his own face (`face`, by NBA id).
-  const anchors = (fp.anchors || []).map(a => {
+  const faceOf = a => {
     const f = a.slug ? faces.get(a.slug) : a.face
     return { ...a, headshot: f && f.headshot, headshotVersion: f && f.headshotVersion }
-  })
+  }
+  const anchors = (fp.anchors || []).map(faceOf)
+  const defAnchors = (fp.defAnchors || []).map(faceOf)
   const sections = [
     { id: 'mates', title: 'MATES', tiles: fp.effects.filter(e => e.mates) },
     { id: 'off', title: 'OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
     { id: 'def', title: 'DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
   ].filter(sec => sec.tiles.length)
-  const loneOn = lone && anchors.length > 0
-  const loneMin = (fp.effects.find(e => e.lone) || {}).lone
+  // REMOVE BEST sets aside each kind of anchor the span has.
+  const offOn = lone && anchors.length > 0
+  const defOn = lone && defAnchors.length > 0
+  const loneOn = offOn || defOn
+  const loneMin = side => (fp.effects.find(e => e.lone && e.side === side) || {}).lone
+  const minText = m => <>{' '}· {lastName(p.name)}&apos;s {m ? m.min[0].toLocaleString() : '—'} ON vs {m ? m.min[1].toLocaleString() : '—'} OFF</>
   // His team's points per 100 scored and allowed with him on against the league's (rORTG,
   // rDRTG), and from him off to on; blue where it helps (more scored, fewer allowed). With
-  // REMOVE BEST, rORTG is its OFFENSE tile's over the minutes his best teammate sits;
-  // rDRTG stays on all his minutes, dimmed as the DEFENSE row is.
-  const ortg = (loneOn && (fp.effects.find(e => e.key === 'ortg') || {}).lone) || fp.ortg
+  // REMOVE BEST, rORTG is its OFFENSE tile's over the minutes his best teammate sits and
+  // rDRTG its DEFENSE tile's over those a defensive monster sits; without one, rDRTG stays
+  // on all his minutes, dimmed as the DEFENSE row is.
+  const ortg = (offOn && (fp.effects.find(e => e.key === 'ortg') || {}).lone) || fp.ortg
+  const drtg = (defOn && (fp.effects.find(e => e.key === 'drtg') || {}).lone) || fp.drtg
   const rating = (name, x, good) => (
     <span>
       <span style={{ color: DIM }}>ON {name}</span> <span style={{ color: tone(x.r, good) }}>{swingText(x.r)}</span>{' '}
@@ -356,23 +398,25 @@ function Views({ p, doc, faces }) {
   // A row: TEAM and its word on the left, its tiles side by side, every row on the widest
   // one's columns so the tiles are the same boxes throughout.
   const cols = Math.max(...sections.map(sec => sec.tiles.length))
-  // With REMOVE BEST, MATES and OFFENSE show LONE's tiles, marked by a rule in the switch's
-  // green down their left edge (the tiles keep their own colors, so the switch doesn't read
-  // as a lift); DEFENSE stays on all his minutes, dimmed (the only row greyed).
+  // With REMOVE BEST, a row with an anchor to set aside shows LONE's tiles, marked by a rule
+  // in its color down its left edge (the switch's green for MATES and OFFENSE, lavender for
+  // DEFENSE; the tiles keep their own colors, so the switch doesn't read as a lift); a row
+  // without one stays on all his minutes, dimmed.
   const row = sec => {
-    const changes = sec.id !== 'def'
+    const changes = sec.id === 'def' ? defOn : offOn
     const kept = loneOn && !changes
+    const color = sec.id === 'def' ? DEF_LONE : 'var(--accent)'
     return (
       <div key={sec.id} className="fp-row" style={{ display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', columnGap: 14, padding: '14px 0', borderTop: `1px solid ${RULE}`, fontFamily: MONO, opacity: kept ? 0.45 : 1, transition: 'opacity .3s' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 2, minWidth: 0 }}>
-          <span style={{ fontSize: 10, letterSpacing: '.22em', color: loneOn && changes ? 'var(--accent)' : DIM }}>{loneOn && changes ? 'REMOVE BEST' : 'TEAM'}</span>
+          <span style={{ fontSize: 10, letterSpacing: '.22em', color: changes ? color : DIM }}>{changes ? 'REMOVE BEST' : 'TEAM'}</span>
           <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '.1em', lineHeight: 1.1, color: INK }}>{sec.title}</span>
           {kept && <span style={{ fontSize: 9, letterSpacing: '.12em', color: DIM, marginTop: 4 }}>ALL MINUTES</span>}
         </div>
         <div className="fp-row-tiles" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, padding: 1, alignSelf: 'start' }}>
-          <span aria-hidden="true" style={{ position: 'absolute', left: -8, top: 1, bottom: 1, width: 2, background: 'var(--accent)', opacity: loneOn && changes ? 1 : 0, transition: 'opacity .3s' }} />
+          <span aria-hidden="true" style={{ position: 'absolute', left: -8, top: 1, bottom: 1, width: 2, background: color, opacity: changes ? 1 : 0, transition: 'opacity .3s' }} />
           {sec.tiles.map((e, i) => (
-            <FootprintTile key={e.key} e={loneOn && changes ? loneTile(e) : e} anchors={anchors} right={i >= cols / 2}
+            <FootprintTile key={e.key} e={changes ? loneTile(e) : e} anchors={sec.id === 'def' ? defAnchors : anchors} right={i >= cols / 2}
               delay={45 * (sections.slice(0, sections.indexOf(sec)).reduce((n, x) => n + x.tiles.length, 0) + i)} />
           ))}
         </div>
@@ -384,39 +428,23 @@ function Views({ p, doc, faces }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px', flex: '1 1 0', minWidth: 0 }}>
           <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} />
-          <LoneSwitch on={loneOn} set={setLone} disabled={!anchors.length} />
+          <LoneSwitch on={loneOn} set={setLone} disabled={!anchors.length && !defAnchors.length} />
           {loneOn ? (
-            // In LONE the same line says who sits, so nothing below moves: one teammate by name,
-            // his seasons and the minutes left (cut short rather than wrapping); several, their
-            // faces alone, each naming himself on hover. The faces stand on the rule under the
-            // line (index.css .fp-lone-faces); the line keeps the switch's height.
-            <p style={{ margin: 0, height: 30, flex: '1 1 0', minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, lineHeight: 1.6, color: '#b3ada6' }}>
-              <span className="fp-lone-faces" style={{ position: 'relative', display: 'flex', gap: 12, flex: 'none', alignSelf: 'flex-end' }}>
-                {anchors.length > 1 && (
-                  // Several: a bracket over their faces, WITHOUT on it, as the Leaderboard
-                  // brackets its rolling windows; each face says who he is on hover.
-                  <>
-                    <span aria-hidden="true" className="fp-bracket" style={{ position: 'absolute', top: -8, left: 4, right: 4, height: 5, borderTop: '1px solid #837d76', borderLeft: '1px solid #837d76', borderRight: '1px solid #837d76' }} />
-                    <span className="fp-bracket-label" style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', padding: '0 5px', background: '#262422', fontSize: 8.5, lineHeight: '12px', letterSpacing: '.16em', color: '#c9c3bc' }}>WITHOUT</span>
-                  </>
-                )}
-                {anchors.map((a, i) => <Face key={a.slug || i} who={a} size={46} tip={anchorTip(a, p)} order={i} />)}
-              </span>
-              {anchors.length === 1 && (
-                <span className="fp-lone-text" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  without <span style={{ color: INK, fontWeight: 700, letterSpacing: '.06em' }}>{lastName(anchors[0].name).toUpperCase()}</span> <span style={{ color: DIM }}>{seasonsText(anchors[0].seasons)}</span>
-                  {' '}· {lastName(p.name)}&apos;s {loneMin ? loneMin.min[0].toLocaleString() : '—'} ON vs {loneMin ? loneMin.min[1].toLocaleString() : '—'} OFF
-                </span>
-              )}
+            // In LONE the same line says who sits, so nothing below moves: each kind of anchor
+            // in its color (Sitters), the minutes left after a lone one when it's the only
+            // kind; the line keeps the switch's height (a row of its own on a phone, index.css).
+            <p className="fp-lone-line" style={{ margin: 0, height: 30, flex: '1 1 0', minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, lineHeight: 1.6, color: '#b3ada6' }}>
+              {offOn && <Sitters list={anchors} color="var(--accent)" tip={a => anchorTip(a, p, obpmWhy)} more={!defOn && minText(loneMin('off'))} />}
+              {defOn && <Sitters list={defAnchors} color={DEF_LONE} tip={a => anchorTip(a, p, defWhy)} more={!offOn && minText(loneMin('def'))} order={offOn ? anchors.length : 0} />}
             </p>
           ) : (
             <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>in {lastName(p.name)}&apos;s {fp.minutes.on.toLocaleString()} ON court vs {fp.minutes.off.toLocaleString()} OFF</p>
           )}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title={`His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on${loneOn ? '; rORTG over the minutes his best teammate sits, rDRTG over all his minutes' : ''}`}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title={`His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on${loneOn ? `; rORTG over ${offOn ? 'the minutes his best teammate sits' : 'all his minutes'}, rDRTG over ${defOn ? 'the minutes a defensive monster sits' : 'all his minutes'}` : ''}`}>
           {rating('rORTG', ortg, 1)}
           <span style={{ color: DIM }}>·</span>
-          <span style={{ opacity: loneOn ? 0.45 : 1, transition: 'opacity .3s' }}>{rating('rDRTG', fp.drtg, -1)}</span>
+          <span style={{ opacity: loneOn && !defOn ? 0.45 : 1, transition: 'opacity .3s' }}>{rating('rDRTG', drtg, -1)}</span>
         </div>
       </div>
       {/* TEAM MATES, then TEAM OFFENSE, then TEAM DEFENSE, a row each. */}

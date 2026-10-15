@@ -62,7 +62,8 @@ function YearRange({ seasons, from, to, pick }) {
   }
   const last = seasons[seasons.length - 1]
   const quick = QUICK.filter(([n]) => n < seasons.length).concat([[seasons.length, 'All']])
-  const lines = i => ({ borderLeft: i % cols ? `1px solid ${EDGE}` : 'none', borderTop: i >= cols ? `1px solid ${EDGE}` : 'none' })
+  // Each cell draws its own lines, so a last row short of the rest just ends.
+  const lines = i => ({ borderStyle: 'solid', borderColor: EDGE, borderWidth: `${i < cols ? 1 : 0}px 1px 1px ${i % cols ? 0 : 1}px` })
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 'min(440px, calc(100vw - 58px))' }}>
       <div role="group" aria-label="Quick spans" style={{ display: 'flex', alignSelf: 'flex-start', border: `1px solid ${EDGE}` }}>
@@ -78,15 +79,13 @@ function YearRange({ seasons, from, to, pick }) {
       </div>
       <div ref={root} role="group" aria-label={`Seasons: ${spanText(from, to)}`} tabIndex={0} className="year-strip" onPointerDown={down} onPointerMove={move}
         onPointerUp={() => { dragging.current = false }} onKeyDown={key}
-        style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, border: `1px solid ${EDGE}`, touchAction: 'none', userSelect: 'none' }}>
-        {Array.from({ length: rows * cols }, (_, i) => {
-          const season = all[i]
-          if (!season) return <span key={i} aria-hidden="true" style={lines(i)} />
+        style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, touchAction: 'none', userSelect: 'none' }}>
+        {all.map((season, i) => {
           const lit = season >= from && season <= to
           const end = season === from || season === to
           return (
             <span key={season} data-season={season} data-has={has.has(season) ? 1 : 0}
-              style={{ ...lines(i), height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: lit ? LIT : 'transparent', boxShadow: lit ? 'inset 0 -2px 0 var(--accent)' : 'none', color: lit ? INK : has.has(season) ? DIM : FAINT, fontFamily: MONO, fontSize: 10, fontWeight: end ? 700 : 500, letterSpacing: '.04em', cursor: has.has(season) ? 'pointer' : 'default' }}>
+              style={{ ...lines(i), boxSizing: 'border-box', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: lit ? LIT : 'transparent', boxShadow: lit ? 'inset 0 -2px 0 var(--accent)' : 'none', color: lit ? INK : has.has(season) ? DIM : FAINT, fontFamily: MONO, fontSize: 10, fontWeight: end ? 700 : 500, letterSpacing: '.04em', cursor: has.has(season) ? 'pointer' : 'default' }}>
               {shortSeason(season)}
             </span>
           )

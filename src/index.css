@@ -101,20 +101,31 @@ html { scroll-behavior: smooth; }
 .ls-key[aria-pressed="false"]:hover { border-color: #ece8e3 !important; color: #ece8e3 !important; }
 /* Lonestar's pick animation, replayed on each scenario: the numbers light up, the plot's
    line draws from with to without and its head settles in after it, each slider's shaft
-   grows from the square and its head snaps on (rows staggered inline), the sitting stars
-   fade from colour to the bench. None with reduced motion. */
+   grows from the square and its head snaps on (rows staggered inline). The sitting stars
+   move like a machine, in hard 50ms frames: each drops into place in turn (`--i`), holds
+   in colour, then clicks to the bench's grey; their tag types itself in a letter a frame
+   (`--n` letters) and W/O blinks twice. None with reduced motion. */
 @keyframes ls-light { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ls-draw { to { stroke-dashoffset: 0; } }
 @keyframes ls-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes ls-pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
-@keyframes ls-bench { from { filter: grayscale(0); opacity: 1; } to { filter: grayscale(1); opacity: .45; } }
+@keyframes ls-bench {
+  0% { opacity: 0; transform: translateY(-12px); filter: grayscale(0); }
+  30%, 70% { opacity: 1; transform: none; filter: grayscale(0); }
+  100% { opacity: .45; transform: none; filter: grayscale(1); }
+}
+@keyframes ls-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes ls-blink { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
 .ls-light { animation: ls-light .3s ease-out both; }
 .ls-draw { animation: ls-draw .6s cubic-bezier(.2, .8, .2, 1) .1s forwards; }
 .ls-grow { animation: ls-grow .4s cubic-bezier(.2, .8, .2, 1) both; }
 .ls-pop { transform-box: fill-box; transform-origin: center; animation: ls-pop .35s cubic-bezier(.2, .8, .2, 1) .62s both; }
-.ls-bench { animation: ls-bench .8s ease .25s both; }
+/* steps() applies to each keyframe segment: the drop and the grey take 4 frames each. */
+.ls-bench { animation: ls-bench .7s steps(4, end) calc(.12s + var(--i, 0) * 70ms) both; }
+.ls-type { animation: ls-type calc(var(--n, 8) * 30ms) steps(var(--n, 8), end) .1s both; }
+.ls-wo { animation: ls-blink .16s steps(1, end) .04s 2 both; }
 @media (prefers-reduced-motion: reduce) {
-  .ls-light, .ls-draw, .ls-grow, .ls-pop, .ls-bench { animation: none; }
+  .ls-light, .ls-draw, .ls-grow, .ls-pop, .ls-bench, .ls-type, .ls-wo { animation: none; }
   .ls-draw { stroke-dashoffset: 0 !important; }
 }
 /* Lonestar: one continuous panel at the left, the stats at the right; one column (the

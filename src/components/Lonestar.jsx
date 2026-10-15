@@ -161,10 +161,10 @@ function Plot({ s, width: W, skey }) {
 // straight slice; the middle stays solid down to the rule. Drawn small (the list of a long
 // span's stretches), it loads the 100px images.
 const FADE = 'linear-gradient(#000 0 50%, transparent 85%), linear-gradient(90deg, transparent 0, #000 24%, #000 76%, transparent 100%)'
-function Portrait({ who, team, on, size, layers, jersey }) {
+function Portrait({ who, team, on, size, layers, jersey, order = 0 }) {
   const [failed, setFailed] = useState(false)
   const dim = on ? {} : { filter: 'grayscale(1)', opacity: 0.45 }
-  const place = { display: 'block', alignSelf: 'end', justifySelf: 'center', ...dim }
+  const place = { display: 'block', alignSelf: 'end', justifySelf: 'center', '--i': order, ...dim }
   const bench = on ? undefined : 'ls-bench'
   const px = size > 50 ? 400 : 100
   return who.headshot && !failed
@@ -187,8 +187,9 @@ function Cast({ p, s }) {
   // most), under one tag: their names, or the first and how many more. The names' row has a
   // fixed height that holds a wrapped name, the names sitting at its foot, so the panel is
   // the same height for every pick.
+  // The sitting stars' tag types itself in, a letter a step (index.css .ls-type).
   const tag = (text, on, width = 76) => (
-    <span style={{ display: 'block', width, textAlign: 'center', ...label, color: on ? INK : MID, overflowWrap: 'anywhere', lineHeight: 1.35 }}>{text}</span>
+    <span className={on ? undefined : 'ls-type'} style={{ display: 'block', width, textAlign: 'center', ...label, color: on ? INK : MID, overflowWrap: 'anywhere', lineHeight: 1.35, '--n': text.length }}>{text}</span>
   )
   const cols = [{ tag: tag(lastName(p.name), true), face: <Portrait who={p} team={s.team} on size={68} layers={layersOf(p)} jersey={s.jersey} /> }]
   if (s.all) {
@@ -198,20 +199,20 @@ function Cast({ p, s }) {
         <span style={{ display: 'flex', alignItems: 'flex-end', alignSelf: 'end', justifySelf: 'center' }}>
           {sat.slice(0, CLUSTER).map((b, k) => (
             <span key={b.who.id} style={{ display: 'grid', width: 46, height: 46, marginLeft: k ? -16 : 0 }}>
-              <Portrait who={b.who} team={b.team} on={false} size={46} layers={layersOf(b.who)} jersey={b.jersey} />
+              <Portrait who={b.who} team={b.team} on={false} size={46} layers={layersOf(b.who)} jersey={b.jersey} order={k} />
             </span>
           ))}
         </span>
       )
     })
   } else {
-    for (const b of sat) cols.push({ tag: tag(lastName(b.who.name), false), face: <Portrait who={b.who} team={b.team} on={false} size={52} layers={layersOf(b.who)} jersey={b.jersey} /> })
+    sat.forEach((b, k) => cols.push({ tag: tag(lastName(b.who.name), false), face: <Portrait who={b.who} team={b.team} on={false} size={52} layers={layersOf(b.who)} jersey={b.jersey} order={k} /> }))
   }
   return (
     <div aria-label={`${p.name} on, without ${starsText(s.stars)}`}
       style={{ display: 'grid', gridTemplateRows: '26px 68px', gridAutoFlow: 'column', justifyContent: 'center', alignItems: 'start', columnGap: 12, rowGap: 4, padding: `12px ${PAD}px 0`, borderTop: `1px solid ${RULE}` }}>
       {cols.flatMap((c, i) => [
-        ...(i === 1 ? [<span key="wo-tag" />, <span key="wo" style={{ ...label, color: FAINT, alignSelf: 'center' }}>W/O</span>] : []),
+        ...(i === 1 ? [<span key="wo-tag" />, <span key="wo" className="ls-wo" style={{ ...label, color: FAINT, alignSelf: 'center' }}>W/O</span>] : []),
         <span key={`t${i}`} style={{ alignSelf: 'end', justifySelf: 'center' }}>{c.tag}</span>,
         <span key={`p${i}`} style={{ display: 'contents' }}>{c.face}</span>
       ])}
@@ -513,7 +514,7 @@ function Frame({ p, ls }) {
       {!s ? (
         <div style={{ minHeight: 560, display: 'grid', placeItems: 'center', padding: 24 }}>
           <p style={{ ...label, margin: 0, maxWidth: '52ch', textAlign: 'center', lineHeight: 1.8, color: MID }}>
-            No star sat enough here to compare. Each option needs his minutes with and without the star to be in the league&apos;s top 80%. Add seasons to the span.
+            No star sat enough here to compare. Each option needs at least 200 minutes with the star and 200 without. Add seasons to the span.
           </p>
         </div>
       ) : (

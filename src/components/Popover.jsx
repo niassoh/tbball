@@ -11,7 +11,9 @@ const GUTTER = 16
 // press outside or Escape, and on a phone the panel shifts left to stay on screen.
 // `trigger` is the box's content; `children(close)` the panel's. `width` fixes the box's
 // width, so what it says never resizes it (a disabled box keeps its caret's room too).
-export default function Popover({ name, trigger, children, disabled = false, align = 'left', minWidth = 240, width }) {
+// `accent`: a color for the box's edge; `shrink`: the box may narrow, its content cut short,
+// where its line runs out of room (Footprint's REMOVE BEST pickers, two to a line).
+export default function Popover({ name, trigger, children, disabled = false, align = 'left', minWidth = 240, width, accent, shrink = false }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const panel = useRef(null)
@@ -36,9 +38,9 @@ export default function Popover({ name, trigger, children, disabled = false, ali
   }, [open])
   const side = align === 'right' ? { right: -nudge } : { left: nudge }
   return (
-    <span ref={ref} style={{ position: 'relative', flex: 'none' }}>
+    <span ref={ref} style={{ position: 'relative', flex: shrink ? '0 1 auto' : 'none', minWidth: shrink ? 0 : undefined }}>
       <button type="button" aria-haspopup="dialog" aria-expanded={open} aria-label={name} disabled={disabled} onClick={() => setOpen(o => !o)}
-        style={{ height: 30, width, boxSizing: 'border-box', padding: '0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, border: `1px solid ${open ? DIM : EDGE}`, background: open ? '#3a3734' : 'transparent', color: INK, fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', cursor: disabled ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+        style={{ height: 30, width, maxWidth: shrink ? '100%' : undefined, boxSizing: 'border-box', padding: '0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, border: `1px solid ${accent || (open ? DIM : EDGE)}`, background: open ? '#3a3734' : 'transparent', color: INK, fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', cursor: disabled ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, minWidth: 0, overflow: 'hidden' }}>{trigger}</span>
         <span aria-hidden="true" style={{ fontSize: 7, color: DIM, visibility: disabled ? 'hidden' : 'visible' }}>{open ? '▲' : '▼'}</span>
       </button>

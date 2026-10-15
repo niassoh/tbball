@@ -44,27 +44,20 @@ html { scroll-behavior: smooth; }
   .topbar .player-search-wrap { display: none !important; }
   .topbar-search-btn { display: inline-flex !important; }
 }
-/* Footprint's LONE faces stand on the rule under the header line: the section's 16px gap
-   below it. Where the header wraps (narrower screens) they sit in the line instead. */
-.fp-lone-faces { margin-bottom: -16px; }
-@media (max-width: 1200px) {
-  .fp-lone-faces { margin-bottom: 0; align-self: center !important; }
-  .fp-lone-faces > span { width: 30px !important; height: 30px !important; }
+/* On a phone Footprint's REMOVE BEST pickers take a row of their own under the season
+   picker and switch, and their lists give the names the room, as Lonestar's: two faces at
+   most, no minutes bar. */
+@media (max-width: 640px) {
+  .fp-lone-line { flex-basis: 100% !important; }
+  .fp-option-faces { max-width: 58px; }
+  .fp-pick-faces { max-width: 41px; }
+  .fp-option-bar { display: none; }
 }
-/* On a phone the line takes a row of its own under the picker and switch: beside them it
-   has room for one face, and REMOVE BEST can name two kinds of teammate. */
-@media (max-width: 640px) { .fp-lone-line { flex-basis: 100% !important; } }
-/* Footprint's LONE line comes in like the tiles' data: each face rises from behind the
-   rule, one after another; the bracket draws out from its middle and its WITHOUT runs in;
-   a single teammate's sentence runs in left to right, in steps (Footprint.jsx). */
+/* REMOVE BEST's faces come in like the tiles' data: each rises from behind its rule, one
+   after another (Footprint.jsx). */
 @keyframes fp-rise { from { transform: translateY(100%); } to { transform: none; } }
-@keyframes fp-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes fp-run { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 .fp-face-img { animation: fp-rise .45s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
-.fp-bracket { animation: fp-draw .3s steps(8, end) both; }
-.fp-bracket-label { animation: fp-run .28s steps(7, end) .12s both; }
-.fp-lone-text { animation: fp-run .5s steps(24, end) .1s both; }
-@media (prefers-reduced-motion: reduce) { .fp-face-img, .fp-bracket, .fp-bracket-label, .fp-lone-text { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .fp-face-img { animation: none; } }
 /* Opening a player from the index (PlayerIndex useOpen): the tile runs a line of progress
    while his profile arrives; then the page cross-fades quickly and his portrait flies from
    the tile into the header. A profile that had to load eases in after the loader. */

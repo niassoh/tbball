@@ -40,6 +40,20 @@ const ordinal = n => {
 // A percentile, "95TH PCTL".
 export const pctlText = p => (p === null || p === undefined ? null : `${ordinal(p)} PCTL`)
 
+// The Footprint document comes packed (thinking-bball lib/profile.js footprintDoc): the
+// stats' own fields once (`stats`), each view's effects and each REMOVE BEST option's tiles
+// as arrays in `fields` order, a status by its place in `statuses`. Back to effects with
+// their stat's fields, and each option's tiles by stat key.
+export const unpackFootprint = doc => {
+  const read = (row, fields) => Object.fromEntries(fields.map((f, i) => [f, f === 'status' ? doc.statuses[row[i]] : f === 'mate' ? !!row[i] : row[i]]))
+  const effect = (row, i) => {
+    const { nOn, nOff, ...e } = read(row, doc.fields.effect)
+    return { ...doc.stats[i], ...e, n: { on: nOn, off: nOff, noun: doc.stats[i].noun } }
+  }
+  const option = o => ({ ...o, tiles: Object.fromEntries(o.tiles.flatMap((row, i) => (row ? [[doc.stats[i].key, read(row, doc.fields.tile)]] : []))) })
+  return { ...doc, views: doc.views.map(v => ({ ...v, effects: v.effects.map(effect), remove: { off: v.remove.off.map(option), def: v.remove.def.map(option) } })) }
+}
+
 // The teammate a teammate stat is checked with and without: his last name, or each
 // season's in a span that has more than one ("GREEN/BUTLER III").
 export const anchorName = anchors => [...new Set((anchors || []).map(a => ((a.name || '').split(' ').slice(1).join(' ') || a.name || '').toUpperCase()))].join('/')

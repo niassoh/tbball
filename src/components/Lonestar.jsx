@@ -161,7 +161,7 @@ function Plot({ s, width: W, skey }) {
 // straight slice; the middle stays solid down to the rule. Drawn small (the list of a long
 // span's stretches), it loads the 100px images.
 const FADE = 'linear-gradient(#000 0 50%, transparent 85%), linear-gradient(90deg, transparent 0, #000 24%, #000 76%, transparent 100%)'
-function Portrait({ who, team, on, size, layers, jersey, order = 0 }) {
+export function Portrait({ who, team, on, size, layers, jersey, order = 0 }) {
   const [failed, setFailed] = useState(false)
   const dim = on ? {} : { filter: 'grayscale(1)', opacity: 0.45 }
   const place = { display: 'block', alignSelf: 'end', justifySelf: 'center', '--i': order, ...dim }

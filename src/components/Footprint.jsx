@@ -2,8 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
 import { MEDAL_SHARES, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from '../lib/footprint.js'
+import { namesText, seasonRanges, starsText } from '../lib/lonestar.js'
 import { spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
+import { Portrait } from './Lonestar.jsx'
+import Popover from './Popover.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
 import SectionHeader from './SectionHeader.jsx'
 
@@ -21,10 +24,11 @@ const TONES = { good: '#8fb0e6', bad: '#fa962a', neutral: '#c9c3bc' }
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const RULE = '#3d3a37'
-// REMOVE BEST's colors: the switch's green for MATES and OFFENSE without the best-OBPM
-// teammate, lavender for DEFENSE without a defensive monster (for one himself, his
-// next-best defender).
+// REMOVE BEST's colors: the switch's green for MATES and OFFENSE without Lonestar's stars,
+// lavender for DEFENSE without a defensive monster (for one himself, his next-best
+// defender).
 const DEF_LONE = '#b8a1e8'
+const MID = '#b3ada6'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 const tone = (v, good) => (v === null || v === undefined ? DIM : v * good >= 0 ? TONES.good : TONES.bad)
 const initialsOf = name => (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -241,8 +245,8 @@ function Method({ fp, from, to }) {
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them. An unlit swing stays grey, brighter the bigger it is among players&apos;.</li>
-            <li>REMOVE BEST shows the MATES and OFFENSE tiles again over only the minutes his best-OBPM teammate sits (off the floor on both sides), measured and lit the same way, except that a tile lit on all his minutes stays lit while its swing keeps at least half of itself there. DEFENSE does the same without a defensive monster: a teammate on the floor for a quarter of the minutes whose defensive EPM (Dunks &amp; Threes, 2001-02 on) is in the top 10% of the league&apos;s rotation players that season; for a player who is one himself, his next-best defender by it. A row with no such teammate stays on all his minutes.</li>
-            <li>A lit tile is marked as a teammate effect when its swing keeps less than half of itself, or turns round, with REMOVE BEST: most of it is that teammate&apos;s minutes.</li>
+            <li>REMOVE BEST shows the MATES and OFFENSE tiles again over only the minutes some of his teammates sit (off the floor on both sides), measured and lit the same way, except that a tile lit on all his minutes stays lit while its swing keeps at least half of itself there. Offense (the green box) offers the stars the Lonestar tab does for these seasons: each star, each top two, and all combined, each season without its own. Defense (the lavender box) goes without a defensive monster: a teammate on the floor for a quarter of the minutes whose defensive EPM (Dunks &amp; Threes, 2001-02 on) is in the top 10% of the league&apos;s rotation players that season; for a player who is one himself, his next-best defender by it. A row with no such teammate stays on all his minutes.</li>
+            <li>A lit tile is marked as a teammate effect when its swing keeps less than half of itself, or turns round, with REMOVE BEST&apos;s first pick (all combined where there is one): most of it is those teammates&apos; minutes.</li>
             <li>In a tile&apos;s details, the percentile under SWING is the swing&apos;s size among players&apos; swings in that stat; LG and the percentile under ON place his team&apos;s on value against the league&apos;s that season.</li>
             <li>A lit swing among the league&apos;s 10 best gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%. One among the 10 worst gets a red badge with its place from the bottom.</li>
           </ul>
@@ -294,62 +298,166 @@ export default function Footprint({ profile: p }) {
 // stays lit while its swing holds up there (at least half of it, the same way: not a
 // teammate effect), as strong as the smaller sample makes it: fewer minutes rarely clear
 // the noise bar alone, and a swing that grew going grey read as a loss.
-const loneTile = e => {
-  const l = e.lone || { status: 'na', on: null, off: null, diff: null, pctl: null, swingPctl: null, onPctl: null }
-  const holds = e.status === 'notable' && !e.mate && l.status !== 'na' && l.status !== 'thin'
-  return { ...e, ...l, status: holds ? 'notable' : l.status, rank: null, mate: false, isLone: true }
+const loneTile = (e, o) => {
+  const l = o.tiles[e.key] || { status: 'na', on: null, off: null, diff: null, pctl: null, swingPctl: null, onPctl: null, mate: false }
+  const holds = e.status === 'notable' && !l.mate && l.status !== 'na' && l.status !== 'thin'
+  return { ...e, ...l, min: o.min, status: holds ? 'notable' : l.status, rank: null, mate: false, isLone: true }
 }
-// What hovering an anchor's face says: who, which seasons, why him (`why`: his OBPM, or its
-// estimate from play-by-play where the sheet has none; for a defensive anchor, his
-// defensive EPM), how much he played, and this player's minutes on and off with him
-// sitting.
-const anchorTip = (a, p, why) => [
-  `${lastName(a.name).toUpperCase()}  ${seasonsText(a.seasons)}`,
-  [a.rating && why(a.rating), a.share && `ON THE FLOOR ${a.share}% OF THE MINUTES`].filter(Boolean).join(' · '),
-  a.min ? `${lastName(p.name).toUpperCase()} WITHOUT HIM: ${a.min[0].toLocaleString()} ON · ${a.min[1].toLocaleString()} OFF` : null
-].filter(Boolean)
-const obpmWhy = r => `${r.by.toUpperCase()} ${swingText(r.value)}`
-const defWhy = r => `DEFENSIVE EPM ${swingText(r.value)}`
-// His anchor's seasons as a span, "2019–20 → 2021–22".
-const seasonsText = seasons => spanText(seasons[0], seasons[seasons.length - 1])
 
 // REMOVE BEST (LONE in the code and data): the MATES and OFFENSE tiles over only the
-// minutes his best-OBPM teammate sits, the DEFENSE tiles over only those a defensive
-// monster sits (for one himself, his next-best defender).
+// minutes the stars Lonestar sets aside sit, the DEFENSE tiles over only those a defensive
+// monster sits (for one himself, his next-best defender), each side's pick in its box. On,
+// the switch glows a light grey-white of its own: green and lavender are the sides'.
+const GLOW = '#e4dfd9'
 function LoneSwitch({ on, set, disabled }) {
   return (
     <button type="button" aria-pressed={on} disabled={disabled} onClick={() => set(!on)}
-      title={disabled ? 'No teammate to set aside in these seasons' : on ? 'Back to all his minutes' : 'Only the minutes his best teammate, or a defensive monster, sits'}
-      style={{ height: 30, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 12px', border: `1px solid ${on ? 'var(--accent)' : '#544f4b'}`, background: on ? '#3a3734' : 'transparent', color: on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10.5, fontWeight: on ? 700 : 500, letterSpacing: '.16em', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1 }}>
-      <span aria-hidden="true" style={{ width: 8, height: 8, border: `1px solid ${on ? 'var(--accent)' : '#837d76'}`, background: on ? 'var(--accent)' : 'transparent', transition: 'background .15s' }} />
+      title={disabled ? 'No teammate to set aside in these seasons' : on ? 'Back to all his minutes' : 'Only the minutes his best teammates sit'}
+      style={{ height: 30, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 12px', border: `1px solid ${on ? GLOW : '#544f4b'}`, background: on ? '#3a3734' : 'transparent', boxShadow: on ? '0 0 10px rgba(228, 223, 217, .22), inset 0 0 6px rgba(228, 223, 217, .08)' : 'none', color: on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10.5, fontWeight: on ? 700 : 500, letterSpacing: '.16em', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, transition: 'box-shadow .2s, border-color .2s' }}>
+      <span aria-hidden="true" style={{ width: 8, height: 8, border: `1px solid ${on ? GLOW : '#837d76'}`, background: on ? GLOW : 'transparent', boxShadow: on ? '0 0 6px rgba(228, 223, 217, .6)' : 'none', transition: 'background .15s, box-shadow .15s' }} />
       REMOVE BEST
     </button>
   )
 }
 
-// One kind of anchor in REMOVE BEST's line, in its color: their faces, standing on the rule
-// under the line (index.css .fp-lone-faces), each naming himself on hover (`tip`); several
-// under a bracket with WITHOUT on it, as the Leaderboard brackets its rolling windows; one
-// by name, his seasons and `more`, cut short rather than wrapping. `order`: the first
-// face's place in the line, for the rise; a second kind stands apart from the first.
-function Sitters({ list, color, tip, more, order = 0 }) {
+// Who an option sets aside, each in his own part's team, seasons and jersey (ALL's from its
+// parts), a teammate once.
+const benched = o => {
+  const seen = new Set()
+  return (o.parts || [o]).flatMap(part => part.stars.map(t => ({ ...t, team: part.team, seasons: part.seasons, jersey: part.jersey })))
+    .filter(t => !seen.has(t.id) && seen.add(t.id))
+}
+const optionKey = o => (o.all ? `all-${o.kind}` : `${o.team}-${o.stars.map(t => t.id).join()}`)
+// A side's first pick: its top stars combined (ALL) where it has them, else its first
+// single, else its first (lib/footprint.js reads the teammate effect against the same).
+const firstOf = options => {
+  const all = options.findIndex(o => o.all && o.kind === 'one')
+  const one = options.findIndex(o => o.kind === 'one')
+  return all >= 0 ? all : Math.max(0, one)
+}
+
+// A box's faces: its teammates greyed and overlapping, standing on a rule of the side's
+// color, up to three (its words say how many more; two on a phone, index.css).
+function Bench({ who, color }) {
   return (
-    <>
-      <span className="fp-lone-faces" style={{ position: 'relative', display: 'flex', gap: 12, flex: 'none', alignSelf: 'flex-end', marginLeft: order ? 14 : 0 }}>
-        {list.length > 1 && (
-          <>
-            <span aria-hidden="true" className="fp-bracket" style={{ position: 'absolute', top: -8, left: 4, right: 4, height: 5, borderTop: '1px solid #837d76', borderLeft: '1px solid #837d76', borderRight: '1px solid #837d76' }} />
-            <span className="fp-bracket-label" style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', padding: '0 5px', background: '#262422', fontSize: 8.5, lineHeight: '12px', letterSpacing: '.16em', color }}>WITHOUT</span>
-          </>
-        )}
-        {list.map((a, i) => <Face key={a.slug || i} who={a} size={46} tip={tip(a)} order={order + i} />)}
-      </span>
-      {list.length === 1 && (
-        <span className="fp-lone-text" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          <span style={{ color }}>without</span> <span style={{ color: INK, fontWeight: 700, letterSpacing: '.06em' }}>{lastName(list[0].name).toUpperCase()}</span> <span style={{ color: DIM }}>{seasonsText(list[0].seasons)}</span>{more}
+    <span aria-hidden="true" className="fp-pick-faces" style={{ flex: 'none', display: 'flex', alignItems: 'flex-end', overflow: 'hidden', boxShadow: `inset 0 -2px 0 ${color}` }}>
+      {who.slice(0, 3).map((t, k) => <span key={t.id} style={{ display: 'flex', marginLeft: k ? -7 : 0 }}><Face who={t} size={24} order={k} /></span>)}
+    </span>
+  )
+}
+// A list row's faces as Lonestar's stretch list has them: each in his part's jersey, in
+// colour, greyed on the picked row; up to FACES, then how many more. `layersOf`: a
+// teammate's jersey layers (the profile's).
+const FACES = 4
+function Sat({ who, on, slots, layersOf }) {
+  const shown = who.length > FACES ? who.slice(0, FACES - 1) : who
+  return (
+    <span aria-hidden="true" className="fp-option-faces" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', width: 34 + (slots - 1) * 24, overflow: 'hidden', filter: on ? 'grayscale(1)' : 'none', opacity: on ? 0.5 : 1 }}>
+      {shown.map((t, k) => (
+        <span key={t.id} style={{ display: 'grid', width: 34, height: 34, flex: 'none', marginLeft: k ? -10 : 0 }}>
+          <Portrait who={{ ...t, face: t.face && t.face.key }} team={t.team} on size={34} layers={layersOf(t)} jersey={t.jersey} />
         </span>
-      )}
+      ))}
+      {who.length > FACES && <span style={{ fontSize: 9, color: MID, alignSelf: 'center', marginLeft: 4 }}>+{who.length - FACES + 1}</span>}
+    </span>
+  )
+}
+
+// A side's REMOVE BEST pick: a box in its color (green for offense, lavender for defense)
+// with its teammates' faces and names; with more than one option it opens their list, as
+// Lonestar's stretch list (Lonestar.jsx StretchList): in sections, most minutes off first,
+// ALL last under a heavier rule; each row its faces, names, team and seasons where the span
+// has others (a defender with his defensive EPM), a bar for his minutes off, and his
+// minutes on and off the floor while they sit. A click picks and closes; the arrow keys
+// move the pick with the list open; Enter closes. `faceOf` brings each face's portrait;
+// two boxes keep to one line, their words cut short (`shrink`).
+const SECTIONS = { off: [['one', 'Without top star'], ['two', 'Without top two stars']], def: [['one', 'Without top defender']] }
+const MIN_COL = 56
+function Picker({ side, options, at, pick, color, view, faceOf, layersOf }) {
+  const o = options[at]
+  const teams = new Set(options.map(x => x.team).filter(Boolean))
+  const meta = x => (x.all
+    ? x.parts.map(part => `${starsText(part.stars)} ${seasonRanges(part.seasons)}`).join(' · ')
+    : [teams.size > 1 && x.team, x.seasons.length < view.seasons.length && seasonRanges(x.seasons), side === 'def' && x.stars[0].depm !== null && x.stars[0].depm !== undefined && `DEPM ${swingText(x.stars[0].depm)}`].filter(Boolean).join(' · '))
+  const text = x => {
+    if (!x.all) return starsText(x.stars)
+    const parts = x.parts.map(part => starsText(part.stars))
+    return parts.length > 2 ? `${parts[0]} + ${parts.length - 1} more` : parts.join(' + ')
+  }
+  const trigger = (
+    <>
+      <Bench who={benched(o).map(faceOf)} color={color} />
+      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{text(o)}</span>
     </>
+  )
+  const name = `${side === 'def' ? 'Defense' : 'Offense'} without: ${text(o)}`
+  if (options.length < 2) {
+    return (
+      <span aria-label={name} style={{ height: 30, boxSizing: 'border-box', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 10, flex: '0 1 auto', minWidth: 0, border: `1px solid ${color}`, color: INK, fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden' }}>{trigger}</span>
+    )
+  }
+  const sections = SECTIONS[side].map(([kind, title]) => ({
+    kind, title,
+    rows: options.map((x, i) => i).filter(i => options[i].kind === kind)
+      .sort((a, b) => (options[a].all ? 1 : 0) - (options[b].all ? 1 : 0) || options[b].min[1] - options[a].min[1])
+  })).filter(sec => sec.rows.length)
+  return (
+    <Popover name={name} accent={color} shrink minWidth={300} trigger={trigger}>
+      {close => <Options options={options} sections={sections} at={at} pick={pick} close={close} color={color} meta={meta} faceOf={faceOf} layersOf={layersOf} />}
+    </Popover>
+  )
+}
+function Options({ options, sections, at, pick, close, color, meta, faceOf, layersOf }) {
+  const list = useRef(null)
+  const order = sections.flatMap(sec => sec.rows)
+  useEffect(() => {
+    list.current.focus({ preventScroll: true })
+    list.current.querySelector('[aria-selected="true"]').scrollIntoView({ block: 'nearest' })
+  }, [at])
+  const most = Math.max(1, ...options.map(x => x.min[1]))
+  const slots = Math.min(FACES, Math.max(...options.map(x => benched(x).length)))
+  const head = { fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', color: DIM }
+  const row = i => {
+    const x = options[i]
+    const on = i === at
+    return (
+      <div key={optionKey(x)} role="option" aria-selected={on} onClick={() => { pick(i); close() }}
+        style={{ display: 'flex', alignItems: 'center', gap: 14, height: 42, padding: '0 10px 0 12px', borderTop: x.all ? '1px solid #7a746e' : undefined, borderBottom: `1px solid ${RULE}`, background: on ? '#3d3a37' : undefined, boxShadow: on ? `inset 2px 0 0 ${color}` : 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+        <Sat who={benched(x).map(faceOf)} on={on} slots={slots} layersOf={layersOf} />
+        <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: on ? INK : MID, fontWeight: on || x.all ? 700 : 500 }}>{x.all ? 'All combined' : namesText(x.stars)}</span>
+          {meta(x) && <span title={meta(x)} style={{ fontSize: 8.5, color: DIM, overflow: 'hidden', textOverflow: 'ellipsis' }}>{meta(x)}</span>}
+        </span>
+        <span style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="fp-option-bar" style={{ width: 56, height: 2, background: RULE }}><span style={{ display: 'block', height: 2, width: `${(100 * x.min[1]) / most}%`, background: on ? color : '#7a746e' }} /></span>
+          <span style={{ width: MIN_COL, textAlign: 'right', color: DIM }}>{x.min[0].toLocaleString()}</span>
+          <span style={{ width: MIN_COL, textAlign: 'right', color: on ? INK : MID }}>{x.min[1].toLocaleString()}</span>
+        </span>
+      </div>
+    )
+  }
+  return (
+    <div ref={list} role="listbox" aria-label="Teammates without" tabIndex={0} style={{ outline: 'none', display: 'flex', flexDirection: 'column', width: 'min(520px, calc(100vw - 58px))', fontFamily: MONO }}
+      onKeyDown={e => {
+        const step = { ArrowDown: 1, ArrowUp: -1 }[e.key]
+        if (e.key === 'Enter') return close()
+        if (!step) return
+        e.preventDefault()
+        pick(order[Math.min(order.length - 1, Math.max(0, order.indexOf(at) + step))])
+      }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '0 10px 6px 12px' }}>
+        <span style={{ ...head, width: MIN_COL, textAlign: 'right' }}>On min</span>
+        <span style={{ ...head, width: MIN_COL, textAlign: 'right' }}>Off min</span>
+      </div>
+      <div style={{ maxHeight: 'min(440px, 62vh)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#544f4b transparent' }}>
+        {sections.map(sec => (
+          <div key={sec.kind} role="group" aria-label={sec.title}>
+            <div style={{ ...head, color: '#d9d3cc', padding: '12px 12px 6px', borderBottom: '1px solid #544f4b' }}>{sec.title}</div>
+            {sec.rows.map(row)}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -361,33 +469,49 @@ function Views({ p, doc, faces }) {
     return b && viewOf(a, b) ? { from: a, to: b } : { from: doc.views[0].id, to: doc.views[0].id }
   })
   const fp = viewOf(span.from, span.to)
-  const pick = (from, to) => { if (viewOf(from, to)) setSpan({ from, to }) }
   const [lone, setLone] = useState(false)
+  // Each side's pick in REMOVE BEST, by its place in the view's options (none yet: its
+  // first). Another span opens on its top stars combined (ALL) where it has them, else on
+  // the same teammates where it has them, else its first, as Lonestar's does.
+  const [picks, setPicks] = useState({})
+  const atOf = (v, side) => (picks[side] === undefined ? firstOf(v.remove[side]) : Math.min(picks[side], v.remove[side].length - 1))
+  const pick = (from, to) => {
+    const next = viewOf(from, to)
+    if (!next) return
+    const carry = side => {
+      const all = next.remove[side].findIndex(o => o.all && o.kind === 'one')
+      const now = fp.remove[side][atOf(fp, side)]
+      const same = now ? next.remove[side].findIndex(o => optionKey(o) === optionKey(now)) : -1
+      return all >= 0 ? all : same >= 0 ? same : firstOf(next.remove[side])
+    }
+    setPicks({ off: carry('off'), def: carry('def') })
+    setSpan({ from, to })
+  }
   // A teammate with no profile (an older one) brings his own face (`face`, by NBA id).
   const faceOf = a => {
     const f = a.slug ? faces.get(a.slug) : a.face
     return { ...a, headshot: f && f.headshot, headshotVersion: f && f.headshotVersion }
   }
-  const anchors = (fp.anchors || []).map(faceOf)
-  const defAnchors = (fp.defAnchors || []).map(faceOf)
+  const layersOf = t => (p.jerseys && t.slug ? p.jerseys[t.slug] : null)
+  const options = { off: fp.remove.off, def: fp.remove.def }
+  const picked = { off: options.off[atOf(fp, 'off')], def: options.def[atOf(fp, 'def')] }
+  const first = { off: options.off[firstOf(options.off)], def: options.def[firstOf(options.def)] }
   const sections = [
     { id: 'mates', title: 'MATES', tiles: fp.effects.filter(e => e.mates) },
     { id: 'off', title: 'OFFENSE', tiles: fp.effects.filter(e => e.side === 'off' && !e.mates) },
     { id: 'def', title: 'DEFENSE', tiles: fp.effects.filter(e => e.side === 'def') }
   ].filter(sec => sec.tiles.length)
-  // REMOVE BEST sets aside each kind of anchor the span has.
-  const offOn = lone && anchors.length > 0
-  const defOn = lone && defAnchors.length > 0
+  // REMOVE BEST sets aside each side the span has options for.
+  const offOn = lone && !!picked.off
+  const defOn = lone && !!picked.def
   const loneOn = offOn || defOn
-  const loneMin = side => (fp.effects.find(e => e.lone && e.side === side) || {}).lone
-  const minText = m => <>{' '}· {lastName(p.name)}&apos;s {m ? m.min[0].toLocaleString() : '—'} ON vs {m ? m.min[1].toLocaleString() : '—'} OFF</>
   // His team's points per 100 scored and allowed with him on against the league's (rORTG,
   // rDRTG), and from him off to on; blue where it helps (more scored, fewer allowed). With
-  // REMOVE BEST, rORTG is its OFFENSE tile's over the minutes his best teammate sits and
-  // rDRTG its DEFENSE tile's over those a defensive monster sits; without one, rDRTG stays
-  // on all his minutes, dimmed as the DEFENSE row is.
-  const ortg = (offOn && (fp.effects.find(e => e.key === 'ortg') || {}).lone) || fp.ortg
-  const drtg = (defOn && (fp.effects.find(e => e.key === 'drtg') || {}).lone) || fp.drtg
+  // REMOVE BEST, rORTG is its OFFENSE tile's over the minutes the picked stars sit and rDRTG
+  // its DEFENSE tile's over those the picked defender sits; a side with none stays on all
+  // his minutes, dimmed as its row is.
+  const ortg = (offOn && picked.off.tiles.ortg) || fp.ortg
+  const drtg = (defOn && picked.def.tiles.drtg) || fp.drtg
   const rating = (name, x, good) => (
     <span>
       <span style={{ color: DIM }}>ON {name}</span> <span style={{ color: tone(x.r, good) }}>{swingText(x.r)}</span>{' '}
@@ -398,14 +522,17 @@ function Views({ p, doc, faces }) {
   // A row: TEAM and its word on the left, its tiles side by side, every row on the widest
   // one's columns so the tiles are the same boxes throughout.
   const cols = Math.max(...sections.map(sec => sec.tiles.length))
-  // With REMOVE BEST, a row with an anchor to set aside shows LONE's tiles, marked by a rule
-  // in its color down its left edge (the switch's green for MATES and OFFENSE, lavender for
+  // With REMOVE BEST, a row with its side's pick shows that pick's tiles, marked by a rule in
+  // its color down its left edge (the switch's green for MATES and OFFENSE, lavender for
   // DEFENSE; the tiles keep their own colors, so the switch doesn't read as a lift); a row
-  // without one stays on all his minutes, dimmed.
+  // with none stays on all his minutes, dimmed. Otherwise a tile's teammate effect is read
+  // against its side's first pick.
   const row = sec => {
-    const changes = sec.id === 'def' ? defOn : offOn
+    const side = sec.id === 'def' ? 'def' : 'off'
+    const changes = side === 'def' ? defOn : offOn
     const kept = loneOn && !changes
-    const color = sec.id === 'def' ? DEF_LONE : 'var(--accent)'
+    const color = side === 'def' ? DEF_LONE : 'var(--accent)'
+    const o = changes ? picked[side] : first[side]
     return (
       <div key={sec.id} className="fp-row" style={{ display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', columnGap: 14, padding: '14px 0', borderTop: `1px solid ${RULE}`, fontFamily: MONO, opacity: kept ? 0.45 : 1, transition: 'opacity .3s' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 2, minWidth: 0 }}>
@@ -416,7 +543,7 @@ function Views({ p, doc, faces }) {
         <div className="fp-row-tiles" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, padding: 1, alignSelf: 'start' }}>
           <span aria-hidden="true" style={{ position: 'absolute', left: -8, top: 1, bottom: 1, width: 2, background: color, opacity: changes ? 1 : 0, transition: 'opacity .3s' }} />
           {sec.tiles.map((e, i) => (
-            <FootprintTile key={e.key} e={changes ? loneTile(e) : e} anchors={sec.id === 'def' ? defAnchors : anchors} right={i >= cols / 2}
+            <FootprintTile key={e.key} e={changes ? loneTile(e, o) : { ...e, lone: o && o.tiles[e.key] }} anchors={o ? benched(o) : []} right={i >= cols / 2}
               delay={45 * (sections.slice(0, sections.indexOf(sec)).reduce((n, x) => n + x.tiles.length, 0) + i)} />
           ))}
         </div>
@@ -428,20 +555,19 @@ function Views({ p, doc, faces }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px', flex: '1 1 0', minWidth: 0 }}>
           <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} />
-          <LoneSwitch on={loneOn} set={setLone} disabled={!anchors.length && !defAnchors.length} />
+          <LoneSwitch on={loneOn} set={setLone} disabled={!options.off.length && !options.def.length} />
           {loneOn ? (
-            // In LONE the same line says who sits, so nothing below moves: each kind of anchor
-            // in its color (Sitters), the minutes left after a lone one when it's the only
-            // kind; the line keeps the switch's height (a row of its own on a phone, index.css).
-            <p className="fp-lone-line" style={{ margin: 0, height: 30, flex: '1 1 0', minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, lineHeight: 1.6, color: '#b3ada6' }}>
-              {offOn && <Sitters list={anchors} color="var(--accent)" tip={a => anchorTip(a, p, obpmWhy)} more={!defOn && minText(loneMin('off'))} />}
-              {defOn && <Sitters list={defAnchors} color={DEF_LONE} tip={a => anchorTip(a, p, defWhy)} more={!offOn && minText(loneMin('def'))} order={offOn ? anchors.length : 0} />}
-            </p>
+            // In LONE the same line holds each side's pick, so nothing below moves (a row of
+            // its own on a phone, index.css).
+            <div className="fp-lone-line" style={{ flex: '1 1 0', minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+              {offOn && <Picker side="off" options={options.off} at={atOf(fp, 'off')} pick={i => setPicks(x => ({ ...x, off: i }))} color="var(--accent)" view={fp} faceOf={faceOf} layersOf={layersOf} />}
+              {defOn && <Picker side="def" options={options.def} at={atOf(fp, 'def')} pick={i => setPicks(x => ({ ...x, def: i }))} color={DEF_LONE} view={fp} faceOf={faceOf} layersOf={layersOf} />}
+            </div>
           ) : (
             <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>in {lastName(p.name)}&apos;s {fp.minutes.on.toLocaleString()} ON court vs {fp.minutes.off.toLocaleString()} OFF</p>
           )}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title={`His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on${loneOn ? `; rORTG over ${offOn ? 'the minutes his best teammate sits' : 'all his minutes'}, rDRTG over ${defOn ? 'the minutes a defensive monster sits' : 'all his minutes'}` : ''}`}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title={`His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on${loneOn ? `; rORTG over ${offOn ? 'the minutes the picked stars sit' : 'all his minutes'}, rDRTG over ${defOn ? 'the minutes the picked defender sits' : 'all his minutes'}` : ''}`}>
           {rating('rORTG', ortg, 1)}
           <span style={{ color: DIM }}>·</span>
           <span style={{ opacity: loneOn && !defOn ? 0.45 : 1, transition: 'opacity .3s' }}>{rating('rDRTG', drtg, -1)}</span>

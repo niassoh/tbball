@@ -119,7 +119,8 @@ function MateMark({ size = 15 }) {
 }
 
 // A tile's details, on hover (a tap on a phone), as a sheet: his team's value off and on,
-// the swing (its unit and size among players' swings, with its medal), the on value's
+// the swing (its unit, its percentile among players' swings with higher better, or for a
+// style its size, and its medal), the on value's
 // league and percentile; in LONE, his minutes on and off too; and, for a tile lit by a teammate
 // effect, what its swing comes to in LONE. Opens leftward from a tile on the right of its
 // row.
@@ -148,7 +149,7 @@ function Details({ e, anchors, color, right }) {
           <span style={sub}>{unitOf(e.key, e.unit)}</span>
           <span />
           <span style={sub}>{pctlText(e.onPctl)}</span>
-          <span style={{ ...sub, display: 'inline-flex', alignItems: 'center', gap: 5, color: medal ? MEDALS[medal - 1] : DIM }}>{medal && <Medal tier={medal} />}{e.pctl !== null && e.pctl !== undefined ? pctlText(e.pctl) : MISSING[e.status]}</span>
+          <span style={{ ...sub, display: 'inline-flex', alignItems: 'center', gap: 5, color: medal ? MEDALS[medal - 1] : DIM }}>{medal && <Medal tier={medal} />}{(e.swingPctl ?? e.pctl) !== null && (e.swingPctl ?? e.pctl) !== undefined ? pctlText(e.swingPctl ?? e.pctl) : MISSING[e.status]}</span>
           {e.isLone && <><span style={sub}>{e.min[1].toLocaleString()} MIN</span><span style={sub}>{e.min[0].toLocaleString()} MIN</span><span /></>}
         </div>
       ) : MISSING[e.status] && <span style={sub}>{MISSING[e.status]}</span>}
@@ -290,7 +291,7 @@ export default function Footprint({ profile: p }) {
 // teammate effect), as strong as the smaller sample makes it: fewer minutes rarely clear
 // the noise bar alone, and a swing that grew going grey read as a loss.
 const loneTile = e => {
-  const l = e.lone || { status: 'na', on: null, off: null, diff: null, pctl: null, onPctl: null }
+  const l = e.lone || { status: 'na', on: null, off: null, diff: null, pctl: null, swingPctl: null, onPctl: null }
   const holds = e.status === 'notable' && !e.mate && l.status !== 'na' && l.status !== 'thin'
   return { ...e, ...l, status: holds ? 'notable' : l.status, rank: null, mate: false, isLone: true }
 }

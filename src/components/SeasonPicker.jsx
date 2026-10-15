@@ -14,13 +14,15 @@ const EDGE = '#544f4b'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 
 // The year strip: every season from his first to his last ('97 … '26), cells joined like
-// RAW | PCTL, in even rows of up to 13 (8 on a phone) so every year shows; those he has no
+// RAW | PCTL, CELL wide: on one line where the screen holds it (a desktop: all 30 of the
+// leaderboard's), else in even rows (8 a row on a phone) so every year shows; those he has no
 // stretch in are dim and can't be picked. Click one for that season; drag across, or
 // shift-click, for a span (arrow keys move, shift + arrows stretch). The span's cells are
 // lit like the season rail's pick, the accent under them. Over it, small quick spans: his
 // last 2, 3 or 5 seasons, or all. Pointer events on the strip, not its cells, so a drag
 // works by touch too (and across its rows).
 const QUICK = [[2, 'L2'], [3, 'L3'], [5, 'L5']]
+const CELL = 38
 const LIT = '#3d3a37'
 function YearRange({ seasons, from, to, pick }) {
   // It opens in the picker's panel, ready for the arrow keys.
@@ -28,7 +30,7 @@ function YearRange({ seasons, from, to, pick }) {
   useEffect(() => { root.current.focus({ preventScroll: true }) }, [])
   const all = seasonsBetween(seasons[0], seasons[seasons.length - 1])
   const has = new Set(seasons)
-  const rows = Math.ceil(all.length / (window.matchMedia('(max-width: 560px)').matches ? 8 : 13))
+  const rows = Math.ceil(all.length / Math.max(1, Math.floor((window.innerWidth - 58) / CELL)))
   const cols = Math.ceil(all.length / rows)
   const anchor = useRef(from)
   const dragging = useRef(false)
@@ -65,7 +67,7 @@ function YearRange({ seasons, from, to, pick }) {
   // Each cell draws its own lines, so a last row short of the rest just ends.
   const lines = i => ({ borderStyle: 'solid', borderColor: EDGE, borderWidth: `${i < cols ? 1 : 0}px 1px 1px ${i % cols ? 0 : 1}px` })
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 'min(440px, calc(100vw - 58px))' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: `min(${Math.max(cols * CELL, 280)}px, calc(100vw - 58px))` }}>
       <div role="group" aria-label="Quick spans" style={{ display: 'flex', alignSelf: 'flex-start', border: `1px solid ${EDGE}` }}>
         {quick.map(([n, name], i) => {
           const on = from === seasons[seasons.length - n] && to === last

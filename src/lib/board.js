@@ -15,7 +15,7 @@ export const percentileOf = (value, pool, lowerBetter = false) => {
   return Math.round((worse / nums.length) * 100)
 }
 
-// The Player group: each row's age (the site's own, on the day: lib/age.js liveAges) and
+// The Player group: each row's age (the site's own, in the season: lib/age.js liveAges) and
 // listed height in inches (`ht`) as stats, for the chart's axes only (`axesOnly`: not one
 // of the table's tabs); their percentiles are a style's (neither end is better).
 export const withPlayer = doc => {

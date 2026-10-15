@@ -78,15 +78,14 @@ const nameSize = lines => Math.min(30, Math.floor(240 / (0.62 * Math.max(...line
 const draftLine = d => (!d ? null : d.undrafted ? 'UNDRAFTED' : `${d.year} DRAFT · R${d.round} #${d.overall} · ${d.team}`)
 
 // The card for the season picked on the season rail (an index into p.seasons): the
-// team he played most for that season, his age then (on the day, from his birth date where
-// known), its lineups and its rotation (p.seasons[i].card). The depth chart's own season
-// (and a profile without seasons) shows today's team, lineups and depth chart.
+// team he played most for that season, his age in it (from his birth date where known:
+// lib/age.js), its lineups and its rotation (p.seasons[i].card). The depth chart's own
+// season (and a profile without seasons) shows today's team, lineups and depth chart.
 const seasonView = (p, i) => {
   const s = p.seasons[i]
-  const latest = p.seasons.length ? p.seasons[p.seasons.length - 1].season : null
-  const ageOf = (season, sheet) => (p.bio.born && latest ? ageIn(p.bio.born, season || latest, latest) : sheet)
+  const ageOf = (season, sheet) => (p.bio.born && season ? ageIn(p.bio.born, season) : sheet)
   if (!s || (!s.card && p.depth && s.season === p.depth.season)) {
-    return { team: p.team, teamName: p.teamName, age: ageOf(null, p.bio.age), lineups: p.lineups, chart: p.depth, rotation: false }
+    return { team: p.team, teamName: p.teamName, age: ageOf(p.depth && p.depth.season, p.bio.age), lineups: p.lineups, chart: p.depth, rotation: false }
   }
   if (!s.card) return { team: s.teams[s.teams.length - 1], teamName: null, age: ageOf(s.season, s.age), lineups: null, chart: null, rotation: true }
   return { team: s.card.team, teamName: s.card.teamName, age: ageOf(s.season, s.age), lineups: s.card.lineups, chart: s.card.rotation, rotation: true }
@@ -106,7 +105,8 @@ export default function BioCard({ profile: p, season, loading = false }) {
     later(() => Object.entries(p.jerseys).forEach(([s, l]) => { new Image().src = jerseyUrl(s, 100, l.v) }))
   }, [p.slug, p.jerseys])
   // Spec strip: team logo, then position / height / age split by hard rules (labels as tooltips).
-  const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', v.age !== null ? v.age.toFixed(1) : null]].filter(([, x]) => x)
+  // The age cut, not rounded, to its tenth: 34.96 is still 34.9, as the leaderboard's 34.
+  const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', v.age !== null ? (Math.floor(v.age * 10) / 10).toFixed(1) : null]].filter(([, x]) => x)
   const lines = nameLines(p.name)
   // The season on show, for the trophies won in it.
   const shown = p.seasons[season] ? p.seasons[season].season : null

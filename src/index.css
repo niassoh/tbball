@@ -133,13 +133,10 @@ html { scroll-behavior: smooth; }
 .ls-main > .ls-row:not(.ls-head) { flex: 1 0 auto; }
 .ls-plot { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
 /* The year strip: a pickable season lightens under the pointer; the strip shows focus for
-   its arrow keys. The stars' row scrolls sideways without a scrollbar. */
+   its arrow keys. */
 .year-strip [data-has="1"]:hover { color: #ece8e3 !important; }
 .year-strip:focus-visible { outline: 1px solid #b8b2ab; outline-offset: 2px; }
-.ls-keys { scrollbar-width: none; }
-.ls-keys::-webkit-scrollbar { display: none; }
-.ls-keys > * { flex: none; }
-/* A long span's list of stretches: a row darkens under the pointer (the picked one keeps
+/* Lonestar's list of stretches: a row darkens under the pointer (the picked one keeps
    its own lit background); on a phone its minutes bar gives way to the names. */
 .ls-stretch:hover { background: #2c2a28; }
 @media (max-width: 560px) { .ls-stretch-bar { display: none; } }

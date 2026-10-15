@@ -179,26 +179,46 @@ function Portrait({ who, team, on, size, layers, jersey }) {
 }
 
 function Cast({ p, s }) {
-  const cast = [{ who: p, on: true, size: 68 }, ...s.stars.map(t => ({ who: t, on: false, size: 52 }))]
+  const sat = benched(s)
   const layersOf = who => (p.jerseys ? p.jerseys[who.slug] : null)
   // A name is at least 76px wide (one like WESTBROOK on one line), a long one wrapping (at
   // a hyphen, else anywhere), so the cast always fits the panel: GILGEOUS-ALEXANDER and
-  // two stars included. The names' row has a fixed height that holds a wrapped name, the
-  // names sitting at its foot, so the panel is the same height for every pick.
-  const tag = (who, on, size) => (
-    <span style={{ display: 'block', width: Math.max(size, 76), textAlign: 'center', ...label, color: on ? INK : MID, overflowWrap: 'anywhere', lineHeight: 1.35 }}>{lastName(who.name)}</span>
+  // two stars included. ALL's stars stand together as one cluster, overlapping (CLUSTER at
+  // most), under one tag: their names, or the first and how many more. The names' row has a
+  // fixed height that holds a wrapped name, the names sitting at its foot, so the panel is
+  // the same height for every pick.
+  const tag = (text, on, width = 76) => (
+    <span style={{ display: 'block', width, textAlign: 'center', ...label, color: on ? INK : MID, overflowWrap: 'anywhere', lineHeight: 1.35 }}>{text}</span>
   )
+  const cols = [{ tag: tag(lastName(p.name), true), face: <Portrait who={p} team={s.team} on size={68} layers={layersOf(p)} jersey={s.jersey} /> }]
+  if (s.all) {
+    cols.push({
+      tag: tag(sat.length <= 3 ? sat.map(b => lastName(b.who.name)).join(' · ') : `${lastName(sat[0].who.name)} +${sat.length - 1}`, false, 150),
+      face: (
+        <span style={{ display: 'flex', alignItems: 'flex-end', alignSelf: 'end', justifySelf: 'center' }}>
+          {sat.slice(0, CLUSTER).map((b, k) => (
+            <span key={b.who.id} style={{ display: 'grid', width: 46, height: 46, marginLeft: k ? -16 : 0 }}>
+              <Portrait who={b.who} team={b.team} on={false} size={46} layers={layersOf(b.who)} jersey={b.jersey} />
+            </span>
+          ))}
+        </span>
+      )
+    })
+  } else {
+    for (const b of sat) cols.push({ tag: tag(lastName(b.who.name), false), face: <Portrait who={b.who} team={b.team} on={false} size={52} layers={layersOf(b.who)} jersey={b.jersey} /> })
+  }
   return (
     <div aria-label={`${p.name} on, without ${starsText(s.stars)}`}
       style={{ display: 'grid', gridTemplateRows: '26px 68px', gridAutoFlow: 'column', justifyContent: 'center', alignItems: 'start', columnGap: 12, rowGap: 4, padding: `12px ${PAD}px 0`, borderTop: `1px solid ${RULE}` }}>
-      {cast.flatMap((c, i) => [
+      {cols.flatMap((c, i) => [
         ...(i === 1 ? [<span key="wo-tag" />, <span key="wo" style={{ ...label, color: FAINT, alignSelf: 'center' }}>W/O</span>] : []),
-        <span key={`t${i}`} style={{ alignSelf: 'end', justifySelf: 'center' }}>{tag(c.who, c.on, c.size)}</span>,
-        <Portrait key={`p${i}`} who={c.who} team={s.team} on={c.on} size={c.size} layers={layersOf(c.who)} jersey={s.jersey} />
+        <span key={`t${i}`} style={{ alignSelf: 'end', justifySelf: 'center' }}>{c.tag}</span>,
+        <span key={`p${i}`} style={{ display: 'contents' }}>{c.face}</span>
       ])}
     </div>
   )
 }
+const CLUSTER = 4
 
 // The numbers in one row, on the rule the cast stands on: the Load and Net moves (the
 // change in its colour, from → to) and the minutes with the stars and without (a side
@@ -302,41 +322,82 @@ const legendArrow = (color, dir) => {
   return <span style={{ display: 'inline-flex', alignItems: 'center' }}>{dir < 0 && <span style={head(-1, color)} />}{shaft}{dir > 0 && <span style={head(1, color)} />}</span>
 }
 
-const starsKey = x => `${x.team}-${x.stars.map(t => t.id).join()}`
+const starsKey = x => (x.all ? `all-${x.kind}` : `${x.team}-${x.stars.map(t => t.id).join()}`)
+// Who sits in a stretch, each in his own stretch's team and jersey: ALL's from its parts,
+// a star once.
+const benched = x => {
+  const seen = new Set()
+  return (x.parts || [x]).flatMap(part => part.stars.map(t => ({ who: t, team: part.team, jersey: part.jersey })))
+    .filter(b => !seen.has(b.who.id) && seen.add(b.who.id))
+}
 
-// Over a span with more stretches than KEYS_MAX (stars change across it), the keys give
-// way to one box, as the season picker's: it opens a list of every stretch, most minutes
-// without first (his sample in it), each with its stars' faces in the stretch's jersey
-// (standing on the row's rule, as the cast stands on its own; greyed but on the picked
-// row), its team and seasons under the names, and a bar for those minutes (not on a
-// phone, where the names need the room), the one on show lit as the year strip's pick is. A click picks and closes; the arrow keys move the pick
-// with the panel open, the module following behind it, and Enter closes.
-const KEYS_MAX = 4
-function StretchList({ scenarios, s, pick, names, meta, layersOf }) {
-  const order = scenarios.map((x, i) => i).sort((a, b) => scenarios[b].off.minutes - scenarios[a].off.minutes)
+// More than one stretch: one box, as the season picker's, naming who sits (ALL: the stars
+// it combines, joined by +), opening a list of them in two sections, without top star and
+// without top two stars: most minutes without first (his sample in it), then ALL as the
+// section's total, under a heavier rule, saying what it combines (cut short, in full on
+// hover, so the panel keeps its width); its minutes are the rows' above summed. Each row has its stars' faces in the stretch's
+// jersey, standing on the row's rule as the cast stands on its own, in colour but on the
+// picked row, greyed as the cast's stars who sit are; its team and seasons under the
+// names; and a bar for those minutes (not on a phone, where the names need the room). The
+// picked row is lit as the year strip's pick is. A click picks and closes; the arrow keys
+// move the pick with the panel open, the module following behind it; Enter closes.
+const SECTIONS = [['one', 'Without top star'], ['two', 'Without top two stars']]
+function StretchList({ scenarios, s, pick, names, meta, text, layersOf }) {
   const at = scenarios.indexOf(s)
-  const text = x => [names(x), meta(x)].filter(Boolean).join(' · ')
+  const sections = SECTIONS.map(([kind, title]) => ({
+    kind, title,
+    rows: scenarios.map((x, i) => i).filter(i => scenarios[i].kind === kind)
+      .sort((a, b) => (scenarios[a].all ? 1 : 0) - (scenarios[b].all ? 1 : 0) || scenarios[b].off.minutes - scenarios[a].off.minutes)
+  })).filter(sec => sec.rows.length)
+  const order = sections.flatMap(sec => sec.rows)
   return (
-    <Popover name={`Without: ${text(s)}`} minWidth={300} trigger={<>
-      {text(s)}
-      <span style={{ ...label, fontWeight: 400, color: FAINT }}>{order.indexOf(at) + 1} of {scenarios.length}</span>
-    </>}>
-      {close => <Stretches scenarios={scenarios} order={order} at={at} pick={pick} close={close} names={names} meta={meta} layersOf={layersOf} />}
+    <Popover name={`Without: ${text(s)}`} minWidth={300} trigger={text(s)}>
+      {close => <Stretches scenarios={scenarios} sections={sections} order={order} at={at} pick={pick} close={close} names={names} meta={meta} layersOf={layersOf} />}
     </Popover>
   )
 }
 
 // The list in the open panel: it takes the arrow keys as it opens, the pick kept in view.
+// A row shows up to FACES faces (ALL's: three and how many more), the column as wide as
+// the most any row shows.
 const FACE = 34
-function Stretches({ scenarios, order, at, pick, close, names, meta, layersOf }) {
+const FACES = 4
+function Stretches({ scenarios, sections, order, at, pick, close, names, meta, layersOf }) {
   const list = useRef(null)
   useEffect(() => {
     list.current.focus({ preventScroll: true })
     list.current.querySelector('[aria-selected="true"]').scrollIntoView({ block: 'nearest' })
   }, [at])
-  const most = scenarios[order[0]].off.minutes
+  const most = Math.max(...scenarios.map(x => x.off.minutes))
+  const slots = Math.min(FACES, Math.max(...scenarios.map(x => benched(x).length)))
+  const row = i => {
+    const x = scenarios[i]
+    const on = i === at
+    const sat = benched(x)
+    return (
+      <div key={starsKey(x)} role="option" aria-selected={on} className="ls-stretch" onClick={() => { pick(i); close() }}
+        style={{ display: 'flex', alignItems: 'center', gap: 14, height: 42, padding: '0 10px 0 12px', borderTop: x.all ? `1px solid ${FAINT}` : undefined, borderBottom: `1px solid ${RULE}`, background: on ? '#3d3a37' : undefined, boxShadow: on ? 'inset 2px 0 0 var(--accent)' : 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+        <span aria-hidden="true" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', width: FACE + (slots - 1) * (FACE - 10), filter: on ? 'grayscale(1)' : 'none', opacity: on ? 0.5 : 1 }}>
+          {(sat.length > FACES ? sat.slice(0, FACES - 1) : sat).map((b, k) => (
+            <span key={b.who.id} style={{ display: 'grid', width: FACE, height: FACE, marginLeft: k ? -10 : 0 }}>
+              <Portrait who={b.who} team={b.team} on size={FACE} layers={layersOf(b.who)} jersey={b.jersey} />
+            </span>
+          ))}
+          {sat.length > FACES && <span style={{ ...label, color: MID, alignSelf: 'center', marginLeft: 4 }}>+{sat.length - FACES + 1}</span>}
+        </span>
+        <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: on ? INK : MID, fontWeight: on || x.all ? 700 : 500 }}>{x.all ? 'All combined' : names(x)}</span>
+          {meta(x) && <span title={meta(x)} style={{ fontSize: 8.5, color: DIM, overflow: 'hidden', textOverflow: 'ellipsis' }}>{meta(x)}</span>}
+        </span>
+        <span style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+          <span className="ls-stretch-bar" style={{ width: 56, height: 2, background: RULE }}><span style={{ display: 'block', height: 2, width: `${(100 * x.off.minutes) / most}%`, background: on ? 'var(--accent)' : FAINT }} /></span>
+          <span style={{ width: 40, textAlign: 'right', color: on ? INK : MID }}>{Math.round(x.off.minutes).toLocaleString()}</span>
+        </span>
+      </div>
+    )
+  }
   return (
-    <div ref={list} role="listbox" aria-label="Stars without" tabIndex={0} style={{ outline: 'none', display: 'flex', flexDirection: 'column' }}
+    <div ref={list} role="listbox" aria-label="Stars without" tabIndex={0} style={{ outline: 'none', display: 'flex', flexDirection: 'column', width: 'min(560px, calc(100vw - 58px))' }}
       onKeyDown={e => {
         const step = { ArrowDown: 1, ArrowUp: -1 }[e.key]
         if (e.key === 'Enter') return close()
@@ -344,35 +405,16 @@ function Stretches({ scenarios, order, at, pick, close, names, meta, layersOf })
         e.preventDefault()
         pick(order[Math.min(order.length - 1, Math.max(0, order.indexOf(at) + step))])
       }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '0 10px 6px 12px', borderBottom: `1px solid ${EDGE}` }}>
-        <span style={label}>Without · {scenarios.length} stretches</span>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 10px 6px 12px' }}>
         <span style={label}>W/O min</span>
       </div>
-      <div style={{ maxHeight: 'min(420px, 60vh)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: `${EDGE} transparent` }}>
-        {order.map(i => {
-          const x = scenarios[i]
-          const on = i === at
-          return (
-            <div key={starsKey(x)} role="option" aria-selected={on} className="ls-stretch" onClick={() => { pick(i); close() }}
-              style={{ display: 'flex', alignItems: 'center', gap: 14, height: 42, padding: '0 10px 0 12px', borderBottom: `1px solid ${RULE}`, background: on ? '#3d3a37' : undefined, boxShadow: on ? 'inset 2px 0 0 var(--accent)' : 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-              <span aria-hidden="true" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', width: 2 * FACE - 10, filter: on ? 'none' : 'grayscale(1)', opacity: on ? 1 : 0.7 }}>
-                {x.stars.map((t, k) => (
-                  <span key={t.id} style={{ display: 'grid', width: FACE, height: FACE, marginLeft: k ? -10 : 0 }}>
-                    <Portrait who={t} team={x.team} on size={FACE} layers={layersOf(t)} jersey={x.jersey} />
-                  </span>
-                ))}
-              </span>
-              <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: on ? INK : MID, fontWeight: on ? 700 : 500 }}>{names(x)}</span>
-                {meta(x) && <span style={{ fontSize: 8.5, color: DIM }}>{meta(x)}</span>}
-              </span>
-              <span style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                <span className="ls-stretch-bar" style={{ width: 56, height: 2, background: RULE }}><span style={{ display: 'block', height: 2, width: `${(100 * x.off.minutes) / most}%`, background: on ? 'var(--accent)' : FAINT }} /></span>
-                <span style={{ width: 40, textAlign: 'right', color: on ? INK : MID }}>{Math.round(x.off.minutes).toLocaleString()}</span>
-              </span>
-            </div>
-          )
-        })}
+      <div style={{ maxHeight: 'min(440px, 62vh)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: `${EDGE} transparent` }}>
+        {sections.map(sec => (
+          <div key={sec.kind} role="group" aria-label={sec.title}>
+            <div style={{ ...label, color: SOFT, padding: '12px 12px 6px', borderBottom: `1px solid ${EDGE}` }}>{sec.title}</div>
+            {sec.rows.map(row)}
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -413,7 +455,7 @@ function Frame({ p, ls }) {
   const view = viewOf(span.from, span.to)
   const scenarios = view.scenarios
   const s = scenarios[Math.min(pick, scenarios.length - 1)]
-  const teams = new Set(scenarios.map(x => x.team))
+  const teams = new Set(scenarios.map(x => x.team).filter(Boolean))
   // Another span keeps the same stars picked when it has them.
   const choose = (from, to) => {
     const next = viewOf(from, to)
@@ -424,29 +466,32 @@ function Frame({ p, ls }) {
   // The picked span and scenario: the animated parts remount on it, so each pick replays.
   const skey = `${view.id}-${starsKey(s)}`
   const n = view.seasons.length
-  // A stretch's team (a span with several) and seasons (fewer than the span's).
-  const meta = x => [teams.size > 1 && x.team, x.seasons.length < n && seasonTag(x.seasons)].filter(Boolean).join(' · ')
+  // A stretch's team (a span with several) and seasons (fewer than the span's). ALL: the
+  // stars it combines, joined by + (its parts, a pair as "Paul & Gordon").
+  const combined = x => x.parts.map(part => starsText(part.stars))
+  const meta = x => (x.all
+    ? combined(x).join(' + ')
+    : [teams.size > 1 && x.team, x.seasons.length < n && seasonTag(x.seasons)].filter(Boolean).join(' · '))
   const names = x => namesText(x.stars)
+  // The box: who sits. ALL past three parts: the first two and how many more.
+  const text = x => {
+    if (!x.all) return [names(x), meta(x)].filter(Boolean).join(' · ')
+    const parts = combined(x)
+    return parts.length > 3 ? `${parts.slice(0, 2).join(' + ')} + ${parts.length - 2} more` : parts.join(' + ')
+  }
   return (
     <div className="ls-frame" style={{ border: `1px solid ${RULE}`, fontFamily: MONO }}>
       {/* One row of fixed height, so the module's never changes: the span (its strip in a
-          panel), the stars (keys on one line, scrolling sideways when a span has many teams;
-          past KEYS_MAX a box opening the list of them), RAW | PCTL. A stretch from fewer of
-          the span's seasons carries its seasons. Narrow, the stars take a row of their own
-          (index.css .ls-bar). */}
+          panel), the stars (a box opening the list of them, or the one stretch there is),
+          RAW | PCTL. A stretch from fewer of the span's seasons carries its seasons.
+          Narrow, the stars take a row of their own (index.css .ls-bar). */}
       <div className="ls-bar" style={{ padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
         <SeasonPicker seasons={ls.seasons} from={span.from} to={span.to} n={n} pick={choose} />
         <div className="ls-without">
           <span style={{ ...label, margin: '0 6px 0 10px' }}>Without</span>
-          {scenarios.length > KEYS_MAX ? <StretchList scenarios={scenarios} s={s} pick={setPick} names={names} meta={meta} layersOf={t => (p.jerseys ? p.jerseys[t.slug] : null)} /> : (
-          <div className="ls-keys" style={{ display: 'flex', gap: 8, overflowX: 'auto', minWidth: 0, flex: 1 }}>
-            {scenarios.map((x, i) => (
-              <Key key={starsKey(x)} on={x === s} onClick={() => setPick(i)}>
-                {[names(x), meta(x)].filter(Boolean).join(' · ')}
-              </Key>
-            ))}
-          </div>
-          )}
+          {scenarios.length > 1
+            ? <StretchList scenarios={scenarios} s={s} pick={setPick} names={names} meta={meta} text={text} layersOf={t => (p.jerseys ? p.jerseys[t.slug] : null)} />
+            : <Key on>{text(s)}</Key>}
         </div>
         <span style={{ marginLeft: 'auto', flex: 'none' }}><ModeSwitch mode={mode} setMode={setMode} /></span>
       </div>

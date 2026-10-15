@@ -456,12 +456,15 @@ function Frame({ p, ls }) {
   const scenarios = view.scenarios
   const s = scenarios[Math.min(pick, scenarios.length - 1)]
   const teams = new Set(scenarios.map(x => x.team).filter(Boolean))
-  // Another span keeps the same stars picked when it has them.
+  // Another span opens on its top star combined (ALL) where it has one, else on the same
+  // stars where it has them, else its first stretch; a view opens the same way, the
+  // server putting ALL first.
   const choose = (from, to) => {
     const next = viewOf(from, to)
     if (!next || next === view) return
     setSpan({ from, to })
-    setPick(Math.max(0, next.scenarios.findIndex(x => starsKey(x) === starsKey(s))))
+    const all = next.scenarios.findIndex(x => x.all && x.kind === 'one')
+    setPick(all >= 0 ? all : Math.max(0, next.scenarios.findIndex(x => starsKey(x) === starsKey(s))))
   }
   // The picked span and scenario: the animated parts remount on it, so each pick replays.
   const skey = `${view.id}-${starsKey(s)}`

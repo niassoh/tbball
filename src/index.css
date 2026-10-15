@@ -139,6 +139,10 @@ html { scroll-behavior: smooth; }
 .ls-keys { scrollbar-width: none; }
 .ls-keys::-webkit-scrollbar { display: none; }
 .ls-keys > * { flex: none; }
+/* A long span's list of stretches: a row darkens under the pointer (the picked one keeps
+   its own lit background); on a phone its minutes bar gives way to the names. */
+.ls-stretch:hover { background: #2c2a28; }
+@media (max-width: 560px) { .ls-stretch-bar { display: none; } }
 /* The bar over the module: span picker, the stars, RAW | PCTL on one line; narrow, the
    stars wrap to a line of their own under the other two. */
 .ls-bar { display: flex; align-items: center; gap: 8px; }

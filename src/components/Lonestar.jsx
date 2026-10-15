@@ -5,6 +5,7 @@ import { STATS, change, lastName, namesText, posOf, seasonTag, starsText, toneOf
 import { spanId, spanText } from '../lib/seasons.js'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import ModeSwitch from './ModeSwitch.jsx'
+import Popover from './Popover.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
@@ -157,19 +158,21 @@ function Plot({ s, width: W, skey }) {
 // Each wears the jersey of the stretch's team where his portrait has jersey layers. The
 // art runs off its square's sides where shoulders are wide, so the bust's lower half fades
 // out toward the sides (FADE, as the bio card's portrait fades) instead of ending in a
-// straight slice; the middle stays solid down to the rule.
+// straight slice; the middle stays solid down to the rule. Drawn small (the list of a long
+// span's stretches), it loads the 100px images.
 const FADE = 'linear-gradient(#000 0 50%, transparent 85%), linear-gradient(90deg, transparent 0, #000 24%, #000 76%, transparent 100%)'
 function Portrait({ who, team, on, size, layers, jersey }) {
   const [failed, setFailed] = useState(false)
   const dim = on ? {} : { filter: 'grayscale(1)', opacity: 0.45 }
   const place = { display: 'block', alignSelf: 'end', justifySelf: 'center', ...dim }
   const bench = on ? undefined : 'ls-bench'
+  const px = size > 50 ? 400 : 100
   return who.headshot && !failed
     ? (
         <span className={bench} style={{ position: 'relative', width: size, height: size, WebkitMaskImage: FADE, maskImage: FADE, ...place }}>
-          <img src={headshotUrl(who.slug || who.face, 400, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)}
+          <img src={headshotUrl(who.slug || who.face, px, who.headshotVersion, who.headshot)} alt="" onError={() => setFailed(true)}
             style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', objectPosition: '50% 100%' }} />
-          {who.headshot === 'jersey' && <JerseyOverlay slug={who.slug} size={400} layers={layers} id={jersey} />}
+          {who.headshot === 'jersey' && <JerseyOverlay slug={who.slug} size={px} layers={layers} id={jersey} />}
         </span>
       )
     : <span className={bench} style={{ width: size * 0.7, height: size * 0.7, ...place }}><TeamInitials name={who.name || '?'} team={team} fontSize={12} /></span>
@@ -301,6 +304,80 @@ const legendArrow = (color, dir) => {
 
 const starsKey = x => `${x.team}-${x.stars.map(t => t.id).join()}`
 
+// Over a span with more stretches than KEYS_MAX (stars change across it), the keys give
+// way to one box, as the season picker's: it opens a list of every stretch, most minutes
+// without first (his sample in it), each with its stars' faces in the stretch's jersey
+// (standing on the row's rule, as the cast stands on its own; greyed but on the picked
+// row), its team and seasons under the names, and a bar for those minutes (not on a
+// phone, where the names need the room), the one on show lit as the year strip's pick is. A click picks and closes; the arrow keys move the pick
+// with the panel open, the module following behind it, and Enter closes.
+const KEYS_MAX = 4
+function StretchList({ scenarios, s, pick, names, meta, layersOf }) {
+  const order = scenarios.map((x, i) => i).sort((a, b) => scenarios[b].off.minutes - scenarios[a].off.minutes)
+  const at = scenarios.indexOf(s)
+  const text = x => [names(x), meta(x)].filter(Boolean).join(' · ')
+  return (
+    <Popover name={`Without: ${text(s)}`} minWidth={300} trigger={<>
+      {text(s)}
+      <span style={{ ...label, fontWeight: 400, color: FAINT }}>{order.indexOf(at) + 1} of {scenarios.length}</span>
+    </>}>
+      {close => <Stretches scenarios={scenarios} order={order} at={at} pick={pick} close={close} names={names} meta={meta} layersOf={layersOf} />}
+    </Popover>
+  )
+}
+
+// The list in the open panel: it takes the arrow keys as it opens, the pick kept in view.
+const FACE = 34
+function Stretches({ scenarios, order, at, pick, close, names, meta, layersOf }) {
+  const list = useRef(null)
+  useEffect(() => {
+    list.current.focus({ preventScroll: true })
+    list.current.querySelector('[aria-selected="true"]').scrollIntoView({ block: 'nearest' })
+  }, [at])
+  const most = scenarios[order[0]].off.minutes
+  return (
+    <div ref={list} role="listbox" aria-label="Stars without" tabIndex={0} style={{ outline: 'none', display: 'flex', flexDirection: 'column' }}
+      onKeyDown={e => {
+        const step = { ArrowDown: 1, ArrowUp: -1 }[e.key]
+        if (e.key === 'Enter') return close()
+        if (!step) return
+        e.preventDefault()
+        pick(order[Math.min(order.length - 1, Math.max(0, order.indexOf(at) + step))])
+      }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '0 10px 6px 12px', borderBottom: `1px solid ${EDGE}` }}>
+        <span style={label}>Without · {scenarios.length} stretches</span>
+        <span style={label}>W/O min</span>
+      </div>
+      <div style={{ maxHeight: 'min(420px, 60vh)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: `${EDGE} transparent` }}>
+        {order.map(i => {
+          const x = scenarios[i]
+          const on = i === at
+          return (
+            <div key={starsKey(x)} role="option" aria-selected={on} className="ls-stretch" onClick={() => { pick(i); close() }}
+              style={{ display: 'flex', alignItems: 'center', gap: 14, height: 42, padding: '0 10px 0 12px', borderBottom: `1px solid ${RULE}`, background: on ? '#3d3a37' : undefined, boxShadow: on ? 'inset 2px 0 0 var(--accent)' : 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <span aria-hidden="true" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', width: 2 * FACE - 10, filter: on ? 'none' : 'grayscale(1)', opacity: on ? 1 : 0.7 }}>
+                {x.stars.map((t, k) => (
+                  <span key={t.id} style={{ display: 'grid', width: FACE, height: FACE, marginLeft: k ? -10 : 0 }}>
+                    <Portrait who={t} team={x.team} on size={FACE} layers={layersOf(t)} jersey={x.jersey} />
+                  </span>
+                ))}
+              </span>
+              <span style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: on ? INK : MID, fontWeight: on ? 700 : 500 }}>{names(x)}</span>
+                {meta(x) && <span style={{ fontSize: 8.5, color: DIM }}>{meta(x)}</span>}
+              </span>
+              <span style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                <span className="ls-stretch-bar" style={{ width: 56, height: 2, background: RULE }}><span style={{ display: 'block', height: 2, width: `${(100 * x.off.minutes) / most}%`, background: on ? 'var(--accent)' : FAINT }} /></span>
+                <span style={{ width: 40, textAlign: 'right', color: on ? INK : MID }}>{Math.round(x.off.minutes).toLocaleString()}</span>
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // The tab fetches its views (every season and span) when opened; the profile has only
 // his seasons, for the header.
 export default function Lonestar({ profile: p }) {
@@ -347,23 +424,29 @@ function Frame({ p, ls }) {
   // The picked span and scenario: the animated parts remount on it, so each pick replays.
   const skey = `${view.id}-${starsKey(s)}`
   const n = view.seasons.length
+  // A stretch's team (a span with several) and seasons (fewer than the span's).
+  const meta = x => [teams.size > 1 && x.team, x.seasons.length < n && seasonTag(x.seasons)].filter(Boolean).join(' · ')
+  const names = x => namesText(x.stars)
   return (
     <div className="ls-frame" style={{ border: `1px solid ${RULE}`, fontFamily: MONO }}>
       {/* One row of fixed height, so the module's never changes: the span (its strip in a
-          panel), the stars (on one line, scrolling sideways when a span has many teams),
-          RAW | PCTL. A stretch from fewer of the span's seasons carries its seasons.
-          Narrow, the stars take a row of their own (index.css .ls-bar). */}
+          panel), the stars (keys on one line, scrolling sideways when a span has many teams;
+          past KEYS_MAX a box opening the list of them), RAW | PCTL. A stretch from fewer of
+          the span's seasons carries its seasons. Narrow, the stars take a row of their own
+          (index.css .ls-bar). */}
       <div className="ls-bar" style={{ padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
         <SeasonPicker seasons={ls.seasons} from={span.from} to={span.to} n={n} pick={choose} />
         <div className="ls-without">
           <span style={{ ...label, margin: '0 6px 0 10px' }}>Without</span>
+          {scenarios.length > KEYS_MAX ? <StretchList scenarios={scenarios} s={s} pick={setPick} names={names} meta={meta} layersOf={t => (p.jerseys ? p.jerseys[t.slug] : null)} /> : (
           <div className="ls-keys" style={{ display: 'flex', gap: 8, overflowX: 'auto', minWidth: 0, flex: 1 }}>
             {scenarios.map((x, i) => (
               <Key key={starsKey(x)} on={x === s} onClick={() => setPick(i)}>
-                {namesText(x.stars)}{teams.size > 1 ? ` · ${x.team}` : ''}{x.seasons.length < n ? ` · ${seasonTag(x.seasons)}` : ''}
+                {[names(x), meta(x)].filter(Boolean).join(' · ')}
               </Key>
             ))}
           </div>
+          )}
         </div>
         <span style={{ marginLeft: 'auto', flex: 'none' }}><ModeSwitch mode={mode} setMode={setMode} /></span>
       </div>

@@ -341,7 +341,10 @@ function Views({ p, doc, faces }) {
   const loneOn = lone && anchors.length > 0
   const loneMin = (fp.effects.find(e => e.lone) || {}).lone
   // His team's points per 100 scored and allowed with him on against the league's (rORTG,
-  // rDRTG), and from him off to on; blue where it helps (more scored, fewer allowed).
+  // rDRTG), and from him off to on; blue where it helps (more scored, fewer allowed). With
+  // REMOVE BEST, rORTG is its OFFENSE tile's over the minutes his best teammate sits;
+  // rDRTG stays on all his minutes, dimmed as the DEFENSE row is.
+  const ortg = (loneOn && (fp.effects.find(e => e.key === 'ortg') || {}).lone) || fp.ortg
   const rating = (name, x, good) => (
     <span>
       <span style={{ color: DIM }}>ON {name}</span> <span style={{ color: tone(x.r, good) }}>{swingText(x.r)}</span>{' '}
@@ -409,10 +412,10 @@ function Views({ p, doc, faces }) {
             <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>in {lastName(p.name)}&apos;s {fp.minutes.on.toLocaleString()} ON court vs {fp.minutes.off.toLocaleString()} OFF</p>
           )}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title="His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on">
-          {rating('rORTG', fp.ortg, 1)}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title={`His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on${loneOn ? '; rORTG over the minutes his best teammate sits, rDRTG over all his minutes' : ''}`}>
+          {rating('rORTG', ortg, 1)}
           <span style={{ color: DIM }}>·</span>
-          {rating('rDRTG', fp.drtg, -1)}
+          <span style={{ opacity: loneOn ? 0.45 : 1, transition: 'opacity .3s' }}>{rating('rDRTG', fp.drtg, -1)}</span>
         </div>
       </div>
       {/* TEAM MATES, then TEAM OFFENSE, then TEAM DEFENSE, a row each. */}

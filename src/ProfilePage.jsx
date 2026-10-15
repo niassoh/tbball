@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useParams, useLocation, Link } from 'react-router-dom'
 import { fetchProfile, peekProfile } from './api.js'
 import { MONO } from './lib/format.js'
@@ -98,6 +98,17 @@ function ProfilePage({ slug, playoffs }) {
   const [loaded] = useState(() => !peekProfile(slug, playoffs))
   // Footprint first, wherever it's there (else the first tab).
   const [tab, setTab] = useState('footprint')
+  // Where the tab bar sits before it sticks: a tab picked from further down opens at its
+  // top, under the bar. Left to the browser, the old tab's going would clamp the scroll to
+  // the new one's length and land partway into it (Footprint runs longer than Lonestar,
+  // and Lonestar's loading box shorter still).
+  const tabsTop = useRef(null)
+  const pickTab = id => {
+    const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 0
+    const top = tabsTop.current ? tabsTop.current.getBoundingClientRect().top + window.scrollY - bar : null
+    if (top !== null && window.scrollY > top) window.scrollTo({ top, behavior: 'instant' })
+    setTab(id)
+  }
   // The stat tables' dragged season span, kept here so it carries across tabs; tagged
   // with the player it was made on, so another player starts without one.
   const [span, setSpan] = useState(null)
@@ -164,7 +175,8 @@ function ProfilePage({ slug, playoffs }) {
 
         {p.seasons.length ? (
           <>
-            <TabNav tabs={tabs} active={activeTab} onPick={setTab} />
+            <div ref={tabsTop} aria-hidden="true" />
+            <TabNav tabs={tabs} active={activeTab} onPick={pickTab} />
 
             <div className={loading ? 'fold-loading' : 'fold-ready'}>
               {statTab && <StatSection key={`${fold}-${activeTab}`} profile={p} tab={statTab} sel={span && span.slug === fold ? span : null} setSel={s => setSpan(s && { ...s, slug: fold })} pctView={pctView} setPctView={setPctView} />}

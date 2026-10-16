@@ -255,7 +255,8 @@ function Numbers({ s, minRank }) {
 // A row's slider, the plot's vector in one dimension: a hairline ruler across the stat's
 // league range (ticks at the quarters, longer at the ends), a hollow square where he is
 // with the stars and a sharp head where he is without them, joined by a shaft in the
-// change's colour (grey when it shows as 0.0). Placed in percentages, so it fits any
+// change's colour (grey when it shows as 0.0); with `trail`, the square is outlined in that
+// colour and the shaft fades in from it (Footprint's REMOVE BEST line). Placed in percentages, so it fits any
 // column width. On each pick the shaft grows from the square and the head snaps on, the
 // rows a beat apart (index.css .ls-grow, .ls-pop; none with reduced motion).
 const SQUARE = 9
@@ -264,7 +265,7 @@ const head = (dir, color) => ({ width: HEAD.len, height: HEAD.half * 2, flex: 'n
 const at = (left, size) => ({ position: 'absolute', left, top: `calc(50% - ${size / 2}px)` })
 const pct = x => `${+(x * 100).toFixed(2)}%`
 
-export function Slider({ on, off, scale, color, index }) {
+export function Slider({ on, off, scale, color, index, trail }) {
   const a = posOf(scale, on)
   const b = posOf(scale, off)
   const dir = a !== null && b !== null && b < a ? -1 : 1
@@ -286,11 +287,11 @@ export function Slider({ on, off, scale, color, index }) {
       {a !== null && b !== null && (
         <span className="ls-grow" style={{
           ...at(dir > 0 ? `calc(${pct(a)} + ${SQUARE / 2}px)` : `calc(${pct(b)} + ${HEAD.len}px)`, 2),
-          width: `max(0px, calc(${pct(Math.abs(b - a))} - ${gap}px))`, height: 2, background: color,
+          width: `max(0px, calc(${pct(Math.abs(b - a))} - ${gap}px))`, height: 2, background: trail ? `linear-gradient(to ${dir > 0 ? 'right' : 'left'}, ${trail}, ${color})` : color,
           transformOrigin: dir > 0 ? 'left' : 'right', ...delay(0.1)
         }} />
       )}
-      {a !== null && <span style={{ ...at(`calc(${pct(a)} - ${SQUARE / 2}px)`, SQUARE), width: SQUARE, height: SQUARE, boxSizing: 'border-box', border: `1.5px solid ${MID}`, background: BG }} />}
+      {a !== null && <span style={{ ...at(`calc(${pct(a)} - ${SQUARE / 2}px)`, SQUARE), width: SQUARE, height: SQUARE, boxSizing: 'border-box', border: `1.5px solid ${trail || MID}`, background: BG }} />}
       {b !== null && <span className="ls-pop" style={{ ...at(headLeft, HEAD.half * 2), ...head(dir, color), ...delay(0.45) }} />}
     </span>
   )

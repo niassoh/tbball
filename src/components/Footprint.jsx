@@ -188,8 +188,8 @@ function Details({ e, anchors, color, right, scale }) {
 // the stat's league range of on values (`scale`, about the league's value: its 1st, 50th
 // and 99th percentiles), a hollow square at his team's value with him off and a head at
 // it with him on, joined in the swing's color (grey unlit); in REMOVE BEST a second line,
-// also in its swing's color and labeled in its side's, for the minutes those teammates
-// sit. Each draws in, a beat apart.
+// in its swing's color fading in from its side's, labeled in its side's, for the minutes
+// those teammates sit. Each draws in, a beat apart.
 // The range's ends round out to a round step (roundOut), the league's value marked where
 // it falls.
 function Against({ e, scale, color }) {
@@ -206,7 +206,7 @@ function Against({ e, scale, color }) {
       {lines.map((x, i) => (
         <div key={x.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ ...tick, width: 74, flex: 'none', color: x.tag || DIM }}>{x.label}</span>
-          <div style={{ flex: 1, minWidth: 0 }}><Slider on={x.off} off={x.on} scale={raw} color={x.color} index={i * 4} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}><Slider on={x.off} off={x.on} scale={raw} color={x.color} trail={x.tag} index={i * 4} /></div>
         </div>
       ))}
       <div style={{ display: 'flex', gap: 10 }}>

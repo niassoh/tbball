@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { UNITS, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from './footprint.js'
+import { UNITS, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -42,14 +42,6 @@ describe('footprint', () => {
     expect(unitOf('tovPct', 'pct')).toBe('TOV%')
     expect(unitOf('orebPct', 'pct')).toBe('ORB%')
     expect(unitOf('tm3Rate', 'pct')).toBe('PCT PTS')
-  })
-
-  test('percentiles as ordinals', () => {
-    expect(pctlText(95)).toBe('95TH PCTL')
-    expect(pctlText(1)).toBe('1ST PCTL')
-    expect(pctlText(22)).toBe('22ND PCTL')
-    expect(pctlText(13)).toBe('13TH PCTL')
-    expect(pctlText(null)).toBe(null)
   })
 
   test('the teammate check is named for his anchor', () => {

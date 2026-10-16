@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { MEDAL_SHARES, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from '../lib/footprint.js'
+import { MEDAL_SHARES, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from '../lib/footprint.js'
 import { namesText, posOf, seasonRanges, starsText } from '../lib/lonestar.js'
 import { spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
@@ -126,21 +126,29 @@ function MateMark({ size = 15 }) {
   )
 }
 
+// A percentile as a small badge raised on its value, in its medal's color when it has one.
+function PctlBadge({ p, medal, title }) {
+  if (p === null || p === undefined) return null
+  const c = medal ? MEDALS[medal - 1] : DIM
+  return <span title={medal ? `${title}; in the league's top ${Math.round(MEDAL_SHARES[medal - 1] * 100)}%` : title} style={{ display: 'inline-block', verticalAlign: 'top', marginLeft: 5, marginTop: 1, padding: '1px 3px', border: `1px solid ${c}`, color: c, fontSize: 8.5, lineHeight: 1, letterSpacing: '.04em' }}>{p}</span>
+}
+
 // A tile's details, on hover (a tap on a phone), as a sheet: his team's value off and on,
-// the swing (its unit, its percentile among players' swings with higher better, or for a
-// style its size, and its medal), the on value's
-// league and percentile; in LONE, his minutes on and off too; and, for a tile lit by a teammate
-// effect, what its swing comes to in LONE. Opens leftward from a tile on the right of its
-// row.
+// the on value's percentile against the league's raised on it, the swing with its percentile
+// among players' swings (higher better, or for a style its size) in its medal's color; in
+// LONE, his minutes on and off too; and, for a tile lit by a teammate effect, what its swing
+// comes to in LONE. The unit is the tile's, the league's value the chart's. Opens leftward
+// from a tile on the right of its row.
 // `color`: a lit tile's; an unlit one's swing is ink.
 function Details({ e, anchors, color, right, scale }) {
   const medal = medalOf(e)
   const sits = `WHEN ${anchorName(anchors)} ${anchors.length > 1 ? 'SIT' : 'SITS'}`
   const head = { fontSize: 9, letterSpacing: '.14em', color: DIM }
-  const big = { fontSize: 18, lineHeight: 1.15, color: INK }
+  const big = { fontSize: 18, lineHeight: 1.15, color: INK, whiteSpace: 'nowrap' }
   const sub = { fontSize: 9.5, letterSpacing: '.06em', color: DIM, whiteSpace: 'nowrap' }
   const rule = `1px solid ${RULE}`
   const has = e.on !== null && e.on !== undefined
+  const swingPctl = e.swingPctl ?? e.pctl
   return (
     <div role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 4px)', ...(right ? { right: 0 } : { left: 0 }), zIndex: 30, width: 340, maxWidth: 'calc(100vw - 32px)', background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10, fontFamily: MONO, fontSize: 10.5, lineHeight: 1.4, letterSpacing: '.04em', color: '#d8d2cb', fontVariantNumeric: 'tabular-nums', textAlign: 'left' }}>
       <span style={{ color: INK, textTransform: 'uppercase', letterSpacing: '.08em' }}>{e.label}{e.isLone && <span style={{ color: e.side === 'def' ? DEF_LONE : 'var(--accent)' }}> · REMOVE BEST</span>}</span>
@@ -150,14 +158,9 @@ function Details({ e, anchors, color, right, scale }) {
           <span style={head}>ON</span>
           <span style={head}>SWING</span>
           <span style={big}>{valueText(e, e.off)}</span>
-          <span style={big}>{valueText(e, e.on)}</span>
-          <span style={{ ...big, color: color || INK }}>{swingText(e.diff)}</span>
-          <span />
-          <span style={sub}>LG {valueText(e, e.lg)}</span>
-          <span style={sub}>{unitOf(e.key, e.unit)}</span>
-          <span />
-          <span style={sub}>{pctlText(e.onPctl)}</span>
-          <span style={{ ...sub, display: 'inline-flex', alignItems: 'center', gap: 5, color: medal ? MEDALS[medal - 1] : DIM }}>{medal && <Medal tier={medal} />}{(e.swingPctl ?? e.pctl) !== null && (e.swingPctl ?? e.pctl) !== undefined ? pctlText(e.swingPctl ?? e.pctl) : MISSING[e.status]}</span>
+          <span style={big}>{valueText(e, e.on)}<PctlBadge p={e.onPctl} title="Percentile of his team's on value against the league's" /></span>
+          <span style={{ ...big, color: color || INK }}>{swingText(e.diff)}<PctlBadge p={swingPctl} medal={medal} title="Percentile of the swing among players' swings in this stat" /></span>
+          {(swingPctl === null || swingPctl === undefined) && MISSING[e.status] && <span style={{ ...sub, gridColumn: '1 / -1' }}>{MISSING[e.status]}</span>}
           {e.isLone && <><span style={sub}>{e.min[1].toLocaleString()} MIN</span><span style={sub}>{e.min[0].toLocaleString()} MIN</span><span /></>}
         </div>
       ) : MISSING[e.status] && <span style={sub}>{MISSING[e.status]}</span>}
@@ -296,7 +299,7 @@ function Method({ fp, from, to }) {
             <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them. An unlit swing stays grey, brighter the bigger it is among players&apos;.</li>
             <li>REMOVE BEST shows the MATES and OFFENSE tiles again over only the minutes some of his teammates sit (off the floor on both sides), measured and lit the same way, except that a tile lit on all his minutes stays lit while its swing keeps at least half of itself there. Offense (the green box) offers the stars the Lonestar tab does for these seasons: each star, each top two, and all combined, each season without its own. Defense (the lavender box) goes without a defensive monster: a teammate on the floor for a quarter of the minutes whose defensive EPM (Dunks &amp; Threes, 2001-02 on) is in the top 10% of the league&apos;s rotation players that season; for a player who is one himself, his next-best defender by it. A row with no such teammate stays on all his minutes.</li>
             <li>A lit tile is marked as a teammate effect when its swing keeps less than half of itself, or turns round, with REMOVE BEST&apos;s first pick (all combined where there is one): most of it is those teammates&apos; minutes.</li>
-            <li>In a tile&apos;s details, the percentile under SWING is the swing&apos;s size among players&apos; swings in that stat; LG and the percentile under ON place his team&apos;s on value against the league&apos;s that season.</li>
+            <li>In a tile&apos;s details, the small badge on SWING is the swing&apos;s percentile among players&apos; swings in that stat; the one on ON and the chart&apos;s LG place his team&apos;s on value against the league&apos;s that season.</li>
             <li>A lit swing among the league&apos;s 10 best gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%. One among the 10 worst gets a red badge with its place from the bottom.</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

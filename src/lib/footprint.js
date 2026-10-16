@@ -37,8 +37,6 @@ const ordinal = n => {
   const v = n % 100
   return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
-// A percentile, "95TH PCTL".
-export const pctlText = p => (p === null || p === undefined ? null : `${ordinal(p)} PCTL`)
 
 // The Footprint document comes packed (thinking-bball lib/profile.js footprintDoc): the
 // stats' own fields once (`stats`), each view's effects and each REMOVE BEST option's tiles

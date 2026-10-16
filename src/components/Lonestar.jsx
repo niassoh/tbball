@@ -506,7 +506,7 @@ function Frame({ p, ls }) {
           RAW | PCTL. A stretch from fewer of the span's seasons carries its seasons.
           Narrow, the stars take a row of their own (index.css .ls-bar). */}
       <div className="ls-bar" style={{ padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
-        <SeasonPicker seasons={ls.seasons} from={span.from} to={span.to} n={n} pick={choose} ages={ageOf && { on: byAge, set: setByAge, of: ageOf }} />
+        <SeasonPicker seasons={ls.seasons} from={span.from} to={span.to} n={n} pick={choose} ages={ageOf && { on: byAge, set: setByAge, of: ageOf }} teamsOf={season => (p.seasons.find(s => s.season === season) || {}).teams} />
         <div className="ls-without">
           <span style={{ ...label, margin: '0 6px 0 10px' }}>Without</span>
           {scenarios.length > 1

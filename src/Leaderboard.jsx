@@ -7,6 +7,7 @@ import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
 import { seasonsBetween, spanYears } from './lib/seasons.js'
 import { useSeasonType } from './useSeasonType.js'
+import { useDragScroll } from './useDragScroll.js'
 import LeaderScatter from './components/LeaderScatter.jsx'
 import LeaderTable, { FilterMark } from './components/LeaderTable.jsx'
 import ModeSwitch from './components/ModeSwitch.jsx'
@@ -344,6 +345,8 @@ export default function Leaderboard() {
   const [held, setHeld] = useState(null)
   if (fresh && fresh !== held) setHeld(fresh)
   const doc = fresh === null ? held : fresh
+  // The table pans under a mouse drag, once the board is in.
+  useDragScroll(wrap, !!doc)
   const loading = fresh === null && !!doc
   const wanted = wantedKey ? wantedKey.split(',') : []
   const progress = wanted.length > 1 ? wanted.filter(k => k in cache).length / wanted.length : null

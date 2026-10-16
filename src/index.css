@@ -322,6 +322,10 @@ a:hover > .lineup-tile > * { filter: none; }
 @keyframes lb-shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
 @media (prefers-reduced-motion: reduce) { .lb-enter, .lb-skel, .lb-progress.lb-indet > span { animation: none; } }
 .lb-table-wrap { min-height: 0; overflow: auto; border: 1px solid #3d3a37; scroll-snap-type: x mandatory; }
+/* Panned with the mouse (useDragScroll): no snapping or text selection mid-drag; it snaps
+   to a column again on release. */
+.lb-table-wrap.dragging { scroll-snap-type: none; cursor: grabbing; user-select: none; }
+.lb-table-wrap.dragging .lb-row { cursor: grabbing; }
 /* On a phone the stats scroll freely under a finger (LeaderTable NARROW). */
 @media (max-width: 600px) {
   .lb-table-wrap { scroll-snap-type: none; }

@@ -115,12 +115,12 @@ function Eras({ era, set, playoffs }) {
   const rule = <span style={{ flex: 1, height: 1, background: EDGE }} />
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-      <div aria-hidden="true" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>{rule}<span style={{ ...label, color: DIM }}>or</span>{rule}</div>
-      <span style={{ ...label, color: era ? 'var(--accent)' : INK }}>Runs <span style={{ color: '#b8b2ab' }}>· every player's 3, 5 or 7 {playoffs ? 'playoff runs' : 'seasons'} in a row, across all years</span></span>
+      <div aria-hidden="true" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>{rule}<span style={{ ...label, fontSize: 10, color: '#b8b2ab' }}>or</span>{rule}</div>
+      <span style={{ ...label, fontSize: 10, color: era ? 'var(--accent)' : INK }}>Runs <span style={{ color: '#d9d3cc' }}>· every player's 3, 5 or 7 {playoffs ? 'playoff runs' : 'seasons'} in a row, across all years</span></span>
       <div role="group" aria-label="Runs" style={{ display: 'flex', border: `1px solid ${era ? 'var(--accent)' : EDGE}` }}>
         {ERAS.map(n => (
           <button key={n} type="button" aria-pressed={era === n} onClick={() => set(era === n ? null : n)} title={era === n ? 'Back to seasons' : `Every ${n}-season run of every player, averaged`}
-            style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: n === ERAS[0] ? 0 : `1px solid ${EDGE}`, background: era === n ? '#3a3734' : 'transparent', color: era === n ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: era === n ? 700 : 400, letterSpacing: '.1em', cursor: 'pointer' }}>{n} YR</button>
+            style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: n === ERAS[0] ? 0 : `1px solid ${EDGE}`, background: era === n ? '#3a3734' : 'transparent', color: era === n ? INK : '#e4dfd9', fontFamily: MONO, fontSize: 11, fontWeight: era === n ? 700 : 500, letterSpacing: '.1em', cursor: 'pointer' }}>{n} YR</button>
         ))}
       </div>
     </div>

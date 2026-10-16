@@ -10,6 +10,8 @@ const INK = '#ece8e3'
 const MID = '#b8b2ab'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
+// The panel's own text, a step brighter than the page's labels so it reads on the panel.
+const SOFT = '#d9d3cc'
 const EDGE = '#544f4b'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 
@@ -73,7 +75,7 @@ function YearRange({ seasons, from, to, pick }) {
           const on = from === seasons[seasons.length - n] && to === last
           return (
             <button key={name} type="button" aria-pressed={on} aria-label={name === 'All' ? 'All seasons' : `Last ${n} seasons`} onClick={() => pick(seasons[seasons.length - n], last)}
-              style={{ height: 22, padding: '0 9px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? LIT : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 9, fontWeight: on ? 700 : 500, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              style={{ height: 22, padding: '0 9px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? LIT : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: on ? INK : SOFT, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
               {name}
             </button>
           )
@@ -87,7 +89,7 @@ function YearRange({ seasons, from, to, pick }) {
           const end = season === from || season === to
           return (
             <span key={season} data-season={season} data-has={has.has(season) ? 1 : 0}
-              style={{ ...lines(i), boxSizing: 'border-box', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: lit ? LIT : 'transparent', boxShadow: lit ? 'inset 0 -2px 0 var(--accent)' : 'none', color: lit ? INK : has.has(season) ? DIM : FAINT, fontFamily: MONO, fontSize: 10, fontWeight: end ? 700 : 500, letterSpacing: '.04em', cursor: has.has(season) ? 'pointer' : 'default' }}>
+              style={{ ...lines(i), boxSizing: 'border-box', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: lit ? LIT : 'transparent', boxShadow: lit ? 'inset 0 -2px 0 var(--accent)' : 'none', color: lit ? INK : has.has(season) ? SOFT : FAINT, fontFamily: MONO, fontSize: 11, fontWeight: end ? 700 : 500, letterSpacing: '.04em', cursor: has.has(season) ? 'pointer' : 'default' }}>
               {shortSeason(season)}
             </span>
           )
@@ -116,8 +118,8 @@ export default function SeasonPicker({ seasons, from, to, n, pick, extra = null,
           <YearRange seasons={seasons} from={from} to={to} pick={pick} />
           <div style={{ contain: 'inline-size', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-              <span style={{ ...label, color: MID }}>{spanText(from, to)}{n > 1 ? ` · ${n} seasons` : ''}</span>
-              <span style={{ ...label, color: MID }}>Click a season · drag for a span</span>
+              <span style={{ ...label, fontSize: 10, color: INK }}>{spanText(from, to)}{n > 1 ? ` · ${n} seasons` : ''}</span>
+              <span style={{ ...label, fontSize: 10, color: MID }}>Click a season · drag for a span</span>
             </div>
             {aside}
           </div>

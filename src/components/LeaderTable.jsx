@@ -150,7 +150,7 @@ const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel
         <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <Face p={p} />
           <span title={p.name} style={{ width: narrow ? 84 : 130, flex: 'none', fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{short(p.name)}</span>
-          {p.era && <span style={{ flex: 'none', fontFamily: MONO, fontSize: 9.5, color: FAINT, letterSpacing: '.04em' }}>’{p.era[0].slice(5)}–’{p.era[1].slice(5)}</span>}
+          {p.era && <span style={{ flex: 'none', fontFamily: MONO, fontSize: 10.5, color: DIM, letterSpacing: '.04em' }}>’{p.era[0].slice(5)}–’{p.era[1].slice(5)}</span>}
         </span>
       </td>
       {doc.many && <td style={{ ...CELL, ...lock(0), color: '#b8b2ab', fontSize: 10.5 }}>’{p.season.slice(5)}</td>}

@@ -354,7 +354,10 @@ export default function Leaderboard() {
     // By age, each season keeps its players at those ages.
     const aged = !ageOn ? docs : docs.map(d => ({ ...d, players: d.players.filter(p => p.age !== null && p.age !== undefined && Math.floor(p.age) >= ageOn.from && Math.floor(p.age) <= ageOn.to) }))
     const board = eraOn ? eras(aged, eraOn) : each || aged.length === 1 ? eachSeason(aged) : combined(aged)
-    return { ...board, players: qualified(board.players, top) }
+    // By age, a combined row's seasons differ from player to player: each carries its own
+    // span (`era`), beside his name as a run's is.
+    const players = ageOn && board.combined ? board.players.map(p => ({ ...p, era: [p.seasons[0], p.seasons[p.seasons.length - 1]] })) : board.players
+    return { ...board, players: qualified(players, top) }
   }, [cache, wantedKey, each, top, eraOn, ageOn])
   // While another board loads (a span, eras, the last 30 days, the playoffs) the last one
   // stays up, dimmed under a progress line, and the new one comes up in its place; before
@@ -515,7 +518,7 @@ export default function Leaderboard() {
           </div>
           <div className={`lb-side${player ? ' lb-carded' : ''}`}>
             {player
-              ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} intro={!wasOpen.current} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? spanYears(player.era[0], player.era[1]) : spanText} />
+              ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} intro={!wasOpen.current} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? (player.era[0] === player.era[1] ? player.era[0].replace('-', '–') : spanYears(player.era[0], player.era[1])) : spanText} />
               : x && y
                 ? <LeaderScatter doc={chartDoc} shown={lit} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />
                 : <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'Nothing to chart'}</div>}

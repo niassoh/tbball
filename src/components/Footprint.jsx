@@ -133,7 +133,7 @@ function PctlBadge({ p, medal, title }) {
   return <span title={medal ? `${title}; in the league's top ${Math.round(MEDAL_SHARES[medal - 1] * 100)}%` : title} style={{ display: 'inline-block', verticalAlign: 'top', marginLeft: 5, marginTop: 1, padding: '1px 3px', border: `1px solid ${c}`, color: c, fontSize: 8.5, lineHeight: 1, letterSpacing: '.04em' }}>{p}</span>
 }
 
-// A tile's details, on hover (a tap on a phone), as a sheet: his team's value off and on,
+// A tile's details, on hover (a tap on a phone, see HOVER), as a sheet: his team's value off and on,
 // the on value's percentile against the league's raised on it, the swing with its percentile
 // among players' swings (higher better, or for a style its size) in its medal's color; in
 // LONE, his minutes on and off too; and, for a tile lit by a teammate effect, what its swing
@@ -242,6 +242,9 @@ const roundOut = ([lo, mid, hi]) => {
 // colors and the lit edge fade.
 // A tile is square and never under TILE_MIN_H, the height of its fullest content (a title on
 // three lines beside a place ribbon): its size never depends on what it says.
+// Its details open on hover or focus where the screen can hover; on a phone only a tap (a
+// click, which a scroll never makes) opens or closes them, so scrolling past never does.
+const HOVER = window.matchMedia('(hover: hover)').matches
 const TILE_MIN_H = 158
 function FootprintTile({ e, anchors, right, delay = 0, scale }) {
   const [open, setOpen] = useState(false)
@@ -260,8 +263,8 @@ function FootprintTile({ e, anchors, right, delay = 0, scale }) {
     // a row's tallest tile let a long title make a whole row taller and wider than its
     // columns, so tiles changed size with the player or span); minWidth 0: a long unit line
     // would otherwise widen it over the next.
-    <div tabIndex={0} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
-      onPointerUp={ev => { if (ev.pointerType !== 'mouse') setOpen(o => !o) }}
+    <div tabIndex={0} onBlur={() => setOpen(false)}
+      {...(HOVER ? { onMouseEnter: () => setOpen(true), onMouseLeave: () => setOpen(false), onFocus: () => setOpen(true) } : { onClick: () => setOpen(o => !o) })}
       style={{ position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', aspectRatio: '1 / 1', minHeight: TILE_MIN_H, alignSelf: 'start', minWidth: 0, background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
       {mate && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
       {place && <Ribbon place={place.place} worst={place.worst} />}

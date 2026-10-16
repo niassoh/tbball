@@ -70,6 +70,10 @@ const positionsOf = doc => {
 
 const combineOne = (entries, labels) => {
   const last = entries[entries.length - 1].p
+  // His age over the seasons: the plain mean of theirs (25 to 28 reads 26.5), in the Age
+  // stat too, not weighted by minutes as the other stats are.
+  const ages = entries.map(({ p }) => p.age).filter(a => a !== null && a !== undefined)
+  const age = ages.length ? ages.reduce((a, b) => a + b, 0) / ages.length : null
   const teams = [...new Set(entries.flatMap(({ p }) => p.teams || [p.team]).filter(t => !/TM$/.test(t)))]
   const at = entries.map(({ doc }) => positionsOf(doc))
   const v = labels.map(l => {
@@ -87,6 +91,7 @@ const combineOne = (entries, labels) => {
     })
     return weight ? sum / weight : null
   })
+  if (labels.includes('Age')) v[labels.indexOf('Age')] = age
   return {
     slug: last.slug,
     id: last.slug,
@@ -94,7 +99,7 @@ const combineOne = (entries, labels) => {
     team: teams.length > 1 ? `${teams.length} TM` : teams[0] || last.team,
     ...(teams.length > 1 ? { teams } : {}),
     pos: last.pos,
-    age: last.age,
+    age,
     gp: entries.reduce((a, { p }) => a + (p.gp || 0), 0),
     mp: entries.reduce((a, { p }) => a + (p.mp || 0), 0),
     headshot: last.headshot,

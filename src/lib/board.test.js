@@ -70,6 +70,14 @@ describe('board', () => {
     expect(a.p[0]).toBe(67)
   })
 
+  test('combined: his age is the plain mean of his seasons\' ages, in the Age stat too', () => {
+    // 25.4 over 1,000 minutes and 26.4 over 3,000: 25.9, not the minutes-weighted 26.15.
+    const aged = (season, age, mp) => withPlayer(doc(season, [P('a', mp, [1, 30, 1], { age })]))
+    const row = combined([aged('2023-24', 25.4, 1000), aged('2024-25', 26.4, 3000)]).players[0]
+    expect(row.age).toBeCloseTo(25.9, 9)
+    expect(row.v[labels.length]).toBeCloseTo(25.9, 9)
+  })
+
   test('combined delta: his playoffs against his regular seasons in the same seasons', () => {
     const po1 = doc('2023-24', [P('a', 200, [4, 50, 2])], 'playoffs')
     const po2 = doc('2024-25', [P('b', 100, [1, 20, 1])], 'playoffs')

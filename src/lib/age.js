@@ -13,6 +13,10 @@ export const ageIn = (born, season, today = new Date()) => {
 export const liveAges = (doc, today = new Date()) =>
   ({ ...doc, players: doc.players.map(p => (p.born ? { ...p, age: ageIn(p.born, doc.season, today) } : p)) })
 
+// A Leaderboard row's age as the site writes it: a season's in whole years, a combined
+// row's (several seasons, their mean) to one decimal; null without one.
+export const rowAge = p => (p.age === null || p.age === undefined ? null : p.seasons && p.seasons.length > 1 ? p.age.toFixed(1) : String(Math.floor(p.age)))
+
 // A span of ages as the season picker writes it: "Age 25", "Ages 25–28".
 export const agesText = (a, b) => (a === b ? `Age ${a}` : `Ages ${a}–${b}`)
 

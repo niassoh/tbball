@@ -1,6 +1,7 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { headshotUrl } from '../api.js'
+import { rowAge } from '../lib/age.js'
 import { MONO, fmt, heat } from '../lib/format.js'
 import { initials } from '../lib/teams.js'
 
@@ -37,7 +38,7 @@ const NARROW = '(max-width: 600px)'
 const plain = p => `rgba(201,195,188,${((Math.abs(p - 50) / 50) * 0.32).toFixed(2)})`
 // "N. Jokić": the first name as an initial, so the column stays narrow.
 const short = name => (name.includes(' ') ? `${name[0]}. ${name.split(' ').slice(1).join(' ')}` : name)
-const BIO = [['TM', p => p.team], ['POS', p => p.pos || '—'], ['AGE', p => (p.age === null ? '—' : Math.floor(p.age))], ['GP', p => p.gp ?? '—'], ['MIN', p => (p.mp === null ? '—' : p.mp.toLocaleString())]]
+const BIO = [['TM', p => p.team], ['POS', p => p.pos || '—'], ['AGE', p => rowAge(p) ?? '—'], ['GP', p => p.gp ?? '—'], ['MIN', p => (p.mp === null ? '—' : p.mp.toLocaleString())]]
 
 // A rolling window's bracket, drawn a header at a time: a rule along the top of each of
 // its columns, turned down at the first and last, the window named once at its left.

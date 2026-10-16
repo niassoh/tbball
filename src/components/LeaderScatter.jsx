@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
+import { rowAge } from '../lib/age.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
 import { axisOf, median, pctlOf, quadrantOf, radiusOf, valueOf } from '../lib/leaderboard.js'
 import { initials } from '../lib/teams.js'
@@ -86,7 +87,7 @@ function Tip({ doc, d, x, y, left, top }) {
         </span>
         <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
           <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.005em', color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
-          <span style={{ ...label, fontSize: 8 }}>{[doc.many && `’${p.season.slice(5)}`, p.team, p.pos, p.age !== null && `age ${Math.floor(p.age)}`, p.mp !== null && `${p.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>
+          <span style={{ ...label, fontSize: 8 }}>{[doc.many && `’${p.season.slice(5)}`, p.team, p.pos, rowAge(p) && `age ${rowAge(p)}`, p.mp !== null && `${p.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>
         </span>
       </div>
       <span style={{ height: 1, background: RULE }} />

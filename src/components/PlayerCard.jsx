@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchFootprint, fetchLonestar, fetchPlayers, fetchProfile, headshotUrl } from '../api.js'
 import { swingText, toneOf, topPlaceOf, unitOf, worstText } from '../lib/footprint.js'
+import { rowAge } from '../lib/age.js'
 import { MONO, col, fmt } from '../lib/format.js'
 import { pctlOf, valueOf } from '../lib/leaderboard.js'
 import { rollingStat } from '../lib/span.js'
@@ -411,7 +412,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
           <div style={{ display: 'flex', alignItems: 'center', minHeight: 12, minWidth: 0 }}>
             {fpShown
               ? <Readout x={fpShown} />
-              : <span className="pc-type" style={small}>{[pl.teams ? pl.teams.join('/') : pl.team, pl.pos, pl.age !== null && pl.age !== undefined && `${Math.floor(pl.age)} yrs`, pl.gp !== null && `${pl.gp} gp`, pl.mp !== null && `${pl.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>}
+              : <span className="pc-type" style={small}>{[pl.teams ? pl.teams.join('/') : pl.team, pl.pos, rowAge(pl) && `${rowAge(pl)} yrs`, pl.gp !== null && `${pl.gp} gp`, pl.mp !== null && `${pl.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>}
           </div>
           <span className="pc-name" style={{ marginTop: 3, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pl.name}</span>
           {/* The line is held while the footprint loads (and when it has none), so nothing moves. */}

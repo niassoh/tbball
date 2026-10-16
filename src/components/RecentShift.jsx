@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
 import { BANDS, BETTER, GOLD, MODES, mix, rgb, shotModel } from '../lib/shot.js'
 import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, KEY_HASHES, KEY_LINES, THREE_LINE } from '../lib/court.js'
+import { emptyNote } from '../lib/seasons.js'
 
 const legendSwatch = (color, label, round = false, hollow = false) => (
   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -195,12 +196,12 @@ const SLIDER_MID = [110, 122, 111]
 const SLIDER_LOW = [19, 18, 17]
 const sliderColor = (t, top) => rgb(t >= 0 ? mix(SLIDER_MID, top, t) : mix(SLIDER_MID, SLIDER_LOW, -t))
 
-function CoreStats({ profile: p, po = false }) {
+function CoreStats({ profile: p, shift, po = false }) {
   // Rises reach the site green, or gold in playoffs mode.
   const top = po ? GOLD : BETTER
   // The same rows every time (EMPTY_STATS' order), a missing one drawn empty, so the
   // card keeps its height between players and between the season and the playoffs.
-  const byStat = new Map(p.recentShift.stats.filter(r => p.stats[r.stat]).map(r => [r.stat, r]))
+  const byStat = new Map(shift.stats.filter(r => p.stats[r.stat]).map(r => [r.stat, r]))
   const rows = EMPTY_STATS.map(stat => byStat.get(stat) || { stat, missing: true })
   return (
     <>
@@ -312,14 +313,16 @@ function EmptyShotMap({ reason, divided }) {
 const windowLabel = games =>
   games === null ? 'THE LAST 30 DAYS' : `LAST ${games} GAME${games === 1 ? '' : 'S'}`
 
-// Playoffs mode: the latest playoffs against that regular season.
-function PlayoffShift({ profile: p }) {
-  const season = (p.recentShift && p.recentShift.season) || p.playoffs.latest
-  const label = season ? season.replace('-', '–') : ''
-  const games = p.gameLog && p.gameLog.playoffGames !== undefined ? p.gameLog.playoffGames : null
-  // In this season's playoffs but under the playoff sheet's minutes floor.
-  const played = p.playoffs.latest === season && p.seasons.length > 0
-  const reason = played ? 'NOT QUALIFIED' : `NO ${label} PLAYOFF GAMES`
+// Playoffs mode: the picked season's playoffs against its regular season (`shift`). A run
+// without one wasn't in the regular season's pull (under its minutes floor); an empty
+// season says why (emptyNote). The shot map is the latest playoffs' only.
+function PlayoffShift({ profile: p, season: k }) {
+  const s = p.seasons[k]
+  const season = s.season
+  const label = season.replace('-', '–')
+  const games = s.empty ? null : s.gp
+  const reason = s.empty ? emptyNote(s, 'playoffs') : 'NOT QUALIFIED'
+  const shots = p.shotShift && p.shotShift.season === season ? p.shotShift : null
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
@@ -330,14 +333,14 @@ function PlayoffShift({ profile: p }) {
           </span>
         </div>
       </div>
-      {p.recentShift ? <CoreStats profile={p} po /> : <EmptyStats reason={reason} />}
-      {p.shotShift ? <ShotMap shotShift={p.shotShift} divided po /> : <EmptyShotMap reason={played ? 'NO PLAYOFF SHOTS' : reason} divided />}
+      {s.shift ? <CoreStats profile={p} shift={s.shift} po /> : <EmptyStats reason={reason} />}
+      {shots ? <ShotMap shotShift={shots} divided po /> : <EmptyShotMap reason={s.empty ? reason : 'NO SHOT DATA'} divided />}
     </div>
   )
 }
 
-export default function RecentShift({ profile: p }) {
-  if (p.seasonType === 'playoffs') return <PlayoffShift profile={p} />
+export default function RecentShift({ profile: p, season }) {
+  if (p.seasonType === 'playoffs') return <PlayoffShift profile={p} season={season} />
   const games = p.gameLog && p.gameLog.recent ? p.gameLog.recent.games : null
   // Not in the pull, which keeps only players over the sheet's minutes floor: for the
   // season (no game log, so no shot data either), or, scaled to each window, in both
@@ -358,7 +361,7 @@ export default function RecentShift({ profile: p }) {
       </div>
       {games === 0 || unqualified
         ? <EmptyStats reason={games === 0 ? 'NO GAMES IN THE LAST 30 DAYS' : 'NOT QUALIFIED'} />
-        : <CoreStats profile={p} />}
+        : <CoreStats profile={p} shift={p.recentShift} />}
       {games !== 0 && p.shotShift
         ? <ShotMap shotShift={p.shotShift} divided />
         : <EmptyShotMap reason={games === 0 ? 'NO RECENT SHOTS' : 'NOT QUALIFIED'} divided />}

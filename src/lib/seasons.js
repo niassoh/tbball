@@ -10,3 +10,14 @@ export const seasonsBetween = (first, last) => Array.from({ length: Number(last.
 })
 export const spanText = (from, to) => (from === to ? from : `${from} → ${to}`).replace(/-/g, '–')
 export const spanId = (from, to) => (from === to ? from : `${from}..${to}`)
+
+// Why a profile's season has none of its type's values (`empty`): he played under the
+// sheet's minutes floor (his lineups that season have him on the floor), or not at all. A
+// regular season is only empty beside a playoff run, so he played it.
+export const MIN_FLOOR = { regular: 800, playoffs: 50 }
+export const emptyNote = (s, type) => {
+  const on = s.card && s.card.lineups && s.card.lineups.on
+  const under = `UNDER THE ${MIN_FLOOR[type]}-MIN FLOOR`
+  if (on && on.minutes) return `${on.minutes} MIN · ${under}`
+  return type === 'playoffs' ? 'NO PLAYOFF GAMES' : under
+}

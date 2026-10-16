@@ -9,6 +9,7 @@ import { rollingStat, spanMean, spanLabel, spanPctl, spanTeams } from '../lib/sp
 import { teamColor, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
 import { asset } from '../lib/static.js'
+import { emptyNote } from '../lib/seasons.js'
 
 const pct = (v, of) => `${(v / of * 100).toFixed(2)}%`
 // A dragged span is framed like a spreadsheet range; the other seasons fade back.
@@ -89,7 +90,7 @@ function DistStrip({ values, stat, value, pctl, lg }) {
 }
 
 // Hover card for one season point: square, flat, mono, the site's orange rule.
-function PointTip({ p, season, stat, dist }) {
+function PointTip({ p, season, stat, dist, note }) {
   const teams = season.teams && season.teams.length ? season.teams.join('/') : season.tm
   const flip = p.x > 200
   const anchor = Math.min(110, Math.max(20, p.has ? p.y : p.ly ?? 75))
@@ -97,6 +98,7 @@ function PointTip({ p, season, stat, dist }) {
     <div style={{ position: 'absolute', left: pct(p.x, 330), top: pct(anchor, 150), transform: flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)', zIndex: 2, pointerEvents: 'none', background: '#1f1d1c', border: '1px solid #837d76', borderTop: '2px solid #fa962a', padding: '6px 9px 7px', fontFamily: MONO, whiteSpace: 'nowrap', display: 'flex', flexDirection: 'column', gap: 3 }}>
       <span style={{ fontSize: 9, letterSpacing: '.06em', color: '#a09a93' }}>{season.label} · {teams}</span>
       <span style={{ fontSize: 15, fontWeight: 700, color: p.has ? '#ece8e3' : '#837d76', lineHeight: 1.1 }}>{p.has ? p.value : '—'}</span>
+      {note && <span style={{ fontSize: 9, letterSpacing: '.06em', color: '#a09a93' }}>{note}</span>}
       {p.has && <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.04em', color: p.color }}>{p.detail}</span>}
       {p.showLg && <span style={{ fontSize: 9, letterSpacing: '.04em', color: '#a09a93' }}>LG {p.lgValue}</span>}
       {p.has && dist && dist.length > 1 && <DistStrip values={dist} stat={stat} value={stat.vals[p.i].n} pctl={stat.vals[p.i].p} lg={stat.lg[p.i]} />}
@@ -104,7 +106,7 @@ function PointTip({ p, season, stat, dist }) {
   )
 }
 
-function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span }) {
+function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span, type }) {
   const m = chartModel(stat, seasons)
   const [hover, setHover] = useState(null)
   // The charted stat's league spread per season, for the hover card (not for Year to
@@ -148,6 +150,8 @@ function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span }) {
         {m.pts.map(p => (
           <span key={`dots-${p.i}`}>
             {p.ly !== null && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.ly, 150), width: 5, height: 5, marginLeft: -2.5, marginTop: -2.5, borderRadius: '50%', background: '#a09a93', pointerEvents: 'none' }} />}
+            {/* A season without values of this type: a hollow mark on the axis, its reason on hover. */}
+            {seasons[p.i].empty && <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(134, 150), width: 7, height: 7, marginLeft: -3.5, marginTop: -3.5, borderRadius: '50%', border: '1.5px solid #6a645e', background: '#2c2a28', boxSizing: 'border-box', pointerEvents: 'none' }} />}
             {p.has && (() => {
               const r = hover === p.i ? Math.max(p.r, 3.5) + 1.5 : p.r
               return <span style={{ position: 'absolute', left: pct(p.x, 330), top: pct(p.y, 150), width: r * 2, height: r * 2, marginLeft: -r, marginTop: -r, borderRadius: '50%', background: p.color, border: p.current || hover === p.i ? '1.5px solid #ece8e3' : 'none', boxSizing: 'border-box', pointerEvents: 'none' }} />
@@ -167,7 +171,7 @@ function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span }) {
           const to = Math.min(330, p.x + slot / 2)
           return <span key={`hit-${p.i}`} onMouseEnter={() => setHover(p.i)} style={{ position: 'absolute', top: 0, bottom: 0, left: pct(from, 330), width: pct(to - from, 330) }} />
         })}
-        {hover !== null && <PointTip p={m.pts[hover]} season={seasons[hover]} stat={stat} dist={seasonDist} />}
+        {hover !== null && <PointTip p={m.pts[hover]} season={seasons[hover]} stat={stat} dist={seasonDist} note={seasons[hover].empty ? emptyNote(seasons[hover], type) : null} />}
       </div>
       <TeamTimeline seasons={seasons} />
     </div>
@@ -267,7 +271,7 @@ export default function StatSection({ profile: p, tab, sel, setSel, pctView = fa
         </span>
       </SectionHeader>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
-        <SeasonChart stat={rollingOn ? rollingStat(p, charted, spanLen) : p.stats[charted]} label={charted} lineLabel={rollingOn ? `${spanLen}-YR AVG` : 'PLAYER'} seasons={p.seasons} span={spanOn ? { from, to, mean: spanMean(p, charted, from, to) } : null} />
+        <SeasonChart stat={rollingOn ? rollingStat(p, charted, spanLen) : p.stats[charted]} label={charted} lineLabel={rollingOn ? `${spanLen}-YR AVG` : 'PLAYER'} seasons={p.seasons} type={p.seasonType} span={spanOn ? { from, to, mean: spanMean(p, charted, from, to) } : null} />
         <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ position: 'relative' }}>
           {/* Clears the span: a slim tab on the frame's left side, outside the scrolling
@@ -307,7 +311,8 @@ export default function StatSection({ profile: p, tab, sel, setSel, pctView = fa
                   <span style={{ padding: '5px 10px', color: '#b3ada6', ...pinTeam(PAGE_BG) }}>{s.tm}</span>
                   <span style={{ color: '#a09a93', ...pinGames(PAGE_BG) }}>{count(s.gp)}</span>
                   <span style={{ color: '#a09a93', ...pinMinutes(PAGE_BG) }}>{count(s.mp)}</span>
-                  {shown.map(l => {
+                  {/* A season without values of this type says why across its row. */}
+                  {s.empty ? <span style={{ gridColumn: `span ${shown.length}`, alignSelf: 'center', padding: '0 10px', fontSize: 9.5, letterSpacing: '.1em', color: '#837d76', whiteSpace: 'nowrap' }}>{emptyNote(s, p.seasonType)}</span> : shown.map(l => {
                     const st = p.stats[l]
                     const v = st.vals[i]
                     return (

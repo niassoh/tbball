@@ -1,5 +1,6 @@
 import { MONO, col, fmt } from '../lib/format.js'
 import WindowTag from './WindowTag.jsx'
+import { emptyNote } from '../lib/seasons.js'
 
 // [group name, tab it links to, stat labels] as in the design's SNAPG.
 const GROUPS = [
@@ -16,19 +17,7 @@ const slide = props => (window.matchMedia?.('(prefers-reduced-motion: reduce)').
 
 // The season (an index into p.seasons) is picked on the season rail over the cards.
 export default function PercentileSnapshot({ profile: p, season: kp, onPickGroup }) {
-  const L = p.seasons.length - 1
   const title = p.seasonType === 'playoffs' ? 'Playoff Percentiles' : 'Percentiles'
-  // No playoff runs on file: the card keeps its frame with the reason in it.
-  if (L < 0) {
-    return (
-      <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <div style={{ padding: '12px 0 8px', borderBottom: '1px solid #544f4b', margin: '0 14px', fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase' }}>{title}</div>
-        <div style={{ flex: 1, minHeight: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#b3ada6', border: '1px solid #544f4b', padding: '4px 8px' }}>NO PLAYOFF GAMES</span>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -36,7 +25,9 @@ export default function PercentileSnapshot({ profile: p, season: kp, onPickGroup
         <span style={{ fontFamily: MONO, fontWeight: 600, whiteSpace: 'nowrap' }}>{p.seasons[kp].label}</span>
         <span style={{ whiteSpace: 'nowrap' }}>{title}</span>
       </div>
-      <div style={{ padding: '8px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ position: 'relative', padding: '8px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* A season without values of this type says why, over its empty rows. */}
+        {p.seasons[kp].empty && <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', zIndex: 1, fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: '#b3ada6', background: '#2c2a28', border: '1px solid #544f4b', padding: '4px 8px', whiteSpace: 'nowrap' }}>{emptyNote(p.seasons[kp], p.seasonType)}</span>}
         {GROUPS.map(([name, tab, labels]) => {
           // Every stat keeps its row (empty without a value this season), so the card, and
           // the row of cards with it, keeps one height across seasons and season types.

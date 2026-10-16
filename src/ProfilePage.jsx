@@ -34,22 +34,24 @@ const MIN_SWAP_MS = 350
 const STEP_MS = 900
 
 // The bio and percentile cards follow one season, picked on the rail over them.
-// A different player (the page isn't remounted) or season type starts at his latest
-// season, last season until the next one has games, so the bars slide from the old
-// player's percentiles to the new one's; arriving from a teammate link on a season's
-// card, at that season when he played it.
+// A different player (the page isn't remounted) starts at his latest season with games of
+// this type, so the bars slide from the old player's percentiles to the new one's;
+// arriving from a teammate link on a season's card, at that season when he played it.
+// Switching between the regular season and the playoffs keeps the season (both list the
+// same ones, a season without games of the type empty).
 function Cards({ profile: p, loading, onPickGroup }) {
   const L = p.seasons.length - 1
-  const who = `${p.slug}|${p.seasonType}`
   const from = useLocation().state
   const start = () => {
     const i = from && from.season ? p.seasons.findIndex(s => s.season === from.season) : -1
-    return i >= 0 ? i : L
+    if (i >= 0) return i
+    const played = p.seasons.findLastIndex(s => !s.empty)
+    return played >= 0 ? played : L
   }
-  const [pick, setPick] = useState(() => ({ who, i: start() }))
+  const [pick, setPick] = useState(() => ({ who: p.slug, i: start() }))
   const [playing, setPlaying] = useState(false)
-  if (pick.who !== who) {
-    setPick({ who, i: start() })
+  if (pick.who !== p.slug) {
+    setPick({ who: p.slug, i: start() })
     setPlaying(false)
   }
   const k = Math.min(pick.i, L)
@@ -64,12 +66,12 @@ function Cards({ profile: p, loading, onPickGroup }) {
   }, [playing, k, L])
 
   const choose = i => {
-    setPick({ who, i })
+    setPick(x => ({ ...x, i }))
     setPlaying(false)
   }
   const togglePlay = () => {
     if (playing) return setPlaying(false)
-    if (k >= L) setPick({ who, i: 0 })
+    if (k >= L) setPick(x => ({ ...x, i: 0 }))
     setPlaying(true)
   }
 
@@ -79,7 +81,7 @@ function Cards({ profile: p, loading, onPickGroup }) {
         {L > 0 && <div className="season-rail-cell"><SeasonRail seasons={p.seasons} index={k} onPick={choose} playing={playing} onTogglePlay={togglePlay} /></div>}
         <BioCard profile={p} season={k} loading={loading} />
         <PercentileSnapshot profile={p} season={k} onPickGroup={onPickGroup} />
-        <RecentShift profile={p} />
+        <RecentShift profile={p} season={k} />
       </div>
     </div>
   )
@@ -173,7 +175,7 @@ function ProfilePage({ slug, playoffs }) {
           <Cards profile={p} loading={loading} onPickGroup={setTab} />
         </section>
 
-        {p.seasons.length ? (
+        {p.seasons.some(s => !s.empty) ? (
           <>
             <div ref={tabsTop} aria-hidden="true" />
             <TabNav tabs={tabs} active={activeTab} onPick={pickTab} />
@@ -188,14 +190,14 @@ function ProfilePage({ slug, playoffs }) {
         ) : (
           // No playoff runs on file (playoffs mode only: every regular profile has seasons).
           <div className={loading ? 'fold-loading' : 'fold-ready'} style={{ borderTop: '2px solid var(--trim)', padding: '28px 0', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', fontFamily: MONO, fontSize: 11, letterSpacing: '.08em', color: '#b3ada6' }}>
-            <span>NO PLAYOFF GAMES SINCE 2013–14</span>
+            <span>NO PLAYOFF GAMES SINCE 2000–01</span>
             <button type="button" onClick={() => setPlayoffs(false)} style={{ background: 'transparent', border: '1px solid #544f4b', color: '#ece8e3', fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', padding: '4px 8px', cursor: 'pointer' }}>REGULAR SEASON →</button>
           </div>
         )}
 
         <footer style={{ marginTop: 56, paddingTop: 16, borderTop: '1px solid #544f4b', display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', fontFamily: MONO, fontSize: 11, color: '#a09a93' }}>
           {po
-            ? <span>Playoff percentiles vs. that postseason's players with 50+ MP · Career, span and league averages = minutes-weighted (shooting % = attempts-weighted) · Tracking shooting and rim defence cover that playoff run · Playoffs vs season = the latest playoffs vs. that regular season</span>
+            ? <span>Playoff percentiles vs. that postseason's players with 50+ MP · Career, span and league averages = minutes-weighted (shooting % = attempts-weighted) · Tracking shooting and rim defence cover that playoff run · Playoffs vs season = the picked season's playoffs vs. its regular season</span>
             : <span>Percentiles vs. players with 800+ MP · Career, span and league averages = minutes-weighted (shooting % = attempts-weighted) · 3YR / 2YR = tracking stats over that season and the ones before it · Recent shift = games in the last 30 days of the season vs. the rest</span>}
           <span>thinkingbasketball.net</span>
         </footer>

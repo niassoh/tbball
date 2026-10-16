@@ -110,7 +110,7 @@ function Each({ each, set }) {
 // a view of its own, not a span): every player's runs of 3, 5 or 7 of his seasons over all
 // the years (lib/board.js eras), the span lightly beside his name; in the playoffs, of his
 // playoff runs. A lit length again, or a season picked on the strip, goes back to seasons.
-// Turning runs on sets the minutes qualifier to the top quarter.
+// Turning runs on sets the minutes qualifier to the top half.
 const ERAS = [3, 5, 7]
 function Eras({ era, set, playoffs }) {
   const rule = <span style={{ flex: 1, height: 1, background: EDGE }} />
@@ -458,7 +458,7 @@ export default function Leaderboard() {
               pick={(from, to) => { setSpan({ from, to }); setEra(null) }}
               readout={windowed ? (doc && doc.window ? `${day(doc.window.start)}–${day(doc.window.end)}` : '…') : eraOn ? `${eraOn}-yr runs` : null}
               aside={many && !eraOn ? <Each each={each} set={setEach} /> : null}
-              extra={<Eras era={eraOn} set={n => { setEra(n); if (n) setTop(0.25) }} playoffs={playoffs} />} />
+              extra={<Eras era={eraOn} set={n => { setEra(n); if (n) setTop(0.5) }} playoffs={playoffs} />} />
           )
           : <Skel w={SEASONS_W} h={30} />}
         {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : <Skel w={MIN_W} h={30} />}

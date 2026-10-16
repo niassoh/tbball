@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { MONO } from '../lib/format.js'
 import { agesText } from '../lib/age.js'
 import { teamColor } from '../lib/teams.js'
+import { asset } from '../lib/static.js'
 import { seasonsBetween, shortSeason, spanText } from '../lib/seasons.js'
 import Popover from './Popover.jsx'
 
@@ -30,11 +31,11 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 // cell, the gaps between them too; `labelOf`: a cell's text; `noun`: what a cell is.
 // `tabs`: YEAR | AGE, sitting on the strip as its tabs, the quick spans beside them;
 // `quickOff`: by age they stay in place but can't be pressed.
-// `teamsOf` (a player's strip): under each season a thin rail in his team's colour, split in
-// the order he played for them in a season he was traded, a hairline gap between stints and
-// the team's code where a stint starts; a season he has no team for has none. Dark team
-// colours are lifted toward the ink so they read on the panel.
-const rail = t => `color-mix(in oklab, ${teamColor(t) || '#837d76'} 72%, ${INK})`
+// `teamsOf` (a player's strip): under the seasons a quiet band of his stints, as the stat
+// tabs' team timeline draws them but muted: each stint one block in its team's colour under
+// its seasons, its white logo and code where it has room; a season he was traded in split in
+// halves between the first team and the last; a season with no team, a gap.
+const HALF = 2
 const QUICK = [[2, 'L2'], [3, 'L3'], [5, 'L5']]
 const CELL = 38
 const LIT = '#3d3a37'
@@ -102,25 +103,43 @@ function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = nu
         {all.map((v, i) => {
           const lit = v >= from && v <= to
           const end = v === from || v === to
-          const ts = teamsOf ? teamsOf(v) || [] : null
-          const prev = ts && i > 0 ? teamsOf(all[i - 1]) || [] : []
-          const next = ts && i < all.length - 1 ? teamsOf(all[i + 1]) || [] : []
-          // The teams that start a stint here, the last of them named.
-          const fresh = ts ? ts.filter((t, k) => k > 0 || prev[prev.length - 1] !== t) : []
           return (
             <span key={v} data-i={i} data-has={has.has(v) ? 1 : 0}
-              style={{ ...lines(i), position: 'relative', boxSizing: 'border-box', height: ts ? 44 : 30, display: 'flex', flexDirection: ts ? 'column' : 'row', alignItems: 'center', justifyContent: ts ? 'flex-start' : 'center', gap: 3, paddingTop: ts ? 7 : 0, background: lit ? LIT : 'transparent', boxShadow: lit ? 'inset 0 -2px 0 var(--accent)' : 'none', color: lit ? INK : has.has(v) ? SOFT : FAINT, fontFamily: MONO, fontSize: 11, fontWeight: end ? 700 : 500, letterSpacing: '.04em', cursor: has.has(v) ? 'pointer' : 'default' }}>
+              style={{ ...lines(i), boxSizing: 'border-box', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: lit ? LIT : 'transparent', boxShadow: lit ? 'inset 0 -2px 0 var(--accent)' : 'none', color: lit ? INK : has.has(v) ? SOFT : FAINT, fontFamily: MONO, fontSize: 11, fontWeight: end ? 700 : 500, letterSpacing: '.04em', cursor: has.has(v) ? 'pointer' : 'default' }}>
               {labelOf(v)}
-              {ts && <span style={{ height: 9, fontSize: 7.5, lineHeight: '9px', fontWeight: 600, letterSpacing: '.1em', color: lit ? SOFT : FAINT }}>{fresh.length ? fresh[fresh.length - 1] : ''}</span>}
-              {ts && ts.length > 0 && (
-                <span aria-hidden="true" style={{ position: 'absolute', left: fresh.length && fresh[0] === ts[0] ? 4 : 0, right: next[0] !== ts[ts.length - 1] ? 4 : 0, bottom: 6, height: 3, display: 'flex', gap: 2 }}>
-                  {ts.map((t, k) => <span key={k} title={t} style={{ flex: 1, background: rail(t) }} />)}
-                </span>
-              )}
             </span>
           )
         })}
       </div>
+      {teamsOf && <TeamBand all={all} cols={cols} teamsOf={teamsOf} />}
+    </div>
+  )
+}
+
+// The stints under the strip, on its grid in half-seasons, so a block starts and ends with
+// its seasons and a traded season splits; a block breaks where the strip wraps to a new row.
+function TeamBand({ all, cols, teamsOf }) {
+  const per = cols * HALF
+  const halves = all.flatMap(v => { const ts = teamsOf(v) || []; return [ts[0] || null, ts[ts.length - 1] || null] })
+  const blocks = []
+  for (let h = 0; h < halves.length;) {
+    if (!halves[h]) { h++; continue }
+    let e = h
+    while (e + 1 < halves.length && halves[e + 1] === halves[h] && Math.floor((e + 1) / per) === Math.floor(h / per)) e++
+    blocks.push({ team: halves[h], from: h, span: e - h + 1 })
+    h = e + 1
+  }
+  return (
+    <div aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: `repeat(${per}, minmax(0, 1fr))`, gridAutoRows: 12, rowGap: 3, marginTop: 3 }}>
+      {blocks.map(b => {
+        const color = teamColor(b.team)
+        return (
+          <span key={b.from} title={b.team} style={{ gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, marginRight: 1, display: 'flex', alignItems: 'center', gap: 3, padding: '0 4px', overflow: 'hidden', background: `color-mix(in srgb, ${color || '#837d76'} 42%, #2c2a28)` }}>
+            {b.span >= HALF && color && <img src={asset(`logos/${b.team}.png`)} alt="" style={{ width: 8, height: 8, objectFit: 'contain', opacity: 0.75, flex: 'none' }} />}
+            {b.span >= HALF && <span style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: MID, whiteSpace: 'nowrap' }}>{b.team}</span>}
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -155,7 +174,7 @@ const SPAN_W = 184
 // `of`, a player's seasons labelled with his age in each (the pick still seasons, "Ages
 // 25–28 · 4"); else `list`, the ages to pick from (`all` the strip's every age, those not
 // in `list` dim), `from`, `to` and `pick` (the Leaderboard's every season at those ages,
-// "Ages 25–28"). `teamsOf`: a player's teams in a season, for the strip's team rail.
+// "Ages 25–28"). `teamsOf`: a player's teams in a season, for the band of his stints under the strip.
 export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, aside = null, readout = null, title = 'Seasons', disabled = false, width = SPAN_W, ages = null, teamsOf = null }) {
   const byAge = !!(ages && ages.on)
   const years = seasonsBetween(seasons[0], seasons[seasons.length - 1])

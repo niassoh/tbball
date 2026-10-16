@@ -113,8 +113,9 @@ function Each({ each, set }) {
 // Turning runs on sets the minutes qualifier to the top half.
 const ERAS = [3, 5, 7]
 // The ages the picker offers by age: every season's players at those ages (their age on
-// February 1 of it), a row each or combined over the span. Turning it on reads one age, 25,
-// a row per season.
+// February 1 of it), a row each or combined over the span; once the seasons are in, an age
+// no player had (18: the 1996-97 board lacks Kobe) is dim and can't be picked. Turning it on
+// reads one age, 25, a row per season.
 const AGES = Array.from({ length: 26 }, (_, i) => 18 + i)
 const FIRST_AGE = 25
 function Eras({ era, set, playoffs }) {
@@ -309,6 +310,13 @@ export default function Leaderboard() {
   const windowed = recent && !playoffs
   const eraOn = !windowed ? era : null
   const ageOn = !windowed ? ages : null
+  // The ages the seasons loaded so far have players at.
+  const agesThere = useMemo(() => {
+    const kind = playoffs ? 'playoffs|' : 'regular|'
+    const there = new Set()
+    for (const [k, d] of Object.entries(cache)) if (d && k.startsWith(kind)) for (const p of d.players) if (p.age !== null && p.age !== undefined) there.add(Math.floor(p.age))
+    return AGES.filter(a => there.has(a))
+  }, [cache, playoffs])
   const inSpan = useMemo(() => (!seasons ? [] : eraOn || ageOn ? seasons : span ? seasonsBetween(span.from, span.to).filter(x => seasons.includes(x)) : []), [span, seasons, eraOn, ageOn])
   const many = !windowed && inSpan.length > 1
   const kinds = windowed ? ['recent'] : !playoffs ? ['regular'] : !delta || eraOn || ageOn ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
@@ -443,6 +451,8 @@ export default function Leaderboard() {
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
   const player = doc && picked ? doc.players.find(p => p.id === picked) : null
   useEffect(() => { wasOpen.current = !!player })
+  // A board with no one on it at all (no player of those ages): no table, nothing to chart.
+  const none = doc && !doc.players.length ? (ageOn ? `No players at ${agesText(ageOn.from, ageOn.to).toLowerCase()}` : 'No players') : null
   const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season runs` : ageOn ? agesText(ageOn.from, ageOn.to) : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : spanYears(span.from, span.to)
 
   return (
@@ -468,7 +478,8 @@ export default function Leaderboard() {
               ages={{
                 on: !!ages,
                 set: on => { setAges(on ? a => a || { from: FIRST_AGE, to: FIRST_AGE } : null); if (on) { setEra(null); setEach(true) } },
-                list: AGES,
+                list: agesThere.length ? agesThere : AGES,
+                all: AGES,
                 from: ages ? ages.from : FIRST_AGE,
                 to: ages ? ages.to : FIRST_AGE,
                 pick: (from, to) => setAges({ from, to })
@@ -500,12 +511,14 @@ export default function Leaderboard() {
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
             <LeaderTable doc={doc} group={g} rows={drawn} pager={pager} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'} filters={filters} setFilter={setFilter}
               picked={picked} onPick={setPicked} scroller={wrap} />
-            {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>No players match</div>}
+            {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'No players match'}</div>}
           </div>
           <div className={`lb-side${player ? ' lb-carded' : ''}`}>
             {player
               ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} intro={!wasOpen.current} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? spanYears(player.era[0], player.era[1]) : spanText} />
-              : <LeaderScatter doc={chartDoc} shown={lit} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />}
+              : x && y
+                ? <LeaderScatter doc={chartDoc} shown={lit} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />
+                : <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'Nothing to chart'}</div>}
           </div>
         </div>
       )}

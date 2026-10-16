@@ -136,8 +136,9 @@ const SPAN_W = 184
 // never widens it and moves what sits beside it (Footprint's REMOVE BEST).
 // `ages` adds YEAR | AGE to the panel's head, to pick by age instead (`on`, `set`): with
 // `of`, a player's seasons labelled with his age in each (the pick still seasons, "Ages
-// 25–28 · 4"); else `list`, the ages to pick from, `from`, `to` and `pick` (the Leaderboard's
-// every season at those ages, "Ages 25–28").
+// 25–28 · 4"); else `list`, the ages to pick from (`all` the strip's every age, those not
+// in `list` dim), `from`, `to` and `pick` (the Leaderboard's every season at those ages,
+// "Ages 25–28").
 export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, aside = null, readout = null, title = 'Seasons', disabled = false, width = SPAN_W, ages = null }) {
   const byAge = !!(ages && ages.on)
   const years = seasonsBetween(seasons[0], seasons[seasons.length - 1])
@@ -145,7 +146,7 @@ export default function SeasonPicker({ seasons, from, to, n, pick, extra = null,
     ? { values: seasons, all: years, from, to, pick, labelOf: shortSeason, noun: 'season' }
     : ages.of
       ? { values: seasons, all: years, from, to, pick, labelOf: ages.of, noun: 'season' }
-      : { values: ages.list, all: ages.list, from: ages.from, to: ages.to, pick: ages.pick, labelOf: String, noun: 'age' }
+      : { values: ages.list, all: ages.all || ages.list, from: ages.from, to: ages.to, pick: ages.pick, labelOf: String, noun: 'age' }
   const ageSpan = byAge && (ages.of ? agesText(ages.of(from), ages.of(to)) : agesText(ages.from, ages.to))
   // The box: "Ages 25–28 · 4" by age, its word in the label's place, as "Seasons" is.
   const shown = byAge

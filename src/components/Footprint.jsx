@@ -133,7 +133,7 @@ function PctlBadge({ p, medal, title }) {
   return <span title={medal ? `${title}; in the league's top ${Math.round(MEDAL_SHARES[medal - 1] * 100)}%` : title} style={{ display: 'inline-block', verticalAlign: 'top', marginLeft: 5, marginTop: 1, padding: '1px 3px', border: `1px solid ${c}`, color: c, fontSize: 8.5, lineHeight: 1, letterSpacing: '.04em' }}>{p}</span>
 }
 
-// A tile's details, on hover (a tap on a phone, see HOVER), as a sheet: his team's value off and on,
+// A tile's details, on hover (a tap on a phone, see HOVER), as a sheet: his team's value on and off,
 // the on value's percentile against the league's raised on it, the swing with its percentile
 // among players' swings (higher better, or for a style its size) in its medal's color; in
 // LONE, his minutes on and off too; and, for a tile lit by a teammate effect, what its swing
@@ -163,14 +163,14 @@ function Details({ e, anchors, color, right, scale }) {
       <span style={{ color: INK, textTransform: 'uppercase', letterSpacing: '.08em' }}>{e.label}{e.isLone && <span style={{ color: e.side === 'def' ? DEF_LONE : 'var(--accent)' }}> · REMOVE BEST</span>}</span>
       {has ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.45fr', columnGap: 12, rowGap: 2, paddingTop: 9, borderTop: rule }}>
-          <span style={head}>OFF</span>
           <span style={head}>ON</span>
+          <span style={head}>OFF</span>
           <span style={head}>SWING</span>
-          <span style={big}>{valueText(e, e.off)}</span>
           <span style={big}>{valueText(e, e.on)}<PctlBadge p={e.onPctl} title="Percentile of his team's on value against the league's" /></span>
+          <span style={big}>{valueText(e, e.off)}</span>
           <span style={{ ...big, color: color || INK }}>{swingText(e.diff)}<PctlBadge p={swingPctl} medal={medal} title="Percentile of the swing among players' swings in this stat" /></span>
           {(swingPctl === null || swingPctl === undefined) && MISSING[e.status] && <span style={{ ...sub, gridColumn: '1 / -1' }}>{MISSING[e.status]}</span>}
-          {e.isLone && <><span style={sub}>{e.min[1].toLocaleString()} MIN</span><span style={sub}>{e.min[0].toLocaleString()} MIN</span><span /></>}
+          {e.isLone && <><span style={sub}>{e.min[0].toLocaleString()} MIN</span><span style={sub}>{e.min[1].toLocaleString()} MIN</span><span /></>}
         </div>
       ) : MISSING[e.status] && <span style={sub}>{MISSING[e.status]}</span>}
       {has && scale && <Against e={e} scale={scale} color={color} />}

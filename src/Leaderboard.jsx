@@ -115,7 +115,7 @@ const ERAS = [3, 5, 7]
 // The ages the picker offers by age: every season's players at those ages (their age on
 // February 1 of it), a row each or combined over the span; once the seasons are in, an age
 // no player had (18: the 1996-97 board lacks Kobe) is dim and can't be picked. Turning it on
-// reads one age, 25, a row per season.
+// reads one age, 25. A span picked, by year or by age, starts combined.
 const AGES = Array.from({ length: 26 }, (_, i) => 18 + i)
 const FIRST_AGE = 25
 function Eras({ era, set, playoffs }) {
@@ -477,15 +477,15 @@ export default function Leaderboard() {
           ? (
             <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} width={SEASONS_W}
               title={windowed ? '30 days' : 'Seasons'} disabled={windowed}
-              pick={(from, to) => { setSpan({ from, to }); setEra(null) }}
+              pick={(from, to) => { setSpan({ from, to }); setEra(null); setEach(false) }}
               ages={{
                 on: !!ages,
-                set: on => { setAges(on ? a => a || { from: FIRST_AGE, to: FIRST_AGE } : null); if (on) { setEra(null); setEach(true) } },
+                set: on => { setAges(on ? a => a || { from: FIRST_AGE, to: FIRST_AGE } : null); if (on) { setEra(null); setEach(false) } },
                 list: agesThere.length ? agesThere : AGES,
                 all: AGES,
                 from: ages ? ages.from : FIRST_AGE,
                 to: ages ? ages.to : FIRST_AGE,
-                pick: (from, to) => setAges({ from, to })
+                pick: (from, to) => { setAges({ from, to }); setEach(false) }
               }}
               readout={windowed ? (doc && doc.window ? `${day(doc.window.start)}–${day(doc.window.end)}` : '…') : eraOn ? `${eraOn}-yr runs` : null}
               aside={many && !eraOn ? <Each each={each} set={setEach} /> : null}

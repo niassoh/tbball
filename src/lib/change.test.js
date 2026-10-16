@@ -24,6 +24,22 @@ describe('year-to-year percentile change', () => {
     expect(p.stats.BPM.vals).toEqual([null, null, null])
   })
 
+  test('raw: the change in the stat\'s own terms, coloured by the percentile change', () => {
+    const p = changeProfile({ seasons: seasons([1, 1]), stats: { BPM: stat([40, 55]) } }, ['BPM'], { raw: true })
+    expect(p.stats.BPM.vals[1].n).toBeCloseTo(1.5)
+    expect(p.stats.BPM.vals[1].p).toBe(80)
+    expect(p.stats.BPM.vals[1].detail).toBe('4.0 → 5.5')
+    expect(p.stats.BPM.dec).toBe(1)
+  })
+
+  test('a season without games of the type is passed over, not a break', () => {
+    // Rondo's playoffs: 2011-12, none in 2012-13 to 2015-16, then 2016-17.
+    const ss = [...seasons([1, 1, 1]).slice(0, 1), { label: 'x', mp: null, empty: true }, ...seasons([1, 1, 1]).slice(2)]
+    const p = changeProfile({ seasons: ss, stats: { BPM: stat([40, null, 60]) } }, ['BPM'])
+    expect(p.stats.BPM.vals.map(v => v && v.n)).toEqual([null, null, 20])
+    expect(p.stats.BPM.lg).toEqual([null, null, 0])
+  })
+
   test('span averages of a shooting change weight by minutes, not attempts', () => {
     const base = { seasons: seasons([1000, 1000, 3000]), stats: { 'Rim FG%': stat([50, 60, 50]), 'Rim FGA': stat([10, 90, 10]) } }
     const p = changeProfile(base, ['Rim FG%', 'Rim FGA'])

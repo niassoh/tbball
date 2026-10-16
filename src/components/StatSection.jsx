@@ -178,7 +178,8 @@ function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span, type })
   )
 }
 
-export default function StatSection({ profile: p, tab, sel, setSel, pctView = false, setPctView }) {
+// `controls`: anything the tab adds to the header's right end (Year to Year's RAW | PCTL).
+export default function StatSection({ profile: p, tab, sel, setSel, pctView = false, setPctView, controls }) {
   const shown = tab.stats.filter(l => p.stats[l].available)
   const [charted, setCharted] = useState(shown[0])
   const k = p.seasons.length - 1
@@ -269,6 +270,7 @@ export default function StatSection({ profile: p, tab, sel, setSel, pctView = fa
                 {'DRAG ACROSS SEASONS TO AVERAGE · CLICK A COLUMN TO CHART IT'}
               </>}
         </span>
+        {controls}
       </SectionHeader>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
         <SeasonChart stat={rollingOn ? rollingStat(p, charted, spanLen) : p.stats[charted]} label={charted} lineLabel={rollingOn ? `${spanLen}-YR AVG` : 'PLAYER'} seasons={p.seasons} type={p.seasonType} span={spanOn ? { from, to, mean: spanMean(p, charted, from, to) } : null} />

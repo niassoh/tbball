@@ -188,7 +188,8 @@ function Details({ e, anchors, color, right, scale }) {
 // the stat's league range of on values (`scale`, about the league's value: its 1st, 50th
 // and 99th percentiles), a hollow square at his team's value with him off and a head at
 // it with him on, joined in the swing's color (grey unlit); in REMOVE BEST a second line,
-// in its side's color, for the minutes those teammates sit. Each draws in, a beat apart.
+// also in its swing's color and labeled in its side's, for the minutes those teammates
+// sit. Each draws in, a beat apart.
 // The range's ends round out to a round step (roundOut), the league's value marked where
 // it falls.
 function Against({ e, scale, color }) {
@@ -196,7 +197,7 @@ function Against({ e, scale, color }) {
   const { range: raw, text } = roundOut(scale.map(v => v + whole.lg))
   const lines = [
     { label: e.isLone ? 'ALL MIN' : 'OFF → ON', off: whole.off, on: whole.on, color: e.isLone ? (whole.lit ? TONES[toneOf(whole)] : MID) : color || MID },
-    ...(e.isLone ? [{ label: 'REMOVE BEST', off: e.off, on: e.on, color: e.side === 'def' ? DEF_LONE : 'var(--accent)' }] : [])
+    ...(e.isLone ? [{ label: 'REMOVE BEST', tag: e.side === 'def' ? DEF_LONE : 'var(--accent)', off: e.off, on: e.on, color: color || MID }] : [])
   ]
   const tick = { fontSize: 9, letterSpacing: '.06em', color: DIM }
   return (
@@ -204,7 +205,7 @@ function Against({ e, scale, color }) {
       <span style={{ fontSize: 9, letterSpacing: '.14em', color: DIM }}>AGAINST THE LEAGUE</span>
       {lines.map((x, i) => (
         <div key={x.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ ...tick, width: 74, flex: 'none', color: i ? x.color : DIM }}>{x.label}</span>
+          <span style={{ ...tick, width: 74, flex: 'none', color: x.tag || DIM }}>{x.label}</span>
           <div style={{ flex: 1, minWidth: 0 }}><Slider on={x.off} off={x.on} scale={raw} color={x.color} index={i * 4} /></div>
         </div>
       ))}

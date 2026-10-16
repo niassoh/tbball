@@ -99,14 +99,17 @@ function YearRange({ seasons, from, to, pick }) {
   )
 }
 
+const SPAN_W = 184
+
 // The span picker: a box giving the span on show ("2025–26", or "’18–’26 · 9" for a span)
 // that opens the year strip in a panel under it (Popover), the strip taking the arrow
 // keys at once; a pick shows behind it as it's made. The strip sets the panel's width
 // (the readout wraps inside it, so a pick never resizes it). With one season there's
 // nothing to pick. `aside`: a small control beside the span's readout (the Leaderboard's
 // single | combined). `readout`: what the box says in place of the span (the Leaderboard's
-// eras).
-export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, aside = null, readout = null, title = 'Seasons', disabled = false, width }) {
+// eras). The box keeps one width (`width`; SPAN_W fits "’04–’26 · 23"), so a longer span
+// never widens it and moves what sits beside it (Footprint's REMOVE BEST).
+export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, aside = null, readout = null, title = 'Seasons', disabled = false, width = SPAN_W }) {
   return (
     <Popover name={`${title}: ${readout || spanText(from, to)}`} disabled={disabled || seasons.length < 2} width={width}
       trigger={<>

@@ -334,6 +334,11 @@ a:hover > .lineup-tile > * { filter: none; }
 /* Its sideways scroll is the table's own rail (LeaderTable Rail): the browser's bar shows
    for up and down only. */
 .lb-table-wrap::-webkit-scrollbar { width: 6px; height: 0; }
+/* The Leaderboard's player card, when it runs past its panel: the same thin dark bar. */
+.pc-card { scrollbar-width: thin; scrollbar-color: #544f4b transparent; }
+.pc-card::-webkit-scrollbar { width: 6px; }
+.pc-card::-webkit-scrollbar-thumb { background: #544f4b; }
+.pc-card::-webkit-scrollbar-track { background: transparent; }
 .lb-table-wrap::-webkit-scrollbar-thumb { background: #544f4b; }
 .lb-table-wrap::-webkit-scrollbar-track, .lb-table-wrap::-webkit-scrollbar-corner { background: transparent; }
 @supports not selector(::-webkit-scrollbar) {

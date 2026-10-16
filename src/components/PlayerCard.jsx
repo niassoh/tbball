@@ -189,20 +189,22 @@ function Readout({ x }) {
 // A small chart's frame: its box, its split lines (where given and in view), the across
 // axis's labels (its ends and name), and the up axis's name and ends' values.
 const frac = (axis, v) => Math.max(0, Math.min(1, (v - axis[0]) / (axis[1] - axis[0])))
-const px = (axis, v) => CM.l + frac(axis, v) * (CW - CM.l - CM.r)
+// `w`: the frame's width in its own units, CW, or twice that for the career chart alone in
+// the card (the playoffs, without Lonestar), so it stretches sideways at the same height.
+const px = (axis, v, w = CW) => CM.l + frac(axis, v) * (w - CM.l - CM.r)
 const py = (axis, v) => CM.t + (1 - frac(axis, v)) * (CH - CM.t - CM.b)
 const tiny = { fontFamily: MONO, fontSize: 7, letterSpacing: '.08em', fill: FAINT }
 const end = v => `${v > 0 ? '+' : ''}${Math.round(v)}`.replace('-', '−')
-function Frame({ x, y, splitX, splitY, xLabels, yName, children }) {
+function Frame({ x, y, splitX, splitY, xLabels, yName, w = CW, children }) {
   const inside = (axis, v) => v !== undefined && v > axis[0] && v < axis[1]
   return (
-    <svg viewBox={`0 0 ${CW} ${CH}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
-      <rect x={CM.l} y={CM.t} width={CW - CM.l - CM.r} height={CH - CM.t - CM.b} fill="none" stroke={RULE} />
+    <svg viewBox={`0 0 ${w} ${CH}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
+      <rect x={CM.l} y={CM.t} width={w - CM.l - CM.r} height={CH - CM.t - CM.b} fill="none" stroke={RULE} />
       {inside(x, splitX) && <line x1={px(x, splitX)} x2={px(x, splitX)} y1={CM.t} y2={CH - CM.b} stroke={EDGE} strokeDasharray="1 3" />}
-      {inside(y, splitY) && <line x1={CM.l} x2={CW - CM.r} y1={py(y, splitY)} y2={py(y, splitY)} stroke={EDGE} strokeDasharray="1 3" />}
+      {inside(y, splitY) && <line x1={CM.l} x2={w - CM.r} y1={py(y, splitY)} y2={py(y, splitY)} stroke={EDGE} strokeDasharray="1 3" />}
       <text x={CM.l} y={CH - 5} style={tiny}>{xLabels[0]}</text>
-      <text x={(CM.l + CW - CM.r) / 2} y={CH - 5} textAnchor="middle" style={tiny}>{xLabels[1]}</text>
-      <text x={CW - CM.r} y={CH - 5} textAnchor="end" style={tiny}>{xLabels[2]}</text>
+      <text x={(CM.l + w - CM.r) / 2} y={CH - 5} textAnchor="middle" style={tiny}>{xLabels[1]}</text>
+      <text x={w - CM.r} y={CH - 5} textAnchor="end" style={tiny}>{xLabels[2]}</text>
       <text x={CM.l - 4} y={CM.t + 6} textAnchor="end" style={tiny}>{end(y[1])}</text>
       <text transform={`translate(${CM.l - 6} ${(CM.t + CH - CM.b) / 2}) rotate(-90)`} textAnchor="middle" style={tiny}>{yName}</text>
       <text x={CM.l - 4} y={CH - CM.b} textAnchor="end" style={tiny}>{end(y[0])}</text>
@@ -219,7 +221,8 @@ function Frame({ x, y, splitX, splitY, xLabels, yName, children }) {
 // (`span`: its first and last season and its value) shades the span's seasons, dims the
 // rest and draws the span's average across it, as the profile's stat tables do. The dots
 // pop in season by season.
-function Career({ profile: p, l, season, span, n }) {
+function Career({ profile: p, l, season, span, n, wide = false }) {
+  const W = wide ? 2 * CW : CW
   const stat = n > 1 ? rollingStat(p, l, n) : p.stats[l]
   const pts = p.seasons.map((x, i) => ({ season: x.season, v: stat.vals[i], lg: stat.lg[i] })).filter(q => q.v)
   if (!pts.length) return <span style={{ ...label, color: FAINT }}>—</span>
@@ -227,16 +230,16 @@ function Career({ profile: p, l, season, span, n }) {
   const mean = span && span.mean !== null ? [span.mean] : []
   const vs = [...pts.map(q => q.v.n), ...pts.map(q => q.lg).filter(v => v !== null && v !== undefined), ...mean]
   const ys = fit(vs, l === 'BPM' ? MIN_BPM : Math.max(...vs.map(Math.abs)) / 5 || 1)
-  const at = pts.map((q, i) => ({ ...q, x: px(xs, i), y: py(ys, q.v.n), ly: q.lg === null || q.lg === undefined ? null : py(ys, q.lg) }))
+  const at = pts.map((q, i) => ({ ...q, x: px(xs, i, W), y: py(ys, q.v.n), ly: q.lg === null || q.lg === undefined ? null : py(ys, q.lg) }))
   const line = key => at.filter(q => q[key] !== null).map(q => `${q.x.toFixed(1)},${q[key].toFixed(1)}`).join(' ')
   const yy = q => `’${q.season.slice(5)}`
   const shown = !span && at.find(q => q.season === season)
   const inSpan = q => span && q.season >= span.from && q.season <= span.to
   const within = at.filter(inSpan)
-  const slot = at.length > 1 ? at[1].x - at[0].x : CW - CM.l - CM.r
-  const band = within.length > 0 && { x0: Math.max(CM.l, within[0].x - slot / 2), x1: Math.min(CW - CM.r, within[within.length - 1].x + slot / 2) }
+  const slot = at.length > 1 ? at[1].x - at[0].x : W - CM.l - CM.r
+  const band = within.length > 0 && { x0: Math.max(CM.l, within[0].x - slot / 2), x1: Math.min(W - CM.r, within[within.length - 1].x + slot / 2) }
   return (
-    <Frame x={xs} y={ys} xLabels={[yy(at[0]), n > 1 ? `${n}-YR AVG →` : 'SEASON →', yy(at[at.length - 1])]} yName={l}>
+    <Frame x={xs} y={ys} xLabels={[yy(at[0]), n > 1 ? `${n}-YR AVG →` : 'SEASON →', yy(at[at.length - 1])]} yName={l} w={W}>
       {band && <rect x={band.x0} y={CM.t} width={band.x1 - band.x0} height={CH - CM.t - CM.b} fill="rgba(236,232,227,.07)" />}
       {at.slice(1).map((b, i) => {
         const a = at[i]
@@ -245,17 +248,17 @@ function Career({ profile: p, l, season, span, n }) {
       })}
       {at.length > 1
         ? <polyline points={line('ly')} fill="none" stroke={DIM} strokeDasharray="3 3" />
-        : at[0].ly !== null && <line x1={CM.l} x2={CW - CM.r} y1={at[0].ly} y2={at[0].ly} stroke={DIM} strokeDasharray="3 3" />}
+        : at[0].ly !== null && <line x1={CM.l} x2={W - CM.r} y1={at[0].ly} y2={at[0].ly} stroke={DIM} strokeDasharray="3 3" />}
       {at.length > 1 && <polyline points={line('y')} fill="none" stroke={INK} strokeWidth={1.5} strokeLinejoin="round" />}
       {at.map((q, i) => (
         <circle key={q.season} className="ls-pop" cx={q.x} cy={q.y} r={q === shown ? 4 : inSpan(q) ? 3 : 2.5} fill={q.v.p === null ? FAINT : col(q.v.p)}
           stroke={q === shown ? INK : 'none'} strokeWidth={1.5} fillOpacity={span && !inSpan(q) ? 0.3 : 1} style={{ animationDelay: `${i * 40}ms` }} />
       ))}
-      {shown && <text x={shown.x} y={shown.y - 8} textAnchor={shown.x > CW - 30 ? 'end' : 'middle'} style={{ fontFamily: MONO, fontSize: 9, fontWeight: 600, fill: INK }}>{fmt(stat, shown.v.n)}</text>}
+      {shown && <text x={shown.x} y={shown.y - 8} textAnchor={shown.x > W - 30 ? 'end' : 'middle'} style={{ fontFamily: MONO, fontSize: 9, fontWeight: 600, fill: INK }}>{fmt(stat, shown.v.n)}</text>}
       {band && mean.length > 0 && (
         <>
           <line x1={band.x0} x2={band.x1} y1={py(ys, span.mean)} y2={py(ys, span.mean)} stroke={INK} strokeWidth={1.5} />
-          <text x={band.x1 > CW - 40 ? band.x0 - 3 : band.x1 + 3} y={py(ys, span.mean) + 3} textAnchor={band.x1 > CW - 40 ? 'end' : 'start'} style={{ fontFamily: MONO, fontSize: 9, fontWeight: 600, fill: INK }}>{fmt(stat, span.mean)}</text>
+          <text x={band.x1 > W - 40 ? band.x0 - 3 : band.x1 + 3} y={py(ys, span.mean) + 3} textAnchor={band.x1 > W - 40 ? 'end' : 'start'} style={{ fontFamily: MONO, fontSize: 9, fontWeight: 600, fill: INK }}>{fmt(stat, span.mean)}</text>
         </>
       )}
     </Frame>
@@ -378,7 +381,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
   const star = view && (view.scenarios.find(x => x.kind === 'two') || view.scenarios.find(x => x.kind === 'one'))
 
   return (
-    <div className={intro ? 'pc-intro' : undefined} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
+    <div className={intro ? 'pc-card pc-intro' : 'pc-card'} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
         {/* His status where the card named itself: green and ACTIVE on a roster now, grey
             and INACTIVE otherwise (held to its width while it's read). */}
@@ -458,7 +461,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
       <div style={{ display: 'grid', gridTemplateColumns: playoffs ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
         <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
           <span style={{ ...label, color: '#b8b2ab' }}>{charted} <span style={{ color: FAINT }}>· {careerN > 1 ? `${ROLL}-yr avg` : 'by season'} vs lg{span ? ` · ${spanYy} avg` : ''}</span></span>
-          {profile ? <Career profile={profile} l={charted} season={season} span={span} n={careerN} /> : <span style={{ ...label, color: FAINT, height: 168 }}>{profile === false ? 'Unavailable' : 'Loading'}</span>}
+          {profile ? <Career profile={profile} l={charted} season={season} span={span} n={careerN} wide={playoffs} /> : <span style={{ ...label, color: FAINT, height: 168 }}>{profile === false ? 'Unavailable' : 'Loading'}</span>}
         </div>
         {!playoffs && (
           <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, borderLeft: `1px solid ${RULE}` }}>

@@ -6,7 +6,7 @@ import { loadDistribution } from '../api.js'
 import { useSeasonType } from '../useSeasonType.js'
 import WindowTag from './WindowTag.jsx'
 import { rollingStat, spanMean, spanLabel, spanPctl, spanTeams } from '../lib/span.js'
-import { TEAM_COLORS, teamStints } from '../lib/teams.js'
+import { teamColor, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
 import { asset } from '../lib/static.js'
 
@@ -47,7 +47,7 @@ function TeamTimeline({ seasons }) {
       {teamStints(seasons).map(s => {
         const left = X(s.from)
         const w = X(s.to) - left
-        const color = TEAM_COLORS[s.team]
+        const color = teamColor(s.team)
         return (
           <div key={`${s.team}-${s.from}`} title={s.first === s.last ? `${s.team} · ${s.first}` : `${s.team} · ${s.first} – ${s.last}`} style={{ position: 'absolute', top: 0, bottom: 0, left: pct(left, 330), width: `calc(${pct(w, 330)} - 1px)`, background: color ? `color-mix(in srgb, ${color} 70%, #2c2a28)` : '#3d3a37', display: 'flex', alignItems: 'center', gap: 3, padding: w >= 16 ? '0 3px' : 0, boxSizing: 'border-box', overflow: 'hidden' }}>
             {color && w >= 16 && <img src={asset(`logos/${s.team}.png`)} alt="" style={{ width: 10, height: 10, objectFit: 'contain', flex: 'none' }} />}

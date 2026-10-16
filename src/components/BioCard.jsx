@@ -10,7 +10,7 @@ import LineupPanel from './LineupPanel.jsx'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import SplitJersey from './SplitJersey.jsx'
 import TrophyCase from './TrophyCase.jsx'
-import { TEAM_COLORS } from '../lib/teams.js'
+import { teamColor } from '../lib/teams.js'
 import { asset } from '../lib/static.js'
 import { useSeasonType } from '../useSeasonType.js'
 
@@ -128,7 +128,7 @@ export default function BioCard({ profile: p, season, loading = false }) {
     watch.observe(name)
     return () => watch.disconnect()
   }, [p.slug, portraitW])
-  const color = TEAM_COLORS[v.team]
+  const color = teamColor(v.team)
   // Black (BKN, SAS) would vanish on the dark banner, so those teams' bar is silver.
   const accent = color === '#000000' ? '#c4ced4' : color
   // Hover line: the draft pick, e.g. "2017 DRAFT · R1 #30 · UTA".

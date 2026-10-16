@@ -10,6 +10,14 @@ export const TEAM_COLORS = {
   SAC: '#5a2d81', SAS: '#000000', TOR: '#d91244', UTA: '#4e008e', WAS: '#e31837'
 }
 
+// Franchises since moved or renamed, for a past season's card, timeline and disc only (the
+// team pickers list today's thirty): the Sonics, the Vancouver Grizzlies, the New Jersey
+// Nets, the 1988-2002 Charlotte Hornets (today's Hornets logo, the franchise's history
+// being theirs) and the New Orleans (and 2005-07 Oklahoma City) Hornets. Their logos sit
+// with the rest (public/logos/, color/).
+export const PAST_TEAM_COLORS = { SEA: '#00653a', VAN: '#00b2a9', NJN: '#002a60', CHH: '#00778b', NOH: '#00778b', NOK: '#00778b' }
+export const teamColor = team => TEAM_COLORS[team] || PAST_TEAM_COLORS[team]
+
 export const initials = name => name.split(' ').map(w => w[0]).slice(0, 2).join('')
 
 // Team stints for the season charts, in season-index units: season i runs from

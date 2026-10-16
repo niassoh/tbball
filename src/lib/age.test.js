@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ageIn, liveAges } from './age.js'
+import { ageIn, agesText, liveAges, seasonAges } from './age.js'
 
 describe('age', () => {
   const today = new Date('2026-10-13T12:00:00Z')
@@ -21,5 +21,15 @@ describe('age', () => {
     const out = liveAges(doc, today)
     expect(out.players[0].age).toBeCloseTo(25.35, 2)
     expect(out.players[1].age).toBe(30.2)
+  })
+
+  test('ages as the picker writes them, and a player\'s age in any season of his career', () => {
+    expect(agesText(25, 25)).toBe('Age 25')
+    expect(agesText(25, 28)).toBe('Ages 25–28')
+    // By his birth date (LeBron: 25 on February 1, 2010), or counted on from the sheet's age.
+    expect(seasonAges({ bio: { born: '1984-12-30' }, seasons: [] })('2009-10')).toBe(25)
+    const sheet = seasonAges({ bio: {}, seasons: [{ season: '2020-21', age: 24.6 }] })
+    expect([sheet('2020-21'), sheet('2023-24')]).toEqual([24, 27])
+    expect(seasonAges({ bio: {}, seasons: [{ season: '2020-21', age: null }] })).toBe(null)
   })
 })

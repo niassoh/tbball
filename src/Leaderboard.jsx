@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardRecent, fetchLeaderboardSeasons } from './api.js'
-import { liveAges } from './lib/age.js'
+import { agesText, liveAges } from './lib/age.js'
 import { bestEras, combined, combinedDelta, eachSeason, eras, qualified, singleYear, withPlayer } from './lib/board.js'
 import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
@@ -112,6 +112,11 @@ function Each({ each, set }) {
 // playoff runs. A lit length again, or a season picked on the strip, goes back to seasons.
 // Turning runs on sets the minutes qualifier to the top half.
 const ERAS = [3, 5, 7]
+// The ages the picker offers by age: every season's players at those ages (their age on
+// February 1 of it), a row each or combined over the span. Turning it on reads one age, 25,
+// a row per season.
+const AGES = Array.from({ length: 26 }, (_, i) => 18 + i)
+const FIRST_AGE = 25
 function Eras({ era, set, playoffs }) {
   const rule = <span style={{ flex: 1, height: 1, background: EDGE }} />
   return (
@@ -258,8 +263,9 @@ export default function Leaderboard() {
   const [picked, setPicked] = useState(null)
   const [delta, setDelta] = useState(false)
   const [recent, setRecent] = useState(false)
-  // Eras' length (3, 5 or 7 seasons), or null for seasons.
+  // Eras' length (3, 5 or 7 seasons), or null for seasons; the ages picked by age, or null.
   const [era, setEra] = useState(null)
+  const [ages, setAges] = useState(null)
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
   const close = useCallback(() => setPicked(null), [])
@@ -302,9 +308,10 @@ export default function Leaderboard() {
   // playoffs, every playoff season, without the Δ: a run averages one kind of season).
   const windowed = recent && !playoffs
   const eraOn = !windowed ? era : null
-  const inSpan = useMemo(() => (!seasons ? [] : eraOn ? seasons : span ? seasonsBetween(span.from, span.to).filter(x => seasons.includes(x)) : []), [span, seasons, eraOn])
+  const ageOn = !windowed ? ages : null
+  const inSpan = useMemo(() => (!seasons ? [] : eraOn || ageOn ? seasons : span ? seasonsBetween(span.from, span.to).filter(x => seasons.includes(x)) : []), [span, seasons, eraOn, ageOn])
   const many = !windowed && inSpan.length > 1
-  const kinds = windowed ? ['recent'] : !playoffs ? ['regular'] : !delta || eraOn ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
+  const kinds = windowed ? ['recent'] : !playoffs ? ['regular'] : !delta || eraOn || ageOn ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
   const wantedKey = windowed ? 'recent|window' : kinds.flatMap(kind => inSpan.map(x => `${kind}|${x}`)).join()
   const missingKey = wantedKey ? wantedKey.split(',').filter(k => !(k in cache)).join() : ''
   useEffect(() => {
@@ -336,9 +343,11 @@ export default function Leaderboard() {
     const loaded = docsOf(wanted[0].split('|')[0])
     if (!loaded.length) return false
     const docs = loaded.length > 1 ? loaded.map(singleYear) : loaded
-    const board = eraOn ? eras(docs, eraOn) : each || docs.length === 1 ? eachSeason(docs) : combined(docs)
+    // By age, each season keeps its players at those ages.
+    const aged = !ageOn ? docs : docs.map(d => ({ ...d, players: d.players.filter(p => p.age !== null && p.age !== undefined && Math.floor(p.age) >= ageOn.from && Math.floor(p.age) <= ageOn.to) }))
+    const board = eraOn ? eras(aged, eraOn) : each || aged.length === 1 ? eachSeason(aged) : combined(aged)
     return { ...board, players: qualified(board.players, top) }
-  }, [cache, wantedKey, each, top, eraOn])
+  }, [cache, wantedKey, each, top, eraOn, ageOn])
   // While another board loads (a span, eras, the last 30 days, the playoffs) the last one
   // stays up, dimmed under a progress line, and the new one comes up in its place; before
   // the first, the board's shape shows (BoardSkeleton).
@@ -387,7 +396,7 @@ export default function Leaderboard() {
   // A new season, group or sort starts the table at its top; only a new group (other
   // columns) starts it at its left as well, so a sort keeps the stats in view.
   const gid = g ? g.id : null
-  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [span, playoffs, delta, windowed, each, eraOn, top, gid, sortLabel, sort.reverse])
+  useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [span, playoffs, delta, windowed, each, eraOn, ageOn, top, gid, sortLabel, sort.reverse])
   useEffect(() => { if (wrap.current) wrap.current.scrollTo({ left: 0 }) }, [gid])
 
   const q = fold(find.trim())
@@ -434,7 +443,7 @@ export default function Leaderboard() {
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
   const player = doc && picked ? doc.players.find(p => p.id === picked) : null
   useEffect(() => { wasOpen.current = !!player })
-  const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season runs` : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : spanYears(span.from, span.to)
+  const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season runs` : ageOn ? agesText(ageOn.from, ageOn.to) : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : spanYears(span.from, span.to)
 
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
@@ -444,7 +453,7 @@ export default function Leaderboard() {
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <RecentButton on={recent && !playoffs} set={setRecent} disabled={playoffs} />
           <SeasonToggle regularLit={!recent} onRegular={() => setRecent(false)} />
-          <DeltaToggle on={delta && playoffs && !eraOn} set={setDelta} disabled={!playoffs || !!eraOn} />
+          <DeltaToggle on={delta && playoffs && !eraOn && !ageOn} set={setDelta} disabled={!playoffs || !!eraOn || !!ageOn} />
         </span>
       </header>
 
@@ -456,9 +465,17 @@ export default function Leaderboard() {
             <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} width={SEASONS_W}
               title={windowed ? '30 days' : 'Seasons'} disabled={windowed}
               pick={(from, to) => { setSpan({ from, to }); setEra(null) }}
+              ages={{
+                on: !!ages,
+                set: on => { setAges(on ? a => a || { from: FIRST_AGE, to: FIRST_AGE } : null); if (on) { setEra(null); setEach(true) } },
+                list: AGES,
+                from: ages ? ages.from : FIRST_AGE,
+                to: ages ? ages.to : FIRST_AGE,
+                pick: (from, to) => setAges({ from, to })
+              }}
               readout={windowed ? (doc && doc.window ? `${day(doc.window.start)}–${day(doc.window.end)}` : '…') : eraOn ? `${eraOn}-yr runs` : null}
               aside={many && !eraOn ? <Each each={each} set={setEach} /> : null}
-              extra={<Eras era={eraOn} set={n => { setEra(n); if (n) setTop(0.5) }} playoffs={playoffs} />} />
+              extra={<Eras era={eraOn} set={n => { setEra(n); if (n) { setTop(0.5); setAges(null) } }} playoffs={playoffs} />} />
           )
           : <Skel w={SEASONS_W} h={30} />}
         {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : <Skel w={MIN_W} h={30} />}

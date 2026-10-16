@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchLonestar, headshotUrl } from '../api.js'
+import { seasonAges } from '../lib/age.js'
 import { MONO } from '../lib/format.js'
 import { STATS, change, lastName, namesText, posOf, seasonRanges, starsText, toneOf, value } from '../lib/lonestar.js'
 import { seasonsBetween, spanId, spanText } from '../lib/seasons.js'
@@ -463,6 +464,9 @@ function Frame({ p, ls }) {
   })
   const [pick, setPick] = useState(0)
   const [mode, setMode] = useState('raw')
+  // The picker by age (his age in each season) or by year.
+  const [byAge, setByAge] = useState(false)
+  const ageOf = seasonAges(p)
   const [plotRef, plotWidth] = useWidth(304)
   const view = viewOf(span.from, span.to)
   const scenarios = view ? view.scenarios : []
@@ -502,7 +506,7 @@ function Frame({ p, ls }) {
           RAW | PCTL. A stretch from fewer of the span's seasons carries its seasons.
           Narrow, the stars take a row of their own (index.css .ls-bar). */}
       <div className="ls-bar" style={{ padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
-        <SeasonPicker seasons={ls.seasons} from={span.from} to={span.to} n={n} pick={choose} />
+        <SeasonPicker seasons={ls.seasons} from={span.from} to={span.to} n={n} pick={choose} ages={ageOf && { on: byAge, set: setByAge, of: ageOf }} />
         <div className="ls-without">
           <span style={{ ...label, margin: '0 6px 0 10px' }}>Without</span>
           {scenarios.length > 1

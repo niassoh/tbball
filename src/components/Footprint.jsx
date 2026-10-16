@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
+import { seasonAges } from '../lib/age.js'
 import { MONO } from '../lib/format.js'
 import { MEDAL_SHARES, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from '../lib/footprint.js'
 import { namesText, posOf, seasonRanges, starsText } from '../lib/lonestar.js'
@@ -536,6 +537,9 @@ function Views({ p, doc, faces }) {
     return b && viewOf(a, b) ? { from: a, to: b } : { from: doc.views[0].id, to: doc.views[0].id }
   })
   const fp = viewOf(span.from, span.to)
+  // The picker by age (his age in each season) or by year.
+  const [byAge, setByAge] = useState(false)
+  const ageOf = seasonAges(p)
   const [lone, setLone] = useState(false)
   // Each side's pick in REMOVE BEST, by its place in the view's options (none yet: its
   // first). Another span opens on its top stars combined (ALL) where it has them, else on
@@ -621,7 +625,7 @@ function Views({ p, doc, faces }) {
     <>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px', flex: '1 1 0', minWidth: 0 }}>
-          <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} />
+          <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} ages={ageOf && { on: byAge, set: setByAge, of: ageOf }} />
           <LoneSwitch on={loneOn} set={setLone} disabled={!options.off.length && !options.def.length} />
           {loneOn ? (
             // In LONE the same line holds each side's pick, so nothing below moves (a row of

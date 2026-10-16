@@ -107,15 +107,15 @@ function Each({ each, set }) {
 
 // Eras, in the season picker's panel, set apart from the seasons under an OR (a run is
 // a view of its own, not a span): every player's runs of 3, 5 or 7 of his seasons over all
-// the years (lib/board.js eras), the span lightly beside his name; a lit length again, or a
-// season picked on the strip, goes back to seasons.
+// the years (lib/board.js eras), the span lightly beside his name; in the playoffs, of his
+// playoff runs. A lit length again, or a season picked on the strip, goes back to seasons.
 const ERAS = [3, 5, 7]
-function Eras({ era, set }) {
+function Eras({ era, set, playoffs }) {
   const rule = <span style={{ flex: 1, height: 1, background: EDGE }} />
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
       <div aria-hidden="true" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>{rule}<span style={{ ...label, color: DIM }}>or</span>{rule}</div>
-      <span style={{ ...label, color: era ? 'var(--accent)' : INK }}>Runs <span style={{ color: '#b8b2ab' }}>· every player's 3, 5 or 7 seasons in a row, across all years</span></span>
+      <span style={{ ...label, color: era ? 'var(--accent)' : INK }}>Runs <span style={{ color: '#b8b2ab' }}>· every player's 3, 5 or 7 {playoffs ? 'playoff runs' : 'seasons'} in a row, across all years</span></span>
       <div role="group" aria-label="Runs" style={{ display: 'flex', border: `1px solid ${era ? 'var(--accent)' : EDGE}` }}>
         {ERAS.map(n => (
           <button key={n} type="button" aria-pressed={era === n} onClick={() => set(era === n ? null : n)} title={era === n ? 'Back to seasons' : `Every ${n}-season run of every player, averaged`}
@@ -294,12 +294,13 @@ export default function Leaderboard() {
   // The documents the board is built from: each season's of the mode on show, or, for a
   // combined span of playoffs minus regular season, both kinds for every season. Keys are
   // kind|season; the effects follow them as strings.
-  // The last 30 days are one document whatever the span; eras take every season.
+  // The last 30 days are one document whatever the span; eras take every season (in the
+  // playoffs, every playoff season, without the Δ: a run averages one kind of season).
   const windowed = recent && !playoffs
-  const eraOn = !playoffs && !windowed ? era : null
+  const eraOn = !windowed ? era : null
   const inSpan = useMemo(() => (!seasons ? [] : eraOn ? seasons : span ? seasonsBetween(span.from, span.to).filter(x => seasons.includes(x)) : []), [span, seasons, eraOn])
   const many = !windowed && inSpan.length > 1
-  const kinds = windowed ? ['recent'] : !playoffs ? ['regular'] : !delta ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
+  const kinds = windowed ? ['recent'] : !playoffs ? ['regular'] : !delta || eraOn ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
   const wantedKey = windowed ? 'recent|window' : kinds.flatMap(kind => inSpan.map(x => `${kind}|${x}`)).join()
   const missingKey = wantedKey ? wantedKey.split(',').filter(k => !(k in cache)).join() : ''
   useEffect(() => {
@@ -428,7 +429,7 @@ export default function Leaderboard() {
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <RecentButton on={recent && !playoffs} set={setRecent} disabled={playoffs} />
           <SeasonToggle regularLit={!recent} onRegular={() => setRecent(false)} />
-          <DeltaToggle on={delta && playoffs} set={setDelta} disabled={!playoffs} />
+          <DeltaToggle on={delta && playoffs && !eraOn} set={setDelta} disabled={!playoffs || !!eraOn} />
         </span>
       </header>
 
@@ -442,7 +443,7 @@ export default function Leaderboard() {
               pick={(from, to) => { setSpan({ from, to }); setEra(null) }}
               readout={windowed ? (doc && doc.window ? `${day(doc.window.start)}–${day(doc.window.end)}` : '…') : eraOn ? `${eraOn}-yr runs` : null}
               aside={many && !eraOn ? <Each each={each} set={setEach} /> : null}
-              extra={!playoffs ? <Eras era={eraOn} set={setEra} /> : null} />
+              extra={<Eras era={eraOn} set={setEra} playoffs={playoffs} />} />
           )
           : <Skel w={SEASONS_W} h={30} />}
         {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : <Skel w={MIN_W} h={30} />}

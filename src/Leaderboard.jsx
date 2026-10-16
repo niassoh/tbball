@@ -420,9 +420,17 @@ export default function Leaderboard() {
   useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [pageN])
   // Made once per page, so the table (memo) isn't redrawn as a dot lights.
   const pager = useMemo(() => (pages > 1 ? <Pager n={pageN} pages={pages} total={rows.length} turn={n => setPaging({ rows, n })} /> : null), [pageN, pages, rows])
-  // The chart: the page's rows; on a board in one page, everyone, the filters' others faint
-  // (in eras, each player's best era for its two stats, not every era).
-  const chartDoc = useMemo(() => (!doc ? doc : pages > 1 ? { ...doc, players: drawn } : doc.eras && x && y ? bestEras(doc, x, y) : doc), [doc, pages, drawn, x, y])
+  // The chart: everyone on the board (in eras, each player's best era for its two stats,
+  // and the page's own eras), the table's rows lit and the rest faint behind them; on a
+  // board in pages only the page's rows are lit (live), as thousands of live dots crawl.
+  const chartDoc = useMemo(() => {
+    if (!doc) return doc
+    const base = doc.eras && x && y ? bestEras(doc, x, y) : doc
+    if (pages === 1) return base
+    const ids = new Set(base.players.map(p => p.id))
+    return { ...base, players: [...base.players, ...drawn.filter(p => !ids.has(p.id))] }
+  }, [doc, pages, drawn, x, y])
+  const lit = useMemo(() => (pages > 1 ? new Set(drawn.map(p => p.id)) : shown), [pages, drawn, shown])
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
   const player = doc && picked ? doc.players.find(p => p.id === picked) : null
   useEffect(() => { wasOpen.current = !!player })
@@ -480,7 +488,7 @@ export default function Leaderboard() {
           <div className={`lb-side${player ? ' lb-carded' : ''}`}>
             {player
               ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} intro={!wasOpen.current} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? spanYears(player.era[0], player.era[1]) : spanText} />
-              : <LeaderScatter doc={chartDoc} shown={shown} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />}
+              : <LeaderScatter doc={chartDoc} shown={lit} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />}
           </div>
         </div>
       )}

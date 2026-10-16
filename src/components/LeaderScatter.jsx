@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
 import { axisOf, median, pctlOf, quadrantOf, radiusOf, valueOf } from '../lib/leaderboard.js'
@@ -11,9 +11,11 @@ import Popover from './Popover.jsx'
 // from the median to its farthest player, so every dot is inside and no side is empty; a
 // long-tailed stat like drives on a square-root scale, marked √). A dot is a player, its size his minutes (from the pool's
 // fewest to its most), its colour how far toward the top right (blue) or bottom left
-// (orange) he sits, grey between, on the site's percentile scale; players the table's
-// filters leave out stay as faint dots. Dots glide to their new places when an axis or
-// the season changes (index.css .lb-dot). Hover a dot for his card in brief; the table's
+// (orange) he sits, grey between, on the site's percentile scale. The table's rows (`shown`)
+// are live dots; everyone else on the board (the filters' others, the other pages of a long
+// board) is a faint dot painted on one canvas behind them, so thousands cost one paint and
+// none listens for the pointer. Live dots glide to their new places when an axis or the
+// season changes (index.css .lb-dot). Hover a dot for his card in brief; the table's
 // row under the pointer (`hot`) rings its dot with just his face and surname, so the chart
 // stays in view as the table is read. A click opens his card. Under it: the season,
 // both medians, how many players, and how many are in the top right.
@@ -156,15 +158,29 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (ax(d.vx) + ay(d.vy) - 1))))
   const hv = (hover || hot) && byId.get(hover || hot)
   // The same elements while only the lit dot changes, so React passes over them.
-  const dots = useMemo(() => order.map(d => {
-    const on = shown.has(d.p.id)
-    return (
-      <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
-        fill={tint(d)} fillOpacity={on ? 0.82 : 0.08}
-        style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: on ? 'pointer' : 'default', pointerEvents: on ? 'auto' : 'none' }}
-        onMouseEnter={() => setHover(d.p.id)} onMouseLeave={() => setHover(id => (id === d.p.id ? null : id))} onClick={() => onPick(d.p.id)} />
-    )
-  }), [order, shown, xa, ya, most, least, w, h, onPick]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py, radius and tint are these
+  const dots = useMemo(() => order.filter(d => shown.has(d.p.id)).map(d => (
+    <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
+      fill={tint(d)} fillOpacity={0.82}
+      style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: 'pointer' }}
+      onMouseEnter={() => setHover(d.p.id)} onMouseLeave={() => setHover(id => (id === d.p.id ? null : id))} onClick={() => onPick(d.p.id)} />
+  )), [order, shown, xa, ya, most, least, w, h, onPick]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py, radius and tint are these
+  const faint = useRef(null)
+  useEffect(() => {
+    const c = faint.current
+    const dpr = window.devicePixelRatio || 1
+    c.width = w * dpr
+    c.height = h * dpr
+    const g = c.getContext('2d')
+    g.scale(dpr, dpr)
+    g.globalAlpha = 0.08
+    for (const d of order) {
+      if (shown.has(d.p.id)) continue
+      g.fillStyle = tint(d)
+      g.beginPath()
+      g.arc(px(d.vx), py(d.vy), radius(d.p), 0, 2 * Math.PI)
+      g.fill()
+    }
+  }, [order, shown, xa, ya, most, least, w, h]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py, radius and tint are these
   // An axis's worse end on the left (or bottom), its better end on the right (or top).
   const ends = (stat, lo, hi) => (stat.lowerBetter ? [hi, lo] : [lo, hi])
   const [xl, xr] = ends(sx, x0, x1)
@@ -181,6 +197,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
       </div>
       {/* As tall as the panel allows, but never much taller than it's wide. */}
       <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 240, maxHeight: Math.round(w * 1.1) }}>
+        <canvas ref={faint} aria-hidden="true" style={{ position: 'absolute', inset: 0, width: w, height: h, pointerEvents: 'none' }} />
         <svg width={w} height={h} style={{ position: 'absolute', inset: 0, display: 'block' }} onMouseLeave={() => setHover(null)}>
           <rect x={M.l} y={M.t} width={w - M.l - M.r} height={h - M.t - M.b} fill="none" stroke={RULE} />
           {/* The medians cross at the centre: better-in-both up and right, worse-in-both down

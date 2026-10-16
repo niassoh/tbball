@@ -264,7 +264,7 @@ const head = (dir, color) => ({ width: HEAD.len, height: HEAD.half * 2, flex: 'n
 const at = (left, size) => ({ position: 'absolute', left, top: `calc(50% - ${size / 2}px)` })
 const pct = x => `${+(x * 100).toFixed(2)}%`
 
-function Slider({ on, off, scale, color, index }) {
+export function Slider({ on, off, scale, color, index }) {
   const a = posOf(scale, on)
   const b = posOf(scale, off)
   const dir = a !== null && b !== null && b < a ? -1 : 1

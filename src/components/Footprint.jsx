@@ -2,10 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
 import { MEDAL_SHARES, anchorName, bar, medalOf, pctlText, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from '../lib/footprint.js'
-import { namesText, seasonRanges, starsText } from '../lib/lonestar.js'
+import { namesText, posOf, seasonRanges, starsText } from '../lib/lonestar.js'
 import { spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
-import { Portrait } from './Lonestar.jsx'
+import { Portrait, Slider } from './Lonestar.jsx'
 import Popover from './Popover.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
 import SectionHeader from './SectionHeader.jsx'
@@ -133,7 +133,7 @@ function MateMark({ size = 15 }) {
 // effect, what its swing comes to in LONE. Opens leftward from a tile on the right of its
 // row.
 // `color`: a lit tile's; an unlit one's swing is ink.
-function Details({ e, anchors, color, right }) {
+function Details({ e, anchors, color, right, scale }) {
   const medal = medalOf(e)
   const sits = `WHEN ${anchorName(anchors)} ${anchors.length > 1 ? 'SIT' : 'SITS'}`
   const head = { fontSize: 9, letterSpacing: '.14em', color: DIM }
@@ -161,6 +161,7 @@ function Details({ e, anchors, color, right }) {
           {e.isLone && <><span style={sub}>{e.min[1].toLocaleString()} MIN</span><span style={sub}>{e.min[0].toLocaleString()} MIN</span><span /></>}
         </div>
       ) : MISSING[e.status] && <span style={sub}>{MISSING[e.status]}</span>}
+      {has && scale && <Against e={e} scale={scale} color={color} />}
       {e.mate && (
         <span style={{ display: 'flex', alignItems: 'center', gap: 7, paddingTop: 10, borderTop: rule, color: INK, letterSpacing: '.06em' }}>
           <MateMark size={16} />
@@ -169,6 +170,54 @@ function Details({ e, anchors, color, right }) {
       )}
     </div>
   )
+}
+
+// The swing against the league, as Lonestar's rows draw a change (Lonestar.jsx Slider):
+// the stat's league range of on values (`scale`, about the league's value: its 1st, 50th
+// and 99th percentiles), a hollow square at his team's value with him off and a head at
+// it with him on, joined in the swing's color (grey unlit); in REMOVE BEST a second line,
+// in its side's color, for the minutes those teammates sit. Each draws in, a beat apart.
+// The range's ends round out to a round step (roundOut), the league's value marked where
+// it falls.
+function Against({ e, scale, color }) {
+  const whole = e.whole || e
+  const { range: raw, text } = roundOut(scale.map(v => v + whole.lg))
+  const lines = [
+    { label: e.isLone ? 'ALL MIN' : 'OFF → ON', off: whole.off, on: whole.on, color: e.isLone ? (whole.lit ? TONES[toneOf(whole)] : MID) : color || MID },
+    ...(e.isLone ? [{ label: 'REMOVE BEST', off: e.off, on: e.on, color: e.side === 'def' ? DEF_LONE : 'var(--accent)' }] : [])
+  ]
+  const tick = { fontSize: 9, letterSpacing: '.06em', color: DIM }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 10, borderTop: `1px solid ${RULE}` }}>
+      <span style={{ fontSize: 9, letterSpacing: '.14em', color: DIM }}>AGAINST THE LEAGUE</span>
+      {lines.map((x, i) => (
+        <div key={x.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ ...tick, width: 74, flex: 'none', color: i ? x.color : DIM }}>{x.label}</span>
+          <div style={{ flex: 1, minWidth: 0 }}><Slider on={x.off} off={x.on} scale={raw} color={x.color} index={i * 4} /></div>
+        </div>
+      ))}
+      <div style={{ display: 'flex', gap: 10 }}>
+        <span style={{ width: 74, flex: 'none' }} />
+        <span style={{ position: 'relative', flex: 1, height: 12, ...tick }}>
+          <span style={{ position: 'absolute', left: 0 }}>{text(raw[0])}</span>
+          <span style={{ position: 'absolute', left: `${100 * posOf(raw, whole.lg)}%`, transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>LG {valueText(e, whole.lg)}</span>
+          <span style={{ position: 'absolute', right: 0 }}>{text(raw[2])}</span>
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// A range's ends rounded out to a round step, 1, 2 or 5 times a power of ten, the finest
+// that leaves at most six steps across it: 29.3 to 58.8 reads 25 to 60, 107.3 to 122.8
+// reads 105 to 125. `text` writes an end to its step's precision.
+const roundOut = ([lo, mid, hi]) => {
+  const span = hi - lo
+  if (!(span > 0)) return { range: [lo, mid, hi], text: v => v.toFixed(1) }
+  const p = 10 ** Math.floor(Math.log10(span))
+  const step = [0.1, 0.2, 0.5, 1, 2, 5, 10].map(m => m * p).find(x => span / x <= 6)
+  const digits = Math.max(0, -Math.floor(Math.log10(step) + 1e-9))
+  return { range: [Math.floor(lo / step + 1e-9) * step, mid, Math.ceil(hi / step - 1e-9) * step], text: v => v.toFixed(digits) }
 }
 
 // A stat at a glance, in a box: its glyph and name at the top, its swing at the foot
@@ -181,7 +230,7 @@ function Details({ e, anchors, color, right }) {
 // A tile is square and never under TILE_MIN_H, the height of its fullest content (a title on
 // three lines beside a place ribbon): its size never depends on what it says.
 const TILE_MIN_H = 158
-function FootprintTile({ e, anchors, right, delay = 0 }) {
+function FootprintTile({ e, anchors, right, delay = 0, scale }) {
   const [open, setOpen] = useState(false)
   const lit = e.status === 'notable'
   // An unlit swing stays grey, brighter the bigger it is among players' swings, never as
@@ -225,7 +274,7 @@ function FootprintTile({ e, anchors, right, delay = 0 }) {
           <div style={{ position: 'absolute', top: 3, height: 3, left: `${b.left}%`, width: `${b.width}%`, background: lit ? color : '#837d76', transition: `left .55s cubic-bezier(.3,0,.1,1) ${delay}ms, width .55s cubic-bezier(.3,0,.1,1) ${delay}ms, background-color .35s ${delay}ms` }} />
         </div>
       </div>
-      {open && <Details e={e} anchors={anchors} color={lit ? color : null} right={right} />}
+      {open && <Details e={e} anchors={anchors} color={lit ? color : null} right={right} scale={scale} />}
     </div>
   )
 }
@@ -301,7 +350,9 @@ export default function Footprint({ profile: p }) {
 const loneTile = (e, o) => {
   const l = o.tiles[e.key] || { status: 'na', on: null, off: null, diff: null, pctl: null, swingPctl: null, onPctl: null, mate: false }
   const holds = e.status === 'notable' && !l.mate && l.status !== 'na' && l.status !== 'thin'
-  return { ...e, ...l, min: o.min, status: holds ? 'notable' : l.status, rank: null, mate: false, isLone: true }
+  // `whole`: the tile on all his minutes, for its details' chart.
+  const whole = { on: e.on, off: e.off, diff: e.diff, lg: e.lg, good: e.good, lit: e.status === 'notable' }
+  return { ...e, ...l, min: o.min, status: holds ? 'notable' : l.status, rank: null, mate: false, isLone: true, whole }
 }
 
 // REMOVE BEST (LONE in the code and data): the MATES and OFFENSE tiles over only the
@@ -543,7 +594,7 @@ function Views({ p, doc, faces }) {
         <div className="fp-row-tiles" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 1, padding: 1, alignSelf: 'start' }}>
           <span aria-hidden="true" style={{ position: 'absolute', left: -8, top: 1, bottom: 1, width: 2, background: color, opacity: changes ? 1 : 0, transition: 'opacity .3s' }} />
           {sec.tiles.map((e, i) => (
-            <FootprintTile key={e.key} e={changes ? loneTile(e, o) : { ...e, lone: o && o.tiles[e.key] }} anchors={o ? benched(o) : []} right={i >= cols / 2}
+            <FootprintTile key={e.key} e={changes ? loneTile(e, o) : { ...e, lone: o && o.tiles[e.key] }} anchors={o ? benched(o) : []} right={i >= cols / 2} scale={fp.scale && fp.scale[e.num - 1]}
               delay={45 * (sections.slice(0, sections.indexOf(sec)).reduce((n, x) => n + x.tiles.length, 0) + i)} />
           ))}
         </div>

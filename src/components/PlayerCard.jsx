@@ -315,8 +315,17 @@ function Unit({ unit, title }) {
 // or, for a combined row, its span's (`spanText`); the career chart marks the season, or
 // shades the span with its average, and Lonestar is that season's or the span's stretch;
 // the units are the row's season's, the span's last for a combined row, and say so.
-export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, spanText = null }) {
+export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, spanText = null, intro: opening = false }) {
   const { playoffs, playerPath } = useSeasonType()
+  // His name and bio wipe in when the card opens (`opening`), not when it moves to another
+  // player; the class goes once they have, so the bio line coming back after an icon's
+  // readout doesn't wipe in again.
+  const [intro, setIntro] = useState(opening)
+  useEffect(() => {
+    if (!intro) return
+    const t = setTimeout(() => setIntro(false), 900)
+    return () => clearTimeout(t)
+  }, [intro])
   const [profile, setProfile] = useState(null)
   const [lonestar, setLonestar] = useState(null)
   const [footprint, setFootprint] = useState(null)
@@ -369,7 +378,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
   const star = view && (view.scenarios.find(x => x.kind === 'two') || view.scenarios.find(x => x.kind === 'one'))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
+    <div className={intro ? 'pc-intro' : undefined} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
         {/* His status where the card named itself: green and ACTIVE on a roster now, grey
             and INACTIVE otherwise (held to its width while it's read). */}

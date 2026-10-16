@@ -262,6 +262,8 @@ export default function Leaderboard() {
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
   const close = useCallback(() => setPicked(null), [])
+  // Whether a card was already open, so the next one's intro plays only when the card opens.
+  const wasOpen = useRef(false)
   const wrap = useRef(null)
   // The row under the pointer: found from where the pointer is, so a scroll (which moves
   // rows under a still pointer and fires no pointer events) finds the new one too.
@@ -420,6 +422,7 @@ export default function Leaderboard() {
   const chartDoc = useMemo(() => (!doc ? doc : pages > 1 ? { ...doc, players: drawn } : doc.eras && x && y ? bestEras(doc, x, y) : doc), [doc, pages, drawn, x, y])
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
   const player = doc && picked ? doc.players.find(p => p.id === picked) : null
+  useEffect(() => { wasOpen.current = !!player })
   const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season runs` : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : spanYears(span.from, span.to)
 
   return (
@@ -473,7 +476,7 @@ export default function Leaderboard() {
           </div>
           <div className={`lb-side${player ? ' lb-carded' : ''}`}>
             {player
-              ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? spanYears(player.era[0], player.era[1]) : spanText} />
+              ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} intro={!wasOpen.current} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? spanYears(player.era[0], player.era[1]) : spanText} />
               : <LeaderScatter doc={chartDoc} shown={shown} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />}
           </div>
         </div>

@@ -138,9 +138,18 @@ function PctlBadge({ p, medal, title }) {
 // among players' swings (higher better, or for a style its size) in its medal's color; in
 // LONE, his minutes on and off too; and, for a tile lit by a teammate effect, what its swing
 // comes to in LONE. The unit is the tile's, the league's value the chart's. Opens leftward
-// from a tile on the right of its row.
+// from a tile on the right of its row, and above the tile when it would run past the
+// screen's foot and there is more room above (the bottom row, not scrolled to).
 // `color`: a lit tile's; an unlit one's swing is ink.
 function Details({ e, anchors, color, right, scale }) {
+  const ref = useRef(null)
+  const [up, setUp] = useState(false)
+  useLayoutEffect(() => {
+    const sheet = ref.current.getBoundingClientRect()
+    const tile = ref.current.parentElement.getBoundingClientRect()
+    const foot = document.documentElement.clientHeight
+    setUp(sheet.bottom > foot && tile.top > foot - tile.bottom)
+  }, [])
   const medal = medalOf(e)
   const sits = `WHEN ${anchorName(anchors)} ${anchors.length > 1 ? 'SIT' : 'SITS'}`
   const head = { fontSize: 9, letterSpacing: '.14em', color: DIM }
@@ -150,7 +159,7 @@ function Details({ e, anchors, color, right, scale }) {
   const has = e.on !== null && e.on !== undefined
   const swingPctl = e.swingPctl ?? e.pctl
   return (
-    <div role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 4px)', ...(right ? { right: 0 } : { left: 0 }), zIndex: 30, width: 340, maxWidth: 'calc(100vw - 32px)', background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10, fontFamily: MONO, fontSize: 10.5, lineHeight: 1.4, letterSpacing: '.04em', color: '#d8d2cb', fontVariantNumeric: 'tabular-nums', textAlign: 'left' }}>
+    <div ref={ref} role="tooltip" style={{ position: 'absolute', ...(up ? { bottom: 'calc(100% + 4px)' } : { top: 'calc(100% + 4px)' }), ...(right ? { right: 0 } : { left: 0 }), zIndex: 30, width: 340, maxWidth: 'calc(100vw - 32px)', background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 10px 28px rgba(0,0,0,.55)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10, fontFamily: MONO, fontSize: 10.5, lineHeight: 1.4, letterSpacing: '.04em', color: '#d8d2cb', fontVariantNumeric: 'tabular-nums', textAlign: 'left' }}>
       <span style={{ color: INK, textTransform: 'uppercase', letterSpacing: '.08em' }}>{e.label}{e.isLone && <span style={{ color: e.side === 'def' ? DEF_LONE : 'var(--accent)' }}> · REMOVE BEST</span>}</span>
       {has ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.45fr', columnGap: 12, rowGap: 2, paddingTop: 9, borderTop: rule }}>

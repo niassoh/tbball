@@ -63,13 +63,14 @@ function ModeToggle({ mode, onPick, hidden }) {
 const WINDOWS = { regular: { base: 'SEASON', window: 'RECENT', short: 'SEASON' }, playoffs: { base: 'REG SEASON', window: 'PLAYOFFS', short: 'SEASON' } }
 
 function Legend({ hidden, labels = WINDOWS.regular }) {
+  const base = <span key="base" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 1, height: 9, background: '#a09a93' }} />{labels.base}</span>
+  const vs = <span key="vs" style={{ color: '#837d76' }}>vs</span>
+  const win = <span key="win">{labels.window}</span>
   return (
     <div aria-hidden={hidden || undefined} style={{ padding: '10px 0 0', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px', visibility: hidden ? 'hidden' : 'visible' }}>
       <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#a09a93', whiteSpace: 'nowrap' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 1, height: 9, background: '#a09a93' }} />{labels.base}</span>
         {/* "vs", not an arrow: the window is set against the base, not reached from it. */}
-        <span style={{ color: '#837d76' }}>vs</span>
-        <span>{labels.window}</span>
+        {labels.windowFirst ? [win, vs, base] : [base, vs, win]}
       </span>
     </div>
   )
@@ -339,9 +340,9 @@ function PlayoffShift({ profile: p, season: k }) {
   )
 }
 
-// A past player (out of the latest season): the picked season against his other seasons on
-// the site (`career`: their minutes-weighted values; his shots by band, summed), an
-// archive's view of where it sat in his career. The span is named, since a career begun
+// A player out of the latest season (retired, or still on a depth chart after a season
+// out): the picked season against his other seasons on the site (`career`: their
+// minutes-weighted values; his shots by band, summed), where it sat in his career. The span is named, since a career begun
 // before 1996-97 is only partly here.
 const ARCHIVE = '#c9b994'
 const yy = season => `’${season.slice(-2)}`
@@ -352,7 +353,7 @@ function CareerShift({ profile: p, season: k }) {
   const first = played[0].season
   const last = played[played.length - 1].season
   const c = s.career
-  const labels = { base: 'OTHER SEASONS', window: yy(s.season), short: 'OTHER' }
+  const labels = { base: 'CAREER', window: yy(s.season), short: 'CAREER', windowFirst: true }
   const reason = s.empty ? 'NO GAMES THIS SEASON' : 'NO OTHER SEASONS TO COMPARE'
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -364,7 +365,7 @@ function CareerShift({ profile: p, season: k }) {
           </span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <span title="A retired player: each season against the rest of his on the site" style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.22em', color: ARCHIVE }}>RETIRED</span>
+          {p.retired && <span title="A retired player: each season against the rest of his on the site" style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.22em', color: ARCHIVE }}>RETIRED</span>}
           <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em', color: '#837d76', whiteSpace: 'nowrap' }}>LAST SEASON {last.replace('-', '–')}</span>
         </div>
       </div>

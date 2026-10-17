@@ -19,14 +19,16 @@ const spread = i => [((i * 37) % 11) - 5, ((i * 53) % 11) - 5]
 
 // On a hovered (darkened) zone: makes blue, misses orange. Dots are see-through
 // so overlapping shots build up and show density. Hover shows the last N games;
-// clicking switches to the rest of the season (fainter, as it has more shots).
+// clicking switches to the rest of the season (fainter, as it has more shots). A shot is
+// drawn where it was taken: x, y in tenths of a foot from the basket, y negative toward the
+// baseline (corner threes, baseline jumpers, shots behind the rim).
 const MAKE = '#6f9be8'
 const MISS = '#fa962a'
 
 function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) {
   const motion = animate ? { animation: `shotIn 320ms cubic-bezier(.3,.7,.4,1) ${delay}ms both`, transformBox: 'fill-box', transformOrigin: 'center' } : undefined
   return (
-    <g transform={`translate(${BASKET.x + x + dx} ${BASKET.y + Math.max(0, y + dy)})`}>
+    <g transform={`translate(${BASKET.x + x + dx} ${BASKET.y + y + dy})`}>
       <g style={motion}>
         <circle r="4.2" fill={made ? MAKE : MISS} fillOpacity={recent ? 0.45 : 0.15} />
       </g>

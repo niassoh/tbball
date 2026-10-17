@@ -336,9 +336,9 @@ a:hover > .lineup-tile > * { filter: none; }
 .lb-table-wrap::-webkit-scrollbar { width: 6px; height: 0; }
 /* The Leaderboard's player card, when it runs past its panel: the same thin dark bar. */
 /* A stint in the season picker's team band (SeasonPicker TeamBand): brighter under the pointer. */
-/* With a pointer the band waits hidden in its own space; a hovered year wipes in every
-   stint from its start, its own lit and the rest dimmed (SeasonPicker.jsx), and keyboard
-   focus brings one in too. */
+/* With a pointer the band waits hidden in its own space; a hovered year wipes it in, the
+   picked span's stretch lit and the rest dimmed (SeasonPicker.jsx), and keyboard focus
+   brings a stint in too. */
 @media (hover: hover) {
   .team-stint { opacity: 0; clip-path: inset(0 100% 0 0); pointer-events: none; transition: opacity .16s ease, clip-path .32s cubic-bezier(.2, .8, .2, 1), filter .15s; }
   .team-band.open .team-stint { opacity: .35; clip-path: inset(0 0 0 0); pointer-events: auto; }

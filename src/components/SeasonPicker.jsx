@@ -36,10 +36,10 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 // its seasons, its white logo and code where it has room; a season he was traded in split in
 // halves between the first team and the last; a season with no team, a gap. A click on a
 // stint picks its seasons (those of them with something to pick); the stint on show is lit.
-// With a pointer the band sits hidden: a year under the pointer brings in every stint, its
-// own lit and the rest dimmed (still there while the pointer moves down onto one), so the
-// band only speaks when asked; on hover a block's code gives way to its years, in the
-// block's own space (index.css).
+// With a pointer the band sits hidden: a year under the pointer brings it in (still there
+// while the pointer moves down onto it), the picked span's stretch lit and the rest dimmed,
+// so the band only speaks when asked; on hover a block's code gives way to its years, in
+// the block's own space (index.css).
 // `dimTitle`: a dim season's hover, why it can't be picked (null for none).
 const HALF = 2
 const QUICK = [[2, 'L2'], [3, 'L3'], [5, 'L5']]
@@ -136,36 +136,56 @@ function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = nu
 }
 
 // The stints under the strip, on its grid in half-seasons, so a block starts and ends with
-// its seasons and a traded season splits; a block breaks where the strip wraps to a new row.
+// its seasons and a traded season splits. Each stint is drawn in pieces broken where the
+// strip wraps to a new row and where the picked span starts and ends, so the span's stretch
+// of the band is lit as its cells are (the rest dimmed); a piece's click picks its whole
+// stint, and its hover shows the stint's years. A stint is named once a row: on its lit
+// piece, else its first, of those with room for the name.
 function TeamBand({ all, cols, teamsOf, values, from, to, pick, hot }) {
   const per = cols * HALF
   const halves = all.flatMap(v => { const ts = teamsOf(v) || []; return [ts[0] || null, ts[ts.length - 1] || null] })
-  const blocks = []
+  const seasonOf = h => all[Math.floor(h / HALF)]
+  const inSpan = h => seasonOf(h) >= from && seasonOf(h) <= to
+  const stints = []
   for (let h = 0; h < halves.length;) {
     if (!halves[h]) { h++; continue }
     let e = h
-    while (e + 1 < halves.length && halves[e + 1] === halves[h] && Math.floor((e + 1) / per) === Math.floor(h / per)) e++
+    while (e + 1 < halves.length && halves[e + 1] === halves[h]) e++
     // The seasons it covers that can be picked.
-    const a = all[Math.floor(h / HALF)]
-    const z = all[Math.floor(e / HALF)]
+    const a = seasonOf(h)
+    const z = seasonOf(e)
     const inside = values.filter(v => v >= a && v <= z)
-    blocks.push({ team: halves[h], from: h, span: e - h + 1, a, z, first: inside[0], last: inside[inside.length - 1], years: a === z ? shortSeason(a) : `${shortSeason(a)}–${shortSeason(z)}` })
+    stints.push({ team: halves[h], h, e, first: inside[0], last: inside[inside.length - 1], years: a === z ? shortSeason(a) : `${shortSeason(a)}–${shortSeason(z)}` })
     h = e + 1
   }
+  const pieces = stints.flatMap(st => {
+    const out = []
+    for (let h = st.h; h <= st.e;) {
+      let e = h
+      while (e < st.e && Math.floor((e + 1) / per) === Math.floor(h / per) && inSpan(e + 1) === inSpan(h)) e++
+      out.push({ ...st, from: h, span: e - h + 1, row: Math.floor(h / per), lit: inSpan(h) })
+      h = e + 1
+    }
+    for (const row of new Set(out.map(x => x.row))) {
+      const here = out.filter(x => x.row === row)
+      const roomy = here.filter(x => x.span >= HALF)
+      ;(roomy.find(x => x.lit) || roomy[0] || here[0]).named = true
+    }
+    return out
+  })
   return (
     <div role="group" aria-label="His teams" className={hot ? 'team-band open' : 'team-band'} style={{ display: 'grid', gridTemplateColumns: `repeat(${per}, minmax(0, 1fr))`, gridAutoRows: 12, rowGap: 3, marginTop: 3 }}>
-      {blocks.map(b => {
+      {pieces.map(b => {
         const color = teamColor(b.team)
-        const on = b.first && b.first === from && b.last === to
         return (
-          <button key={b.from} type="button" className={hot && hot >= b.a && hot <= b.z ? 'team-stint shown' : 'team-stint'} data-a={b.a} disabled={!b.first} onClick={() => pick(b.first, b.last)}
+          <button key={b.from} type="button" className={b.lit ? 'team-stint shown' : 'team-stint'} data-a={seasonOf(b.from)} disabled={!b.first} onClick={() => pick(b.first, b.last)}
             aria-label={b.first ? `${b.team} ${b.years}: pick ${b.first === b.last ? b.first : `${b.first} to ${b.last}`}` : `${b.team} ${b.years}`}
-            style={{ position: 'relative', gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, marginRight: 1, display: 'flex', alignItems: 'center', padding: '0 4px', border: 0, overflow: 'hidden', cursor: b.first ? 'pointer' : 'default', background: `color-mix(in srgb, ${color || '#837d76'} ${on ? 70 : 42}%, #2c2a28)` }}>
-            {b.span >= HALF && (
+            style={{ position: 'relative', gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, marginRight: 1, display: 'flex', alignItems: 'center', padding: '0 4px', border: 0, overflow: 'hidden', cursor: b.first ? 'pointer' : 'default', background: `color-mix(in srgb, ${color || '#837d76'} ${b.lit ? 70 : 42}%, #2c2a28)` }}>
+            {b.named && b.span >= HALF && (
               <>
                 <span className="stint-code" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                   {color && <img src={asset(`logos/${b.team}.png`)} alt="" style={{ width: 8, height: 8, objectFit: 'contain', opacity: 0.75, flex: 'none' }} />}
-                  <span style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: on ? INK : MID, whiteSpace: 'nowrap' }}>{b.team}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: b.lit ? INK : MID, whiteSpace: 'nowrap' }}>{b.team}</span>
                 </span>
                 <span className="stint-years" aria-hidden="true" style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: INK, whiteSpace: 'nowrap' }}>{b.years}</span>
               </>

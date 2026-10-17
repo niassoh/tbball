@@ -42,10 +42,11 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 // the block's own space (index.css).
 // `dimTitle`: a dim season's hover, why it can't be picked (null for none).
 const HALF = 2
-// A stint's bar stays 12px, but it takes clicks a little above (into the gap under the
+// A stint's bar is BAR_H tall, but it takes clicks a little above (into the gap under the
 // strip) and below it, so it's easy to hit coming down from a year.
+const BAR_H = 9
 const HIT_ABOVE = 3
-const HIT_BELOW = 7
+const HIT_BELOW = 10
 const QUICK = [[2, 'L2'], [3, 'L3'], [5, 'L5']]
 const CELL = 38
 const LIT = '#3d3a37'
@@ -178,7 +179,7 @@ function TeamBand({ all, cols, teamsOf, values, from, to, pick, hot }) {
     return out
   })
   return (
-    <div role="group" aria-label="His teams" className={hot ? 'team-band open' : 'team-band'} style={{ display: 'grid', gridTemplateColumns: `repeat(${per}, minmax(0, 1fr))`, gridAutoRows: 12, rowGap: 3, marginTop: 3 }}>
+    <div role="group" aria-label="His teams" className={hot ? 'team-band open' : 'team-band'} style={{ display: 'grid', gridTemplateColumns: `repeat(${per}, minmax(0, 1fr))`, gridAutoRows: BAR_H, rowGap: 3, marginTop: 3 }}>
       {pieces.map(b => {
         const color = teamColor(b.team)
         return (
@@ -188,7 +189,7 @@ function TeamBand({ all, cols, teamsOf, values, from, to, pick, hot }) {
             {b.named && b.span >= HALF && (
               <>
                 <span className="stint-code" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  {color && <img src={asset(`logos/${b.team}.png`)} alt="" style={{ width: 8, height: 8, objectFit: 'contain', opacity: 0.75, flex: 'none' }} />}
+                  {color && <img src={asset(`logos/${b.team}.png`)} alt="" style={{ width: 7, height: 7, objectFit: 'contain', opacity: 0.75, flex: 'none' }} />}
                   <span style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: b.lit ? INK : MID, whiteSpace: 'nowrap' }}>{b.team}</span>
                 </span>
                 <span className="stint-years" aria-hidden="true" style={{ top: HIT_ABOVE, bottom: HIT_BELOW, fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: INK, whiteSpace: 'nowrap' }}>{b.years}</span>

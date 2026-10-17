@@ -67,10 +67,9 @@ function Legend({ hidden, labels = WINDOWS.regular }) {
     <div aria-hidden={hidden || undefined} style={{ padding: '10px 0 0', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px', visibility: hidden ? 'hidden' : 'visible' }}>
       <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#a09a93', whiteSpace: 'nowrap' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 1, height: 9, background: '#a09a93' }} />{labels.base}</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 8, height: 2, background: '#a09a93' }} /><span style={{ width: 5, height: 7, background: '#a09a93', clipPath: HEAD.right }} /></span>
-          {labels.window}
-        </span>
+        {/* "vs", not an arrow: the window is set against the base, not reached from it. */}
+        <span style={{ color: '#837d76' }}>vs</span>
+        <span>{labels.window}</span>
       </span>
     </div>
   )
@@ -390,7 +389,7 @@ function CareerShift({ profile: p, season: k }) {
           </span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <span title="A past player: each season against the rest of his on the site" style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.22em', color: ARCHIVE, border: `1px solid ${ARCHIVE}`, padding: '2px 5px 2px 7px' }}>ARCHIVE</span>
+          <span title="A retired player: each season against the rest of his on the site" style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.22em', color: ARCHIVE }}>RETIRED</span>
           <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em', color: '#837d76', whiteSpace: 'nowrap' }}>LAST SEASON {last.replace('-', '–')}</span>
         </div>
       </div>

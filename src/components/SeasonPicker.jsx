@@ -36,6 +36,7 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 // its seasons, its white logo and code where it has room; a season he was traded in split in
 // halves between the first team and the last; a season with no team, a gap. A click on a
 // stint picks its seasons (those of them with something to pick); the stint on show is lit.
+// On hover a block's code gives way to its years, in the block's own space (index.css).
 // `dimTitle`: a dim season's hover, why it can't be picked (null for none).
 const HALF = 2
 const QUICK = [[2, 'L2'], [3, 'L3'], [5, 'L5']]
@@ -132,7 +133,7 @@ function TeamBand({ all, cols, teamsOf, values, from, to, pick }) {
     const a = all[Math.floor(h / HALF)]
     const z = all[Math.floor(e / HALF)]
     const inside = values.filter(v => v >= a && v <= z)
-    blocks.push({ team: halves[h], from: h, span: e - h + 1, first: inside[0], last: inside[inside.length - 1] })
+    blocks.push({ team: halves[h], from: h, span: e - h + 1, first: inside[0], last: inside[inside.length - 1], years: a === z ? shortSeason(a) : `${shortSeason(a)}–${shortSeason(z)}` })
     h = e + 1
   }
   return (
@@ -142,10 +143,17 @@ function TeamBand({ all, cols, teamsOf, values, from, to, pick }) {
         const on = b.first && b.first === from && b.last === to
         return (
           <button key={b.from} type="button" className="team-stint" disabled={!b.first} onClick={() => pick(b.first, b.last)}
-            title={b.first ? `${b.team}: pick ${b.first === b.last ? b.first : `${b.first} to ${b.last}`}` : b.team}
-            style={{ gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, marginRight: 1, display: 'flex', alignItems: 'center', gap: 3, padding: '0 4px', border: 0, overflow: 'hidden', cursor: b.first ? 'pointer' : 'default', background: `color-mix(in srgb, ${color || '#837d76'} ${on ? 70 : 42}%, #2c2a28)` }}>
-            {b.span >= HALF && color && <img src={asset(`logos/${b.team}.png`)} alt="" style={{ width: 8, height: 8, objectFit: 'contain', opacity: 0.75, flex: 'none' }} />}
-            {b.span >= HALF && <span style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: on ? INK : MID, whiteSpace: 'nowrap' }}>{b.team}</span>}
+            aria-label={b.first ? `${b.team} ${b.years}: pick ${b.first === b.last ? b.first : `${b.first} to ${b.last}`}` : `${b.team} ${b.years}`}
+            style={{ position: 'relative', gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, marginRight: 1, display: 'flex', alignItems: 'center', padding: '0 4px', border: 0, overflow: 'hidden', cursor: b.first ? 'pointer' : 'default', background: `color-mix(in srgb, ${color || '#837d76'} ${on ? 70 : 42}%, #2c2a28)` }}>
+            {b.span >= HALF && (
+              <>
+                <span className="stint-code" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  {color && <img src={asset(`logos/${b.team}.png`)} alt="" style={{ width: 8, height: 8, objectFit: 'contain', opacity: 0.75, flex: 'none' }} />}
+                  <span style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: on ? INK : MID, whiteSpace: 'nowrap' }}>{b.team}</span>
+                </span>
+                <span className="stint-years" aria-hidden="true" style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: INK, whiteSpace: 'nowrap' }}>{b.years}</span>
+              </>
+            )}
           </button>
         )
       })}

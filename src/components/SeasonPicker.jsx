@@ -53,7 +53,8 @@ function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = nu
   const cols = Math.ceil(all.length / rows)
   const anchor = useRef(from)
   const dragging = useRef(false)
-  // The season under the pointer, over the strip or a stint (its first season), for the band.
+  // The season under the pointer, over the strip or a stint (its first season): its cell
+  // lifts a little, and the band shows its stint.
   const [hot, setHot] = useState(null)
   const track = e => {
     const el = document.elementFromPoint(e.clientX, e.clientY)
@@ -111,16 +112,17 @@ function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = nu
         })}
       </div>}
       </div>
-      <div onPointerMove={teamsOf ? track : undefined} onPointerLeave={() => setHot(null)}>
+      <div onPointerMove={track} onPointerLeave={() => setHot(null)}>
       <div ref={root} role="group" aria-label={name} tabIndex={0} className="year-strip" onPointerDown={down} onPointerMove={move}
         onPointerUp={() => { dragging.current = false }} onKeyDown={key}
         style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, touchAction: 'none', userSelect: 'none' }}>
         {all.map((v, i) => {
           const lit = v >= from && v <= to
           const end = v === from || v === to
+          const hov = v === hot && has.has(v)
           return (
             <span key={v} data-i={i} data-has={has.has(v) ? 1 : 0} title={!has.has(v) && dimTitle ? dimTitle(v) || undefined : undefined}
-              style={{ ...lines(i), boxSizing: 'border-box', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: lit ? LIT : 'transparent', boxShadow: lit ? 'inset 0 -2px 0 var(--accent)' : 'none', color: lit ? INK : has.has(v) ? SOFT : FAINT, fontFamily: MONO, fontSize: 11, fontWeight: end ? 700 : 500, letterSpacing: '.04em', cursor: has.has(v) ? 'pointer' : 'default' }}>
+              style={{ ...lines(i), boxSizing: 'border-box', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: lit ? (hov ? '#47433f' : LIT) : hov ? '#34312e' : 'transparent', boxShadow: lit ? 'inset 0 -2px 0 var(--accent)' : 'none', color: lit || hov ? INK : has.has(v) ? SOFT : FAINT, transition: 'background-color .15s, color .15s', fontFamily: MONO, fontSize: 11, fontWeight: end ? 700 : 500, letterSpacing: '.04em', cursor: has.has(v) ? 'pointer' : 'default' }}>
               {labelOf(v)}
             </span>
           )

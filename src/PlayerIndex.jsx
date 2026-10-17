@@ -5,6 +5,7 @@ import { MONO } from './lib/format.js'
 import { TEAM_COLORS, teamColor } from './lib/teams.js'
 import { asset } from './lib/static.js'
 import TeamInitials from './components/TeamInitials.jsx'
+import JerseyOverlay from './components/JerseyOverlay.jsx'
 import { useSeasonType } from './useSeasonType.js'
 
 // The player index: a search line (and the way to the Leaderboard) and the 30 teams'
@@ -143,6 +144,8 @@ function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
             <img src={url(100)} alt="" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" onLoad={() => { setSmall(true); onShown?.() }} onError={() => setFailed(true)}
               className={small ? 'idx-in' : 'idx-wait'} style={{ ...cover, transitionDelay: small && eager && square ? `${order * 8}ms, 0ms` : '0ms' }} />
             {square && small && <img src={url(400)} alt="" decoding="async" onLoad={() => setLarge(true)} className={large ? 'idx-in' : 'idx-wait'} style={cover} />}
+            {/* Jersey art is drawn in one jersey; his team on the tile is laid over it. */}
+            {small && player.layers && <JerseyOverlay slug={player.slug} size={square ? 400 : 100} layers={player.layers} id={teamOf(player)} />}
           </>
         : <TeamInitials name={player.name} team={player.team} fontSize={square ? 40 : 9} />}
     </span>
@@ -262,7 +265,8 @@ export default function PlayerIndex() {
   // A team code typed into the search works like its logo.
   const q = fold(query.trim())
   const typedTeam = TEAMS.find(t => fold(t) === q)
-  const matches = (players || []).filter(p => (!team || p.team === team) && (!q || fold(p.name).includes(q) || (typedTeam && p.team === typedTeam))).sort(byBest)
+  // A team matches the team a tile shows: a past player's best season's.
+  const matches = (players || []).filter(p => (!team || teamOf(p) === team) && (!q || fold(p.name).includes(q) || (typedTeam && teamOf(p) === typedTeam))).sort(byBest)
   const portraits = matches.filter(p => ILLUSTRATED.has(p.headshot))
   const rest = matches.filter(p => !ILLUSTRATED.has(p.headshot))
   const all = full || !!q || !!team

@@ -350,7 +350,7 @@ a:hover > .lineup-tile > * { filter: none; }
 /* A stint's code gives way to its years on hover (or focus): the code lifts out as the
    years rise in, both in the block's own space, so nothing moves around it. */
 .team-stint .stint-code, .team-stint .stint-years { transition: opacity .16s ease, transform .22s cubic-bezier(.2, .8, .2, 1); }
-.team-stint .stint-years { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 4px; opacity: 0; transform: translateY(5px); }
+.team-stint .stint-years { position: absolute; left: 0; right: 0; display: flex; align-items: center; padding: 0 4px; opacity: 0; transform: translateY(5px); }
 .team-stint:hover .stint-code, .team-stint:focus-visible .stint-code { opacity: 0; transform: translateY(-5px); }
 .team-stint:hover .stint-years, .team-stint:focus-visible .stint-years { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .team-stint .stint-code, .team-stint .stint-years { transform: none !important; } }

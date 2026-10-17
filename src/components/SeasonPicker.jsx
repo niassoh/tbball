@@ -42,6 +42,10 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 // the block's own space (index.css).
 // `dimTitle`: a dim season's hover, why it can't be picked (null for none).
 const HALF = 2
+// A stint's bar stays 12px, but it takes clicks a little above (into the gap under the
+// strip) and below it, so it's easy to hit coming down from a year.
+const HIT_ABOVE = 3
+const HIT_BELOW = 7
 const QUICK = [[2, 'L2'], [3, 'L3'], [5, 'L5']]
 const CELL = 38
 const LIT = '#3d3a37'
@@ -180,14 +184,14 @@ function TeamBand({ all, cols, teamsOf, values, from, to, pick, hot }) {
         return (
           <button key={b.from} type="button" className={b.lit ? 'team-stint shown' : 'team-stint'} data-a={seasonOf(b.from)} disabled={!b.first} onClick={() => pick(b.first, b.last)}
             aria-label={b.first ? `${b.team} ${b.years}: pick ${b.first === b.last ? b.first : `${b.first} to ${b.last}`}` : `${b.team} ${b.years}`}
-            style={{ position: 'relative', gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, marginRight: 1, display: 'flex', alignItems: 'center', padding: '0 4px', border: 0, overflow: 'hidden', cursor: b.first ? 'pointer' : 'default', background: `color-mix(in srgb, ${color || '#837d76'} ${b.lit ? 70 : 42}%, #2c2a28)` }}>
+            style={{ position: 'relative', gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, boxSizing: 'content-box', margin: `-${HIT_ABOVE}px 1px -${HIT_BELOW}px 0`, padding: `${HIT_ABOVE}px 4px ${HIT_BELOW}px`, backgroundClip: 'content-box', display: 'flex', alignItems: 'center', border: 0, overflow: 'hidden', cursor: b.first ? 'pointer' : 'default', background: `color-mix(in srgb, ${color || '#837d76'} ${b.lit ? 70 : 42}%, #2c2a28)` }}>
             {b.named && b.span >= HALF && (
               <>
                 <span className="stint-code" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                   {color && <img src={asset(`logos/${b.team}.png`)} alt="" style={{ width: 8, height: 8, objectFit: 'contain', opacity: 0.75, flex: 'none' }} />}
                   <span style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: b.lit ? INK : MID, whiteSpace: 'nowrap' }}>{b.team}</span>
                 </span>
-                <span className="stint-years" aria-hidden="true" style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: INK, whiteSpace: 'nowrap' }}>{b.years}</span>
+                <span className="stint-years" aria-hidden="true" style={{ top: HIT_ABOVE, bottom: HIT_BELOW, fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: INK, whiteSpace: 'nowrap' }}>{b.years}</span>
               </>
             )}
           </button>

@@ -36,9 +36,10 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 // its seasons, its white logo and code where it has room; a season he was traded in split in
 // halves between the first team and the last; a season with no team, a gap. A click on a
 // stint picks its seasons (those of them with something to pick); the stint on show is lit.
-// With a pointer the band sits hidden: a year under the pointer brings in its stint (and
-// keeps it while the pointer moves down onto it), so the band only speaks when asked; on
-// hover a block's code gives way to its years, in the block's own space (index.css).
+// With a pointer the band sits hidden: a year under the pointer brings in every stint, its
+// own lit and the rest dimmed (still there while the pointer moves down onto one), so the
+// band only speaks when asked; on hover a block's code gives way to its years, in the
+// block's own space (index.css).
 // `dimTitle`: a dim season's hover, why it can't be picked (null for none).
 const HALF = 2
 const QUICK = [[2, 'L2'], [3, 'L3'], [5, 'L5']]
@@ -152,7 +153,7 @@ function TeamBand({ all, cols, teamsOf, values, from, to, pick, hot }) {
     h = e + 1
   }
   return (
-    <div role="group" aria-label="His teams" style={{ display: 'grid', gridTemplateColumns: `repeat(${per}, minmax(0, 1fr))`, gridAutoRows: 12, rowGap: 3, marginTop: 3 }}>
+    <div role="group" aria-label="His teams" className={hot ? 'team-band open' : 'team-band'} style={{ display: 'grid', gridTemplateColumns: `repeat(${per}, minmax(0, 1fr))`, gridAutoRows: 12, rowGap: 3, marginTop: 3 }}>
       {blocks.map(b => {
         const color = teamColor(b.team)
         const on = b.first && b.first === from && b.last === to

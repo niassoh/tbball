@@ -119,7 +119,9 @@ function ShotMap({ shotShift, divided, po = false, labels = WINDOWS[po ? 'playof
   return (
     <>
       <ShotHeader divided={divided}><ModeToggle mode={mode} onPick={setMode} /></ShotHeader>
-      <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 12px' }}>
+      {/* Takes up the card's slack, the court centred in it: the card spans the season
+          rail's row too, so it runs taller than its rows whenever its neighbours do. */}
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, padding: '8px 14px 12px' }}>
         <svg viewBox={`0 0 500 ${COURT_H}`} onMouseLeave={leave} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <style>{SHOT_KEYFRAMES}</style>
           <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />
@@ -282,7 +284,7 @@ function EmptyShotMap({ reason, divided }) {
   return (
     <>
       <ShotHeader divided={divided}><ModeToggle mode="value" onPick={() => {}} hidden /></ShotHeader>
-      <div style={{ position: 'relative', padding: '8px 14px 12px' }}>
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, padding: '8px 14px 12px' }}>
         <svg viewBox={`0 0 500 ${COURT_H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />
           <defs>

@@ -351,6 +351,8 @@ a:hover > .lineup-tile > * { filter: none; }
   .team-band.open .team-stint.shown, .team-stint:focus-visible { opacity: 1; clip-path: inset(0 0 0 0); pointer-events: auto; }
 }
 @media (hover: hover) and (prefers-reduced-motion: reduce) { .team-stint { transition: opacity .12s ease; clip-path: none; } }
+/* A phone, with no pointer to bring it in, goes without the band (over the inline grid). */
+@media (hover: none) { .team-band { display: none !important; } }
 .team-stint:not(:disabled):hover { filter: brightness(1.35); }
 .team-stint:focus-visible { outline: 1px solid #ece8e3; outline-offset: 1px; }
 /* A stint's code gives way to its years on hover (or focus): the code lifts out as the

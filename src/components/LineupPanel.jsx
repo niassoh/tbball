@@ -281,13 +281,13 @@ function Unit({ title, unit, size, self, team, season, jerseys, accent, empty, c
   return (
     <div className={className} style={{ display: 'flex', flexDirection: 'column', gap: 11, minWidth: 0 }}>
       <span style={{ ...label, display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>{title}</span>
-      <div style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div className="unit-row" style={{ height: TILE + 13, display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ display: 'flex', gap: 2, flex: 1, minWidth: 0 }}>
           {unit
             ? players.map((pl, i) => <Tile key={i} player={pl} team={team} accent={accent} self={pl === self} small={small} state={state} jerseys={jerseys} />)
             : Array.from({ length: size }, (_, i) => <span key={i} style={{ width: small ? SMALL : TILE, height: small ? SMALL : TILE, margin: small ? 0 : `0 ${(COL - TILE) / 2}px`, flex: 'none', borderRadius: '50%', border: '1px dashed #4a4643' }} />)}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
+        <div className="unit-nums" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flex: 'none' }}>
           {unit ? <Net unit={unit} onTip={onTip} tip={tip} /> : <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1, color: FAINT }}>—</span>}
           <span style={{ ...label, fontSize: 8, whiteSpace: unit ? 'nowrap' : 'pre-line', textAlign: 'right', lineHeight: 1.4 }}>{unit ? `${mins(unit.minutes)} MIN` : empty}</span>
           {unit && unit.share !== undefined && <span style={{ ...label, fontSize: 8, whiteSpace: 'nowrap' }}>{unit.share}% OF MIN</span>}

@@ -9,12 +9,12 @@ import TeamPicker from './TeamPicker.jsx'
 import LineupPanel from './LineupPanel.jsx'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import SplitJersey from './SplitJersey.jsx'
-import TrophyCase from './TrophyCase.jsx'
+import TrophyCase, { CareerCase } from './TrophyCase.jsx'
 import { teamColor } from '../lib/teams.js'
 import { asset } from '../lib/static.js'
 import { useSeasonType } from '../useSeasonType.js'
 
-const card = { border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }
+const card = { position: 'relative', border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }
 const INJURY = { OUT: '#fa962a', DTD: '#e6c27a' }
 
 const lastName = name => name.split(' ').slice(1).join(' ') || name
@@ -137,6 +137,9 @@ export default function BioCard({ profile: p, season, loading = false }) {
   // The header logo and the depth chart's team name toggle the team switcher, which
   // opens just below whichever was clicked (picking holds that element).
   const [picking, setPicking] = useState(null)
+  // The career trophy case, open for this player from the trophy clicked (CareerCase).
+  const [trophy, setTrophy] = useState(null)
+  const closeCase = useCallback(() => setTrophy(null), [])
   const closePicker = useCallback(() => setPicking(null), [])
   const open = e => setPicking(picking ? null : e.currentTarget)
   const switcher = { onClick: open, onPointerEnter: () => { loadTeams().catch(() => {}) }, title: 'Switch team' }
@@ -205,7 +208,7 @@ export default function BioCard({ profile: p, season, loading = false }) {
         <h1 ref={nameRef} key={`name-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
           {lines.map(l => <span key={l} style={{ display: 'block', whiteSpace: 'nowrap' }}>{l}</span>)}
         </h1>
-        <TrophyCase key={`awards-${p.slug}-${shown}`} awards={p.awards} season={shown} room={trophyRoom} right={portraitW - TROPHY_OVERLAP} />
+        <TrophyCase key={`awards-${p.slug}-${shown}`} awards={p.awards} season={shown} room={trophyRoom} right={portraitW - TROPHY_OVERLAP} onOpen={award => setTrophy({ slug: p.slug, award })} />
       </div>
 
       {/* Remounted per season type: its chosen minimums belong to that type's pools. */}
@@ -251,6 +254,7 @@ export default function BioCard({ profile: p, season, loading = false }) {
         </div>
       )}
       {picking && <TeamPicker profile={p} anchor={picking} onClose={closePicker} />}
+      {trophy && trophy.slug === p.slug && <CareerCase awards={p.awards} seasons={p.seasons.map(x => x.season)} name={p.name} focus={trophy.award} onClose={closeCase} />}
     </div>
   )
 }

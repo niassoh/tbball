@@ -445,3 +445,14 @@ a:hover > .lineup-tile > * { filter: none; }
 .idx-live::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; background: var(--accent); filter: blur(3px); opacity: 0; animation: idx-live 3s ease-in-out infinite; pointer-events: none; }
 @keyframes idx-live { 0%, 100% { opacity: 0; } 50% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .idx-live::after { animation: none; opacity: .3; } }
+
+/* The career trophy case wipes down over the bio card, its rows rise in turn and its lit
+   steps come on left to right in hard steps (TrophyCase.jsx CareerCase). */
+.cc { animation: cc-open .34s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes cc-open { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+.cc-row { animation: pf-in .35s cubic-bezier(.2, .7, .2, 1) both var(--r, 0ms); }
+/* A hard switch in the keyframes rather than steps(): steps() can stop a hair short of its
+   last step and leave the cell at half. */
+.cc-on { animation: cc-step .16s linear both var(--d, 0ms); }
+@keyframes cc-step { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cc, .cc-row, .cc-on { animation: none; } }

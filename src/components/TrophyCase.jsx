@@ -9,7 +9,9 @@
 // medallion with a sprout, Sixth Man a jersey numbered 6, Most Improved an arrow climbing,
 // Clutch a stopwatch, All-Star a star. Drawn on 32 × 34 (the plinth
 // under it in type), shown at SIZE × `scale`.
+import { useEffect } from 'react'
 import { MONO } from '../lib/format.js'
+import { seasonsBetween, shortSeason } from '../lib/seasons.js'
 
 const GOLD = '#d4af37'
 const GOLD_DARK = '#a8852a'
@@ -125,7 +127,8 @@ function Trophy({ award, scale: k = 1 }) {
 // turn (index.css .tc-item, .tc-tag); a screen without hover shows them throughout, their
 // names on a tap. They keep their size while they fit in `room` (the banner between his
 // name and his portrait, measured by the card), then shrink to fit, to MIN_SCALE, past
-// which the last fold into a "+n". Nothing in a season he won none.
+// which the last fold into a "+n". Nothing in a season he won none. A click (or Enter) on a
+// trophy opens his career trophy case (`onOpen`, CareerCase).
 const AWARDS = [
   ['champion', 'NBA champion'],
   ['fmvp', 'Finals MVP'],
@@ -145,7 +148,7 @@ const AWARDS = [
 const GAP = 6
 const MIN_SCALE = 0.7
 
-export default function TrophyCase({ awards, season, room, right }) {
+export default function TrophyCase({ awards, season, room, right, onOpen }) {
   const items = AWARDS.filter(([k]) => awards && awards[k] && awards[k].includes(season))
   const width = n => n * TROPHY_W + (n - 1) * GAP
   let shown = items
@@ -158,7 +161,8 @@ export default function TrophyCase({ awards, season, room, right }) {
       {shown.map(([key, long], i) => {
         const tip = `${long} · ${season.replace('-', '–')}`
         return (
-          <span key={key} className="tc-item" tabIndex={0} aria-label={tip} style={{ '--d': `${40 + i * 55}ms`, position: 'relative', display: 'flex', cursor: 'default', outline: 'none' }}>
+          <span key={key} className="tc-item" tabIndex={0} role="button" aria-label={`${tip}: open his career trophy case`} onClick={() => onOpen(key)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(key) } }}
+            style={{ '--d': `${40 + i * 55}ms`, position: 'relative', display: 'flex', cursor: 'pointer', outline: 'none' }}>
             <Trophy award={key} scale={scale} />
             {/* Every other name a line higher, so neighbours never touch. */}
             <span className="tc-tag" aria-hidden="true" style={{ position: 'absolute', left: '50%', bottom: `calc(100% + ${i % 2 ? 13 : 3}px)`, fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
@@ -171,3 +175,63 @@ export default function TrophyCase({ awards, season, room, right }) {
     </div>
   )
 }
+
+// His career trophy case, over the bio card when a trophy is clicked: every award he won, a
+// row each (its trophy, its name, how many), along a strip of his career's seasons, a lit
+// step in the award's metal for each season he won it, like a sequencer's (hover one for its
+// season); the row clicked (`focus`) marked. It wipes down over the card and its steps come
+// on in turn, left to right, row by row (index.css .cc-*). ✕ or Esc closes it.
+export function CareerCase({ awards, seasons, name, focus, onClose }) {
+  useEffect(() => {
+    const key = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [onClose])
+  const rows = AWARDS.filter(([k]) => awards && awards[k] && awards[k].length)
+  const won = rows.flatMap(([k]) => awards[k])
+  const span = seasonsBetween([seasons[0], ...won].sort()[0], [seasons[seasons.length - 1], ...won].sort().pop())
+  // Every fifth season from his first, and his last when it isn't crowding the one before.
+  const ticks = new Set(span.filter((x, i) => i % 5 === 0 || (i === span.length - 1 && i % 5 >= 3)))
+  const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.16em', textTransform: 'uppercase', color: '#a09a93' }
+  const cols = '40px minmax(96px, 150px) minmax(0, 1fr) 26px'
+  return (
+    <div className="cc" role="dialog" aria-label={`${name}: career trophy case`} style={{ position: 'absolute', inset: 0, zIndex: 6, background: '#1f1d1c', display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px 16px', overflow: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #544f4b', paddingBottom: 9 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+          <span style={{ ...label, color: INK, fontWeight: 700 }}>Career trophy case</span>
+          <span style={{ ...label, letterSpacing: '.1em' }}>{name} · {won.length} honour{won.length === 1 ? '' : 's'} · {shortSeason(span[0])}–{shortSeason(span[span.length - 1])}</span>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close the trophy case" style={{ ...label, color: INK, background: 'none', border: '1px solid #544f4b', padding: '4px 8px', cursor: 'pointer' }}>Esc ✕</button>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rows.map(([key, long], r) => {
+          const lit = new Set(awards[key])
+          const metal = EMBLEMS[key].metal[0]
+          return (
+            <div key={key} className="cc-row" style={{ '--r': `${80 + r * 45}ms`, display: 'grid', gridTemplateColumns: cols, alignItems: 'center', columnGap: 10, boxShadow: key === focus ? `inset 2px 0 0 ${metal}` : 'none', paddingLeft: 6 }}>
+              <Trophy award={key} scale={0.62} />
+              <span style={{ ...label, fontSize: 8.5, letterSpacing: '.1em', color: key === focus ? INK : '#b3ada6', lineHeight: 1.3 }}>{long}</span>
+              <span style={{ display: 'grid', gridTemplateColumns: `repeat(${span.length}, minmax(0, 1fr))`, gap: 2 }}>
+                {span.map((season, i) => (
+                  <span key={season} title={`${long} · ${season.replace('-', '–')}`} className={lit.has(season) ? 'cc-on' : undefined}
+                    style={{ '--d': `${160 + r * 45 + i * 14}ms`, height: 12, background: lit.has(season) ? metal : 'transparent', boxShadow: lit.has(season) ? 'none' : 'inset 0 0 0 1px #34312e' }} />
+                ))}
+              </span>
+              <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, textAlign: 'right', color: INK, fontVariantNumeric: 'tabular-nums' }}>{lit.size}</span>
+            </div>
+          )
+        })}
+        {/* The seasons under the steps. */}
+        <div style={{ display: 'grid', gridTemplateColumns: cols, columnGap: 10, paddingLeft: 6 }}>
+          <span />
+          <span />
+          <span style={{ display: 'grid', gridTemplateColumns: `repeat(${span.length}, minmax(0, 1fr))`, gap: 2 }}>
+            {span.map(season => <span key={season} style={{ fontFamily: MONO, fontSize: 7.5, color: '#837d76', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'visible' }}>{ticks.has(season) ? shortSeason(season) : ''}</span>)}
+          </span>
+          <span />
+        </div>
+      </div>
+    </div>
+  )
+}
+

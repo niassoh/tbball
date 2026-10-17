@@ -164,7 +164,7 @@ function Plot({ s, width: W, skey }) {
 const FADE = 'linear-gradient(#000 0 50%, transparent 85%), linear-gradient(90deg, transparent 0, #000 24%, #000 76%, transparent 100%)'
 export function Portrait({ who, team, on, size, layers, jersey, order = 0 }) {
   const [failed, setFailed] = useState(false)
-  const dim = on ? {} : { filter: 'grayscale(1) contrast(1.2)', opacity: 0.6 }
+  const dim = on ? {} : { filter: 'grayscale(1) brightness(1.15)', opacity: 0.85 }
   const place = { display: 'block', alignSelf: 'end', justifySelf: 'center', '--i': order, ...dim }
   const bench = on ? undefined : 'ls-bench'
   const px = size > 50 ? 400 : 100
@@ -384,7 +384,7 @@ function Stretches({ scenarios, sections, order, at, pick, close, names, meta, l
     return (
       <div key={starsKey(x)} role="option" aria-selected={on} className="ls-stretch" onClick={() => { pick(i); close() }}
         style={{ display: 'flex', alignItems: 'center', gap: 14, height: 42, padding: '0 10px 0 12px', borderTop: x.all ? `1px solid ${FAINT}` : undefined, borderBottom: `1px solid ${RULE}`, background: on ? '#3d3a37' : undefined, boxShadow: on ? 'inset 2px 0 0 var(--accent)' : 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-        <span aria-hidden="true" className="ls-stretch-faces" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', width: FACE + (slots - 1) * (FACE - 10), filter: on ? 'grayscale(1) contrast(1.2)' : 'none', opacity: on ? 0.62 : 1 }}>
+        <span aria-hidden="true" className="ls-stretch-faces" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', width: FACE + (slots - 1) * (FACE - 10), filter: on ? 'grayscale(1) brightness(1.15)' : 'none', opacity: on ? 0.85 : 1 }}>
           {(sat.length > FACES ? sat.slice(0, FACES - 1) : sat).map((b, k) => (
             <span key={b.who.id} style={{ display: 'grid', width: FACE, height: FACE, marginLeft: k ? -10 : 0 }}>
               <Portrait who={b.who} team={b.team} on size={FACE} layers={layersOf(b.who)} jersey={b.jersey} />

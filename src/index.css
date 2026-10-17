@@ -437,3 +437,11 @@ a:hover > .lineup-tile > * { filter: none; }
 @media (prefers-reduced-motion: reduce) {
   .pc-face, .pc-intro .pc-type, .pc-intro .pc-name, .pc-icon, .pc-ribbon, .pc-step { animation: none; }
 }
+
+/* An active player's dot on the index breathes: a soft blurred halo in the accent fades in
+   and out, slowly (opacity only, so hundreds of tiles stay cheap). Still, a faint steady
+   glow. */
+.idx-live { position: relative; }
+.idx-live::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; background: var(--accent); filter: blur(3px); opacity: 0; animation: idx-live 3s ease-in-out infinite; pointer-events: none; }
+@keyframes idx-live { 0%, 100% { opacity: 0; } 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .idx-live::after { animation: none; opacity: .3; } }

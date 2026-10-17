@@ -79,7 +79,9 @@ const low = v => v !== null && v < 0
 const best = p => (p.bestSeason ? p.bestSeason.bpm : null)
 const bestYear = p => (p.bestSeason ? yy(p.bestSeason.season) : '—')
 const byBest = (a, b) => (best(b) ?? -99) - (best(a) ?? -99)
-// A past player is shown as his best season: its team and year.
+// A past player is shown as his best season: its team and year, marked PEAK in the bio
+// card's ARCHIVE tone (RecentShift.jsx) where an active player has his span and live dot.
+const PEAK = '#c9b994'
 const pastBest = p => (!p.active && p.bestSeason) || null
 const teamOf = p => (pastBest(p) ? pastBest(p).team : p.team)
 
@@ -187,8 +189,12 @@ function Tile({ player: p, to, order, onShown }) {
       <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
         <TeamChip team={teamOf(p)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
-          <span className="idx-tile-span">{pastBest(p) ? bestYear(p) : span(p)}</span>
-          <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}` }} />
+          {pastBest(p)
+            ? <span className="idx-tile-span" title="Not active: shown at his best season"><span style={{ fontSize: 8.5, letterSpacing: '.16em', color: PEAK, marginRight: 5 }}>PEAK</span>{bestYear(p)}</span>
+            : <>
+                <span className="idx-tile-span">{span(p)}</span>
+                <span title={p.active ? 'Active' : 'Not active'} className={p.active ? 'idx-live' : undefined} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}` }} />
+              </>}
         </span>
       </span>
       <Face player={p} square order={order} onShown={onShown} carry={opening} />
@@ -311,7 +317,7 @@ export default function PlayerIndex() {
 
       <footer style={{ marginTop: 48, paddingTop: 14, borderTop: `1px solid ${EDGE}`, display: 'flex', gap: 22, flexWrap: 'wrap', ...label, fontSize: 9 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />Active (in the latest season)</span>
-        <span>BPM = best season (800+ min), the one a past player opens on · meter {METER[0]} to +{METER[1]}</span>
+        <span>BPM = best season (800+ min) · <span style={{ color: PEAK }}>PEAK</span> = a past player, shown and opened at his best · meter {METER[0]} to +{METER[1]}</span>
         <span>thinkingbasketball.net</span>
       </footer>
     </main>

@@ -248,6 +248,12 @@ a:hover > .lineup-tile > * { filter: none; }
    layer when the zoom-out ends and re-renders the masked image, which shows as a jump. */
 .hero .hero-face { transform: scale(1); will-change: transform; backface-visibility: hidden; transform-origin: 70% 100%; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
 .hero:hover .hero-face { transform: scale(1.04); }
+/* A player with a wink (Wink.jsx) winks each time his header or index tile is hovered
+   (the header's once its trophies have risen, --wink-delay): the sprite's lid half down,
+   closed, half down again, then gone, quick as a real wink. */
+.wink { opacity: 0; }
+.hero:hover .wink, .idx-tile:hover .wink { animation: wink .22s step-end var(--wink-delay, 0ms) forwards; }
+@keyframes wink { 0% { opacity: 1; object-position: 0 0 } 15% { object-position: 100% 0 } 85% { object-position: 0 0 } 100% { opacity: 0 } }
 .hero .hero-bokeh { transition: opacity .3s ease; }
 .hero:hover .hero-bokeh { opacity: .72 !important; }
 .hero .hero-more { opacity: 0; transform: translateY(-3px); transition: opacity .2s ease .06s, transform .2s ease .06s; }

@@ -10,6 +10,7 @@
 // Clutch a stopwatch, All-Star a star. Drawn on 32 × 34 (the plinth
 // under it in type), shown at SIZE × `scale`.
 import { MONO } from '../lib/format.js'
+import { GAP, SIZE, TROPHY_W, delayOf, layout } from '../lib/trophies.js'
 
 const GOLD = '#d4af37'
 const GOLD_DARK = '#a8852a'
@@ -97,10 +98,6 @@ const EMBLEMS = {
   </> }
 }
 
-// A trophy's size in the banner: its drawing at SIZE × 32 px, its plinth TROPHY_W wide.
-const SIZE = 1.05
-const TROPHY_W = 38 * SIZE
-
 function Trophy({ award, scale: k = 1 }) {
   const e = EMBLEMS[award]
   if (!e) return null
@@ -125,40 +122,18 @@ function Trophy({ award, scale: k = 1 }) {
 // turn (index.css .tc-item, .tc-tag); a screen without hover shows them throughout, their
 // names on a tap. They keep their size while they fit in `room` (the banner between his
 // name and his portrait, measured by the card), then shrink to fit, to MIN_SCALE, past
-// which the last fold into a "+n". Nothing in a season he won none.
-const AWARDS = [
-  ['champion', 'NBA champion'],
-  ['fmvp', 'Finals MVP'],
-  ['mvp', 'Most Valuable Player'],
-  ['dpoy', 'Defensive Player of the Year'],
-  ['allnba1', 'All-NBA First Team'],
-  ['allnba2', 'All-NBA Second Team'],
-  ['allnba3', 'All-NBA Third Team'],
-  ['alldef1', 'All-Defensive First Team'],
-  ['alldef2', 'All-Defensive Second Team'],
-  ['roy', 'Rookie of the Year'],
-  ['smoy', 'Sixth Man of the Year'],
-  ['mip', 'Most Improved Player'],
-  ['clutch', 'Clutch Player of the Year'],
-  ['allstar', 'All-Star']
-]
-const GAP = 6
-const MIN_SCALE = 0.7
-
+// which the last fold into a "+n" (lib/trophies.js lays it out). Nothing in a season he
+// won none.
 export default function TrophyCase({ awards, season, room, right }) {
-  const items = AWARDS.filter(([k]) => awards && awards[k] && awards[k].includes(season))
-  const width = n => n * TROPHY_W + (n - 1) * GAP
-  let shown = items
-  while (shown.length > 1 && width(shown.length) * MIN_SCALE > room) shown = shown.slice(0, -1)
-  const scale = Math.min(1, Math.max(MIN_SCALE, room / width(shown.length)))
-  if (!shown.length || width(1) * MIN_SCALE > room) return null
-  const more = items.length - shown.length
+  const l = layout(awards, season, room)
+  if (!l) return null
+  const { items, shown, scale, more } = l
   return (
     <div style={{ position: 'absolute', right, bottom: 0, display: 'flex', alignItems: 'flex-end', gap: GAP * scale, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.6))' }}>
       {shown.map(([key, long], i) => {
         const tip = `${long} · ${season.replace('-', '–')}`
         return (
-          <span key={key} className="tc-item" tabIndex={0} aria-label={tip} style={{ '--d': `${40 + i * 55}ms`, position: 'relative', display: 'flex', cursor: 'default', outline: 'none' }}>
+          <span key={key} className="tc-item" tabIndex={0} aria-label={tip} style={{ '--d': `${delayOf(i)}ms`, position: 'relative', display: 'flex', cursor: 'default', outline: 'none' }}>
             <Trophy award={key} scale={scale} />
             {/* Every other name a line higher, so neighbours never touch. */}
             <span className="tc-tag" aria-hidden="true" style={{ position: 'absolute', left: '50%', bottom: `calc(100% + ${i % 2 ? 13 : 3}px)`, fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
@@ -167,7 +142,7 @@ export default function TrophyCase({ awards, season, room, right }) {
           </span>
         )
       })}
-      {more > 0 && <span className="tc-item" style={{ '--d': `${40 + shown.length * 55}ms`, fontSize: 9, letterSpacing: '.06em', color: '#b3ada6' }} title={items.slice(shown.length).map(([, l]) => l).join(', ')}>+{more}</span>}
+      {more > 0 && <span className="tc-item" style={{ '--d': `${delayOf(shown.length)}ms`, fontSize: 9, letterSpacing: '.06em', color: '#b3ada6' }} title={items.slice(shown.length).map(([, l]) => l).join(', ')}>+{more}</span>}
     </div>
   )
 }

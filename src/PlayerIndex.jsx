@@ -6,6 +6,7 @@ import { TEAM_COLORS, teamColor } from './lib/teams.js'
 import { asset } from './lib/static.js'
 import TeamInitials from './components/TeamInitials.jsx'
 import JerseyOverlay from './components/JerseyOverlay.jsx'
+import Wink from './components/Wink.jsx'
 import { useSeasonType } from './useSeasonType.js'
 
 // The player index: a search line (and the way to the Leaderboard) and the 30 teams'
@@ -146,6 +147,7 @@ function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
             {square && small && <img src={url(400)} alt="" decoding="async" onLoad={() => setLarge(true)} className={large ? 'idx-in' : 'idx-wait'} style={cover} />}
             {/* Jersey art is drawn in one jersey; his team on the tile is laid over it. */}
             {small && player.layers && <JerseyOverlay slug={player.slug} size={square ? 400 : 100} layers={player.layers} id={teamOf(player)} />}
+            {square && small && <Wink slug={player.slug} />}
           </>
         : <TeamInitials name={player.name} team={player.team} fontSize={square ? 40 : 9} />}
     </span>

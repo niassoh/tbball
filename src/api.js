@@ -56,6 +56,13 @@ export const fetchLeaderboard = (season, playoffs = false, delta = false) => {
 export const fetchLeaderboardRecent = () => getJson(api('leaderboard/recent', 'leaderboard/recent.json'))
 // The Footprint and Lonestar tabs' views (every season and span), fetched when the tab opens.
 export const fetchFootprint = slug => getJson(api(`footprint/${encodeURIComponent(slug)}`, `footprint/${encodeURIComponent(slug)}.json`)).then(d => (d && d.fields ? unpackFootprint(d) : d))
+// A player's every regular-season shot by season, packed (lib/shot.js unpackDots), for the
+// bio card's career view; once per player.
+const shotsCache = new Map()
+export const fetchShots = slug => {
+  if (!shotsCache.has(slug)) shotsCache.set(slug, getJson(api(`shots/${encodeURIComponent(slug)}`, `shots/${encodeURIComponent(slug)}.json`)))
+  return shotsCache.get(slug)
+}
 export const fetchLonestar = slug => getJson(api(`lonestar/${encodeURIComponent(slug)}`, `lonestar/${encodeURIComponent(slug)}.json`)).then(d => (d && d.fields ? unpackLonestar(d) : d))
 // Every team with its nickname and depth chart (the team switcher). Fetched once per
 // page load; the switcher's triggers start it on hover so the grid is ready on click.

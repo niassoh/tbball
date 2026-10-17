@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { fetchShots } from '../api.js'
 import { MONO, fmt } from '../lib/format.js'
-import { BANDS, MODES, mix, rgb, shotModel } from '../lib/shot.js'
+import { BANDS, MODES, mix, rgb, shotModel, unpackDots } from '../lib/shot.js'
 import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, KEY_HASHES, KEY_LINES, THREE_LINE } from '../lib/court.js'
-import { emptyNote, seasonsBetween } from '../lib/seasons.js'
+import { emptyNote } from '../lib/seasons.js'
 
 const subhead = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a09a93' }
 
@@ -157,17 +158,17 @@ function ShotMap({ shotShift, divided, po = false, labels = WINDOWS[po ? 'playof
             // The zone's own shooting in each window: makes/attempts, FG% and its share of
             // the window's shots. The window whose shots are drawn is bright.
             <g pointerEvents="none" fontFamily={MONO}>
-              <rect x="10" y="10" width="244" height="70" fill="rgba(31,29,28,.88)" />
+              <rect x="10" y="10" width="274" height="70" fill="rgba(31,29,28,.88)" />
               <text x="19" y="25" dominantBaseline="central" fontSize="15" fontWeight="700" letterSpacing="1" fill="#ece8e3">{band.name}</text>
               {[[labels.window, band.recentShots, !season], [labels.short, band.seasonShots, season]].map(([name, c, on], i) => (
                 <text key={name} x="19" y={48 + i * 18} dominantBaseline="central" fontSize="11.5" fontWeight={on ? 700 : 400} fill={on ? '#ece8e3' : '#a09a93'}>
                   <tspan>{name}</tspan>
                   <tspan x="84">{c.fgm}/{c.fga}</tspan>
-                  <tspan x="148">{c.pct === null ? '—' : `${c.pct.toFixed(1)}%`}</tspan>
-                  <tspan x="204">{c.share === null ? '—' : `${Math.round(c.share)}%`}</tspan>
+                  <tspan x="170">{c.pct === null ? '—' : `${c.pct.toFixed(1)}%`}</tspan>
+                  <tspan x="232">{c.share === null ? '—' : `${Math.round(c.share)}%`}</tspan>
                 </text>
               ))}
-              <text x="245" y="25" dominantBaseline="central" textAnchor="end" fontSize="9" fill="#a09a93">FG · FG% · OF FGA</text>
+              <text x="275" y="25" dominantBaseline="central" textAnchor="end" fontSize="9" fill="#a09a93">FG · FG% · OF FGA</text>
             </g>
           )}
         </svg>
@@ -338,65 +339,55 @@ function PlayoffShift({ profile: p, season: k }) {
   )
 }
 
-// A past player (out of the latest season): the picked season against his other seasons on
-// the site (`career`: their minutes-weighted values; his shots by band, summed), an
-// archive's view of where it sat in his career. The span is named, since a career begun
-// before 1996-97 is only partly here. Over the rows, his BPM season by season, the picked
-// one lit.
+// The career view: the picked season against his other seasons on the site (`career`: their
+// minutes-weighted values; his shots by band, summed), for a past player's every season
+// (ARCHIVE) and an active player's past ones (CAREER). The span is named, since a career
+// begun before 1996-97 is only partly here. The map's dots are his shots from the player's
+// shots file: the season's lit, the rest of his career's thinned to OTHER_DOTS.
 const ARCHIVE = '#c9b994'
 const yy = season => `’${season.slice(-2)}`
-function CareerStrip({ profile: p, k }) {
-  const played = p.seasons.filter(x => !x.empty)
-  const span = seasonsBetween(played[0].season, played[played.length - 1].season)
-  const bpm = new Map(p.seasons.map((x, i) => [x.season, p.stats.BPM && p.stats.BPM.vals[i] ? p.stats.BPM.vals[i].n : null]))
-  const top = Math.max(1, ...[...bpm.values()].filter(v => v !== null).map(Math.abs))
-  const H = 15
-  const w = 100 / span.length
-  return (
-    <div style={{ margin: '10px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em', color: '#837d76' }}>
-        <span>BPM BY SEASON</span>
-        <span>{yy(span[0])}–{yy(span[span.length - 1])}</span>
-      </div>
-      <svg viewBox={`0 0 100 ${2 * H}`} preserveAspectRatio="none" style={{ width: '100%', height: 30, display: 'block' }} aria-hidden="true">
-        <line x1="0" x2="100" y1={H} y2={H} stroke="#3d3a37" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-        {span.map((season, i) => {
-          const v = bpm.get(season)
-          if (v === null || v === undefined) return null
-          const h = Math.max(0.8, (Math.abs(v) / top) * (H - 1))
-          const on = season === p.seasons[k].season
-          return <rect key={season} x={i * w + w * 0.18} width={w * 0.64} y={v >= 0 ? H - h : H} height={h} fill={on ? ARCHIVE : '#5a5550'} />
-        })}
-      </svg>
-    </div>
-  )
+const lastName = name => name.split(' ').slice(1).join(' ') || name
+// ponytail: an even stride through the other seasons' shots; a seeded sample if it ever reads as banded.
+const OTHER_DOTS = 2500
+const careerDots = (packed, season) => {
+  const own = packed.seasons[season] ? unpackDots(packed.seasons[season]).map(([x, y, made, band]) => [x, y, made, 1, band]) : []
+  const rest = Object.entries(packed.seasons).filter(([s]) => s !== season).flatMap(([, d]) => unpackDots(d))
+  const step = Math.max(1, Math.ceil(rest.length / OTHER_DOTS))
+  return [...own, ...rest.filter((_, i) => i % step === 0).map(([x, y, made, band]) => [x, y, made, 0, band])]
 }
 
-function CareerShift({ profile: p, season: k }) {
+function CareerShift({ profile: p, season: k, active = false }) {
   const s = p.seasons[k]
   const played = p.seasons.filter(x => !x.empty)
   const first = played[0].season
   const last = played[played.length - 1].season
   const c = s.career
+  const [packed, setPacked] = useState(null)
+  useEffect(() => {
+    let live = true
+    fetchShots(p.slug).then(d => { if (live) setPacked(d) })
+    return () => { live = false }
+  }, [p.slug])
+  const dots = useMemo(() => (packed ? careerDots(packed, s.season) : []), [packed, s.season])
   const labels = { base: 'OTHER SEASONS', window: yy(s.season), short: 'OTHER' }
   const reason = s.empty ? 'NO GAMES THIS SEASON' : 'NO OTHER SEASONS TO COMPARE'
+  const tone = active ? 'var(--accent)' : ARCHIVE
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>In His Career</span>
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{lastName(p.name)}’s {s.season.replace('-', '–')}</span>
           <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
-            <span style={{ color: '#ece8e3', fontWeight: 700 }}>{s.season.replace('-', '–')}</span> AGAINST HIS OTHER SEASONS <span style={{ color: '#ece8e3', fontWeight: 700 }}>{yy(first)}–{yy(last)}</span>
+            AGAINST CAREER <span style={{ color: '#ece8e3', fontWeight: 700 }}>{yy(first)}–{yy(last)}</span>
           </span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <span title="A past player: each season against the rest of his on the site" style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.22em', color: ARCHIVE, border: `1px solid ${ARCHIVE}`, padding: '2px 5px 2px 7px' }}>ARCHIVE</span>
-          <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em', color: '#837d76', whiteSpace: 'nowrap' }}>LAST SEASON {last.replace('-', '–')}</span>
+          <span title={active ? 'A past season against the rest of his career so far' : 'A past player: each season against the rest of his on the site'} style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.22em', color: tone, border: `1px solid ${tone}`, padding: '2px 5px 2px 7px' }}>{active ? 'CAREER' : 'ARCHIVE'}</span>
+          <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em', color: '#837d76', whiteSpace: 'nowrap' }}>{active ? 'STILL ACTIVE' : `LAST SEASON ${last.replace('-', '–')}`}</span>
         </div>
       </div>
-      <CareerStrip profile={p} k={k} />
       {c && c.stats.length ? <CoreStats profile={p} shift={c} labels={labels} /> : <EmptyStats reason={reason} />}
-      {c && c.shots ? <ShotMap shotShift={c.shots} divided labels={labels} /> : <EmptyShotMap reason={c ? 'NO SHOT DATA' : reason} divided />}
+      {c && c.shots ? <ShotMap shotShift={{ ...c.shots, shots: dots }} divided labels={labels} /> : <EmptyShotMap reason={c ? 'NO SHOT DATA' : reason} divided />}
     </div>
   )
 }
@@ -404,6 +395,8 @@ function CareerShift({ profile: p, season: k }) {
 export default function RecentShift({ profile: p, season }) {
   if (p.seasonType === 'playoffs') return <PlayoffShift profile={p} season={season} />
   if (p.active === false) return <CareerShift profile={p} season={season} />
+  // An active player's past season: his career view; his latest, the last 30 days.
+  if (season !== p.seasons.findLastIndex(x => !x.empty) && p.seasons[season].career) return <CareerShift profile={p} season={season} active />
   const games = p.gameLog && p.gameLog.recent ? p.gameLog.recent.games : null
   // Not in the pull, which keeps only players over the sheet's minutes floor: for the
   // season (no game log, so no shot data either), or, scaled to each window, in both

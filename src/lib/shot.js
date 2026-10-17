@@ -78,3 +78,16 @@ export function shotModel({ zones, league }, mode, gold = false) {
   const span = Math.max(th + scale, ...bands.map(g => Math.abs(g.delta || 0)))
   return bands.map(g => ({ ...g, fill: zoneFill(g.delta, mode, span, gold) }))
 }
+
+// A season's shots as the career view's data packs them (analysis/footprint/shot_bands.py
+// pack): three base64url characters a shot, 18 bits: x and y in half feet from the basket
+// (offset by 64 and 10), made, band index. Back to the map's [x, y, made, band] in tenths.
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+export const unpackDots = packed => {
+  const out = []
+  for (let i = 0; i + 2 < packed.length; i += 3) {
+    const v = (B64.indexOf(packed[i]) << 12) | (B64.indexOf(packed[i + 1]) << 6) | B64.indexOf(packed[i + 2])
+    out.push([((v >> 11) - 64) * 5, (((v >> 3) & 255) - 10) * 5, (v >> 2) & 1, v & 3])
+  }
+  return out
+}

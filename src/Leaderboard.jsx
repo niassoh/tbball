@@ -251,7 +251,7 @@ export default function Leaderboard() {
   const [seasons, setSeasons] = useState(null)
   // The span on show; with more than one season, a row per player-season (`each`) or one
   // per player over the span; the minutes qualifier the reader picked (null: the view's
-  // default, `top` below), cleared by a switch of mode or of runs.
+  // default, `top` below), cleared by a new span or a switch of mode or of runs.
   const [span, setSpan] = useState(null)
   const [each, setEach] = useState(false)
   const [chosenTop, setTop] = useState(null)
@@ -312,9 +312,6 @@ export default function Leaderboard() {
   const windowed = recent && !playoffs
   const eraOn = !windowed ? era : null
   const ageOn = !windowed ? ages : null
-  // The minutes qualifier (the top share by minutes): the reader's pick, else the view's
-  // default: the top half for runs, the top three-quarters for one playoff season, all else.
-  const top = chosenTop ?? (eraOn ? 0.5 : playoffs && !ageOn && span && span.from === span.to ? 0.75 : 1)
   // The ages the seasons loaded so far have players at.
   const agesThere = useMemo(() => {
     const kind = playoffs ? 'playoffs|' : 'regular|'
@@ -324,6 +321,10 @@ export default function Leaderboard() {
   }, [cache, playoffs])
   const inSpan = useMemo(() => (!seasons ? [] : eraOn || ageOn ? seasons : span ? seasonsBetween(span.from, span.to).filter(x => seasons.includes(x)) : []), [span, seasons, eraOn, ageOn])
   const many = !windowed && inSpan.length > 1
+  // The minutes qualifier (the top share by minutes): the reader's pick, else the view's
+  // default: the top half for anything over several seasons (a span, an age, runs), the
+  // top three-quarters for one playoff season, everyone for one regular season.
+  const top = chosenTop ?? (eraOn || ageOn || many ? 0.5 : playoffs ? 0.75 : 1)
   const kinds = windowed ? ['recent'] : !playoffs ? ['regular'] : !delta || eraOn || ageOn ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
   const wantedKey = windowed ? 'recent|window' : kinds.flatMap(kind => inSpan.map(x => `${kind}|${x}`)).join()
   const missingKey = wantedKey ? wantedKey.split(',').filter(k => !(k in cache)).join() : ''
@@ -482,15 +483,15 @@ export default function Leaderboard() {
           ? (
             <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} width={SEASONS_W}
               title={windowed ? '30 days' : 'Seasons'} disabled={windowed}
-              pick={(from, to) => { setSpan({ from, to }); setEra(null); setEach(false) }}
+              pick={(from, to) => { setSpan({ from, to }); setEra(null); setEach(false); setTop(null) }}
               ages={{
                 on: !!ages,
-                set: on => { setAges(on ? a => a || { from: FIRST_AGE, to: FIRST_AGE } : null); if (on) { setEra(null); setEach(false) } },
+                set: on => { setAges(on ? a => a || { from: FIRST_AGE, to: FIRST_AGE } : null); setTop(null); if (on) { setEra(null); setEach(false) } },
                 list: agesThere.length ? agesThere : AGES,
                 all: AGES,
                 from: ages ? ages.from : FIRST_AGE,
                 to: ages ? ages.to : FIRST_AGE,
-                pick: (from, to) => { setAges({ from, to }); setEach(false) }
+                pick: (from, to) => { setAges({ from, to }); setEach(false); setTop(null) }
               }}
               readout={windowed ? (doc && doc.window ? `${day(doc.window.start)}–${day(doc.window.end)}` : '…') : eraOn ? `${eraOn}-yr runs` : null}
               aside={many && !eraOn ? <Each each={each} set={setEach} /> : null}

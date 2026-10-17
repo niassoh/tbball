@@ -336,6 +336,13 @@ a:hover > .lineup-tile > * { filter: none; }
 .lb-table-wrap::-webkit-scrollbar { width: 6px; height: 0; }
 /* The Leaderboard's player card, when it runs past its panel: the same thin dark bar. */
 /* A stint in the season picker's team band (SeasonPicker TeamBand): brighter under the pointer. */
+/* With a pointer the band waits hidden in its own space; a hovered year's stint wipes in
+   from its start (SeasonPicker.jsx), and keyboard focus brings one in too. */
+@media (hover: hover) {
+  .team-stint { opacity: 0; clip-path: inset(0 100% 0 0); pointer-events: none; transition: opacity .16s ease, clip-path .32s cubic-bezier(.2, .8, .2, 1), filter .15s; }
+  .team-stint.shown, .team-stint:focus-visible { opacity: 1; clip-path: inset(0 0 0 0); pointer-events: auto; }
+}
+@media (hover: hover) and (prefers-reduced-motion: reduce) { .team-stint { transition: opacity .12s ease; clip-path: none; } }
 .team-stint:not(:disabled):hover { filter: brightness(1.35); }
 .team-stint:focus-visible { outline: 1px solid #ece8e3; outline-offset: 1px; }
 /* A stint's code gives way to its years on hover (or focus): the code lifts out as the

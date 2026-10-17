@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MONO } from '../lib/format.js'
 import { agesText } from '../lib/age.js'
 import { teamColor } from '../lib/teams.js'
@@ -36,7 +36,9 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 // its seasons, its white logo and code where it has room; a season he was traded in split in
 // halves between the first team and the last; a season with no team, a gap. A click on a
 // stint picks its seasons (those of them with something to pick); the stint on show is lit.
-// On hover a block's code gives way to its years, in the block's own space (index.css).
+// With a pointer the band sits hidden: a year under the pointer brings in its stint (and
+// keeps it while the pointer moves down onto it), so the band only speaks when asked; on
+// hover a block's code gives way to its years, in the block's own space (index.css).
 // `dimTitle`: a dim season's hover, why it can't be picked (null for none).
 const HALF = 2
 const QUICK = [[2, 'L2'], [3, 'L3'], [5, 'L5']]
@@ -51,6 +53,15 @@ function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = nu
   const cols = Math.ceil(all.length / rows)
   const anchor = useRef(from)
   const dragging = useRef(false)
+  // The season under the pointer, over the strip or a stint (its first season), for the band.
+  const [hot, setHot] = useState(null)
+  const track = e => {
+    const el = document.elementFromPoint(e.clientX, e.clientY)
+    const cell = el && el.closest('[data-i]')
+    const stint = el && el.closest('[data-a]')
+    if (cell) setHot(all[Number(cell.dataset.i)])
+    else if (stint) setHot(stint.dataset.a)
+  }
   const span = (a, b) => (a <= b ? pick(a, b) : pick(b, a))
   const at = e => {
     const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-i]')
@@ -100,6 +111,7 @@ function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = nu
         })}
       </div>}
       </div>
+      <div onPointerMove={teamsOf ? track : undefined} onPointerLeave={() => setHot(null)}>
       <div ref={root} role="group" aria-label={name} tabIndex={0} className="year-strip" onPointerDown={down} onPointerMove={move}
         onPointerUp={() => { dragging.current = false }} onKeyDown={key}
         style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, touchAction: 'none', userSelect: 'none' }}>
@@ -114,14 +126,15 @@ function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = nu
           )
         })}
       </div>
-      {teamsOf && <TeamBand all={all} cols={cols} teamsOf={teamsOf} values={values} from={from} to={to} pick={pick} />}
+      {teamsOf && <TeamBand all={all} cols={cols} teamsOf={teamsOf} values={values} from={from} to={to} pick={pick} hot={hot} />}
+      </div>
     </div>
   )
 }
 
 // The stints under the strip, on its grid in half-seasons, so a block starts and ends with
 // its seasons and a traded season splits; a block breaks where the strip wraps to a new row.
-function TeamBand({ all, cols, teamsOf, values, from, to, pick }) {
+function TeamBand({ all, cols, teamsOf, values, from, to, pick, hot }) {
   const per = cols * HALF
   const halves = all.flatMap(v => { const ts = teamsOf(v) || []; return [ts[0] || null, ts[ts.length - 1] || null] })
   const blocks = []
@@ -133,7 +146,7 @@ function TeamBand({ all, cols, teamsOf, values, from, to, pick }) {
     const a = all[Math.floor(h / HALF)]
     const z = all[Math.floor(e / HALF)]
     const inside = values.filter(v => v >= a && v <= z)
-    blocks.push({ team: halves[h], from: h, span: e - h + 1, first: inside[0], last: inside[inside.length - 1], years: a === z ? shortSeason(a) : `${shortSeason(a)}–${shortSeason(z)}` })
+    blocks.push({ team: halves[h], from: h, span: e - h + 1, a, z, first: inside[0], last: inside[inside.length - 1], years: a === z ? shortSeason(a) : `${shortSeason(a)}–${shortSeason(z)}` })
     h = e + 1
   }
   return (
@@ -142,7 +155,7 @@ function TeamBand({ all, cols, teamsOf, values, from, to, pick }) {
         const color = teamColor(b.team)
         const on = b.first && b.first === from && b.last === to
         return (
-          <button key={b.from} type="button" className="team-stint" disabled={!b.first} onClick={() => pick(b.first, b.last)}
+          <button key={b.from} type="button" className={hot && hot >= b.a && hot <= b.z ? 'team-stint shown' : 'team-stint'} data-a={b.a} disabled={!b.first} onClick={() => pick(b.first, b.last)}
             aria-label={b.first ? `${b.team} ${b.years}: pick ${b.first === b.last ? b.first : `${b.first} to ${b.last}`}` : `${b.team} ${b.years}`}
             style={{ position: 'relative', gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, marginRight: 1, display: 'flex', alignItems: 'center', padding: '0 4px', border: 0, overflow: 'hidden', cursor: b.first ? 'pointer' : 'default', background: `color-mix(in srgb, ${color || '#837d76'} ${on ? 70 : 42}%, #2c2a28)` }}>
             {b.span >= HALF && (

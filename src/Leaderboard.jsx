@@ -250,10 +250,11 @@ export default function Leaderboard() {
   const { playoffs } = useSeasonType()
   const [seasons, setSeasons] = useState(null)
   // The span on show; with more than one season, a row per player-season (`each`) or one
-  // per player over the span; the minutes qualifier (`top`: the top share by minutes).
+  // per player over the span; the minutes qualifier the reader picked (null: the view's
+  // default, `top` below), cleared by a switch of mode or of runs.
   const [span, setSpan] = useState(null)
   const [each, setEach] = useState(false)
-  const [top, setTop] = useState(1)
+  const [chosenTop, setTop] = useState(null)
   // Season documents fetched so far, by kind and season (false: none for it).
   const [cache, setCache] = useState({})
   const [group, setGroup] = useState('impact')
@@ -292,6 +293,7 @@ export default function Leaderboard() {
 
   useEffect(() => {
     let live = true
+    setTop(null)
     fetchLeaderboardSeasons(playoffs).then(d => {
       if (!live) return
       const list = d ? d.seasons : []
@@ -310,6 +312,9 @@ export default function Leaderboard() {
   const windowed = recent && !playoffs
   const eraOn = !windowed ? era : null
   const ageOn = !windowed ? ages : null
+  // The minutes qualifier (the top share by minutes): the reader's pick, else the view's
+  // default: the top half for runs, the top three-quarters for one playoff season, all else.
+  const top = chosenTop ?? (eraOn ? 0.5 : playoffs && !ageOn && span && span.from === span.to ? 0.75 : 1)
   // The ages the seasons loaded so far have players at.
   const agesThere = useMemo(() => {
     const kind = playoffs ? 'playoffs|' : 'regular|'
@@ -489,7 +494,7 @@ export default function Leaderboard() {
               }}
               readout={windowed ? (doc && doc.window ? `${day(doc.window.start)}–${day(doc.window.end)}` : '…') : eraOn ? `${eraOn}-yr runs` : null}
               aside={many && !eraOn ? <Each each={each} set={setEach} /> : null}
-              extra={<Eras era={eraOn} set={n => { setEra(n); if (n) { setTop(0.5); setAges(null) } }} playoffs={playoffs} />} />
+              extra={<Eras era={eraOn} set={n => { setEra(n); setTop(null); if (n) setAges(null) }} playoffs={playoffs} />} />
           )
           : <Skel w={SEASONS_W} h={30} />}
         {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : <Skel w={MIN_W} h={30} />}

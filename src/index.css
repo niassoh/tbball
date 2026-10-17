@@ -335,6 +335,9 @@ a:hover > .lineup-tile > * { filter: none; }
    for up and down only. */
 .lb-table-wrap::-webkit-scrollbar { width: 6px; height: 0; }
 /* The Leaderboard's player card, when it runs past its panel: the same thin dark bar. */
+/* A stint in the season picker's team band (SeasonPicker TeamBand): brighter under the pointer. */
+.team-stint:not(:disabled):hover { filter: brightness(1.35); }
+.team-stint:focus-visible { outline: 1px solid #ece8e3; outline-offset: 1px; }
 .pc-card { scrollbar-width: thin; scrollbar-color: #544f4b transparent; }
 .pc-card::-webkit-scrollbar { width: 6px; }
 .pc-card::-webkit-scrollbar-thumb { background: #544f4b; }

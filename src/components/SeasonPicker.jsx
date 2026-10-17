@@ -34,7 +34,8 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 // `teamsOf` (a player's strip): under the seasons a quiet band of his stints, as the stat
 // tabs' team timeline draws them but muted: each stint one block in its team's colour under
 // its seasons, its white logo and code where it has room; a season he was traded in split in
-// halves between the first team and the last; a season with no team, a gap.
+// halves between the first team and the last; a season with no team, a gap. A click on a
+// stint picks its seasons (those of them with something to pick); the stint on show is lit.
 const HALF = 2
 const QUICK = [[2, 'L2'], [3, 'L3'], [5, 'L5']]
 const CELL = 38
@@ -111,14 +112,14 @@ function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = nu
           )
         })}
       </div>
-      {teamsOf && <TeamBand all={all} cols={cols} teamsOf={teamsOf} />}
+      {teamsOf && <TeamBand all={all} cols={cols} teamsOf={teamsOf} values={values} from={from} to={to} pick={pick} />}
     </div>
   )
 }
 
 // The stints under the strip, on its grid in half-seasons, so a block starts and ends with
 // its seasons and a traded season splits; a block breaks where the strip wraps to a new row.
-function TeamBand({ all, cols, teamsOf }) {
+function TeamBand({ all, cols, teamsOf, values, from, to, pick }) {
   const per = cols * HALF
   const halves = all.flatMap(v => { const ts = teamsOf(v) || []; return [ts[0] || null, ts[ts.length - 1] || null] })
   const blocks = []
@@ -126,18 +127,25 @@ function TeamBand({ all, cols, teamsOf }) {
     if (!halves[h]) { h++; continue }
     let e = h
     while (e + 1 < halves.length && halves[e + 1] === halves[h] && Math.floor((e + 1) / per) === Math.floor(h / per)) e++
-    blocks.push({ team: halves[h], from: h, span: e - h + 1 })
+    // The seasons it covers that can be picked.
+    const a = all[Math.floor(h / HALF)]
+    const z = all[Math.floor(e / HALF)]
+    const inside = values.filter(v => v >= a && v <= z)
+    blocks.push({ team: halves[h], from: h, span: e - h + 1, first: inside[0], last: inside[inside.length - 1] })
     h = e + 1
   }
   return (
-    <div aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: `repeat(${per}, minmax(0, 1fr))`, gridAutoRows: 12, rowGap: 3, marginTop: 3 }}>
+    <div role="group" aria-label="His teams" style={{ display: 'grid', gridTemplateColumns: `repeat(${per}, minmax(0, 1fr))`, gridAutoRows: 12, rowGap: 3, marginTop: 3 }}>
       {blocks.map(b => {
         const color = teamColor(b.team)
+        const on = b.first && b.first === from && b.last === to
         return (
-          <span key={b.from} title={b.team} style={{ gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, marginRight: 1, display: 'flex', alignItems: 'center', gap: 3, padding: '0 4px', overflow: 'hidden', background: `color-mix(in srgb, ${color || '#837d76'} 42%, #2c2a28)` }}>
+          <button key={b.from} type="button" className="team-stint" disabled={!b.first} onClick={() => pick(b.first, b.last)}
+            title={b.first ? `${b.team}: pick ${b.first === b.last ? b.first : `${b.first} to ${b.last}`}` : b.team}
+            style={{ gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, marginRight: 1, display: 'flex', alignItems: 'center', gap: 3, padding: '0 4px', border: 0, overflow: 'hidden', cursor: b.first ? 'pointer' : 'default', background: `color-mix(in srgb, ${color || '#837d76'} ${on ? 70 : 42}%, #2c2a28)` }}>
             {b.span >= HALF && color && <img src={asset(`logos/${b.team}.png`)} alt="" style={{ width: 8, height: 8, objectFit: 'contain', opacity: 0.75, flex: 'none' }} />}
-            {b.span >= HALF && <span style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: MID, whiteSpace: 'nowrap' }}>{b.team}</span>}
-          </span>
+            {b.span >= HALF && <span style={{ fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', color: on ? INK : MID, whiteSpace: 'nowrap' }}>{b.team}</span>}
+          </button>
         )
       })}
     </div>

@@ -399,7 +399,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
             span's jersey, split between its teams' in order when he wore more than one. Behind
             him, faintly, the profile banner's bokeh. */}
         <div style={{ position: 'relative', width: 104, height: 104, background: '#1f1d1c', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: DIM }}>
-          <img src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '30% 0%', opacity: 0.3, display: 'block' }} />
+          <img src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '30% 0%', opacity: 0.15, display: 'block' }} />
           {pl.headshot
             ? (
               <div className="pc-face" style={{ position: 'absolute', inset: 0 }}>

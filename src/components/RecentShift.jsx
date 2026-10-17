@@ -1,15 +1,9 @@
 import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
-import { BANDS, BETTER, GOLD, MODES, mix, rgb, shotModel } from '../lib/shot.js'
+import { BANDS, MODES, mix, rgb, shotModel } from '../lib/shot.js'
 import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, KEY_HASHES, KEY_LINES, THREE_LINE } from '../lib/court.js'
 import { emptyNote } from '../lib/seasons.js'
 
-const legendSwatch = (color, label, round = false, hollow = false) => (
-  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-    <span style={{ width: 7, height: 7, background: hollow ? 'transparent' : color, border: hollow ? `1.5px solid ${color}` : 'none', borderRadius: round ? '50%' : 0 }} />
-    {label}
-  </span>
-)
 const subhead = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a09a93' }
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -72,8 +66,11 @@ function Legend({ hidden, labels = WINDOWS.regular }) {
   return (
     <div aria-hidden={hidden || undefined} style={{ padding: '10px 0 0', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px', visibility: hidden ? 'hidden' : 'visible' }}>
       <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#a09a93', whiteSpace: 'nowrap' }}>
-        {legendSwatch('#a09a93', labels.base, true, true)}
-        {legendSwatch('#ece8e3', labels.window, true)}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 1, height: 9, background: '#a09a93' }} />{labels.base}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 8, height: 2, background: '#a09a93' }} /><span style={{ width: 5, height: 7, background: '#a09a93', clipPath: HEAD.right }} /></span>
+          {labels.window}
+        </span>
       </span>
     </div>
   )
@@ -180,25 +177,25 @@ function ShotMap({ shotShift, divided, po = false }) {
   )
 }
 
-// Each slider is centred on the season average and the recent dot moves by the
+// Each slider is centred on the season average and the arrow runs by the
 // change in units of the league's spread (standard deviation across players), so
 // a change reads by how much it matters league-wide, not by its raw size, and
 // stars at the top of the league can still move. The ends are this many spreads
 // either side: between the 90th (1.3) and 95th (1.6) percentile change across
 // players and stats in 2025-26; bigger swings pin to the end.
 const RANGE = 1.5
-// Moving to another player keeps these rows mounted, so the dots and bars slide over.
+// Moving to another player keeps these rows mounted, so the arrows slide over.
 const SLIDE = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'none' : 'left .45s cubic-bezier(.2,.8,.2,1), width .45s cubic-bezier(.2,.8,.2,1), border-color .45s'
-// Slider colour runs green -> muted grey-green -> near-black with the size of the
-// move (like the shot map): small changes sit near the middle tone, the biggest
-// rises reach the site green and the biggest drops near-black.
-const SLIDER_MID = [110, 122, 111]
-const SLIDER_LOW = [19, 18, 17]
-const sliderColor = (t, top) => rgb(t >= 0 ? mix(SLIDER_MID, top, t) : mix(SLIDER_MID, SLIDER_LOW, -t))
+// An arrow from the season (the middle tick) to the recent value: green a rise, orange a
+// drop (Footprint's cost), both darkened to sit with the shot map's blue and orange. Its
+// colour runs up from the track's grey with the size of the move, so small changes stay
+// quiet and the biggest reach the full tone.
+const UP = [102, 153, 104]
+const DOWN = [196, 116, 48]
+const QUIET = [131, 125, 118]
+const HEAD = { right: 'polygon(0 0, 100% 50%, 0 100%)', left: 'polygon(100% 0, 0 50%, 100% 100%)' }
 
 function CoreStats({ profile: p, shift, po = false }) {
-  // Rises reach the site green, or gold in playoffs mode.
-  const top = po ? GOLD : BETTER
   // The same rows every time (EMPTY_STATS' order), a missing one drawn empty, so the
   // card keeps its height between players and between the season and the playoffs.
   const byStat = new Map(shift.stats.filter(r => p.stats[r.stat]).map(r => [r.stat, r]))
@@ -218,10 +215,10 @@ function CoreStats({ profile: p, shift, po = false }) {
           const p1 = 50 + t * 50
           const neutral = Math.abs(move) < 0.1
           const good = move > 0
-          const color = neutral ? '#a09a93' : good ? rgb(top) : '#d6d1cb'
-          const end = neutral ? '#a09a93' : sliderColor(t, top)
-          // The bar shades from the middle tone at the season dot to the move's colour at the recent dot.
-          const bar = neutral ? '#837d76' : `linear-gradient(to ${good ? 'right' : 'left'}, ${rgb(SLIDER_MID)}, ${end})`
+          const color = neutral ? '#a09a93' : rgb(good ? UP : DOWN)
+          const end = neutral ? '#a09a93' : rgb(mix(QUIET, good ? UP : DOWN, 0.45 + 0.55 * Math.abs(t)))
+          // The shaft shades from the track at the season tick to the move's colour at its head.
+          const bar = `linear-gradient(to ${good ? 'right' : 'left'}, #3d3a37, ${end})`
           const lo = Math.min(p0, p1)
           const hi = Math.max(p0, p1)
           return (
@@ -233,9 +230,12 @@ function CoreStats({ profile: p, shift, po = false }) {
               <div style={{ position: 'relative', height: 18 }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 2, background: '#3d3a37' }} />
                 <div style={{ position: 'absolute', left: '50%', top: 4, width: 1, height: 10, background: '#837d76' }} />
-                <div style={{ position: 'absolute', left: lo + '%', width: hi - lo + '%', top: 7, height: 4, background: bar, transition: SLIDE }} />
-                <div style={{ position: 'absolute', left: p0 + '%', top: 4, width: 8, height: 8, marginLeft: -5, border: '1.5px solid #a09a93', borderRadius: '50%', background: '#2c2a28', boxSizing: 'border-box' }} />
-                <div style={{ position: 'absolute', left: p1 + '%', top: 4, width: 10, height: 10, marginLeft: -5, borderRadius: '50%', background: '#ece8e3', border: '2px solid ' + end, boxSizing: 'border-box', transition: SLIDE }} />
+                {neutral
+                  ? <div style={{ position: 'absolute', left: p1 + '%', top: 6, width: 6, height: 6, marginLeft: -3, borderRadius: '50%', background: end, transition: SLIDE }} />
+                  : <>
+                    <div style={{ position: 'absolute', left: lo + '%', width: hi - lo + '%', top: 8, height: 2, background: bar, transition: SLIDE }} />
+                    <div style={{ position: 'absolute', left: p1 + '%', top: 4, width: 8, height: 10, marginLeft: good ? -8 : 0, background: end, clipPath: HEAD[good ? 'right' : 'left'], transition: SLIDE }} />
+                  </>}
               </div>
               <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, textAlign: 'right', color, whiteSpace: 'nowrap' }}>{(change >= 0 ? '+' : '−') + Math.abs(change).toFixed(stat.dec || 1)}</span>
             </div>

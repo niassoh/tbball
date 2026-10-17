@@ -344,7 +344,7 @@ export default function RecentShift({ profile: p, season }) {
   const games = p.gameLog && p.gameLog.recent ? p.gameLog.recent.games : null
   // Not in the pull, which keeps only players over the sheet's minutes floor: for the
   // season (no game log, so no shot data either), or, scaled to each window, in both
-  // the last 30 days and the rest of the season. The window label is flagged.
+  // the last 30 days and the rest of the season. The window label says why on hover.
   const unqualified = games !== 0 && !p.recentShift
   const whyUnqualified = games === null
     ? 'Too few minutes this season to qualify'
@@ -355,7 +355,7 @@ export default function RecentShift({ profile: p, season }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Last 30 Days</span>
           <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
-            DIFFERENCE BETWEEN <span title={unqualified ? whyUnqualified : undefined} style={{ color: unqualified ? '#fa962a' : '#ece8e3', fontWeight: 700, textDecoration: unqualified ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}>{windowLabel(games)}</span> AND REST OF SEASON
+            DIFFERENCE BETWEEN <span title={unqualified ? whyUnqualified : undefined} style={{ color: '#ece8e3', fontWeight: 700, textDecoration: unqualified ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}>{windowLabel(games)}</span> AND REST OF SEASON
           </span>
         </div>
       </div>

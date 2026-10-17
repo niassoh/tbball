@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
 import { BANDS, MODES, mix, rgb, shotModel } from '../lib/shot.js'
 import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, KEY_HASHES, KEY_LINES, THREE_LINE } from '../lib/court.js'
-import { emptyNote, seasonsBetween } from '../lib/seasons.js'
+import { emptyNote } from '../lib/seasons.js'
 
 const subhead = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a09a93' }
 
@@ -340,36 +340,9 @@ function PlayoffShift({ profile: p, season: k }) {
 // A past player (out of the latest season): the picked season against his other seasons on
 // the site (`career`: their minutes-weighted values; his shots by band, summed), an
 // archive's view of where it sat in his career. The span is named, since a career begun
-// before 1996-97 is only partly here. Over the rows, his BPM season by season, the picked
-// one lit.
+// before 1996-97 is only partly here.
 const ARCHIVE = '#c9b994'
 const yy = season => `’${season.slice(-2)}`
-function CareerStrip({ profile: p, k }) {
-  const played = p.seasons.filter(x => !x.empty)
-  const span = seasonsBetween(played[0].season, played[played.length - 1].season)
-  const bpm = new Map(p.seasons.map((x, i) => [x.season, p.stats.BPM && p.stats.BPM.vals[i] ? p.stats.BPM.vals[i].n : null]))
-  const top = Math.max(1, ...[...bpm.values()].filter(v => v !== null).map(Math.abs))
-  const H = 15
-  const w = 100 / span.length
-  return (
-    <div style={{ margin: '10px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em', color: '#837d76' }}>
-        <span>BPM BY SEASON</span>
-        <span>{yy(span[0])}–{yy(span[span.length - 1])}</span>
-      </div>
-      <svg viewBox={`0 0 100 ${2 * H}`} preserveAspectRatio="none" style={{ width: '100%', height: 30, display: 'block' }} aria-hidden="true">
-        <line x1="0" x2="100" y1={H} y2={H} stroke="#3d3a37" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-        {span.map((season, i) => {
-          const v = bpm.get(season)
-          if (v === null || v === undefined) return null
-          const h = Math.max(0.8, (Math.abs(v) / top) * (H - 1))
-          const on = season === p.seasons[k].season
-          return <rect key={season} x={i * w + w * 0.18} width={w * 0.64} y={v >= 0 ? H - h : H} height={h} fill={on ? ARCHIVE : '#5a5550'} />
-        })}
-      </svg>
-    </div>
-  )
-}
 
 function CareerShift({ profile: p, season: k }) {
   const s = p.seasons[k]
@@ -393,7 +366,6 @@ function CareerShift({ profile: p, season: k }) {
           <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em', color: '#837d76', whiteSpace: 'nowrap' }}>LAST SEASON {last.replace('-', '–')}</span>
         </div>
       </div>
-      <CareerStrip profile={p} k={k} />
       {c && c.stats.length ? <CoreStats profile={p} shift={c} labels={labels} /> : <EmptyStats reason={reason} />}
       {c && c.shots ? <ShotMap shotShift={c.shots} divided labels={labels} /> : <EmptyShotMap reason={c ? 'NO SHOT DATA' : reason} divided />}
     </div>

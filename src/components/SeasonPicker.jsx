@@ -185,7 +185,7 @@ function TeamBand({ all, cols, teamsOf, values, from, to, pick, hot }) {
         return (
           <button key={b.from} type="button" className={b.lit ? 'team-stint shown' : 'team-stint'} data-a={seasonOf(b.from)} disabled={!b.first} onClick={() => pick(b.first, b.last)}
             aria-label={b.first ? `${b.team} ${b.years}: pick ${b.first === b.last ? b.first : `${b.first} to ${b.last}`}` : `${b.team} ${b.years}`}
-            style={{ position: 'relative', gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, boxSizing: 'content-box', margin: `-${HIT_ABOVE}px 1px -${HIT_BELOW}px 0`, padding: `${HIT_ABOVE}px 4px ${HIT_BELOW}px`, backgroundClip: 'content-box', display: 'flex', alignItems: 'center', border: 0, overflow: 'hidden', cursor: b.first ? 'pointer' : 'default', background: `color-mix(in srgb, ${color || '#837d76'} ${b.lit ? 70 : 42}%, #2c2a28)` }}>
+            style={{ position: 'relative', gridRow: Math.floor(b.from / per) + 1, gridColumn: `${(b.from % per) + 1} / span ${b.span}`, boxSizing: 'content-box', margin: `-${HIT_ABOVE}px 1px -${HIT_BELOW}px 0`, padding: `${HIT_ABOVE}px 4px ${HIT_BELOW}px`, backgroundClip: 'content-box', display: 'flex', alignItems: 'center', border: 0, overflow: 'hidden', cursor: b.first ? 'pointer' : 'default', backgroundColor: `color-mix(in srgb, ${color || '#837d76'} ${b.lit ? 70 : 42}%, #2c2a28)` }}>
             {b.named && b.span >= HALF && (
               <>
                 <span className="stint-code" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>

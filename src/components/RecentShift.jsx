@@ -343,17 +343,21 @@ function PlayoffShift({ profile: p, season: k }) {
 // minutes-weighted values; his shots by band, summed), for a past player's every season
 // (ARCHIVE) and an active player's past ones (CAREER). The span is named, since a career
 // begun before 1996-97 is only partly here. The map's dots are his shots from the player's
-// shots file: the season's lit, the rest of his career's thinned to OTHER_DOTS.
+// shots file: the season's lit, the rest of his career's thinned to OTHER_DOTS a zone (a
+// hover draws one zone, so only a long career's busiest zone is thinned).
 const ARCHIVE = '#c9b994'
 const yy = season => `’${season.slice(-2)}`
 const lastName = name => name.split(' ').slice(1).join(' ') || name
-// ponytail: an even stride through the other seasons' shots; a seeded sample if it ever reads as banded.
+// ponytail: an even stride through a zone's other-season shots; a seeded sample if it ever reads as banded.
 const OTHER_DOTS = 2500
 const careerDots = (packed, season) => {
   const own = packed.seasons[season] ? unpackDots(packed.seasons[season]).map(([x, y, made, band]) => [x, y, made, 1, band]) : []
   const rest = Object.entries(packed.seasons).filter(([s]) => s !== season).flatMap(([, d]) => unpackDots(d))
-  const step = Math.max(1, Math.ceil(rest.length / OTHER_DOTS))
-  return [...own, ...rest.filter((_, i) => i % step === 0).map(([x, y, made, band]) => [x, y, made, 0, band])]
+  const byBand = BANDS.map((_, band) => rest.filter(r => r[3] === band))
+  return [...own, ...byBand.flatMap(shots => {
+    const step = Math.max(1, Math.ceil(shots.length / OTHER_DOTS))
+    return shots.filter((_, i) => i % step === 0).map(([x, y, made, band]) => [x, y, made, 0, band])
+  })]
 }
 
 function CareerShift({ profile: p, season: k, active = false }) {

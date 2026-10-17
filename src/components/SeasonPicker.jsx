@@ -36,11 +36,12 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 // its seasons, its white logo and code where it has room; a season he was traded in split in
 // halves between the first team and the last; a season with no team, a gap. A click on a
 // stint picks its seasons (those of them with something to pick); the stint on show is lit.
+// `dimTitle`: a dim season's hover, why it can't be picked (null for none).
 const HALF = 2
 const QUICK = [[2, 'L2'], [3, 'L3'], [5, 'L5']]
 const CELL = 38
 const LIT = '#3d3a37'
-function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = null, quickOff = false, teamsOf = null }) {
+function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = null, quickOff = false, teamsOf = null, dimTitle = null }) {
   // It opens in the picker's panel, ready for the arrow keys.
   const root = useRef(null)
   useEffect(() => { root.current.focus({ preventScroll: true }) }, [])
@@ -105,7 +106,7 @@ function YearRange({ values, all, from, to, pick, labelOf, noun, name, tabs = nu
           const lit = v >= from && v <= to
           const end = v === from || v === to
           return (
-            <span key={v} data-i={i} data-has={has.has(v) ? 1 : 0}
+            <span key={v} data-i={i} data-has={has.has(v) ? 1 : 0} title={!has.has(v) && dimTitle ? dimTitle(v) || undefined : undefined}
               style={{ ...lines(i), boxSizing: 'border-box', height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: lit ? LIT : 'transparent', boxShadow: lit ? 'inset 0 -2px 0 var(--accent)' : 'none', color: lit ? INK : has.has(v) ? SOFT : FAINT, fontFamily: MONO, fontSize: 11, fontWeight: end ? 700 : 500, letterSpacing: '.04em', cursor: has.has(v) ? 'pointer' : 'default' }}>
               {labelOf(v)}
             </span>
@@ -183,13 +184,14 @@ const SPAN_W = 184
 // 25–28 · 4"); else `list`, the ages to pick from (`all` the strip's every age, those not
 // in `list` dim), `from`, `to` and `pick` (the Leaderboard's every season at those ages,
 // "Ages 25–28"). `teamsOf`: a player's teams in a season, for the band of his stints under the strip.
-export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, aside = null, readout = null, title = 'Seasons', disabled = false, width = SPAN_W, ages = null, teamsOf = null }) {
+// `dimTitle`: a season he has nothing in, the hover that says why.
+export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, aside = null, readout = null, title = 'Seasons', disabled = false, width = SPAN_W, ages = null, teamsOf = null, dimTitle = null }) {
   const byAge = !!(ages && ages.on)
   const years = seasonsBetween(seasons[0], seasons[seasons.length - 1])
   const strip = !byAge
-    ? { values: seasons, all: years, from, to, pick, labelOf: shortSeason, noun: 'season', teamsOf }
+    ? { values: seasons, all: years, from, to, pick, labelOf: shortSeason, noun: 'season', teamsOf, dimTitle }
     : ages.of
-      ? { values: seasons, all: years, from, to, pick, labelOf: ages.of, noun: 'season', teamsOf }
+      ? { values: seasons, all: years, from, to, pick, labelOf: ages.of, noun: 'season', teamsOf, dimTitle }
       : { values: ages.list, all: ages.all || ages.list, from: ages.from, to: ages.to, pick: ages.pick, labelOf: String, noun: 'age' }
   const ageSpan = byAge && (ages.of ? agesText(ages.of(from), ages.of(to)) : agesText(ages.from, ages.to))
   // The box: "Ages 25–28 · 4" by age, its word in the label's place, as "Seasons" is.

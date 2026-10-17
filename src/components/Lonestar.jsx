@@ -493,6 +493,7 @@ function Frame({ p, ls }) {
     ? x.parts.map(part => `${starsText(part.stars)} ${seasonRanges(part.seasons)}`).join(' · ')
     : [teams.size > 1 && x.team, x.seasons.length < n && seasonRanges(x.seasons)].filter(Boolean).join(' · '))
   const names = x => namesText(x.stars)
+  const teamsOf = season => (p.seasons.find(s => s.season === season) || {}).teams
   // The box: who sits. ALL past three parts: the first two and how many more.
   const text = x => {
     if (!x.all) return [names(x), meta(x)].filter(Boolean).join(' · ')
@@ -506,7 +507,8 @@ function Frame({ p, ls }) {
           RAW | PCTL. A stretch from fewer of the span's seasons carries its seasons.
           Narrow, the stars take a row of their own (index.css .ls-bar). */}
       <div className="ls-bar" style={{ padding: `12px ${PAD}px`, borderBottom: `1px solid ${RULE}` }}>
-        <SeasonPicker seasons={ls.seasons} from={span.from} to={span.to} n={n} pick={choose} ages={ageOf && { on: byAge, set: setByAge, of: ageOf }} teamsOf={season => (p.seasons.find(s => s.season === season) || {}).teams} />
+        <SeasonPicker seasons={ls.seasons} from={span.from} to={span.to} n={n} pick={choose} ages={ageOf && { on: byAge, set: setByAge, of: ageOf }} teamsOf={teamsOf}
+          dimTitle={season => ((teamsOf(season) || []).length ? 'No qualifying high-load teammates' : null)} />
         <div className="ls-without">
           <span style={{ ...label, margin: '0 6px 0 10px' }}>Without</span>
           {scenarios.length > 1

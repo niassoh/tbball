@@ -108,7 +108,7 @@ html { scroll-behavior: smooth; }
 @keyframes ls-bench {
   0% { opacity: 0; transform: translateY(-12px); filter: grayscale(0); }
   30%, 70% { opacity: 1; transform: none; filter: grayscale(0); }
-  100% { opacity: .45; transform: none; filter: grayscale(1); }
+  100% { opacity: .6; transform: none; filter: grayscale(1) contrast(1.2); }
 }
 @keyframes ls-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes ls-blink { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }

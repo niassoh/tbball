@@ -68,7 +68,7 @@ function Face({ who, size, tip, order = 0 }) {
       style={{ position: 'relative', width: size, height: size, flex: 'none', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', fontSize: 10, color: DIM }}>
       <span style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
         {who.headshot && !failed
-          ? <img className="fp-face-img" src={headshotUrl(who.slug || who.face.key, 100, who.headshotVersion, who.headshot)} alt={who.name || ''} onError={() => setFailed(true)} style={{ '--i': order, width: '132%', height: '132%', flex: 'none', objectFit: 'cover', objectPosition: '50% 0', filter: 'grayscale(1) contrast(1.05)', opacity: 0.8 }} />
+          ? <img className="fp-face-img" src={headshotUrl(who.slug || who.face.key, 100, who.headshotVersion, who.headshot)} alt={who.name || ''} onError={() => setFailed(true)} style={{ '--i': order, width: '132%', height: '132%', flex: 'none', objectFit: 'cover', objectPosition: '50% 0', filter: 'grayscale(1) contrast(1.2)', opacity: 0.9 }} />
           : initialsOf(who.name)}
       </span>
       {tip && hover && (
@@ -419,7 +419,7 @@ const FACES = 4
 function Sat({ who, on, slots, layersOf }) {
   const shown = who.length > FACES ? who.slice(0, FACES - 1) : who
   return (
-    <span aria-hidden="true" className="fp-option-faces" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', width: 34 + (slots - 1) * 24, overflow: 'hidden', filter: on ? 'grayscale(1)' : 'none', opacity: on ? 0.5 : 1 }}>
+    <span aria-hidden="true" className="fp-option-faces" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', width: 34 + (slots - 1) * 24, overflow: 'hidden', filter: on ? 'grayscale(1) contrast(1.2)' : 'none', opacity: on ? 0.62 : 1 }}>
       {shown.map((t, k) => (
         <span key={t.id} style={{ display: 'grid', width: 34, height: 34, flex: 'none', marginLeft: k ? -10 : 0 }}>
           <Portrait who={{ ...t, face: t.face && t.face.key }} team={t.team} on size={34} layers={layersOf(t)} jersey={t.jersey} />

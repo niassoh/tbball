@@ -493,7 +493,8 @@ function Frame({ p, ls }) {
     ? x.parts.map(part => `${starsText(part.stars)} ${seasonRanges(part.seasons)}`).join(' · ')
     : [teams.size > 1 && x.team, x.seasons.length < n && seasonRanges(x.seasons)].filter(Boolean).join(' · '))
   const names = x => namesText(x.stars)
-  const teamsOf = season => (p.seasons.find(s => s.season === season) || {}).teams
+  // A season under the minutes floor has no row but still his team (bio).
+  const teamsOf = season => (p.seasons.find(s => s.season === season) || {}).teams || (p.bio.teamsBySeason || {})[season]
   // The box: who sits. ALL past three parts: the first two and how many more.
   const text = x => {
     if (!x.all) return [names(x), meta(x)].filter(Boolean).join(' · ')

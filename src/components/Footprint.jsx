@@ -611,7 +611,7 @@ function Views({ p, doc, faces }) {
     <>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px', alignItems: 'center', fontFamily: MONO }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 14px', flex: '1 1 0', minWidth: 0 }}>
-          <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} ages={ageOf && { on: byAge, set: setByAge, of: ageOf }} teamsOf={season => (p.seasons.find(s => s.season === season) || {}).teams} />
+          <SeasonPicker seasons={doc.seasons} from={span.from} to={span.to} n={fp.seasons.length} pick={pick} ages={ageOf && { on: byAge, set: setByAge, of: ageOf }} teamsOf={season => (p.seasons.find(s => s.season === season) || {}).teams || (p.bio.teamsBySeason || {})[season]} />
           <LoneSwitch on={loneOn} set={setLone} disabled={!options.off.length && !options.def.length} />
           {loneOn ? (
             // In LONE the same line holds each side's pick, so nothing below moves (a row of

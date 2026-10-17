@@ -341,7 +341,7 @@ a:hover > .lineup-tile > * { filter: none; }
    brings a stint in too. */
 @media (hover: hover) {
   .team-stint { opacity: 0; clip-path: inset(0 100% 0 0); pointer-events: none; transition: opacity .16s ease, clip-path .32s cubic-bezier(.2, .8, .2, 1), filter .15s; }
-  .team-band.open .team-stint { opacity: .35; clip-path: inset(0 0 0 0); pointer-events: auto; }
+  .team-band.open .team-stint { opacity: .7; clip-path: inset(0 0 0 0); pointer-events: auto; }
   .team-band.open .team-stint.shown, .team-stint:focus-visible { opacity: 1; clip-path: inset(0 0 0 0); pointer-events: auto; }
 }
 @media (hover: hover) and (prefers-reduced-motion: reduce) { .team-stint { transition: opacity .12s ease; clip-path: none; } }

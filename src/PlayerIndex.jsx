@@ -130,7 +130,10 @@ function TeamLogo({ team, on, faded, onClick }) {
 const cover = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }
 // Four rows of the widest grid (9 a row): a desktop's first screen.
 const EAGER = 36
-// `carry`: the portrait the view transition takes into the opened page's header.
+// The active dot's soft glow, in the accent.
+const GLOW = '0 0 5px 1px color-mix(in srgb, var(--accent) 55%, transparent)'
+// `carry`: the portrait the view transition takes into the opened page's header. A player
+// no longer active is half greyed, so the current ones stand out without the rest going dead.
 function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
   const [failed, setFailed] = useState(false)
   const [small, setSmall] = useState(false)
@@ -139,7 +142,7 @@ function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
   const url = px => headshotUrl(player.slug, px, player.headshotVersion, player.headshot)
   const eager = order < EAGER
   return (
-    <span className="idx-face" style={{ position: 'relative', display: 'block', width: square ? '100%' : size, height: square ? 'auto' : size, aspectRatio: '1 / 1', overflow: 'hidden', background: show ? PORTRAIT_BG : '#34312e', flex: 'none', viewTransitionName: carry ? 'player-portrait' : undefined }}>
+    <span className="idx-face" style={{ position: 'relative', display: 'block', width: square ? '100%' : size, height: square ? 'auto' : size, aspectRatio: '1 / 1', overflow: 'hidden', background: show ? PORTRAIT_BG : '#34312e', flex: 'none', viewTransitionName: carry ? 'player-portrait' : undefined, filter: player.active ? undefined : 'grayscale(.55)' }}>
       {show
         ? <>
             <img src={url(100)} alt="" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" onLoad={() => { setSmall(true); onShown?.() }} onError={() => setFailed(true)}
@@ -190,7 +193,7 @@ function Tile({ player: p, to, order, onShown }) {
         <TeamChip team={teamOf(p)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
           <span className="idx-tile-span">{pastBest(p) ? bestYear(p) : span(p)}</span>
-          <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}` }} />
+          <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}`, boxShadow: p.active ? GLOW : 'none' }} />
         </span>
       </span>
       <Face player={p} square order={order} onShown={onShown} carry={opening} />
@@ -312,7 +315,7 @@ export default function PlayerIndex() {
       )}
 
       <footer style={{ marginTop: 48, paddingTop: 14, borderTop: `1px solid ${EDGE}`, display: 'flex', gap: 22, flexWrap: 'wrap', ...label, fontSize: 9 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />Active (in the latest season)</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', boxShadow: GLOW }} />Active (in the latest season)</span>
         <span>BPM = best season (800+ min), the one a past player opens on · meter {METER[0]} to +{METER[1]}</span>
         <span>thinkingbasketball.net</span>
       </footer>

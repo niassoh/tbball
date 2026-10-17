@@ -166,7 +166,8 @@ function Icons({ items, at, setAt }) {
             {legend && (
               <span style={{ ...dim, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                 <span style={{ ...label, fontSize: 8.5, letterSpacing: '.1em', lineHeight: 1.2, color: '#b8b2ab', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{i.l}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{swingText(i.e.diff)}</span>
+                {/* The hovered one's swing gets a bar typed in under it (index.css .pc-value). */}
+                <span className={at === i.l ? 'pc-value on' : 'pc-value'} style={{ alignSelf: 'flex-start', fontSize: 13, fontWeight: 600, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{swingText(i.e.diff)}</span>
               </span>
             )}
           </span>
@@ -179,7 +180,7 @@ function Icons({ items, at, setAt }) {
 // its place among the league's when it has one.
 function Readout({ x }) {
   return (
-    <span style={{ fontSize: 10, letterSpacing: '.04em', color: DIM, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+    <span style={{ fontSize: 10, lineHeight: '13px', letterSpacing: '.04em', color: DIM, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       <span style={{ color: INK, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>{x.l}</span>
       {'  '}<span style={{ color: x.tone, fontWeight: 700 }}>{swingText(x.e.diff)}</span> {unitOf(x.e.key, x.e.unit).toLowerCase()} on vs off
       {x.place && <span style={{ color: x.place.worst ? WORST : INK }}>{x.place.worst ? `  ▼ ${worstText(x.place.place).toLowerCase()}` : `  #${x.place.place} in the league`}</span>}
@@ -409,10 +410,11 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
             : initials(pl.name)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', minHeight: 12, minWidth: 0 }}>
+          {/* One height for the line and the icon readout that takes its place, so the name never moves. */}
+          <div style={{ display: 'flex', alignItems: 'center', height: 13, minWidth: 0 }}>
             {fpShown
               ? <Readout x={fpShown} />
-              : <span className="pc-type" style={small}>{[pl.teams ? pl.teams.join('/') : pl.team, pl.pos, rowAge(pl) && `${rowAge(pl)} yrs`, pl.gp !== null && `${pl.gp} gp`, pl.mp !== null && `${pl.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>}
+              : <span className="pc-type" style={{ ...small, lineHeight: '13px' }}>{[pl.teams ? pl.teams.join('/') : pl.team, pl.pos, rowAge(pl) && `${rowAge(pl)} yrs`, pl.gp !== null && `${pl.gp} gp`, pl.mp !== null && `${pl.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>}
           </div>
           <span className="pc-name" style={{ marginTop: 3, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pl.name}</span>
           {/* The line is held while the footprint loads (and when it has none), so nothing moves. */}

@@ -9,8 +9,10 @@ import { useSeasonType } from './useSeasonType.js'
 
 // The player index: a search line (and the way to the Leaderboard) and the 30 teams'
 // logos to filter by, then the
-// illustrated portraits as a catalogue and everyone else as a parts list. The accent
-// lights what's on. It has no playoffs switch (lib/mode.js modeless); its links open
+// illustrated portraits (the generated art) as a catalogue, by his best season's BPM (his
+// regular season with the highest among those with 800+ minutes): a link opens on that
+// season, or on his latest if he's active. Everyone else, a parts list, shows only for a
+// search or a team. The accent lights what's on. It has no playoffs switch (lib/mode.js modeless); its links open
 // player pages in the reader's last mode.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
@@ -73,8 +75,11 @@ function FitName({ text }) {
   return <span ref={ref} style={{ fontSize: NAME_PX, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: '20px', height: 20, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</span>
 }
 const low = v => v !== null && v < 0
+const best = p => (p.bestSeason ? p.bestSeason.bpm : null)
+const bestYear = p => (p.bestSeason ? yy(p.bestSeason.season) : '—')
+const byBest = (a, b) => (best(b) ?? -99) - (best(a) ?? -99)
 
-// Latest-season BPM as a 10-segment meter from −4 to +10.
+// Best-season BPM as a 10-segment meter from −4 to +10.
 const METER = [-4, 10]
 const lit = v => (v === null ? 0 : Math.max(0, Math.min(10, Math.round(((v - METER[0]) / (METER[1] - METER[0])) * 10))))
 
@@ -141,8 +146,9 @@ function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
   )
 }
 
-// What a link hands the player's page to show while it loads (ProfileLoading).
-const previewOf = p => ({ preview: { name: p.name, headshot: p.headshot, headshotVersion: p.headshotVersion } })
+// What a link hands the player's page: what to show while it loads (ProfileLoading), and
+// the season to open on: his best, or none (his latest) if he's active.
+const previewOf = p => ({ preview: { name: p.name, headshot: p.headshot, headshotVersion: p.headshotVersion }, season: p.active || !p.bestSeason ? undefined : p.bestSeason.season })
 
 // Opening a player, app-like: his profile is fetched from the hover (or touch) on; the
 // click waits for it (OPEN_WAIT_MS at most), the tile running a line of progress, and the
@@ -167,7 +173,7 @@ function useOpen(p, to) {
 }
 
 // A portrait in the catalogue: team and seasons over the portrait, then the name and his
-// latest BPM on the meter. The LED is lit for players in the latest season.
+// best season's BPM on the meter. The LED is lit for players in the latest season.
 function Tile({ player: p, to, order, onShown }) {
   const { opening, events } = useOpen(p, to)
   return (
@@ -184,9 +190,9 @@ function Tile({ player: p, to, order, onShown }) {
         <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>
         <FitName text={lastName(p.name)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-          <span style={label}>BPM</span>
-          <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={p.recentBpm} /></span>
-          <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: 600, color: low(p.recentBpm) ? '#fa962a' : INK }}>{signed(p.recentBpm)}</span>
+          <span style={label}>BPM {bestYear(p)}</span>
+          <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={best(p)} /></span>
+          <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: 600, color: low(best(p)) ? '#fa962a' : INK }}>{signed(best(p))}</span>
         </span>
       </span>
       {opening && <span aria-hidden="true" className="idx-opening" />}
@@ -202,8 +208,8 @@ function Row({ player: p, to }) {
       <Face player={p} size={22} carry={opening} />
       <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
       <TeamChip team={p.team} />
-      <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{yy(p.seasons[1])}</span>
-      <span style={{ fontFamily: MONO, fontSize: 10, textAlign: 'right', color: low(p.recentBpm) ? '#fa962a' : '#b8b2ab' }}>{signed(p.recentBpm)}</span>
+      <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{bestYear(p)}</span>
+      <span style={{ fontFamily: MONO, fontSize: 10, textAlign: 'right', color: low(best(p)) ? '#fa962a' : '#b8b2ab' }}>{signed(best(p))}</span>
       {opening && <span aria-hidden="true" className="idx-opening" />}
     </Link>
   )
@@ -229,9 +235,8 @@ export default function PlayerIndex() {
   const [team, setTeam] = useState(null)
   useEffect(() => { fetchPlayers().then(list => setPlayers(list || [])) }, [])
   // The first screen of tiles renders as soon as the list arrives; the rest of the tiles
-  // and the list of everyone else wait for its faces to show (2.5s at the most), since
-  // the first faces otherwise wait on rendering 900 more players (about a second on a
-  // phone), transition or not. A search or a team renders them at once.
+  // wait for its faces to show (2.5s at the most), since the first faces otherwise wait on
+  // rendering the rest, transition or not. A search or a team renders them at once.
   const [full, setFull] = useState(false)
   const shown = useRef(0)
   // The search takes the keyboard on arrival only where there's a pointer: on a phone a
@@ -254,7 +259,7 @@ export default function PlayerIndex() {
   // A team code typed into the search works like its logo.
   const q = fold(query.trim())
   const typedTeam = TEAMS.find(t => fold(t) === q)
-  const matches = (players || []).filter(p => (!team || p.team === team) && (!q || fold(p.name).includes(q) || (typedTeam && p.team === typedTeam)))
+  const matches = (players || []).filter(p => (!team || p.team === team) && (!q || fold(p.name).includes(q) || (typedTeam && p.team === typedTeam))).sort(byBest)
   const portraits = matches.filter(p => ILLUSTRATED.has(p.headshot))
   const rest = matches.filter(p => !ILLUSTRATED.has(p.headshot))
   const all = full || !!q || !!team
@@ -285,7 +290,7 @@ export default function PlayerIndex() {
         </Section>
       )}
 
-      {all && rest.length > 0 && (
+      {(q || team) && rest.length > 0 && (
         <Section title={portraits.length ? 'Everyone else' : 'Players'} count={rest.length}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', columnGap: 28 }}>
             {rest.map(p => <Row key={p.slug} player={p} to={playerPath(p.slug)} />)}
@@ -299,7 +304,7 @@ export default function PlayerIndex() {
 
       <footer style={{ marginTop: 48, paddingTop: 14, borderTop: `1px solid ${EDGE}`, display: 'flex', gap: 22, flexWrap: 'wrap', ...label, fontSize: 9 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />Active (in the latest season)</span>
-        <span>BPM = latest season · meter {METER[0]} to +{METER[1]}</span>
+        <span>BPM = best season (800+ min), the one a past player opens on · meter {METER[0]} to +{METER[1]}</span>
         <span>thinkingbasketball.net</span>
       </footer>
     </main>

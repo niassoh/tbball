@@ -131,7 +131,8 @@ export default function BioCard({ profile: p, season, loading = false }) {
   const color = teamColor(v.team)
   // Black (BKN, SAS) would vanish on the dark banner, so those teams' bar is silver.
   const accent = color === '#000000' ? '#c4ced4' : color
-  // Hover line: the draft pick, e.g. "2017 DRAFT · R1 #30 · UTA".
+  // Hover line over the specs: the draft pick, e.g. "2017 DRAFT · R1 #30 · UTA" (the specs'
+  // dividers stop short of the row's top to leave it room).
   const draft = draftLine(p.bio.draft)
   // The header logo and the depth chart's team name toggle the team switcher, which
   // opens just below whichever was clicked (picking holds that element).
@@ -191,14 +192,14 @@ export default function BioCard({ profile: p, season, loading = false }) {
             </div>
           )}
           {specs.map(([label, value], i) => (
-            <span key={label} title={label} style={{ display: 'flex', alignItems: 'center', padding: '0 10px', paddingLeft: i === 0 && !color ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #837d76' : 'none', fontSize: 13, fontWeight: 600, color: '#ece8e3' }}>
+            <span key={label} title={label} style={{ display: 'flex', alignItems: 'center', margin: '5px 0', padding: '0 10px', paddingLeft: i === 0 && !color ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #837d76' : 'none', fontSize: 13, fontWeight: 600, color: '#ece8e3' }}>
               {value}
               {label === 'AGE' && <span style={{ marginLeft: 3, fontSize: 9, fontWeight: 400, letterSpacing: '.06em', color: '#a09a93' }}>YRS</span>}
             </span>
           ))}
         </div>
         {draft && (
-          <span key={`draft-${p.slug}`} className="hero-more" style={{ position: 'absolute', left: color ? 89 : 14, top: 43, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#b3ada6', whiteSpace: 'nowrap' }}>{draft}</span>
+          <span key={`draft-${p.slug}`} className="hero-more" style={{ position: 'absolute', left: color ? 89 : 14, top: 3, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#b3ada6', whiteSpace: 'nowrap' }}>{draft}</span>
         )}
         {accent && <div className="hero-bar" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: accent }} />}
         <h1 ref={nameRef} key={`name-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>

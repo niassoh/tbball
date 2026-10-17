@@ -250,7 +250,7 @@ a:hover > .lineup-tile > * { filter: none; }
 .hero:hover .hero-face { transform: scale(1.04); }
 .hero .hero-bokeh { transition: opacity .3s ease; }
 .hero:hover .hero-bokeh { opacity: .72 !important; }
-.hero .hero-more { opacity: 0; transform: translateY(3px); transition: opacity .2s ease .06s, transform .2s ease .06s; }
+.hero .hero-more { opacity: 0; transform: translateY(-3px); transition: opacity .2s ease .06s, transform .2s ease .06s; }
 .hero:hover .hero-more { opacity: 1; transform: none; }
 /* While the next player loads, the header holds its hover state and the team bar sweeps
    across the rule. */

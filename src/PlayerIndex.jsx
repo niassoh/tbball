@@ -2,7 +2,7 @@ import { startTransition, useEffect, useLayoutEffect, useRef, useState } from 'r
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchPlayers, fetchProfile, headshotUrl, prefetchProfile } from './api.js'
 import { MONO } from './lib/format.js'
-import { TEAM_COLORS } from './lib/teams.js'
+import { TEAM_COLORS, teamColor } from './lib/teams.js'
 import { asset } from './lib/static.js'
 import TeamInitials from './components/TeamInitials.jsx'
 import { useSeasonType } from './useSeasonType.js'
@@ -31,7 +31,7 @@ const luminance = hex => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 const swatch = team => {
-  const c = TEAM_COLORS[team]
+  const c = teamColor(team)
   if (!c) return FAINT
   if (c === '#000000') return '#c4ced4'
   return luminance(c) < 0.03 ? `color-mix(in oklab, ${c}, ${INK} 35%)` : c
@@ -78,6 +78,9 @@ const low = v => v !== null && v < 0
 const best = p => (p.bestSeason ? p.bestSeason.bpm : null)
 const bestYear = p => (p.bestSeason ? yy(p.bestSeason.season) : '—')
 const byBest = (a, b) => (best(b) ?? -99) - (best(a) ?? -99)
+// A past player is shown as his best season: its team and year.
+const pastBest = p => (!p.active && p.bestSeason) || null
+const teamOf = p => (pastBest(p) ? pastBest(p).team : p.team)
 
 // Best-season BPM as a 10-segment meter from −4 to +10.
 const METER = [-4, 10]
@@ -172,16 +175,16 @@ function useOpen(p, to) {
   return { opening, events: { onPointerEnter: warm, onTouchStart: warm, onFocus: warm, onClick: open } }
 }
 
-// A portrait in the catalogue: team and seasons over the portrait, then the name and his
-// best season's BPM on the meter. The LED is lit for players in the latest season.
+// A portrait in the catalogue: team and seasons over the portrait (a past player's best
+// season, its team and year), then the name and his best season's BPM on the meter. The LED is lit for players in the latest season.
 function Tile({ player: p, to, order, onShown }) {
   const { opening, events } = useOpen(p, to)
   return (
     <Link to={to} state={previewOf(p)} {...events} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
       <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
-        <TeamChip team={p.team} />
+        <TeamChip team={teamOf(p)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
-          <span className="idx-tile-span">{span(p)}</span>
+          <span className="idx-tile-span">{pastBest(p) ? bestYear(p) : span(p)}</span>
           <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}` }} />
         </span>
       </span>
@@ -190,7 +193,7 @@ function Tile({ player: p, to, order, onShown }) {
         <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>
         <FitName text={lastName(p.name)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-          <span style={label}>BPM {bestYear(p)}</span>
+          <span style={label}>{pastBest(p) ? 'BPM' : `BPM ${bestYear(p)}`}</span>
           <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={best(p)} /></span>
           <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: 600, color: low(best(p)) ? '#fa962a' : INK }}>{signed(best(p))}</span>
         </span>
@@ -207,7 +210,7 @@ function Row({ player: p, to }) {
     <Link to={to} state={previewOf(p)} {...events} className="idx-row idx-later-row" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '22px minmax(0,1fr) 48px 30px 44px', gap: 10, alignItems: 'center', height: 32, padding: '0 4px', borderBottom: `1px solid ${RULE}`, color: INK }}>
       <Face player={p} size={22} carry={opening} />
       <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
-      <TeamChip team={p.team} />
+      <TeamChip team={teamOf(p)} />
       <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{bestYear(p)}</span>
       <span style={{ fontFamily: MONO, fontSize: 10, textAlign: 'right', color: low(best(p)) ? '#fa962a' : '#b8b2ab' }}>{signed(best(p))}</span>
       {opening && <span aria-hidden="true" className="idx-opening" />}

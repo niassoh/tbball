@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
 import { BANDS, MODES, mix, rgb, shotModel } from '../lib/shot.js'
 import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, KEY_HASHES, KEY_LINES, THREE_LINE } from '../lib/court.js'
-import { emptyNote } from '../lib/seasons.js'
+import { emptyNote, seasonsBetween } from '../lib/seasons.js'
 
 const subhead = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a09a93' }
 
@@ -89,8 +89,7 @@ function CourtKey({ opacity }) {
   )
 }
 
-function ShotMap({ shotShift, divided, po = false }) {
-  const labels = WINDOWS[po ? 'playoffs' : 'regular']
+function ShotMap({ shotShift, divided, po = false, labels = WINDOWS[po ? 'playoffs' : 'regular'] }) {
   const [mode, setMode] = useState('value')
   const [hover, setHover] = useState(null)
   const [season, setSeason] = useState(false)
@@ -195,14 +194,14 @@ const DOWN = [196, 116, 48]
 const QUIET = [131, 125, 118]
 const HEAD = { right: 'polygon(0 0, 100% 50%, 0 100%)', left: 'polygon(100% 0, 0 50%, 100% 100%)' }
 
-function CoreStats({ profile: p, shift, po = false }) {
+function CoreStats({ profile: p, shift, po = false, labels = WINDOWS[po ? 'playoffs' : 'regular'] }) {
   // The same rows every time (EMPTY_STATS' order), a missing one drawn empty, so the
   // card keeps its height between players and between the season and the playoffs.
   const byStat = new Map(shift.stats.filter(r => p.stats[r.stat]).map(r => [r.stat, r]))
   const rows = EMPTY_STATS.map(stat => byStat.get(stat) || { stat, missing: true })
   return (
     <>
-      <Legend labels={WINDOWS[po ? 'playoffs' : 'regular']} />
+      <Legend labels={labels} />
       <div style={statRows}>
         {rows.map(r => {
           if (r.missing) return <EmptyRow key={r.stat} stat={r.stat} />
@@ -339,8 +338,72 @@ function PlayoffShift({ profile: p, season: k }) {
   )
 }
 
+// A past player (out of the latest season): the picked season against his other seasons on
+// the site (`career`: their minutes-weighted values; his shots by band, summed), an
+// archive's view of where it sat in his career. The span is named, since a career begun
+// before 1996-97 is only partly here. Over the rows, his BPM season by season, the picked
+// one lit.
+const ARCHIVE = '#c9b994'
+const yy = season => `’${season.slice(-2)}`
+function CareerStrip({ profile: p, k }) {
+  const played = p.seasons.filter(x => !x.empty)
+  const span = seasonsBetween(played[0].season, played[played.length - 1].season)
+  const bpm = new Map(p.seasons.map((x, i) => [x.season, p.stats.BPM && p.stats.BPM.vals[i] ? p.stats.BPM.vals[i].n : null]))
+  const top = Math.max(1, ...[...bpm.values()].filter(v => v !== null).map(Math.abs))
+  const H = 15
+  const w = 100 / span.length
+  return (
+    <div style={{ margin: '10px 14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em', color: '#837d76' }}>
+        <span>BPM BY SEASON</span>
+        <span>{yy(span[0])}–{yy(span[span.length - 1])}</span>
+      </div>
+      <svg viewBox={`0 0 100 ${2 * H}`} preserveAspectRatio="none" style={{ width: '100%', height: 30, display: 'block' }} aria-hidden="true">
+        <line x1="0" x2="100" y1={H} y2={H} stroke="#3d3a37" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        {span.map((season, i) => {
+          const v = bpm.get(season)
+          if (v === null || v === undefined) return null
+          const h = Math.max(0.8, (Math.abs(v) / top) * (H - 1))
+          const on = season === p.seasons[k].season
+          return <rect key={season} x={i * w + w * 0.18} width={w * 0.64} y={v >= 0 ? H - h : H} height={h} fill={on ? ARCHIVE : '#5a5550'} />
+        })}
+      </svg>
+    </div>
+  )
+}
+
+function CareerShift({ profile: p, season: k }) {
+  const s = p.seasons[k]
+  const played = p.seasons.filter(x => !x.empty)
+  const first = played[0].season
+  const last = played[played.length - 1].season
+  const c = s.career
+  const labels = { base: 'OTHER SEASONS', window: yy(s.season), short: 'OTHER' }
+  const reason = s.empty ? 'NO GAMES THIS SEASON' : 'NO OTHER SEASONS TO COMPARE'
+  return (
+    <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>In His Career</span>
+          <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
+            <span style={{ color: '#ece8e3', fontWeight: 700 }}>{s.season.replace('-', '–')}</span> AGAINST HIS OTHER SEASONS <span style={{ color: '#ece8e3', fontWeight: 700 }}>{yy(first)}–{yy(last)}</span>
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <span title="A past player: each season against the rest of his on the site" style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.22em', color: ARCHIVE, border: `1px solid ${ARCHIVE}`, padding: '2px 5px 2px 7px' }}>ARCHIVE</span>
+          <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em', color: '#837d76', whiteSpace: 'nowrap' }}>LAST SEASON {last.replace('-', '–')}</span>
+        </div>
+      </div>
+      <CareerStrip profile={p} k={k} />
+      {c && c.stats.length ? <CoreStats profile={p} shift={c} labels={labels} /> : <EmptyStats reason={reason} />}
+      {c && c.shots ? <ShotMap shotShift={c.shots} divided labels={labels} /> : <EmptyShotMap reason={c ? 'NO SHOT DATA' : reason} divided />}
+    </div>
+  )
+}
+
 export default function RecentShift({ profile: p, season }) {
   if (p.seasonType === 'playoffs') return <PlayoffShift profile={p} season={season} />
+  if (p.active === false) return <CareerShift profile={p} season={season} />
   const games = p.gameLog && p.gameLog.recent ? p.gameLog.recent.games : null
   // Not in the pull, which keeps only players over the sheet's minutes floor: for the
   // season (no game log, so no shot data either), or, scaled to each window, in both

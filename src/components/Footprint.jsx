@@ -165,10 +165,10 @@ function Details({ e, anchors, color, right, scale }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.45fr', columnGap: 12, rowGap: 2, paddingTop: 9, borderTop: rule }}>
           <span style={head}>ON</span>
           <span style={head}>OFF</span>
-          <span style={head}>SWING</span>
+          <span style={head}>CHANGE</span>
           <span style={big}>{valueText(e, e.on)}<PctlBadge p={e.onPctl} title="Percentile of his team's on value against the league's" /></span>
           <span style={big}>{valueText(e, e.off)}</span>
-          <span style={{ ...big, color: color || INK }}>{swingText(e.diff)}<PctlBadge p={swingPctl} medal={medal} title="Percentile of the swing among players' swings in this stat" /></span>
+          <span style={{ ...big, color: color || INK }}>{swingText(e.diff)}<PctlBadge p={swingPctl} medal={medal} title="Percentile of the change among players' changes in this stat" /></span>
           {(swingPctl === null || swingPctl === undefined) && MISSING[e.status] && <span style={{ ...sub, gridColumn: '1 / -1' }}>{MISSING[e.status]}</span>}
           {e.isLone && <><span style={sub}>{e.min[0].toLocaleString()} MIN</span><span style={sub}>{e.min[1].toLocaleString()} MIN</span><span /></>}
         </div>
@@ -279,7 +279,7 @@ function FootprintTile({ e, anchors, right, delay = 0, scale }) {
           <span style={{ fontSize: 9.5, color: DIM, letterSpacing: '.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {unitOf(e.key, e.unit)}
             {/* A teammate effect: the legend's hatched mark, in the tile's color. */}
-            {mate && <span title={`Teammate effect: most of this swing is ${e.side === 'def' ? 'his top defender' : 'his best teammate'}'s minutes, not his`} aria-label="teammate effect"
+            {mate && <span title={`Teammate effect: most of this change is ${e.side === 'def' ? 'his top defender' : 'his best teammate'}'s minutes, not his`} aria-label="teammate effect"
               style={{ display: 'inline-block', width: 14, height: 3, marginLeft: 7, verticalAlign: 'middle', background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
           </span>
         </span>
@@ -309,11 +309,11 @@ function Method({ fp, from, to }) {
             <li>Teammate stats leave his own shots out: with him on, only his teammates&apos; shots count; with him off, everyone&apos;s. Their rim scoring is per 100 of their own shots, so a high-usage player doesn&apos;t drag it down by shooting more himself.</li>
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
-            <li>A tile lights when its swing clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; swings in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them. An unlit swing stays grey, brighter the bigger it is among players&apos;.</li>
-            <li>REMOVE BEST shows the MATES and OFFENSE tiles again over only the minutes some of his teammates sit (off the floor on both sides), measured and lit the same way, except that a tile lit on all his minutes stays lit while its swing keeps at least half of itself there. Offense (the green box) offers the stars the Lonestar tab does for these seasons: each star, each top two, and all combined, each season without its own. Defense (the lavender box) goes without a defensive monster: a teammate on the floor for a quarter of the minutes whose defensive EPM (Dunks &amp; Threes, 2001-02 on) is in the top 10% of the league&apos;s rotation players that season; for a player who is one himself, his next-best defender by it. A row with no such teammate stays on all his minutes.</li>
-            <li>A lit tile is marked as a teammate effect when its swing keeps less than half of itself, or turns round, with REMOVE BEST&apos;s first pick (all combined where there is one): most of it is those teammates&apos; minutes.</li>
-            <li>In a tile&apos;s details, the small badge on SWING is the swing&apos;s percentile among players&apos; swings in that stat; the one on ON and the chart&apos;s LG place his team&apos;s on value against the league&apos;s that season.</li>
-            <li>A lit swing among the league&apos;s 10 best gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%. One among the 10 worst gets a red badge with its place from the bottom.</li>
+            <li>A tile lights when its change clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; changes in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them. An unlit change stays grey, brighter the bigger it is among players&apos;.</li>
+            <li>REMOVE BEST shows the MATES and OFFENSE tiles again over only the minutes some of his teammates sit (off the floor on both sides), measured and lit the same way, except that a tile lit on all his minutes stays lit while its change keeps at least half of itself there. Offense (the green box) offers the stars the Lonestar tab does for these seasons: each star, each top two, and all combined, each season without its own. Defense (the lavender box) goes without a defensive monster: a teammate on the floor for a quarter of the minutes whose defensive EPM (Dunks &amp; Threes, 2001-02 on) is in the top 10% of the league&apos;s rotation players that season; for a player who is one himself, his next-best defender by it. A row with no such teammate stays on all his minutes.</li>
+            <li>A lit tile is marked as a teammate effect when its change keeps less than half of itself, or turns round, with REMOVE BEST&apos;s first pick (all combined where there is one): most of it is those teammates&apos; minutes.</li>
+            <li>In a tile&apos;s details, the small badge on CHANGE is the change&apos;s percentile among players&apos; changes in that stat; the one on ON and the chart&apos;s LG place his team&apos;s on value against the league&apos;s that season.</li>
+            <li>A lit change among the league&apos;s 10 best gets a badge with its place, gold for #1 and silver for #2 to #10; otherwise one in the top 3% gets a medal: gold for the top 1%, silver the top 2%, bronze the top 3%. One among the 10 worst gets a red badge with its place from the bottom.</li>
           </ul>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ color: DIM, fontSize: 10, letterSpacing: '.08em' }}>MINUTES ON AND OFF</span>
@@ -633,7 +633,7 @@ function Views({ p, doc, faces }) {
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.neutral }} />STYLE</span>
         <span style={legendKey}>DIM · WITHIN NOISE OR COMMON</span>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: `repeating-linear-gradient(135deg, ${TONES.good} 0 4px, transparent 4px 7px)` }} />TEAMMATE EFFECT</span>
-        <span style={legendKey}>BAR · SIZE AMONG PLAYERS&apos; SWINGS</span>
+        <span style={legendKey}>BAR · SIZE AMONG PLAYERS&apos; CHANGES</span>
         <span style={legendKey}>HOVER A TILE FOR ITS DETAILS</span>
       </div>
       <Method fp={fp} from={span.from} to={span.to} />

@@ -434,18 +434,19 @@ function Sat({ who, on, slots, layersOf }) {
 // with its teammates' faces and names; with more than one option it opens their list, as
 // Lonestar's stretch list (Lonestar.jsx StretchList): in sections, most minutes off first,
 // ALL last under a heavier rule; each row its faces, names, team and seasons where the span
-// has others (a defender with his defensive EPM), a bar for his minutes off, and his
+// has others (a lone defender with his defensive EPM), a bar for his minutes off, and his
 // minutes on and off the floor while they sit. A click picks and closes; the arrow keys
 // move the pick with the list open; Enter closes. `faceOf` brings each face's portrait;
 // two boxes keep to one line, their words cut short (`shrink`).
-const SECTIONS = { off: [['one', 'Without top star'], ['two', 'Without top two stars']], def: [['one', 'Without top defender']] }
+// A defense pair is picked by hand (lib/footprint.js): two teammates at once, or one a season.
+const SECTIONS = { off: [['one', 'Without top star'], ['two', 'Without top two stars']], def: [['one', 'Without top defender'], ['two', 'Without both']] }
 const MIN_COL = 56
 function Picker({ side, options, at, pick, color, view, faceOf, layersOf }) {
   const o = options[at]
   const teams = new Set(options.map(x => x.team).filter(Boolean))
   const meta = x => (x.all
     ? x.parts.map(part => `${starsText(part.stars)} ${seasonRanges(part.seasons)}`).join(' · ')
-    : [teams.size > 1 && x.team, x.seasons.length < view.seasons.length && seasonRanges(x.seasons), side === 'def' && x.stars[0].depm !== null && x.stars[0].depm !== undefined && `DEPM ${swingText(x.stars[0].depm)}`].filter(Boolean).join(' · '))
+    : [teams.size > 1 && x.team, x.seasons.length < view.seasons.length && seasonRanges(x.seasons), side === 'def' && x.stars.length === 1 && x.stars[0].depm !== null && x.stars[0].depm !== undefined && `DEPM ${swingText(x.stars[0].depm)}`].filter(Boolean).join(' · '))
   const text = x => {
     if (!x.all) return starsText(x.stars)
     const parts = x.parts.map(part => starsText(part.stars))

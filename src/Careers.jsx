@@ -31,13 +31,13 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 // The first player, the one the page is about, in the site's green at full strength; the
 // others he's compared with in quieter tones, so he leads.
-const CHANNELS = ['#97c197', '#c9c3bc', '#a898c4', '#b3a888', '#86aeb5', '#b5939b']
+const CHANNELS = ['#97c197', '#a898c4', '#c9b994', '#86aeb5', '#d28aae', '#a88466']
 // Six at most: past that the lines tangle and the quiet tones run together.
 const MAX = CHANNELS.length
 const TRY = ['lebron-james', 'stephen-curry', 'nikola-jokic', 'tim-duncan']
 const X_MODES = [['season', 'Season'], ['age', 'Age'], ['career', 'Career yr']]
 const SMOOTH = [['1', '1Y'], ['3', '3Y']]
-const DEFAULTS = { x: 'age', y: 'BPM', scale: 'raw', smooth: '1' }
+const DEFAULTS = { x: 'career', y: 'BPM', scale: 'raw', smooth: '1' }
 const surname = n => n.split(' ').slice(1).join(' ') || n
 const shortYears = (a, b) => `’${a.slice(5)}–’${b.slice(5)}`
 const titled = slug => slug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
@@ -307,7 +307,7 @@ export default function Careers() {
   // across, without changing the URL: the regular season gets it back.
   const has = l => store && store.stats[l] && store.stats[l].since
   const y = has(get('y')) ? get('y') : 'BPM'
-  const x = get('x') in TIME ? get('x') : 'age'
+  const x = get('x') in TIME ? get('x') : 'career'
   const scale = get('scale') === 'pctl' ? 'pctl' : 'raw'
   const smooth = get('smooth') === '3' ? 3 : 1
 

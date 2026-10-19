@@ -13,6 +13,15 @@ export const readMode = search => {
 // A path in the given mode.
 export const withMode = (path, playoffs) => (playoffs ? `${path}?${PARAM}` : path)
 
+// A page's query in the given mode, its other params kept (Careers keeps its players and
+// axes in the URL).
+export const searchInMode = (search, playoffs) => {
+  const q = new URLSearchParams(search)
+  q.delete(PARAM)
+  const rest = q.toString()
+  return playoffs ? `?${rest ? `${rest}&` : ''}${PARAM}` : rest ? `?${rest}` : ''
+}
+
 // Pages the mode means nothing on (the players index): no switch, no playoffs styling,
-// no ?playoffs in their URL. Player pages and the leaderboard have it.
-export const modeless = pathname => !pathname.startsWith('/player/') && pathname !== '/leaderboard'
+// no ?playoffs in their URL. Player pages, the leaderboard and careers have it.
+export const modeless = pathname => !pathname.startsWith('/player/') && pathname !== '/leaderboard' && pathname !== '/careers'

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { PARAM, modeless, readMode, withMode } from './lib/mode.js'
+import { PARAM, modeless, readMode, searchInMode, withMode } from './lib/mode.js'
 
 // Whether the app is in playoffs mode, a switch for it, and the profile path of a
 // player in the current mode (so links keep the mode).
@@ -9,7 +9,7 @@ export function useSeasonType() {
   const navigate = useNavigate()
   const playoffs = readMode(search)
   // A new history entry, so Back returns to the other mode.
-  const setPlayoffs = on => navigate({ pathname, search: on ? `?${PARAM}` : '' })
+  const setPlayoffs = on => navigate({ pathname, search: searchInMode(search, on) })
   const playerPath = slug => withMode(`/player/${slug}`, playoffs)
   return { playoffs, setPlayoffs, playerPath, homePath: '/' }
 }

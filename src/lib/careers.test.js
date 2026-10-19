@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TIME, arcsOf, careersOf, column, envelope, nearestArcs, peakOf } from './careers.js'
+import { TIME, careersOf, column, envelope, peakOf } from './careers.js'
 
 const STATS = { BPM: { dec: 1 }, 'C&S 3%': { dec: 1 }, 'C&S 3s/36': { dec: 1 }, '1yr C&S 3%': { dec: 1 } }
 const LABELS = ['BPM', 'C&S 3%', 'C&S 3s/36', '1yr C&S 3%']
@@ -97,41 +97,6 @@ describe('envelope', () => {
   it('spreads each x, dropping thin ones', () => {
     const pts = [...Array.from({ length: 11 }, (_, i) => [25, i * 10]), [26, 5], [24, 1], [24, 3]]
     expect(envelope(pts, 2)).toEqual([{ x: 24, n: 2, lo: 1.2, mid: 2, hi: 2.8 }, { x: 25, n: 11, lo: 10, mid: 50, hi: 90 }])
-  })
-})
-
-describe('nearestArcs', () => {
-  const arcs = new Map([
-    ['a', new Map([[20, 50], [21, 60], [22, 70], [23, 80]])],
-    ['same', new Map([[20, 50], [21, 60], [22, 70], [23, 80]])],
-    ['close', new Map([[20, 55], [21, 65], [22, 75], [23, 85]])],
-    ['short', new Map([[21, 60], [22, 70], [23, 80]])],
-    ['tiny', new Map([[22, 70], [23, 80]])],
-    ['tie', new Map([[20, 55], [21, 55], [22, 75], [23, 85], [24, 1]])]
-  ])
-
-  it('ranks by the mean gap over his ages, a missing age a third of the scale', () => {
-    const near = nearestArcs(arcs, 'a')
-    expect(near.map(x => x.slug)).toEqual(['same', 'close', 'tie', 'short'])
-    expect(near[0].d).toBe(0)
-    expect(near[3].d).toBeCloseTo(100 / 3 / 4)
-  })
-
-  it('needs enough shared ages, skips whom it is told to, and stops at n', () => {
-    expect(nearestArcs(arcs, 'a').some(x => x.slug === 'tiny')).toBe(false)
-    expect(nearestArcs(arcs, 'a', { skip: ['same'], n: 1 }).map(x => x.slug)).toEqual(['close'])
-  })
-
-  it('breaks a tie by more shared ages', () => {
-    const t = new Map([['a', new Map([[20, 50], [21, 50]])], ['b', new Map([[20, 60], [21, 40], [22, 1]])], ['c', new Map([[20, 60], [21, 40]])], ['d', new Map([[20, 50]])]])
-    expect(nearestArcs(t, 'a', { least: 1 }).map(x => x.slug)).toEqual(['b', 'c', 'd'])
-  })
-
-  it('reads arcs off a column', () => {
-    const s = careersOf([doc('2010-11', [['a', '1990-06-01', 900, [1], [40]]], ['BPM']), doc('2011-12', [['a', '1990-06-01', 900, [null], [null]], ['b', null, 900, [1], [1]]], ['BPM'])])
-    const arcsA = arcsOf(s, column(s, 'BPM'))
-    expect([...arcsA.keys()]).toEqual(['a'])
-    expect([...arcsA.get('a')]).toEqual([[20, 40]])
   })
 })
 

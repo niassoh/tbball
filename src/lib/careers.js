@@ -116,45 +116,6 @@ export const envelope = (points, least = 20) => {
     .map(([x, ys]) => ({ x, n: ys.length, lo: quantile(ys, 0.1), mid: quantile(ys, 0.5), hi: quantile(ys, 0.9) }))
 }
 
-// Each player's percentiles by age (`ys`: a column of every player), those with ages.
-export const arcsOf = (store, ys) => {
-  const arcs = new Map()
-  store.players.forEach((pl, i) => {
-    const arc = new Map()
-    pl.rows.forEach((r, k) => { if (r.age !== null && ys[i].p[k] !== null) arc.set(r.age, ys[i].p[k]) })
-    if (arc.size) arcs.set(pl.slug, arc)
-  })
-  return arcs
-}
-
-// The careers closest to one player's (`slug`) by age: over his ages, the mean gap between
-// their percentiles, an age the other wasn't on the board counting GAP (two unrelated
-// players' expected gap: no evidence either way). His career is the window, so a young
-// player's nearest are those who started like him. The other must share at least `least`
-// of his ages (all of them, if he has fewer).
-const GAP = 100 / 3
-export const nearestArcs = (arcs, slug, { n = 5, least = 3, skip = [] } = {}) => {
-  const a = arcs.get(slug)
-  if (!a) return []
-  const need = Math.min(least, a.size)
-  const out = []
-  for (const [s, b] of arcs) {
-    if (s === slug || skip.includes(s)) continue
-    let sum = 0
-    let shared = 0
-    for (const [age, pa] of a) {
-      const pb = b.get(age)
-      if (pb === undefined) sum += GAP
-      else {
-        sum += Math.abs(pa - pb)
-        shared++
-      }
-    }
-    if (shared >= need) out.push({ slug: s, d: sum / a.size, shared })
-  }
-  return out.sort((x, y) => x.d - y.d || y.shared - x.shared || (x.slug < y.slug ? -1 : 1)).slice(0, n)
-}
-
 // A player's peak in a stat (his best season by percentile, more minutes breaking a tie),
 // his best run of three seasons with it (by mean percentile; a season off the board between
 // them doesn't break it, as the Leaderboard's runs), and which seasons were 90th or better

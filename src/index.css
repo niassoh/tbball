@@ -470,3 +470,8 @@ a:hover > .lineup-tile > * { filter: none; }
 .cc-on { animation: cc-step .16s linear both var(--d, 0ms); }
 @keyframes cc-step { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .cc, .cc-row, .cc-on { animation: none; } }
+/* Careers' side panel scrolls without a bar; its stat cells light under the pointer. */
+.cg-scroll { scrollbar-width: none; }
+.cg-scroll::-webkit-scrollbar { display: none; }
+.cg-cell:hover { background: #2f2c2a !important; }
+.cg-cell:hover .cg-name { color: #ece8e3 !important; }

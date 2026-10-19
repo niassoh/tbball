@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardSeasons, headshotUrl } from './api.js'
-import { TIME, arcsOf, careersOf, column, nearestArcs, peakOf } from './lib/careers.js'
+import { TIME, careersOf, column, peakOf } from './lib/careers.js'
 import { MONO, fmt } from './lib/format.js'
 import { withMode } from './lib/mode.js'
 import { initials } from './lib/teams.js'
@@ -18,7 +18,7 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // each in a colour of its own; a channel's colour is who he is, never better or worse
 // (position says that), so the channels keep clear of the site's blue (better), orange
 // (worse) and the playoffs' gold. Beside the chart, for the stat on show: each
-// channel's peak and prime, the careers nearest the first channel's by age, and the stat's
+// channel's peak and prime, and the stat's
 // group as small charts that put any of its stats up the side. All of it lives in the URL
 // (?p=slug,slug,,slug&x=age&y=BPM&scale=pctl&smooth=3), so a view is a link.
 const INK = '#ece8e3'
@@ -175,34 +175,8 @@ function Prime({ store, channels, y }) {
   })
 }
 
-// The careers nearest the anchor's by age in the stat (lib/careers.js nearestArcs).
-function Nearest({ store, anchor, arcs, skip, add, full }) {
-  if (!anchor) return <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>Add a player to find the careers nearest his</div>
-  if (!anchor.pl.born) return <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>No birth date on file · nearest arcs need ages</div>
-  const mine = arcs.get(anchor.pl.slug)
-  if (!mine) return <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>No values for {surname(anchor.pl.name)} in this stat</div>
-  const near = nearestArcs(arcs, anchor.pl.slug, { skip })
-  return near.map(n => {
-    const pl = store.bySlug.get(n.slug)
-    const rows = pl.rows
-    return (
-      <div key={n.slug} className="idx-row" style={{ display: 'grid', gridTemplateColumns: '22px 22px minmax(0, 1fr) auto auto', gap: 8, alignItems: 'center', padding: '4px 12px' }}>
-        <button type="button" disabled={full} onClick={() => add(n.slug)} aria-label={`Add ${pl.name}`} title={full ? 'All four channels are full' : 'Add as a channel'}
-          style={{ width: 20, height: 20, padding: 0, border: `1px solid ${EDGE}`, background: 'transparent', color: full ? FAINT : INK, fontFamily: MONO, fontSize: 12, lineHeight: 1, cursor: full ? 'not-allowed' : 'pointer' }}>+</button>
-        <Face pl={pl} />
-        <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pl.name}</span>
-          <span style={{ ...label, fontSize: 7.5 }}>{shortYears(rows[0].season, rows[rows.length - 1].season)}</span>
-        </span>
-        <span style={{ fontFamily: MONO, fontSize: 11, color: INK }} title="Mean percentile gap over his ages">Δ{n.d.toFixed(1)}</span>
-        <span style={{ ...label, fontSize: 8 }}>{n.shared}/{mine.size} yrs</span>
-      </div>
-    )
-  })
-}
-
-// The stat's group, a small chart of percentiles over time for each of its stats; one puts
-// its stat up the side.
+// The stat's group, a squarish chart of percentiles over time for each of its stats (the
+// 50th dashed); one clicked puts its stat up the side, the one up now lit.
 function StatGrid({ store, group, y, setY, channels, mode, dim }) {
   const at = TIME[mode]
   const cols = useMemo(() => Object.fromEntries(group.stats.map(l => [l, column(store, l, 1, channels.map(c => c.pl))])), [store, group, channels])
@@ -211,19 +185,23 @@ function StatGrid({ store, group, y, setY, channels, mode, dim }) {
   const d1 = xs.length ? Math.max(...xs) : 1
   const px = v => 4 + ((v - d0) / ((d1 - d0) || 1)) * 92
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))', borderTop: `1px solid ${RULE}` }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', borderTop: `1px solid ${RULE}`, borderLeft: `1px solid ${RULE}` }}>
       {group.stats.filter(l => store.stats[l] && store.stats[l].since).map(l => {
         const on = l === y
         const why = dim(l)
         return (
-          <button key={l} type="button" onClick={() => setY(l)} aria-pressed={on} title={why || `Chart ${l}`}
-            style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 8px', border: 0, background: on ? '#3a3734' : 'transparent', boxShadow: `inset -1px -1px 0 ${RULE}${on ? ', inset 0 -2px 0 var(--accent)' : ''}`, cursor: 'pointer', textAlign: 'left', opacity: why ? 0.5 : 1 }}>
-            <span style={{ ...label, fontSize: 8, color: on ? INK : DIM, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{l}</span>
-            <svg viewBox="0 0 100 40" preserveAspectRatio="none" width="100%" height={34} aria-hidden="true">
-              <line x1={0} x2={100} y1={20} y2={20} stroke={EDGE} strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />
+          <button key={l} type="button" className="cg-cell" onClick={() => setY(l)} aria-pressed={on} title={why || `Chart ${l}`}
+            style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 10px 8px', border: 0, background: on ? '#3a3734' : 'transparent', boxShadow: `inset -1px -1px 0 ${RULE}${on ? `, inset 0 0 0 1px ${INK}, inset 0 -3px 0 var(--accent)` : ''}`, cursor: 'pointer', textAlign: 'left', opacity: why ? 0.45 : 1 }}>
+            <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6, width: '100%' }}>
+              <span className="cg-name" style={{ ...label, fontSize: 8.5, color: on ? INK : '#b8b2ab', fontWeight: on ? 700 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</span>
+              {on && <span aria-hidden="true" style={{ width: 6, height: 6, flex: 'none', marginTop: 2, background: 'var(--accent)' }} />}
+            </span>
+            <svg viewBox="0 0 100 80" preserveAspectRatio="none" aria-hidden="true" style={{ width: '100%', aspectRatio: '5 / 4', display: 'block' }}>
+              <rect x={0} y={0} width={100} height={80} fill="none" stroke={RULE} vectorEffect="non-scaling-stroke" />
+              <line x1={0} x2={100} y1={40} y2={40} stroke={EDGE} strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />
               {channels.map((c, j) => {
                 const pts = c.pl.rows.map((r, k) => [at(r), cols[l][j].p[k]]).filter(([a, b]) => a !== null && b !== null)
-                return <polyline key={c.letter} points={pts.map(([a, b]) => `${px(a)},${38 - b * 0.36}`).join(' ')} fill="none" stroke={c.color} strokeWidth={1.25} vectorEffect="non-scaling-stroke" />
+                return <polyline key={c.letter} points={pts.map(([a, b]) => `${px(a)},${76 - b * 0.72}`).join(' ')} fill="none" stroke={c.color} strokeWidth={1.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
               })}
             </svg>
           </button>
@@ -308,7 +286,6 @@ export default function Careers() {
   }).filter(Boolean)), [store, slots])
   const ys = useMemo(() => store && column(store, y, smooth), [store, y, smooth])
   const xs = useMemo(() => store && path ? column(store, x, smooth) : null, [store, x, path, smooth])
-  const arcs = useMemo(() => store && arcsOf(store, ys), [store, ys])
   const pickDoc = useMemo(() => store && { ...store, players: store.rows }, [store])
   const dim = l => {
     if (!channels.length || !store) return null
@@ -318,7 +295,6 @@ export default function Careers() {
     return `No data for ${channels.map(c => surname(c.pl.name).toUpperCase()).join(', ')}${since ? ` · from ${since.replace('-', '–')}` : ''}`
   }
   const group = store && (store.groups.find(g => g.stats.includes(y)) || store.groups[0])
-  const anchor = channels[0] || null
   const prog = progress[kind]
 
   return (
@@ -357,13 +333,11 @@ export default function Careers() {
               ? <CareerChart store={store} x={x} y={y} scale={scale} ys={ys} xs={xs} channels={channels} />
               : <Loader list={prog ? prog.list : []} done={prog ? prog.done : []} />}
           </div>
-          <div className="lb-side" style={{ overflow: 'auto' }}>
+          <div className="lb-side cg-scroll" style={{ overflow: 'auto' }}>
             {store && (
               <>
                 <div style={{ ...label, fontSize: 8.5, color: INK, fontWeight: 700, padding: '10px 12px 8px' }}>Peak & prime · {y}</div>
                 {channels.length ? <Prime store={store} channels={channels} y={y} /> : <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>Add a player to read his peak</div>}
-                <Head>Nearest to {anchor ? <span style={{ color: anchor.color }}>{surname(anchor.pl.name)}</span> : 'your first player'} · {y} · by age</Head>
-                <Nearest store={store} anchor={anchor} arcs={arcs} skip={slots.filter(Boolean)} add={add} full={!slots.includes(null)} />
                 <Head>{group.name} · pctl by {path ? 'age' : x === 'career' ? 'career yr' : x}</Head>
                 {channels.length
                   ? <StatGrid store={store} group={group} y={y} setY={v => set({ y: v })} channels={channels} mode={path ? 'age' : x} dim={dim} />

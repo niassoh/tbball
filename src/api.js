@@ -54,6 +54,8 @@ export const fetchLeaderboard = (season, playoffs = false, delta = false) => {
 }
 // The last 30 days of the latest regular season, in a season's shape.
 export const fetchLeaderboardRecent = () => getJson(api('leaderboard/recent', 'leaderboard/recent.json'))
+// The Team board: every team's season from the team sheet (thinking-bball lib/teamboard.js).
+export const fetchTeamboard = season => getJson(api(`teamboard/${season}`, `teamboard/${season}.json`))
 // The Footprint and Lonestar tabs' views (every season and span), fetched when the tab opens.
 export const fetchFootprint = slug => getJson(api(`footprint/${encodeURIComponent(slug)}`, `footprint/${encodeURIComponent(slug)}.json`)).then(d => (d && d.fields ? unpackFootprint(d) : d))
 // A player's every regular-season shot by season, packed (lib/shot.js unpackDots), for the

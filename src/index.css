@@ -481,3 +481,9 @@ a:hover > .lineup-tile > * { filter: none; }
 .cg-chips { flex-wrap: nowrap; }
 @media (max-width: 700px) { .cg-chips { flex-wrap: wrap; } }
 .cg-clear:hover { color: #fa962a !important; }
+/* The Team board (TeamBoard.jsx): the chart on the left, the table on the right; stacked
+   where the Leaderboard stacks. Logos glide when the chart resizes. */
+.tb-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+@media (max-width: 1000px), (max-height: 600px) { .tb-body { grid-template-columns: minmax(0, 1fr); } }
+.tb-logo { transition: transform .45s cubic-bezier(.2, .8, .2, 1), opacity .2s; }
+@media (prefers-reduced-motion: reduce) { .tb-logo { transition: none; } }

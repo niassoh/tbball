@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import Careers from './Careers.jsx'
 import Leaderboard from './Leaderboard.jsx'
+import TeamBoard from './TeamBoard.jsx'
 import PlayerIndex from './PlayerIndex.jsx'
 import ProfilePage from './ProfilePage.jsx'
 import { ModeSync } from './useSeasonType.js'
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/player/:slug" element={<ProfilePage />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/careers" element={<Careers />} />
+        <Route path="/teams" element={<TeamBoard />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

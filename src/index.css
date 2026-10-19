@@ -5,6 +5,9 @@
   --accent: #97c197;
   --accent-soft: rgba(151, 193, 151, .12);
   --trim: #ece8e3;
+  /* A face sitting out (Lonestar's and Footprint's without): mostly drained of colour, a
+     little left and the contrast up, so he reads clearly yet clearly apart. */
+  --sitting: grayscale(.7) contrast(1.25) brightness(1.08);
 }
 :root[data-season="playoffs"] {
   --accent: #d4a72c;
@@ -108,7 +111,7 @@ html { scroll-behavior: smooth; }
 @keyframes ls-bench {
   0% { opacity: 0; transform: translateY(-12px); filter: grayscale(0); }
   30%, 70% { opacity: 1; transform: none; filter: grayscale(0); }
-  100% { opacity: .85; transform: none; filter: grayscale(1) brightness(1.15); }
+  100% { opacity: 1; transform: none; filter: var(--sitting); }
 }
 @keyframes ls-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes ls-blink { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }

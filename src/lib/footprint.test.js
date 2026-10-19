@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { UNITS, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from './footprint.js'
+import { UNITS, anchorName, bar, bestSpan, isModernGreat, medalOf, netSwing, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -74,5 +74,30 @@ describe('footprint', () => {
     expect(worstText(1)).toBe('LEAGUE WORST')
     expect(worstText(2)).toBe('2ND WORST')
     expect(worstText(10)).toBe('10TH WORST')
+  })
+})
+
+describe('the default footprint of a modern great', () => {
+  const profile = (debut, teams) => ({ seasons: [{ season: '1999-00' }], bio: { teamsBySeason: { [debut]: ['SAS'], '1999-00': ['SAS'] } }, awards: { allnba1: teams.slice(0, 2), allnba3: teams.slice(2) } })
+
+  test('three All-NBA teams and a whole career on the boards', () => {
+    expect(isModernGreat(profile('1997-98', ['a', 'b', 'c']))).toBe(true)
+    expect(isModernGreat(profile('1997-98', ['a', 'b']))).toBe(false)
+    // On a team before the boards (his profile's seasons begin later): cut short.
+    expect(isModernGreat(profile('1989-90', ['a', 'b', 'c']))).toBe(false)
+    expect(isModernGreat({ seasons: [{ season: '2005-06' }] })).toBe(false)
+  })
+
+  const view = (id, seasons, o, d) => ({ id, seasons, ortg: { on: o[0], off: o[1] }, drtg: { on: d[0], off: d[1] } })
+  test('the span of three seasons with the biggest net on/off swing', () => {
+    const views = [
+      view('a', ['1', '2', '3'], [110, 105], [108, 108]),
+      view('b', ['2', '3', '4'], [112, 106], [104, 109]),
+      view('c', ['4'], [130, 100], [90, 120]),
+      view('d', ['3', '4', '5'], [null, 106], [104, 109])
+    ]
+    expect(netSwing(views[1])).toBe(11)
+    expect(bestSpan(views).id).toBe('b')
+    expect(bestSpan(views.slice(2))).toBe(null)
   })
 })

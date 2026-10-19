@@ -33,3 +33,10 @@ export const placeOf = (doc, team, label) => {
   const low = doc.stats[label].lowerBetter
   return 1 + doc.teams.filter(t => t.v[k] !== null && (low ? t.v[k] < v : t.v[k] > v)).length
 }
+
+// Whether another team has the same value: a shared place reads "T-4th".
+export const tiedOf = (doc, team, label) => {
+  const k = doc.labels.indexOf(label)
+  const v = team.v[k]
+  return v !== null && v !== undefined && doc.teams.some(t => t !== team && t.v[k] === v)
+}

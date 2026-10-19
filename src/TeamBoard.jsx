@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchTeamboard } from './api.js'
-import { MONO, fmt, heat } from './lib/format.js'
+import { MONO, fmt, heat, ord } from './lib/format.js'
 import { ranked } from './lib/leaderboard.js'
 import { asset } from './lib/static.js'
+import { placeOf, tiedOf } from './lib/teamboard.js'
 import ModeSwitch from './components/ModeSwitch.jsx'
 import TeamScatter from './components/TeamScatter.jsx'
 
@@ -13,7 +14,7 @@ import TeamScatter from './components/TeamScatter.jsx'
 // sheet's own categories: Overview, Playtype, Offense, Defense, Home-Away, v Good/Bad, O
 // after D, D after O), a head sorting by its stat, best first, again for worst, each cell
 // shaded by its percentile among the 30 (blue above the middle, orange below, a style stat
-// in grey), the league's average along the foot. The team under the pointer in either is lit
+// in grey), RAW its value or RANK its place among the 30, the league's average along the foot. The team under the pointer in either is lit
 // in the other.
 const SEASON = '2025-26'
 const INK = '#ece8e3'
@@ -45,7 +46,11 @@ function Groups({ groups, active, pick }) {
 
 // Wins and losses read together, in the W–L column.
 const RECORD = ['Wins', 'Losses']
-function Table({ doc, group, sort, onSort, pct, hot, setHot }) {
+// A head's name where the sheet's is cryptic.
+const NAMES = { 'LA Bayes Win-pace': 'Luck Adjusted\nBayes Win-pace' }
+// RAW | RANK: a cell's value, or its place among the 30 ("1st", "4th", a shared one "T-6th").
+const MODES = [['raw', 'Raw'], ['rank', 'Rank']]
+function Table({ doc, group, sort, onSort, rankView, hot, setHot }) {
   const shown = group.stats.filter(l => !RECORD.includes(l))
   const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
   const rows = useMemo(() => ranked(doc, doc.teams, sort.label, sort.reverse), [doc, sort])
@@ -65,10 +70,10 @@ function Table({ doc, group, sort, onSort, pct, hot, setHot }) {
           {shown.map(l => {
             const on = sort.label === l
             return (
-              <th key={l} style={{ ...head, minWidth: 76, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none' }} aria-sort={on ? (sort.reverse ? 'ascending' : 'descending') : 'none'}>
+              <th key={l} style={{ ...head, minWidth: NAMES[l] ? 128 : 72, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none' }} aria-sort={on ? (sort.reverse ? 'ascending' : 'descending') : 'none'}>
                 <button type="button" className="lb-head-cell" onClick={() => onSort(l)} title={[doc.stats[l].desc, on ? 'Sorted best first; click for worst first' : 'Sort by this stat, best first'].filter(Boolean).join(' · ')}
-                  style={{ ...label, display: 'inline-flex', alignItems: 'flex-end', gap: 3, maxWidth: 96, padding: 0, border: 0, background: 'transparent', color: on ? INK : DIM, textAlign: 'right', lineHeight: 1.25, whiteSpace: 'normal', cursor: 'pointer' }}>
-                  {l}<span aria-hidden="true" style={{ width: 7, flex: 'none', color: INK }}>{on ? (sort.reverse ? '↑' : '↓') : ''}</span>
+                  style={{ ...label, display: 'inline-flex', alignItems: 'flex-end', gap: 3, maxWidth: NAMES[l] ? 130 : 96, padding: 0, border: 0, background: 'transparent', color: on ? INK : DIM, textAlign: 'right', lineHeight: 1.25, whiteSpace: NAMES[l] ? 'pre' : 'normal', cursor: 'pointer' }}>
+                  {NAMES[l] || l}<span aria-hidden="true" style={{ width: 7, flex: 'none', color: INK }}>{on ? (sort.reverse ? '↑' : '↓') : ''}</span>
                 </button>
               </th>
             )
@@ -93,7 +98,7 @@ function Table({ doc, group, sort, onSort, pct, hot, setHot }) {
               const shade = v === null || p === null ? undefined : doc.stats[l].neutral ? plain(p) : heat(p)
               return (
                 <td key={l} style={{ ...td, background: shade, color: v === null ? FAINT : INK, fontWeight: sort.label === l ? 600 : 400 }}>
-                  {v === null ? '—' : pct ? p : fmt(stat(l), v)}
+                  {v === null ? '—' : rankView ? `${tiedOf(doc, t, l) ? 'T-' : ''}${ord(placeOf(doc, t, l))}` : fmt(stat(l), v)}
                 </td>
               )
             })}
@@ -106,7 +111,7 @@ function Table({ doc, group, sort, onSort, pct, hot, setHot }) {
           <td style={{ ...td, position: 'sticky', bottom: 0, background: '#2c2a28', borderTop: `1px solid ${EDGE}`, borderBottom: 0, textAlign: 'left', borderRight: `1px solid ${RULE}` }}><span style={{ ...label, color: INK }}>League average</span></td>
           <td style={{ ...td, position: 'sticky', bottom: 0, background: '#2c2a28', borderTop: `1px solid ${EDGE}`, borderBottom: 0 }} />
           {shown.map(l => (
-            <td key={l} style={{ ...td, position: 'sticky', bottom: 0, background: '#2c2a28', borderTop: `1px solid ${EDGE}`, borderBottom: 0, color: DIM }}>{doc.league[l] === null || doc.league[l] === undefined ? '—' : pct ? 50 : fmt(stat(l), doc.league[l])}</td>
+            <td key={l} style={{ ...td, position: 'sticky', bottom: 0, background: '#2c2a28', borderTop: `1px solid ${EDGE}`, borderBottom: 0, color: DIM }}>{doc.league[l] === null || doc.league[l] === undefined || rankView ? '—' : fmt(stat(l), doc.league[l])}</td>
           ))}
         </tr>
       </tfoot>
@@ -142,14 +147,14 @@ export default function TeamBoard() {
       </header>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>
         {doc ? <Groups groups={doc.groups} active={g.id} pick={choose} /> : <span className="lb-skel" style={{ width: 560, height: 30 }} />}
-        <span style={{ marginLeft: 'auto' }}><ModeSwitch mode={mode} setMode={setMode} /></span>
+        <span style={{ marginLeft: 'auto' }}><ModeSwitch name="Cells read in" options={MODES} mode={mode} setMode={setMode} /></span>
       </div>
       {doc === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
       {doc && (
         <div className="lb-body tb-body lb-enter">
           <div className="lb-side"><TeamScatter doc={doc} hot={hot} setHot={setHot} /></div>
           <div className="lb-table-wrap" style={{ scrollSnapType: 'none' }}>
-            <Table doc={doc} group={g} sort={sort} onSort={l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false }))} pct={mode === 'pctl'} hot={hot} setHot={setHot} />
+            <Table doc={doc} group={g} sort={sort} onSort={l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false }))} rankView={mode === 'rank'} hot={hot} setHot={setHot} />
           </div>
         </div>
       )}

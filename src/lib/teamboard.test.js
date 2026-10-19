@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { frameOf, netLines, placeOf } from './teamboard.js'
+import { frameOf, netLines, placeOf, tiedOf } from './teamboard.js'
 
 describe('team board chart', () => {
   it('frames every team on one scale, centred on the league', () => {
@@ -21,5 +21,11 @@ describe('team board chart', () => {
     expect(placeOf(doc, doc.teams[1], 'ORTG')).toBe(2)
     expect(placeOf(doc, doc.teams[0], 'DRTG')).toBe(1)
     expect(placeOf(doc, doc.teams[2], 'ORTG')).toBe(null)
+  })
+
+  it('shares a place when two teams tie, and says so', () => {
+    const doc = { labels: ['W'], stats: { W: {} }, teams: [{ v: [64] }, { v: [55] }, { v: [55] }, { v: [40] }] }
+    expect(doc.teams.map(t => placeOf(doc, t, 'W'))).toEqual([1, 2, 2, 4])
+    expect(doc.teams.map(t => tiedOf(doc, t, 'W'))).toEqual([false, true, true, false])
   })
 })

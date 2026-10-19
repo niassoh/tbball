@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { MONO, fmt } from '../lib/format.js'
 import { asset } from '../lib/static.js'
-import { frameOf, netLines, placeOf } from '../lib/teamboard.js'
+import { frameOf, netLines, placeOf, tiedOf } from '../lib/teamboard.js'
 
 // The Team board's chart: every team as its logo, ORTG across and DRTG up (a lower DRTG
 // higher: better up and right), both axes on one scale so net rating's lines run at 45°,
@@ -127,7 +127,7 @@ export default function TeamScatter({ doc, hot, setHot }) {
               <span style={{ display: 'grid', gridTemplateColumns: '1fr auto 34px', gap: 8, alignItems: 'baseline' }}>
                 <span style={{ ...label, fontSize: 8.5 }}>{name}</span>
                 <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 600, color: INK }}>{v}</span>
-                <span style={{ ...label, fontSize: 8, textAlign: 'right', color: place && place <= 5 ? BLUE : place && place >= 26 ? ORANGE : DIM }}>{place ? `#${place}` : ''}</span>
+                <span style={{ ...label, fontSize: 8, textAlign: 'right', color: place && place <= 5 ? BLUE : place && place >= 26 ? ORANGE : DIM }}>{place ? `${tiedOf(doc, t, l) ? 'T-' : ''}#${place}` : ''}</span>
               </span>
             )
           }

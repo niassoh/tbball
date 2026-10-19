@@ -29,9 +29,9 @@ export default function ProfilePageRoute() {
 }
 
 const MIN_SWAP_MS = 350
-// Play steps through the career one season at a time; each step leaves time for the
-// percentile bars' slide to finish before the next.
-const STEP_MS = 900
+// Play steps through the career one season at a time; each step holds well past the
+// percentile bars' slide, long enough to read the season's stats before the next.
+const STEP_MS = 1440
 
 // The bio and percentile cards follow one season, picked on the rail over them.
 // A different player (the page isn't remounted) starts at his latest season with games of

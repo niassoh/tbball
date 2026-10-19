@@ -7,9 +7,9 @@ import { frameOf, netLines, placeOf } from '../lib/teamboard.js'
 // higher: better up and right), both axes on one scale so net rating's lines run at 45°,
 // every five points, the league's average crossing at the centre. The good-offense,
 // good-defense corner is washed blue, the bad-bad one orange (the site's better and worse).
-// Logos are white; the team under the pointer, here or in the table (`hot`), turns to its
-// colours as the rest step back, and a hover brings its card: record, the two ratings and
-// net, each with its place among the 30.
+// Each logo is in its colours with a dark halo; the team under the pointer, here or in
+// the table (`hot`), lifts as the rest step back, and a hover brings its card: record, the
+// two ratings and net, each with its place among the 30.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -19,7 +19,10 @@ const BLUE = '#597ec1'
 const ORANGE = '#fa962a'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM, textTransform: 'uppercase' }
 const M = { l: 36, r: 16, t: 22, b: 38 }
-const LOGO = 26
+// A logo's size; each in its own colours with a tight dark halo, so clustered teams stay
+// apart without boxes.
+const LOGO = 30
+const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rgba(0,0,0,.6))'
 const CARD_W = 210
 
 export default function TeamScatter({ doc, hot, setHot }) {
@@ -102,14 +105,14 @@ export default function TeamScatter({ doc, hot, setHot }) {
           <text x={M.l - 6} y={M.t + 4} textAnchor="end" style={{ ...label, fill: FAINT }} transform={`rotate(-90 ${M.l - 6} ${M.t + 4})`}>{y0.toFixed(0)}</text>
           <text x={M.l - 6} y={cy} textAnchor="middle" style={{ ...label, fill: DIM }} transform={`rotate(-90 ${M.l - 6} ${cy})`}>{lgD.toFixed(1)}</text>
           <text x={M.l - 6} y={(M.t + cy) / 2} textAnchor="middle" style={{ ...label, fontSize: 8, fill: DIM }} transform={`rotate(-90 ${M.l - 6} ${(M.t + cy) / 2})`}>DRTG · fewer allowed →</text>
-          {teams.map(tm => {
+          {/* The lit team last, so it sits over its neighbours. */}
+          {[...teams].sort((a, b) => (a.team === lit) - (b.team === lit)).map(tm => {
             const on = tm.team === lit
             const s = on ? LOGO * 1.3 : LOGO
             return (
-              <g key={tm.team} className="tb-logo" style={{ transform: `translate(${px(tm.v[kx])}px, ${py(tm.v[ky])}px)`, opacity: lit && !on ? 0.28 : 1, cursor: 'pointer' }}
+              <g key={tm.team} className="tb-logo" style={{ transform: `translate(${px(tm.v[kx])}px, ${py(tm.v[ky])}px)`, opacity: lit && !on ? 0.25 : 1, cursor: 'pointer' }}
                 onMouseEnter={() => { setHover(tm.team); setHot(tm.team) }}>
-                {on && <rect x={-s / 2 - 4} y={-s / 2 - 4} width={s + 8} height={s + 8} fill="#1f1d1c" stroke={INK} strokeWidth={1} />}
-                <image href={asset(`logos/${on ? 'color/' : ''}${tm.team}.png`)} x={-s / 2} y={-s / 2} width={s} height={s} />
+                <image href={asset(`logos/color/${tm.team}.png`)} x={-s / 2} y={-s / 2} width={s} height={s} style={{ filter: HALO }} />
               </g>
             )
           })}

@@ -117,7 +117,8 @@ function Table({ doc, group, sort, onSort, pct, hot, setHot }) {
 export default function TeamBoard() {
   const [doc, setDoc] = useState(null)
   const [group, setGroup] = useState('overview')
-  const [sort, setSort] = useState({ label: 'Net', reverse: false })
+  // Ranked by luck-adjusted win pace to begin with: the sheet's best read of how good a team is.
+  const [sort, setSort] = useState({ label: 'LA Bayes Win-pace', reverse: false })
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
   useEffect(() => {

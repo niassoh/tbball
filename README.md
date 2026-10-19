@@ -55,7 +55,7 @@ deep links (`/player/<slug>`) work on Pages. The daily-refresh plan is in thinki
 - `src/lib/` — pure logic ported from the design (percentile colors, chart geometry, shot-zone map) and season-span averages (`span.js`: minutes-weighted, shooting % attempts-weighted; used by the stat tables' drag-to-average and career rows); unit tested.
 - `src/components/` — one component per design section.
 - Routes: `/` player search, `/player/:slug` profile, `/leaderboard` leaderboard, `/careers` career trajectories.
-- `/careers` builds every career from the 30 season boards (`lib/careers.js`, once a session per season type, about 2 MB gzipped). Its state lives in the URL: `?p=slug,slug,,slug&x=age|season|career|<stat>&y=<stat>&scale=pctl&smooth=3` (defaults left out), plus `?playoffs`.
+- `/careers` builds every career from the 30 season boards (`lib/careers.js`, once a session per season type, about 2 MB gzipped). Its state lives in the URL: `?p=slug,slug,slug&x=age|season|career&y=<stat>&scale=pctl&smooth=3` (defaults left out), plus `?playoffs`.
 
 ## Differences from the design reference
 

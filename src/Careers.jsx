@@ -13,8 +13,8 @@ import PlayerSearch from './components/PlayerSearch.jsx'
 import SeasonToggle from './components/SeasonToggle.jsx'
 
 // Career Trajectories: every career on the season boards (1996-97 on; lib/careers.js) at
-// once, any stat up the side and time across (a season, his age, his year of career) or
-// another stat (a career as a path through stat space). Up to six players are channels,
+// once, any stat up the side and time across (a season, his age, his year of career). Up
+// to six players are channels,
 // each in a colour of its own (the first green, the rest quieter); a channel's colour is who he is, never better or worse
 // (position says that), so the channels keep clear of the site's blue (better), orange
 // (worse) and the playoffs' gold. Beside the chart, for the stat on show: each
@@ -78,7 +78,7 @@ function Portrait({ pl, color, size = 56 }) {
 // green and washed in it, the rest quieter. A name clicked turns its chip into a search for
 // his replacement, right where it is; + ADD at the end does the same for another player,
 // up to MAX. A chip's square is hollow when he has no value in the stat up the side.
-function Slots({ slots, store, y, x, playoffs, playerPath, remove, editing, setEditing, choose }) {
+function Slots({ slots, store, y, x, playoffs, playerPath, remove, clear, editing, setEditing, choose }) {
   const k = store ? store.labels.indexOf(y) : -1
   const search = i => (
     <span key={`edit${i}`} style={{ display: 'flex', flex: '1 1 0', minWidth: 120, maxWidth: 320 }}>
@@ -122,6 +122,10 @@ function Slots({ slots, store, y, x, playoffs, playerPath, remove, editing, setE
             <span style={{ width: 9, height: 9, border: `1.5px solid ${CHANNELS[slots.length]}` }} />+ Add player
           </button>
         )}
+      {slots.length > 1 && (
+        <button type="button" className="cg-clear" onClick={clear} title="Remove every player"
+          style={{ flex: 'none', height: 34, padding: '0 6px', border: 0, background: 'transparent', color: FAINT, fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Clear all</button>
+      )}
     </div>
   )
 }
@@ -283,9 +287,7 @@ export default function Careers() {
   // across, without changing the URL: the regular season gets it back.
   const has = l => store && store.stats[l] && store.stats[l].since
   const y = has(get('y')) ? get('y') : 'BPM'
-  const xWanted = get('x')
-  const x = xWanted in TIME || has(xWanted) ? xWanted : 'age'
-  const path = !(x in TIME)
+  const x = get('x') in TIME ? get('x') : 'age'
   const scale = get('scale') === 'pctl' ? 'pctl' : 'raw'
   const smooth = get('smooth') === '3' ? 3 : 1
 
@@ -294,7 +296,6 @@ export default function Careers() {
     return pl ? { letter: slug, color: CHANNELS[i], pl } : null
   }).filter(Boolean)), [store, slots])
   const ys = useMemo(() => store && column(store, y, smooth), [store, y, smooth])
-  const xs = useMemo(() => store && path ? column(store, x, smooth) : null, [store, x, path, smooth])
   const pickDoc = useMemo(() => store && { ...store, players: store.rows }, [store])
   const dim = l => {
     if (!channels.length || !store) return null
@@ -316,7 +317,7 @@ export default function Careers() {
       </header>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0 8px', flexWrap: 'wrap' }}>
-        <Slots slots={slots} store={store} y={y} x={x} playoffs={playoffs} playerPath={playerPath} remove={i => { setEditing(null); setSlots(slots.filter((_, j) => j !== i)) }} editing={editing} setEditing={setEditing} choose={choose} />
+        <Slots slots={slots} store={store} y={y} x={x} playoffs={playoffs} playerPath={playerPath} remove={i => { setEditing(null); setSlots(slots.filter((_, j) => j !== i)) }} clear={() => { setEditing(null); setSlots([]) }} editing={editing} setEditing={setEditing} choose={choose} />
       </div>
       {!slots.length && (
         <button type="button" onClick={() => setSlots(TRY)} style={{ ...label, alignSelf: 'flex-start', padding: '0 0 8px', border: 0, background: 'transparent', color: '#b8b2ab', cursor: 'pointer' }}>Try: James · Curry · Jokić · Duncan →</button>
@@ -325,8 +326,7 @@ export default function Careers() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px 12px', padding: '4px 0 12px', flexWrap: 'wrap' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span style={label}>X</span>
-          <ModeSwitch name="Across" options={X_MODES} mode={path ? null : x} setMode={v => set({ x: v })} />
-          {pickDoc && <AxisPicker doc={pickDoc} axis="Stat" value={path ? x : '—'} set={v => set({ x: v })} dim={dim} accent={path ? 'var(--accent)' : undefined} />}
+          <ModeSwitch name="Across" options={X_MODES} mode={x} setMode={v => set({ x: v })} />
         </span>
         {pickDoc ? <AxisPicker doc={pickDoc} axis="Y" value={y} set={v => set({ y: v })} dim={dim} /> : <span className="lb-skel" style={{ width: 120, height: 30 }} />}
         <ModeSwitch mode={scale} setMode={v => set({ scale: v })} />
@@ -338,7 +338,7 @@ export default function Careers() {
         <div className="lb-body" style={{ gridTemplateRows: 'minmax(0, 1fr)' }}>
           <div className="lb-side">
             {store
-              ? <CareerChart store={store} x={x} y={y} scale={scale} ys={ys} xs={xs} channels={channels} />
+              ? <CareerChart store={store} x={x} y={y} scale={scale} ys={ys} channels={channels} />
               : <Loader list={prog ? prog.list : []} done={prog ? prog.done : []} />}
           </div>
           <div className="lb-side cg-scroll" style={{ overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -346,9 +346,9 @@ export default function Careers() {
               <>
                 <div style={{ ...label, fontSize: 8.5, color: INK, fontWeight: 700, padding: '10px 12px 8px' }}>Peak & prime · {y}</div>
                 {channels.length ? <Prime store={store} channels={channels} y={y} /> : <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>Add a player to read his peak</div>}
-                <Head>{group.name} · pctl by {path ? 'age' : x === 'career' ? 'career yr' : x}</Head>
+                <Head>{group.name} · pctl by {x === 'career' ? 'career yr' : x}</Head>
                 {channels.length
-                  ? <StatGrid store={store} group={group} y={y} setY={v => set({ y: v })} channels={channels} mode={path ? 'age' : x} dim={dim} />
+                  ? <StatGrid store={store} group={group} y={y} setY={v => set({ y: v })} channels={channels} mode={x} dim={dim} />
                   : <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>Add a player to see his {group.name.toLowerCase()} stats</div>}
               </>
             )}

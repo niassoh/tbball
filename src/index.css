@@ -477,3 +477,4 @@ a:hover > .lineup-tile > * { filter: none; }
 .cg-cell:hover .cg-name { color: #ece8e3 !important; }
 .cg-chips { flex-wrap: nowrap; }
 @media (max-width: 700px) { .cg-chips { flex-wrap: wrap; } }
+.cg-clear:hover { color: #fa962a !important; }

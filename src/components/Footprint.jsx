@@ -68,7 +68,7 @@ function Face({ who, size, tip, order = 0 }) {
       style={{ position: 'relative', width: size, height: size, flex: 'none', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', fontSize: 10, color: DIM }}>
       <span style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
         {who.headshot && !failed
-          ? <img className="fp-face-img" src={headshotUrl(who.slug || who.face.key, 100, who.headshotVersion, who.headshot)} alt={who.name || ''} onError={() => setFailed(true)} style={{ '--i': order, width: '132%', height: '132%', flex: 'none', objectFit: 'cover', objectPosition: '50% 0', filter: 'grayscale(1) contrast(1.2)', opacity: 0.9 }} />
+          ? <img className="fp-face-img" src={headshotUrl(who.slug || who.face.key, 100, who.headshotVersion, who.headshot)} alt={who.name || ''} onError={() => setFailed(true)} style={{ '--i': order, width: '132%', height: '132%', flex: 'none', objectFit: 'cover', objectPosition: '50% 0', filter: 'grayscale(1) brightness(1.15)', opacity: 1 }} />
           : initialsOf(who.name)}
       </span>
       {tip && hover && (
@@ -419,7 +419,7 @@ const FACES = 4
 function Sat({ who, on, slots, layersOf }) {
   const shown = who.length > FACES ? who.slice(0, FACES - 1) : who
   return (
-    <span aria-hidden="true" className="fp-option-faces" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', width: 34 + (slots - 1) * 24, overflow: 'hidden', filter: on ? 'grayscale(1) contrast(1.2)' : 'none', opacity: on ? 0.62 : 1 }}>
+    <span aria-hidden="true" className="fp-option-faces" style={{ flex: 'none', alignSelf: 'flex-end', display: 'flex', alignItems: 'flex-end', width: 34 + (slots - 1) * 24, overflow: 'hidden', filter: on ? 'grayscale(1) brightness(1.15)' : 'none', opacity: on ? 0.85 : 1 }}>
       {shown.map((t, k) => (
         <span key={t.id} style={{ display: 'grid', width: 34, height: 34, flex: 'none', marginLeft: k ? -10 : 0 }}>
           <Portrait who={{ ...t, face: t.face && t.face.key }} team={t.team} on size={34} layers={layersOf(t)} jersey={t.jersey} />
@@ -434,18 +434,19 @@ function Sat({ who, on, slots, layersOf }) {
 // with its teammates' faces and names; with more than one option it opens their list, as
 // Lonestar's stretch list (Lonestar.jsx StretchList): in sections, most minutes off first,
 // ALL last under a heavier rule; each row its faces, names, team and seasons where the span
-// has others (a defender with his defensive EPM), a bar for his minutes off, and his
+// has others (a lone defender with his defensive EPM), a bar for his minutes off, and his
 // minutes on and off the floor while they sit. A click picks and closes; the arrow keys
 // move the pick with the list open; Enter closes. `faceOf` brings each face's portrait;
 // two boxes keep to one line, their words cut short (`shrink`).
-const SECTIONS = { off: [['one', 'Without top star'], ['two', 'Without top two stars']], def: [['one', 'Without top defender']] }
+// A defense pair is picked by hand (lib/footprint.js): two teammates at once, or one a season.
+const SECTIONS = { off: [['one', 'Without top star'], ['two', 'Without top two stars']], def: [['one', 'Without top defender'], ['two', 'Without both']] }
 const MIN_COL = 56
 function Picker({ side, options, at, pick, color, view, faceOf, layersOf }) {
   const o = options[at]
   const teams = new Set(options.map(x => x.team).filter(Boolean))
   const meta = x => (x.all
     ? x.parts.map(part => `${starsText(part.stars)} ${seasonRanges(part.seasons)}`).join(' · ')
-    : [teams.size > 1 && x.team, x.seasons.length < view.seasons.length && seasonRanges(x.seasons), side === 'def' && x.stars[0].depm !== null && x.stars[0].depm !== undefined && `DEPM ${swingText(x.stars[0].depm)}`].filter(Boolean).join(' · '))
+    : [teams.size > 1 && x.team, x.seasons.length < view.seasons.length && seasonRanges(x.seasons), side === 'def' && x.stars.length === 1 && x.stars[0].depm !== null && x.stars[0].depm !== undefined && `DEPM ${swingText(x.stars[0].depm)}`].filter(Boolean).join(' · '))
   const text = x => {
     if (!x.all) return starsText(x.stars)
     const parts = x.parts.map(part => starsText(part.stars))

@@ -39,9 +39,16 @@ const GLYPHS = {
   oppCorner3: <><Corner /><Cross x={7.5} y={19.5} s={2.2} /></>,
   // The whistle, crossed out.
   oppFtRate: <><Whistle /><Cross x={21.5} y={4.5} s={2.8} /></>,
-  // A burglar: ski cap and its pom, the bandit's mask and its ties.
-  forcedTov: <><circle cx={14} cy={2.4} r={1.4} /><path d="M7 9.5 Q7 3.8 14 3.8 Q21 3.8 21 9.5" /><rect x={6} y={9.5} width={16} height={2.6} /><path d="M7 12.1 L7 17 Q7 25 14 25 Q21 25 21 17 L21 12.1" />
-    <path d="M5.5 13.8 H22.5 V17.6 H5.5 Z M8.6 15 H12.3 V16.4 H8.6 Z M15.7 15 H19.4 V16.4 H15.7 Z" fill="currentColor" fillRule="evenodd" stroke="none" /><path d="M22.5 14.6 L26 12.6 M22.5 16.8 L26 18.4" /></>,
+  // A steal: a hand swiping at the ball, speed lines clear behind it. The hand is
+  // solid (palm, four fingers, thumb, wrist), drawn upright and tilted toward the ball, so it
+  // reads as a hand at the tile's size.
+  forcedTov: <><circle cx={20} cy={8.2} r={5.6} /><path d="M14.4 8.2 H25.6 M20 2.6 V13.8 M16.1 4.2 Q18.1 8.2 16.1 12.2 M23.9 4.2 Q21.9 8.2 23.9 12.2" />
+    <g transform="translate(8.8 19) rotate(40)" fill="currentColor" stroke="none">
+      <rect x={-3.4} y={-1.2} width={6.8} height={6.2} rx={1.6} /><rect x={-3.4} y={-6.2} width={1.55} height={5.6} rx={0.75} />
+      <rect x={-1.65} y={-6.9} width={1.55} height={6.3} rx={0.75} /><rect x={0.1} y={-6.5} width={1.55} height={5.9} rx={0.75} />
+      <rect x={1.85} y={-5.4} width={1.55} height={4.8} rx={0.75} /><rect x={-2.5} y={4.4} width={5} height={6} rx={0.4} />
+      <path d="M-2.6 2.6 L-5.4 -0.6" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" />
+    </g><path d="M3.4 6.6 H7 M1.4 9.6 H7.4 M2.6 12.6 H6.2" strokeLinecap="round" /></>,
   drebPct: <><Board /><line x1={14} y1={24} x2={14} y2={18} /><path d="M11 21 L14 18 L17 21" /></>
 }
 

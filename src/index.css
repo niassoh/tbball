@@ -108,7 +108,7 @@ html { scroll-behavior: smooth; }
 @keyframes ls-bench {
   0% { opacity: 0; transform: translateY(-12px); filter: grayscale(0); }
   30%, 70% { opacity: 1; transform: none; filter: grayscale(0); }
-  100% { opacity: .6; transform: none; filter: grayscale(1) contrast(1.2); }
+  100% { opacity: .85; transform: none; filter: grayscale(1) brightness(1.15); }
 }
 @keyframes ls-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes ls-blink { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
@@ -226,13 +226,19 @@ a:hover > .lineup-tile > * { filter: none; }
 .jersey-in, .jersey-out { animation: .36s cubic-bezier(.4,0,.2,1) both; }
 .jersey-in { animation-name: jersey-in; }
 .jersey-out { animation-name: jersey-out; }
-/* Lineup units: best and most used side by side, stacked when the card is too narrow for
-   both (phones). Keyed to the card's width, not the window's. */
+/* Lineup units: best and most used side by side. A card too narrow for each unit's faces and
+   numbers in a row puts the numbers under the faces (over the inline row's styles) and keeps
+   the two side by side; one too narrow for the faces themselves (phones) stacks them. Keyed
+   to the card's width, not the window's. */
 .lineup-units-wrap { container-type: inline-size; }
 .lineup-units { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); border-bottom: 1px solid #3d3a37; }
 .lineup-unit-a { padding: 6px 12px 9px 0; border-right: 1px solid #3d3a37; }
 .lineup-unit-b { padding: 6px 0 9px 12px; }
-@container (max-width: 400px) {
+@container (min-width: 291px) and (max-width: 400px) {
+  .lineup-units .unit-row { flex-direction: column; align-items: flex-start !important; height: auto !important; gap: 6px !important; }
+  .lineup-units .unit-nums { flex-direction: row !important; align-items: baseline !important; gap: 8px !important; }
+}
+@container (max-width: 290px) {
   .lineup-units { grid-template-columns: minmax(0,1fr); }
   .lineup-unit-a { padding: 8px 0 9px; border-right: none; border-bottom: 1px solid #3d3a37; }
   .lineup-unit-b { padding: 8px 0 9px; }
@@ -248,6 +254,12 @@ a:hover > .lineup-tile > * { filter: none; }
    layer when the zoom-out ends and re-renders the masked image, which shows as a jump. */
 .hero .hero-face { transform: scale(1); will-change: transform; backface-visibility: hidden; transform-origin: 70% 100%; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
 .hero:hover .hero-face { transform: scale(1.04); }
+/* A player with a wink (Wink.jsx) winks each time his header or index tile is hovered
+   (the header's once its trophies have risen, --wink-delay): the sprite's lid half down,
+   closed, half down again, then gone, quick as a real wink. */
+.wink { opacity: 0; }
+.hero:hover .wink, .idx-tile:hover .wink { animation: wink .22s step-end var(--wink-delay, 0ms) forwards; }
+@keyframes wink { 0% { opacity: 1; object-position: 0 0 } 15% { object-position: 100% 0 } 85% { object-position: 0 0 } 100% { opacity: 0 } }
 .hero .hero-bokeh { transition: opacity .3s ease; }
 .hero:hover .hero-bokeh { opacity: .72 !important; }
 .hero .hero-more { opacity: 0; transform: translateY(-3px); transition: opacity .2s ease .06s, transform .2s ease .06s; }
@@ -345,6 +357,8 @@ a:hover > .lineup-tile > * { filter: none; }
   .team-band.open .team-stint.shown, .team-stint:focus-visible { opacity: 1; clip-path: inset(0 0 0 0); pointer-events: auto; }
 }
 @media (hover: hover) and (prefers-reduced-motion: reduce) { .team-stint { transition: opacity .12s ease; clip-path: none; } }
+/* A phone, with no pointer to bring it in, goes without the band (over the inline grid). */
+@media (hover: none) { .team-band { display: none !important; } }
 .team-stint:not(:disabled):hover { filter: brightness(1.35); }
 .team-stint:focus-visible { outline: 1px solid #ece8e3; outline-offset: 1px; }
 /* A stint's code gives way to its years on hover (or focus): the code lifts out as the

@@ -6,6 +6,7 @@ import { TEAM_COLORS, teamColor } from './lib/teams.js'
 import { asset } from './lib/static.js'
 import TeamInitials from './components/TeamInitials.jsx'
 import JerseyOverlay from './components/JerseyOverlay.jsx'
+import Wink from './components/Wink.jsx'
 import { useSeasonType } from './useSeasonType.js'
 
 // The player index: a search line (and the way to the Leaderboard) and the 30 teams'
@@ -79,9 +80,7 @@ const low = v => v !== null && v < 0
 const best = p => (p.bestSeason ? p.bestSeason.bpm : null)
 const bestYear = p => (p.bestSeason ? yy(p.bestSeason.season) : '—')
 const byBest = (a, b) => (best(b) ?? -99) - (best(a) ?? -99)
-// A past player is shown as his best season: its team and year, marked PEAK in the bio
-// card's ARCHIVE tone (RecentShift.jsx) where an active player has his span and live dot.
-const PEAK = '#c9b994'
+// A past player is shown as his best season: its team and year.
 const pastBest = p => (!p.active && p.bestSeason) || null
 const teamOf = p => (pastBest(p) ? pastBest(p).team : p.team)
 
@@ -131,7 +130,10 @@ function TeamLogo({ team, on, faded, onClick }) {
 const cover = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 30%', display: 'block' }
 // Four rows of the widest grid (9 a row): a desktop's first screen.
 const EAGER = 36
-// `carry`: the portrait the view transition takes into the opened page's header.
+// The active dot's soft glow, in the accent.
+const GLOW = '0 0 5px 1px color-mix(in srgb, var(--accent) 55%, transparent)'
+// `carry`: the portrait the view transition takes into the opened page's header. A player
+// no longer active is half greyed, so the current ones stand out without the rest going dead.
 function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
   const [failed, setFailed] = useState(false)
   const [small, setSmall] = useState(false)
@@ -140,7 +142,7 @@ function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
   const url = px => headshotUrl(player.slug, px, player.headshotVersion, player.headshot)
   const eager = order < EAGER
   return (
-    <span className="idx-face" style={{ position: 'relative', display: 'block', width: square ? '100%' : size, height: square ? 'auto' : size, aspectRatio: '1 / 1', overflow: 'hidden', background: show ? PORTRAIT_BG : '#34312e', flex: 'none', viewTransitionName: carry ? 'player-portrait' : undefined }}>
+    <span className="idx-face" style={{ position: 'relative', display: 'block', width: square ? '100%' : size, height: square ? 'auto' : size, aspectRatio: '1 / 1', overflow: 'hidden', background: show ? PORTRAIT_BG : '#34312e', flex: 'none', viewTransitionName: carry ? 'player-portrait' : undefined, filter: player.active ? undefined : 'grayscale(.55)' }}>
       {show
         ? <>
             <img src={url(100)} alt="" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" onLoad={() => { setSmall(true); onShown?.() }} onError={() => setFailed(true)}
@@ -148,6 +150,7 @@ function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
             {square && small && <img src={url(400)} alt="" decoding="async" onLoad={() => setLarge(true)} className={large ? 'idx-in' : 'idx-wait'} style={cover} />}
             {/* Jersey art is drawn in one jersey; his team on the tile is laid over it. */}
             {small && player.layers && <JerseyOverlay slug={player.slug} size={square ? 400 : 100} layers={player.layers} id={teamOf(player)} />}
+            {square && small && <Wink slug={player.slug} />}
           </>
         : <TeamInitials name={player.name} team={player.team} fontSize={square ? 40 : 9} />}
     </span>
@@ -189,12 +192,8 @@ function Tile({ player: p, to, order, onShown }) {
       <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
         <TeamChip team={teamOf(p)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
-          {pastBest(p)
-            ? <span className="idx-tile-span" title="Not active: shown at his best season"><span style={{ fontSize: 8.5, letterSpacing: '.16em', color: PEAK, marginRight: 5 }}>PEAK</span>{bestYear(p)}</span>
-            : <>
-                <span className="idx-tile-span">{span(p)}</span>
-                <span title={p.active ? 'Active' : 'Not active'} className={p.active ? 'idx-live' : undefined} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}` }} />
-              </>}
+          <span className="idx-tile-span">{pastBest(p) ? bestYear(p) : span(p)}</span>
+          <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}`, boxShadow: p.active ? GLOW : 'none' }} />
         </span>
       </span>
       <Face player={p} square order={order} onShown={onShown} carry={opening} />
@@ -317,8 +316,8 @@ export default function PlayerIndex() {
       )}
 
       <footer style={{ marginTop: 48, paddingTop: 14, borderTop: `1px solid ${EDGE}`, display: 'flex', gap: 22, flexWrap: 'wrap', ...label, fontSize: 9 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />Active (in the latest season)</span>
-        <span>BPM = best season (800+ min) · <span style={{ color: PEAK }}>PEAK</span> = a past player, shown and opened at his best · meter {METER[0]} to +{METER[1]}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', boxShadow: GLOW }} />Active (in the latest season)</span>
+        <span>BPM = best season (800+ min), the one a past player opens on · meter {METER[0]} to +{METER[1]}</span>
         <span>thinkingbasketball.net</span>
       </footer>
     </main>

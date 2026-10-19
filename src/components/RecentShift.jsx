@@ -66,14 +66,14 @@ function ModeToggle({ mode, onPick, hidden }) {
 const WINDOWS = { regular: { base: 'SEASON', window: 'RECENT', short: 'SEASON' }, playoffs: { base: 'REG SEASON', window: 'PLAYOFFS', short: 'SEASON' } }
 
 function Legend({ hidden, labels = WINDOWS.regular }) {
+  const base = <span key="base" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 1, height: 9, background: '#a09a93' }} />{labels.base}</span>
+  const vs = <span key="vs" style={{ color: '#837d76' }}>vs</span>
+  const win = <span key="win">{labels.window}</span>
   return (
     <div aria-hidden={hidden || undefined} style={{ padding: '10px 0 0', margin: '0 14px', display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', gap: '4px 8px', visibility: hidden ? 'hidden' : 'visible' }}>
       <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#a09a93', whiteSpace: 'nowrap' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 1, height: 9, background: '#a09a93' }} />{labels.base}</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 8, height: 2, background: '#a09a93' }} /><span style={{ width: 5, height: 7, background: '#a09a93', clipPath: HEAD.right }} /></span>
-          {labels.window}
-        </span>
+        {/* "vs", not an arrow: the window is set against the base, not reached from it. */}
+        {labels.windowFirst ? [win, vs, base] : [base, vs, win]}
       </span>
     </div>
   )
@@ -123,7 +123,9 @@ function ShotMap({ shotShift, divided, po = false, labels = WINDOWS[po ? 'playof
   return (
     <>
       <ShotHeader divided={divided}><ModeToggle mode={mode} onPick={setMode} /></ShotHeader>
-      <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 14px 12px' }}>
+      {/* Takes up the card's slack, the court centred in it: the card spans the season
+          rail's row too, so it runs taller than its rows whenever its neighbours do. */}
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, padding: '8px 14px 12px' }}>
         <svg viewBox={`0 0 500 ${COURT_H}`} onMouseLeave={leave} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <style>{SHOT_KEYFRAMES}</style>
           <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />
@@ -286,7 +288,7 @@ function EmptyShotMap({ reason, divided }) {
   return (
     <>
       <ShotHeader divided={divided}><ModeToggle mode="value" onPick={() => {}} hidden /></ShotHeader>
-      <div style={{ position: 'relative', padding: '8px 14px 12px' }}>
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, padding: '8px 14px 12px' }}>
         <svg viewBox={`0 0 500 ${COURT_H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
           <rect x="0" y="0" width="500" height={COURT_H} fill="#262422" />
           <defs>
@@ -341,12 +343,13 @@ function PlayoffShift({ profile: p, season: k }) {
   )
 }
 
-// The career view: the picked season against his other seasons on the site (`career`: their
-// minutes-weighted values; his shots by band, summed), for a past player's every season
-// (ARCHIVE) and an active player's past ones (CAREER). The span is named, since a career
-// begun before 1996-97 is only partly here. The map's dots are his shots from the player's
-// shots file: the season's lit, the rest of his career's thinned to OTHER_DOTS a zone (a
-// hover draws one zone, so only a long career's busiest zone is thinned).
+// A past season against his other seasons on the site (`career`: their minutes-weighted
+// values; his shots by band, summed): every season of a player out of the latest one
+// (retired, or still on a depth chart after a season out), and an active player's past
+// ones. The span is named, since a career begun before 1996-97 is only partly here. The
+// map's dots are his shots from the player's shots file: the season's lit, the rest of his
+// career's thinned to OTHER_DOTS a zone (a hover draws one zone, so only a long career's
+// busiest zone is thinned).
 const ARCHIVE = '#c9b994'
 const yy = season => `’${season.slice(-2)}`
 const lastName = name => name.split(' ').slice(1).join(' ') || name
@@ -375,9 +378,8 @@ function CareerShift({ profile: p, season: k, active = false }) {
     return () => { live = false }
   }, [p.slug])
   const dots = useMemo(() => (packed ? careerDots(packed, s.season) : []), [packed, s.season])
-  const labels = { base: 'OTHER SEASONS', window: yy(s.season), short: 'OTHER' }
+  const labels = { base: 'CAREER', window: yy(s.season), short: 'CAREER', windowFirst: true }
   const reason = s.empty ? 'NO GAMES THIS SEASON' : 'NO OTHER SEASONS TO COMPARE'
-  const tone = active ? 'var(--accent)' : ARCHIVE
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
@@ -388,7 +390,7 @@ function CareerShift({ profile: p, season: k, active = false }) {
           </span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <span title={active ? 'A past season against the rest of his career so far' : 'A past player: each season against the rest of his on the site'} style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.22em', color: tone, border: `1px solid ${tone}`, padding: '2px 5px 2px 7px' }}>{active ? 'CAREER' : 'ARCHIVE'}</span>
+          {p.retired && <span title="A retired player: each season against the rest of his on the site" style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.22em', color: ARCHIVE }}>RETIRED</span>}
           <span style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '.1em', color: '#837d76', whiteSpace: 'nowrap' }}>{active ? 'STILL ACTIVE' : `LAST SEASON ${last.replace('-', '–')}`}</span>
         </div>
       </div>

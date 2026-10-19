@@ -137,7 +137,7 @@ export default function PlayerSearch({ profile, sheet = false, onPick, onChoose,
         // Hangs off the field as one white-framed block: names with the first name lighter
         // and the rest bold, the typed letters underlined in blue. Teams come first, ruled
         // off from the players.
-        <div role="listbox" style={sheet ? { marginTop: 10, background: PAPER, border: `1px solid ${INK}`, padding: '4px 0' } : { position: 'absolute', right: 0, top: '100%', marginTop: -1, width: '100%', zIndex: 20, background: PAPER, border: `1px solid ${INK}`, boxShadow: '0 14px 32px rgba(0,0,0,.55)', padding: '4px 0' }}>
+        <div role="listbox" style={sheet ? { marginTop: 10, background: PAPER, border: `1px solid ${INK}`, padding: '4px 0' } : { position: 'absolute', right: 0, top: '100%', marginTop: -1, width: '100%', minWidth: 260, zIndex: 20, background: PAPER, border: `1px solid ${INK}`, boxShadow: '0 14px 32px rgba(0,0,0,.55)', padding: '4px 0' }}>
           {results.map((r, i) => {
             const on = i === active
             const lastTeam = r.team && !(results[i + 1] && results[i + 1].team) && i < results.length - 1

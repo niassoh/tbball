@@ -475,3 +475,5 @@ a:hover > .lineup-tile > * { filter: none; }
 .cg-scroll::-webkit-scrollbar { display: none; }
 .cg-cell:hover { background: #2f2c2a !important; }
 .cg-cell:hover .cg-name { color: #ece8e3 !important; }
+.cg-chips { flex-wrap: nowrap; }
+@media (max-width: 700px) { .cg-chips { flex-wrap: wrap; } }

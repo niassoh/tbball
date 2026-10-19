@@ -152,36 +152,44 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
   // The channels' points: [x, y, row index], in season order.
   const tracks = useMemo(() => channels.map(c => ({ ...c, pts: c.pl.rows.map((r, k) => [xOf(c.pl.i, k), yOf(c.pl.i, k), k]).filter(([a, b]) => a !== null && a !== undefined && b !== null && b !== undefined) })), [channels, field]) // eslint-disable-line react-hooks/exhaustive-deps -- xOf and yOf read field's inputs
 
+  // One career leads: the first player's, or the one whose name is under the pointer in the
+  // legend (`focus`). It's drawn last, at full weight, with its direction and seasons; the
+  // others sit back, thinner and dimmer, named only at their last season.
+  const [focus, setFocus] = useState(null)
+  const leadOf = t => (focus ? t.letter === focus : t === tracks[0])
   const marks = useMemo(() => {
     const out = []
     const placed = []
     const free = (a, b) => placed.every(([c, d]) => Math.hypot(a - c, b - d) >= 18)
-    for (const t of tracks) {
+    for (const t of [...tracks].sort((a, b) => leadOf(a) - leadOf(b))) {
+      const lead = leadOf(t)
+      const fade = lead ? 1 : focus ? 0.22 : 0.5
       const pts = t.pts.map(([a, b, k]) => ({ X: px(a), Y: py(b), k, year: t.pl.rows[k].year }))
       if (!pts.length) continue
       pts.slice(1).forEach((p, j) => {
         const q = pts[j]
         const near = p.year - q.year === 1
-        out.push(<line key={`${t.letter}s${j}`} x1={q.X} y1={q.Y} x2={p.X} y2={p.Y} stroke={t.color} strokeWidth={2.25} strokeOpacity={near ? 1 : 0.4} strokeDasharray={near ? undefined : '2 3'} />)
+        out.push(<line key={`${t.letter}s${j}`} x1={q.X} y1={q.Y} x2={p.X} y2={p.Y} stroke={t.color} strokeWidth={lead ? 2.5 : 1.5} strokeOpacity={(near ? 1 : 0.4) * fade} strokeDasharray={near ? undefined : '2 3'} />)
         // A path's direction, on its longer steps.
-        if (path && near && Math.hypot(p.X - q.X, p.Y - q.Y) >= 24) {
+        if (path && lead && near && Math.hypot(p.X - q.X, p.Y - q.Y) >= 24) {
           const deg = (Math.atan2(p.Y - q.Y, p.X - q.X) * 180) / Math.PI
           out.push(<polygon key={`${t.letter}a${j}`} points="2,0 -3,-3 -3,3" fill={t.color} transform={`translate(${(p.X + q.X) / 2} ${(p.Y + q.Y) / 2}) rotate(${deg})`} />)
         }
       })
       pts.forEach((p, j) => {
         const last = j === pts.length - 1
-        if (path && j === 0) out.push(<rect key={`${t.letter}d${j}`} x={p.X - 3} y={p.Y - 3} width={6} height={6} fill={BG} stroke={t.color} strokeWidth={1.5} />)
-        else out.push(<circle key={`${t.letter}d${j}`} cx={p.X} cy={p.Y} r={last ? 3.5 : 2.5} fill={t.color} stroke={last ? INK : 'none'} strokeWidth={1.5} />)
+        if (path && lead && j === 0) out.push(<rect key={`${t.letter}d${j}`} x={p.X - 3} y={p.Y - 3} width={6} height={6} fill={BG} stroke={t.color} strokeWidth={1.5} />)
+        else if (lead || last) out.push(<circle key={`${t.letter}d${j}`} cx={p.X} cy={p.Y} r={last ? 3.5 : 2.5} fill={t.color} fillOpacity={fade} stroke={last && lead ? INK : 'none'} strokeWidth={1.5} />)
       })
       if (path) {
-        // Seasons named where they don't crowd: his last, first and best, then every fourth.
+        // Seasons named where they don't crowd: the lead's last, first and best, then every
+        // fourth; another's last alone.
         const best = pts.reduce((a, p) => (yOf(t.pl.i, p.k) > yOf(t.pl.i, a.k) ? p : a), pts[0])
-        const order = [pts[pts.length - 1], pts[0], best, ...pts.filter(p => p.year % 4 === 0)]
+        const order = lead ? [pts[pts.length - 1], pts[0], best, ...pts.filter(p => p.year % 4 === 0)] : [pts[pts.length - 1]]
         for (const p of order) {
           if (!free(p.X, p.Y)) continue
           placed.push([p.X, p.Y])
-          out.push(<text key={`${t.letter}l${p.k}`} x={p.X + 6} y={p.Y - 6} style={{ fontFamily: MONO, fontSize: 8.5, fill: t.color, paintOrder: 'stroke', stroke: BG, strokeWidth: 3 }}>{seasonOf(t.pl.rows[p.k])}</text>)
+          out.push(<text key={`${t.letter}l${p.k}`} x={p.X + 6} y={p.Y - 6} opacity={fade} style={{ fontFamily: MONO, fontSize: 8.5, fill: t.color, paintOrder: 'stroke', stroke: BG, strokeWidth: 3 }}>{seasonOf(t.pl.rows[p.k])}{lead ? '' : ` ${surname(t.pl.name)}`}</text>)
         }
       }
     }
@@ -194,13 +202,13 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
       tags.forEach((g, j) => { if (j && g.Y - tags[j - 1].Y < 13) g.Y = tags[j - 1].Y + 13 })
       for (const g of tags) {
         out.push(
-          <text key={`${g.t.letter}tag`} x={g.X + 8} y={g.Y + 3.5} textAnchor={g.X + 8 + 70 > w ? 'end' : 'start'} dx={g.X + 8 + 70 > w ? -16 : 0}
+          <text key={`${g.t.letter}tag`} opacity={leadOf(g.t) ? 1 : focus ? 0.3 : 0.75} x={g.X + 8} y={g.Y + 3.5} textAnchor={g.X + 8 + 70 > w ? 'end' : 'start'} dx={g.X + 8 + 70 > w ? -16 : 0}
             style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', fill: g.t.color, paintOrder: 'stroke', stroke: BG, strokeWidth: 3 }}>{surname(g.t.pl.name)}</text>
         )
       }
     }
     return out
-  }, [tracks, axes, domain, w, h, path]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py and yOf are these
+  }, [tracks, axes, domain, w, h, path, focus]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py, yOf and leadOf are these
 
   const band = !path && field.band.filter(b => b.x >= domain[0] && b.x <= domain[1])
   const xTicks = path ? [] : ticksOf(Math.ceil(domain[0]), Math.floor(domain[1]), X1 - X0)
@@ -233,7 +241,8 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 12px', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap' }}>
         {channels.map(c => (
-          <span key={c.letter} style={{ ...label, display: 'inline-flex', alignItems: 'center', gap: 6, color: c.color, fontWeight: 700 }}>
+          <span key={c.letter} onMouseEnter={() => setFocus(c.letter)} onMouseLeave={() => setFocus(null)} title="Hover to bring him forward"
+            style={{ ...label, display: 'inline-flex', alignItems: 'center', gap: 6, color: c.color, fontWeight: 700, cursor: 'default', opacity: focus && focus !== c.letter ? 0.4 : 1 }}>
             <span style={{ width: 14, height: 3, background: c.color }} />{surname(c.pl.name)}
           </span>
         ))}

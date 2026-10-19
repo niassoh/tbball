@@ -30,7 +30,7 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 // The first player, the one the page is about, in the site's green at full strength; the
 // others he's compared with in quieter tones, so he leads.
-const CHANNELS = ['#97c197', '#c9c3bc', '#a898c4', '#b3a888', '#8fb0a6', '#b5939b']
+const CHANNELS = ['#97c197', '#c9c3bc', '#a898c4', '#b3a888', '#86aeb5', '#b5939b']
 // Six at most: past that the lines tangle and the quiet tones run together.
 const MAX = CHANNELS.length
 const TRY = ['lebron-james', 'stephen-curry', 'nikola-jokic', 'tim-duncan']
@@ -81,13 +81,15 @@ function Portrait({ pl, color, size = 56 }) {
 function Slots({ slots, store, y, x, playoffs, playerPath, remove, editing, setEditing, choose }) {
   const k = store ? store.labels.indexOf(y) : -1
   const search = i => (
-    <span key={`edit${i}`} style={{ display: 'flex', flex: '0 1 260px', minWidth: 200 }}>
+    <span key={`edit${i}`} style={{ display: 'flex', flex: '1 1 0', minWidth: 120, maxWidth: 320 }}>
       <PlayerSearch onChoose={slug => choose(i, slug)} autoFocus onDone={() => setEditing(e => (e === i ? null : e))}
         placeholder={i < slots.length ? `REPLACE ${surname(store && store.bySlug.get(slots[i]) ? store.bySlug.get(slots[i]).name : titled(slots[i])).toUpperCase()}` : 'ADD A PLAYER'} />
     </span>
   )
   return (
-    <div role="group" aria-label="Players" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, minWidth: 0 }}>
+    // One line (index.css .cg-chips; a phone's wraps): an open search takes the room left on
+    // it, the chips' names giving way, cut short, when there's too little.
+    <div role="group" aria-label="Players" className="cg-chips" style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
       {slots.map((slug, i) => {
         if (editing === i) return search(i)
         const color = CHANNELS[i]
@@ -96,7 +98,7 @@ function Slots({ slots, store, y, x, playoffs, playerPath, remove, editing, setE
         const note = !store ? null : !pl ? (playoffs ? 'Not on the playoff boards' : 'Not on the boards') : x === 'age' && !pl.born ? 'No birth date' : x === 'career' && pl.censored ? 'Began before ’97' : null
         const name = pl ? pl.name : titled(slug)
         return (
-          <span key={slug} style={{ flex: 'none', maxWidth: 260, height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 6px 0 0', boxSizing: 'border-box', border: `1px solid color-mix(in srgb, ${color} ${i ? 35 : 55}%, transparent)`, background: `color-mix(in srgb, ${color} ${i ? 7 : 14}%, transparent)` }}>
+          <span key={slug} style={{ flex: '0 1 auto', minWidth: 0, maxWidth: 260, height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 6px 0 0', boxSizing: 'border-box', border: `1px solid color-mix(in srgb, ${color} ${i ? 35 : 55}%, transparent)`, background: `color-mix(in srgb, ${color} ${i ? 7 : 14}%, transparent)` }}>
             <span style={{ alignSelf: 'stretch', width: 5, flex: 'none', background: color }} />
             {pl && <Face pl={pl} size={24} />}
             <span title={has ? undefined : `No ${y}`} style={{ width: 9, height: 9, flex: 'none', border: `1.5px solid ${color}`, background: has ? color : 'transparent' }} />
@@ -189,12 +191,13 @@ function Prime({ store, channels, y }) {
   )
 }
 
-// The stat's group, a chart of percentiles over time for each of its stats (the 50th
-// dashed), the cells sharing whatever height the panel has left so the whole group shows
+// The stat's group, a chart of percentiles over time for each of its stats (3-season
+// averages, the 50th dashed, the first player on top), the cells sharing whatever height the panel has left so the whole group shows
 // at once; one clicked puts its stat up the side, the one up now lit.
 function StatGrid({ store, group, y, setY, channels, mode, dim }) {
   const at = TIME[mode]
-  const cols = useMemo(() => Object.fromEntries(group.stats.map(l => [l, column(store, l, 1, channels.map(c => c.pl))])), [store, group, channels])
+  // Three-season centred averages: a season's percentile alone jumps too much to read small.
+  const cols = useMemo(() => Object.fromEntries(group.stats.map(l => [l, column(store, l, 3, channels.map(c => c.pl))])), [store, group, channels])
   const xs = channels.flatMap(c => c.pl.rows.map(at)).filter(v => v !== null)
   const d0 = xs.length ? Math.min(...xs) : 0
   const d1 = xs.length ? Math.max(...xs) : 1
@@ -215,9 +218,9 @@ function StatGrid({ store, group, y, setY, channels, mode, dim }) {
             <svg viewBox="0 0 100 80" preserveAspectRatio="none" aria-hidden="true" style={{ width: '100%', flex: 1, minHeight: 0, display: 'block' }}>
               <rect x={0} y={0} width={100} height={80} fill="none" stroke={RULE} vectorEffect="non-scaling-stroke" />
               <line x1={0} x2={100} y1={40} y2={40} stroke={EDGE} strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />
-              {channels.map((c, j) => {
+              {channels.map((c, j) => [c, j]).reverse().map(([c, j]) => {
                 const pts = c.pl.rows.map((r, k) => [at(r), cols[l][j].p[k]]).filter(([a, b]) => a !== null && b !== null)
-                return <polyline key={c.letter} points={pts.map(([a, b]) => `${px(a)},${76 - b * 0.72}`).join(' ')} fill="none" stroke={c.color} strokeWidth={1.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                return <polyline key={c.letter} points={pts.map(([a, b]) => `${px(a)},${76 - b * 0.72}`).join(' ')} fill="none" stroke={c.color} strokeWidth={j ? 1 : 2} strokeOpacity={j ? 0.55 : 1} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
               })}
             </svg>
           </button>

@@ -96,18 +96,18 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
   }, [field, channels, pct, path, sy, sx])
 
   // Time across: the channels' span (eight years at least), or the band's, never past the
-  // league's own (no age 18 when no one on the boards was 18). Half a year of margin keeps
-  // the end dots off the frame without naming an empty year.
+  // league's own (no age 18 when no one on the boards was 18). The data runs edge to edge
+  // of the frame.
   const domain = useMemo(() => {
     if (path) return null
     const xsOn = channels.flatMap(c => field.lines[c.pl.i].map(p => p[0]))
     const xsAll = xsOn.length ? xsOn : field.band.map(b => b.x)
     if (!xsAll.length) return [0, 1]
     const league = field.lines.flat().map(p => p[0])
-    const lo = Math.min(...league) - 0.4
-    const hi = Math.max(...league) + 0.4
-    let d0 = Math.max(lo, Math.min(...xsAll) - 0.4)
-    let d1 = Math.min(hi, Math.max(...xsAll) + 0.4)
+    const lo = Math.min(...league)
+    const hi = Math.max(...league)
+    let d0 = Math.max(lo, Math.min(...xsAll))
+    let d1 = Math.min(hi, Math.max(...xsAll))
     if (d1 - d0 < 8) {
       d1 = Math.min(hi, d0 + 8)
       d0 = Math.max(lo, d1 - 8)

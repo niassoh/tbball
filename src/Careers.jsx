@@ -58,6 +58,18 @@ function Face({ pl, size = 22 }) {
   )
 }
 
+// A channel's portrait: a square tile on the portraits' charcoal, framed in a hairline and
+// standing on a bar of his colour, like a sample pad lit in its track's colour.
+function Portrait({ pl, color, size = 56 }) {
+  return (
+    <span style={{ position: 'relative', width: size, height: size, flex: 'none', boxSizing: 'border-box', overflow: 'hidden', background: PORTRAIT_BG, border: `1px solid ${EDGE}`, boxShadow: `inset 0 -3px 0 ${color}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 11, color: DIM }}>
+      {pl.headshot
+        ? <img src={headshotUrl(pl.slug, 400, pl.headshotVersion, pl.headshot)} alt="" width={size} height={size} style={{ position: 'absolute', inset: 0, width: '100%', height: 'calc(100% - 3px)', objectFit: 'cover', objectPosition: '50% 14%' }} />
+        : initials(pl.name)}
+    </span>
+  )
+}
+
 // The four channels: fixed slots, so a colour never moves to another player; each slot is
 // washed in its colour with a solid bar down its left edge. A filled slot's square is
 // hollow when he has no value in the stat up the side. A slot clicked (`pick`) is the
@@ -84,6 +96,7 @@ function Slots({ slots, store, y, x, playoffs, playerPath, remove, pick, target 
         return (
           <span key={letter} style={{ ...box, border: `1px solid ${target === i ? color : `color-mix(in srgb, ${color} 55%, transparent)`}`, background: `color-mix(in srgb, ${color} ${target === i ? 26 : 14}%, transparent)` }}>
             {bar}
+            {pl && <Face pl={pl} size={24} />}
             <span title={has ? undefined : `No ${y}`} style={{ width: 9, height: 9, flex: 'none', border: `1.5px solid ${color}`, background: has ? color : 'transparent' }} />
             <button type="button" onClick={() => pick(i)} title={target === i ? 'Keep him' : 'Change player'} aria-pressed={target === i}
               style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, padding: 0, border: 0, background: 'transparent', textAlign: 'left', cursor: 'pointer' }}>
@@ -127,17 +140,18 @@ function Prime({ store, channels, y }) {
     const big = { fontFamily: MONO, fontSize: 14, fontWeight: 600, color: INK, lineHeight: 1 }
     const n = elite.filter(e => e !== null)
     return (
-      <div key={`${c.letter}${y}`} style={{ borderBottom: `1px solid ${RULE}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px 6px' }}>
-          <span style={{ width: 9, height: 9, background: c.color }} />
+      <div key={`${c.letter}${y}`} style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', alignItems: 'start', borderBottom: `1px solid ${RULE}`, padding: '8px 0 8px 12px' }}>
+        <Portrait pl={c.pl} color={c.color} />
+        <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px 6px 10px' }}>
           <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: c.color }}>{surname(c.pl.name)}</span>
           <span style={{ ...label, fontSize: 8, marginLeft: 'auto' }}>{shortYears(rows[0].season, rows[rows.length - 1].season)}{ages.length ? ` · ages ${Math.min(...ages)}–${Math.max(...ages)}` : ''}</span>
         </div>
         {peak === null
-          ? <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 8px' }}>No {y}{st.since ? ` · from ${st.since.replace('-', '–')}` : ''}</div>
+          ? <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 0 10px' }}>No {y}{st.since ? ` · from ${st.since.replace('-', '–')}` : ''}</div>
           : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-              <div style={{ ...cell, borderLeft: 0, paddingLeft: 12 }}>
+              <div style={{ ...cell, borderLeft: 0 }}>
                 <span style={label}>Peak ’{rows[peak].season.slice(5)}</span>
                 <span style={big}>{fmt(st, rows[peak].v[k])}</span>
                 <Meter pc={rows[peak].p[k]} color={c.color} />
@@ -155,6 +169,7 @@ function Prime({ store, channels, y }) {
               </div>
             </div>
           )}
+        </div>
       </div>
     )
   })

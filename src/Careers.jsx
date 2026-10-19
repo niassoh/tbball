@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardSeasons, headshotUrl } from './api.js'
-import { TIME, careersOf, column, domainOf, middle98, peakOf } from './lib/careers.js'
+import { TIME, careersOf, column, domainOf, middle98, peakOf, pctlPos } from './lib/careers.js'
 import { axisOf } from './lib/leaderboard.js'
 import { MONO, fmt } from './lib/format.js'
 import { withMode } from './lib/mode.js'
@@ -207,7 +207,7 @@ function StatGrid({ store, group, y, setY, channels, mode, scale, smooth, dim })
   const stats = group.stats.filter(l => store.stats[l] && store.stats[l].since)
   const cols = useMemo(() => Object.fromEntries(stats.map(l => [l, column(store, l, smooth, channels.map(c => c.pl))])), [store, group, channels, smooth]) // eslint-disable-line react-hooks/exhaustive-deps -- stats is group's
   const axes = useMemo(() => Object.fromEntries(stats.map(l => {
-    if (pct) return [l, v => v / 100]
+    if (pct) return [l, pctlPos]
     const k = store.labels.indexOf(l)
     const mine = cols[l].flatMap(c => c.v).filter(v => v !== null)
     return [l, axisOf([...middle98(store.rows.map(r => r.v[k]).filter(v => v !== null && v !== undefined)), ...mine], store.stats[l].lowerBetter).pos]

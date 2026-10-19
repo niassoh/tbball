@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TIME, careersOf, column, domainOf, envelope, middle98, peakOf } from './careers.js'
+import { TIME, careersOf, column, domainOf, envelope, middle98, normalQ, peakOf, pctlPos } from './careers.js'
 
 const STATS = { BPM: { dec: 1 }, 'C&S 3%': { dec: 1 }, 'C&S 3s/36': { dec: 1 }, '1yr C&S 3%': { dec: 1 } }
 const LABELS = ['BPM', 'C&S 3%', 'C&S 3s/36', '1yr C&S 3%']
@@ -140,5 +140,26 @@ describe('axes', () => {
     expect(domainOf([20, 22], league)).toEqual([20, 28])
     expect(domainOf([40, 41], league)).toEqual([34, 42])
     expect(domainOf([], league)).toEqual([19, 42])
+  })
+})
+
+describe('pctlPos', () => {
+  it('reads the normal quantile', () => {
+    expect(normalQ(0.5)).toBeCloseTo(0, 6)
+    expect(normalQ(0.975)).toBeCloseTo(1.959964, 5)
+    expect(normalQ(0.01)).toBeCloseTo(-2.326348, 5)
+  })
+
+  it('runs 0 to 1 with the median in the middle, symmetric', () => {
+    expect(pctlPos(50)).toBeCloseTo(0.5)
+    expect(pctlPos(0)).toBeCloseTo(0)
+    expect(pctlPos(100)).toBeCloseTo(1)
+    expect(pctlPos(90) + pctlPos(10)).toBeCloseTo(1)
+  })
+
+  it('gives the ends longer steps than the middle', () => {
+    const step = p => pctlPos(p + 1) - pctlPos(p)
+    expect(step(98)).toBeGreaterThan(2 * step(54))
+    expect(step(54)).toBeGreaterThan(0.004)
   })
 })

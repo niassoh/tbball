@@ -163,3 +163,29 @@ export const domainOf = (mine, league) => {
   }
   return [d0, d1]
 }
+
+// Where a percentile sits on a percentile axis (0–1): partly the even scale and partly a
+// normal curve's, so the ends open up (the 98th to the 99th is a longer step than the
+// 54th to the 55th) without the middle collapsing. `normalQ` is the normal's quantile
+// (Acklam's rational approximation, good to about 1e-9); the curve is clipped at the
+// 0.5th and 99.5th percentiles.
+const A = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239]
+const B = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572]
+const C = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783]
+const D = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416]
+export const normalQ = q => {
+  if (q < 0.02425) {
+    const t = Math.sqrt(-2 * Math.log(q))
+    return (((((C[0] * t + C[1]) * t + C[2]) * t + C[3]) * t + C[4]) * t + C[5]) / ((((D[0] * t + D[1]) * t + D[2]) * t + D[3]) * t + 1)
+  }
+  if (q > 1 - 0.02425) return -normalQ(1 - q)
+  const u = q - 0.5
+  const r = u * u
+  return ((((((A[0] * r + A[1]) * r + A[2]) * r + A[3]) * r + A[4]) * r + A[5]) * u) / (((((B[0] * r + B[1]) * r + B[2]) * r + B[3]) * r + B[4]) * r + 1)
+}
+const CURVE = 0.6
+const EDGE_Z = normalQ(0.995)
+export const pctlPos = p => {
+  const q = Math.max(0.005, Math.min(0.995, p / 100))
+  return (1 - CURVE) * (p / 100) + CURVE * (0.5 + normalQ(q) / (2 * EDGE_Z))
+}

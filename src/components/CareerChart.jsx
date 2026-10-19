@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { MONO, fmt, ord } from '../lib/format.js'
-import { TIME, domainOf, envelope, middle98 } from '../lib/careers.js'
+import { TIME, domainOf, envelope, middle98, pctlPos } from '../lib/careers.js'
 import { axisOf, median } from '../lib/leaderboard.js'
 
 // Careers' chart, time across (a season, his age or his year of career): every career on
@@ -69,7 +69,7 @@ export default function CareerChart({ store, x, y, scale, ys, channels }) {
   // The y axis: the league's middle 98%, stretched to keep the channels' own seasons in
   // frame (the stars are the league's top 1%).
   const axes = useMemo(() => {
-    if (pct) return { ya: { lo: 0, hi: 100, root: false, pos: v => Math.max(0, Math.min(1, v / 100)) } }
+    if (pct) return { ya: { lo: 0, hi: 100, root: false, pos: v => pctlPos(Math.max(0, Math.min(100, v))) } }
     return { ya: axisOf([...field.ly, ...channels.flatMap(c => field.lines[c.pl.i]).map(p => p[1])], sy.lowerBetter) }
   }, [field, channels, pct, sy])
 
@@ -151,7 +151,8 @@ export default function CareerChart({ store, x, y, scale, ys, channels }) {
 
   const band = field.band.filter(b => b.x >= domain[0] && b.x <= domain[1])
   const xTicks = ticksOf(Math.ceil(domain[0]), Math.floor(domain[1]), X1 - X0)
-  const yTicks = pct ? [10, 50, 90] : [axes.ya.lo, field.yMid, axes.ya.hi]
+  // Percentiles: ticks where the scale stretches show it (10 and 90 sit nearer 1 and 99 than an even scale would put them).
+  const yTicks = pct ? [10, 25, 50, 75, 90, 99] : [axes.ya.lo, field.yMid, axes.ya.hi]
 
   const move = e => {
     const mx = e.clientX - box.current.getBoundingClientRect().left
@@ -182,7 +183,7 @@ export default function CareerChart({ store, x, y, scale, ys, channels }) {
           <rect x={X0} y={Y0} width={X1 - X0} height={Y1 - Y0} fill="none" stroke={RULE} />
           {yTicks.map((v, j) => (
             <g key={j}>
-              <line x1={X0} x2={X1} y1={py(v)} y2={py(v)} stroke={RULE} strokeDasharray={j === 1 ? '2 3' : undefined} strokeOpacity={j === 1 ? 1 : 0.6} />
+              <line x1={X0} x2={X1} y1={py(v)} y2={py(v)} stroke={RULE} strokeDasharray={v === (pct ? 50 : field.yMid) ? '2 3' : undefined} strokeOpacity={v === (pct ? 50 : field.yMid) ? 1 : 0.6} />
               <text x={X0 - 5} y={py(v) + 3} textAnchor="end" style={{ ...label, fontSize: 8, fill: FAINT }}>{pct ? v : fmt(sy, v)}</text>
             </g>
           ))}

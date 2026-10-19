@@ -60,8 +60,9 @@ function Face({ pl, size = 22 }) {
 
 // The four channels: fixed slots, so a colour never moves to another player; each slot is
 // washed in its colour with a solid bar down its left edge. A filled slot's square is
-// hollow when he has no value in the stat up the side.
-function Slots({ slots, store, y, x, playoffs, playerPath, remove, focus }) {
+// hollow when he has no value in the stat up the side. A slot clicked (`pick`) is the
+// search's `target`: the next player chosen goes there, replacing whoever held it.
+function Slots({ slots, store, y, x, playoffs, playerPath, remove, pick, target }) {
   const k = store ? store.labels.indexOf(y) : -1
   return (
     <div role="group" aria-label="Channels" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: '1 1 520px', minWidth: 0 }}>
@@ -74,20 +75,23 @@ function Slots({ slots, store, y, x, playoffs, playerPath, remove, focus }) {
         const bar = <span style={{ alignSelf: 'stretch', width: 5, flex: 'none', background: color, opacity: slug ? 1 : 0.35 }} />
         if (!slug) {
           return (
-            <button key={letter} type="button" onClick={focus} title="Add a player"
-              style={{ ...box, border: `1px dashed ${EDGE}`, background: 'transparent', color: FAINT, fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            <button key={letter} type="button" onClick={() => pick(i)} title="Add a player"
+              style={{ ...box, border: `1px dashed ${target === i ? color : EDGE}`, background: 'transparent', color: FAINT, fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
               {bar}+ Add
             </button>
           )
         }
         return (
-          <span key={letter} style={{ ...box, border: `1px solid color-mix(in srgb, ${color} 55%, transparent)`, background: `color-mix(in srgb, ${color} 14%, transparent)` }}>
+          <span key={letter} style={{ ...box, border: `1px solid ${target === i ? color : `color-mix(in srgb, ${color} 55%, transparent)`}`, background: `color-mix(in srgb, ${color} ${target === i ? 26 : 14}%, transparent)` }}>
             {bar}
             <span title={has ? undefined : `No ${y}`} style={{ width: 9, height: 9, flex: 'none', border: `1.5px solid ${color}`, background: has ? color : 'transparent' }} />
-            <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-              <Link to={playerPath(slug)} style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: INK, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{surname(pl ? pl.name : titled(slug))}</Link>
-              {note && <span style={{ ...label, fontSize: 7.5, color: FAINT, whiteSpace: 'nowrap' }}>{note}</span>}
-            </span>
+            <button type="button" onClick={() => pick(i)} title={target === i ? 'Keep him' : 'Change player'} aria-pressed={target === i}
+              style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, padding: 0, border: 0, background: 'transparent', textAlign: 'left', cursor: 'pointer' }}>
+              <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{surname(pl ? pl.name : titled(slug))}</span>
+              {(target === i || note) && <span style={{ ...label, fontSize: 7.5, color: target === i ? color : FAINT, whiteSpace: 'nowrap' }}>{target === i ? 'Pick a replacement' : note}</span>}
+            </button>
+            <Link to={playerPath(slug)} aria-label={`${pl ? pl.name : titled(slug)}'s profile`} title="Profile"
+              style={{ flex: 'none', fontFamily: MONO, fontSize: 11, color: DIM, textDecoration: 'none' }}>↗</Link>
             <button type="button" aria-label={`Remove ${pl ? pl.name : titled(slug)}`} onClick={() => remove(i)}
               style={{ flex: 'none', width: 18, height: 18, padding: 0, border: 0, background: 'transparent', color: DIM, fontFamily: MONO, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>×</button>
           </span>
@@ -260,10 +264,17 @@ export default function Careers() {
     const p = next.map(s => s || '').join(',').replace(/,+$/, '')
     set({ p: p || null })
   }
+  // The slot the next pick goes to (one clicked), else the first empty one.
+  const [target, setTarget] = useState(null)
+  const pick = i => setTarget(t => (t === i ? null : i))
+  // Focused once the field is enabled (four full slots leave it off until one is picked).
+  useEffect(() => { if (target !== null) search.current?.focus() }, [target])
   const add = slug => {
-    if (slots.includes(slug)) return
-    const i = slots.indexOf(null)
-    if (i >= 0) setSlots(slots.map((s, j) => (j === i ? slug : s)))
+    const i = target ?? slots.indexOf(null)
+    setTarget(null)
+    if (i < 0 || slots[i] === slug) return
+    // Already in another slot: he moves to this one.
+    setSlots(slots.map((s, j) => (j === i ? slug : s === slug ? null : s)))
   }
 
   // A stat this season type doesn't have (Footprint in the playoffs) shows BPM, or age
@@ -305,8 +316,8 @@ export default function Careers() {
       </header>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0 8px', flexWrap: 'wrap' }}>
-        <Slots slots={slots} store={store} y={y} x={x} playoffs={playoffs} playerPath={playerPath} remove={i => setSlots(slots.map((s, j) => (j === i ? null : s)))} focus={() => search.current?.focus()} />
-        <PlayerSearch onChoose={add} inputRef={search} placeholder={slots.includes(null) ? 'ADD A PLAYER' : 'ALL FOUR CHANNELS FULL'} disabled={!slots.includes(null)} />
+        <Slots slots={slots} store={store} y={y} x={x} playoffs={playoffs} playerPath={playerPath} remove={i => { setTarget(null); setSlots(slots.map((s, j) => (j === i ? null : s))) }} pick={pick} target={target} />
+        <PlayerSearch onChoose={add} inputRef={search} placeholder={target !== null && slots[target] ? 'REPLACE WITH…' : slots.includes(null) || target !== null ? 'ADD A PLAYER' : 'CLICK A PLAYER TO CHANGE'} disabled={target === null && !slots.includes(null)} />
       </div>
       {!slots.some(Boolean) && (
         <button type="button" onClick={() => setSlots(TRY)} style={{ ...label, alignSelf: 'flex-start', padding: '0 0 8px', border: 0, background: 'transparent', color: '#b8b2ab', cursor: 'pointer' }}>Try: James · Curry · Jokić · Duncan →</button>

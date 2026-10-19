@@ -55,8 +55,9 @@ function Name({ text, query, whole = false }) {
 // `sheet`: the phone's full-screen search (TopBar), focused on opening, its results
 // always shown under it, `onPick` called when one is picked. `onChoose(slug)`: players only,
 // handed to it rather than opened (Careers' channels), the field reading `placeholder` and
-// focusable from outside through `inputRef`.
-export default function PlayerSearch({ profile, sheet = false, onPick, onChoose, placeholder = 'SEARCH PLAYERS/TEAMS', disabled = false, inputRef }) {
+// focusable from outside through `inputRef`; `autoFocus` focuses it as it appears and
+// `onDone` hears when it's left (a pick, Escape, a click elsewhere).
+export default function PlayerSearch({ profile, sheet = false, onPick, onChoose, placeholder = 'SEARCH PLAYERS/TEAMS', disabled = false, inputRef, autoFocus = false, onDone }) {
   const [players, setPlayers] = useState(null)
   const [teams, setTeams] = useState(null)
   const [query, setQuery] = useState('')
@@ -78,8 +79,8 @@ export default function PlayerSearch({ profile, sheet = false, onPick, onChoose,
     return () => window.removeEventListener('keydown', onKey)
   }, [input])
   useEffect(() => {
-    if (sheet) input.current?.focus()
-  }, [sheet, input])
+    if (sheet || autoFocus) input.current?.focus()
+  }, [sheet, autoFocus, input])
 
   // The index and team list are fetched on first focus, not on every profile load.
   const load = () => {
@@ -122,7 +123,7 @@ export default function PlayerSearch({ profile, sheet = false, onPick, onChoose,
           value={query}
           onChange={e => { setQuery(e.target.value); setActive(0); setOpen(true) }}
           onFocus={() => { load(); setOpen(true) }}
-          onBlur={() => setTimeout(() => setOpen(false), 120)}
+          onBlur={() => setTimeout(() => { setOpen(false); onDone?.() }, 120)}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           disabled={disabled}

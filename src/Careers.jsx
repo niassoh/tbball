@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardSeasons, headshotUrl } from './api.js'
 import { TIME, careersOf, column, peakOf } from './lib/careers.js'
@@ -14,8 +14,8 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 
 // Career Trajectories: every career on the season boards (1996-97 on; lib/careers.js) at
 // once, any stat up the side and time across (a season, his age, his year of career) or
-// another stat (a career as a path through stat space). Up to four players are channels,
-// each in a colour of its own; a channel's colour is who he is, never better or worse
+// another stat (a career as a path through stat space). Up to six players are channels,
+// each in a colour of its own (the first green, the rest quieter); a channel's colour is who he is, never better or worse
 // (position says that), so the channels keep clear of the site's blue (better), orange
 // (worse) and the playoffs' gold. Beside the chart, for the stat on show: each
 // channel's peak and prime, and the stat's
@@ -30,7 +30,9 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 // The first player, the one the page is about, in the site's green at full strength; the
 // others he's compared with in quieter tones, so he leads.
-const CHANNELS = [['A', '#97c197'], ['B', '#c9c3bc'], ['C', '#a898c4'], ['D', '#b3a888']]
+const CHANNELS = ['#97c197', '#c9c3bc', '#a898c4', '#b3a888', '#8fb0a6', '#b5939b']
+// Six at most: past that the lines tangle and the quiet tones run together.
+const MAX = CHANNELS.length
 const TRY = ['lebron-james', 'stephen-curry', 'nikola-jokic', 'tim-duncan']
 const X_MODES = [['season', 'Season'], ['age', 'Age'], ['career', 'Career yr']]
 const SMOOTH = [['1', '1Y'], ['3', '3Y']]
@@ -72,46 +74,52 @@ function Portrait({ pl, color, size = 56 }) {
   )
 }
 
-// The four channels: fixed slots, so a colour never moves to another player; each slot is
-// washed in its colour with a solid bar down its left edge. A filled slot's square is
-// hollow when he has no value in the stat up the side. A slot clicked (`pick`) is the
-// search's `target`: the next player chosen goes there, replacing whoever held it.
-function Slots({ slots, store, y, x, playoffs, playerPath, remove, pick, target }) {
+// The players, as chips sized to their names: the first (the one the page is about) in
+// green and washed in it, the rest quieter. A name clicked turns its chip into a search for
+// his replacement, right where it is; + ADD at the end does the same for another player,
+// up to MAX. A chip's square is hollow when he has no value in the stat up the side.
+function Slots({ slots, store, y, x, playoffs, playerPath, remove, editing, setEditing, choose }) {
   const k = store ? store.labels.indexOf(y) : -1
+  const search = i => (
+    <span key={`edit${i}`} style={{ display: 'flex', flex: '0 1 260px', minWidth: 200 }}>
+      <PlayerSearch onChoose={slug => choose(i, slug)} autoFocus onDone={() => setEditing(e => (e === i ? null : e))}
+        placeholder={i < slots.length ? `REPLACE ${surname(store && store.bySlug.get(slots[i]) ? store.bySlug.get(slots[i]).name : titled(slots[i])).toUpperCase()}` : 'ADD A PLAYER'} />
+    </span>
+  )
   return (
-    <div role="group" aria-label="Channels" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: '1 1 520px', minWidth: 0 }}>
-      {CHANNELS.map(([letter, color], i) => {
-        const slug = slots[i]
-        const pl = store && slug ? store.bySlug.get(slug) : null
+    <div role="group" aria-label="Players" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, minWidth: 0 }}>
+      {slots.map((slug, i) => {
+        if (editing === i) return search(i)
+        const color = CHANNELS[i]
+        const pl = store ? store.bySlug.get(slug) : null
         const has = pl && k >= 0 && pl.rows.some(r => r.v[k] !== null && r.v[k] !== undefined)
-        const note = !slug || !store ? null : !pl ? (playoffs ? 'Not on the playoff boards' : 'Not on the boards') : x === 'age' && !pl.born ? 'No birth date' : x === 'career' && pl.censored ? 'Began before ’97' : null
-        const box = { flex: '1 1 140px', minWidth: 0, height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px 0 0', boxSizing: 'border-box' }
-        const bar = <span style={{ alignSelf: 'stretch', width: 5, flex: 'none', background: color, opacity: slug ? 1 : 0.35 }} />
-        if (!slug) {
-          return (
-            <button key={letter} type="button" onClick={() => pick(i)} title="Add a player"
-              style={{ ...box, border: `1px dashed ${target === i ? color : EDGE}`, background: 'transparent', color: FAINT, fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
-              {bar}+ Add
-            </button>
-          )
-        }
+        const note = !store ? null : !pl ? (playoffs ? 'Not on the playoff boards' : 'Not on the boards') : x === 'age' && !pl.born ? 'No birth date' : x === 'career' && pl.censored ? 'Began before ’97' : null
+        const name = pl ? pl.name : titled(slug)
         return (
-          <span key={letter} style={{ ...box, border: `1px solid ${target === i ? color : `color-mix(in srgb, ${color} ${i ? 35 : 55}%, transparent)`}`, background: `color-mix(in srgb, ${color} ${target === i ? 22 : i ? 7 : 14}%, transparent)` }}>
-            {bar}
+          <span key={slug} style={{ flex: 'none', maxWidth: 260, height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 6px 0 0', boxSizing: 'border-box', border: `1px solid color-mix(in srgb, ${color} ${i ? 35 : 55}%, transparent)`, background: `color-mix(in srgb, ${color} ${i ? 7 : 14}%, transparent)` }}>
+            <span style={{ alignSelf: 'stretch', width: 5, flex: 'none', background: color }} />
             {pl && <Face pl={pl} size={24} />}
             <span title={has ? undefined : `No ${y}`} style={{ width: 9, height: 9, flex: 'none', border: `1.5px solid ${color}`, background: has ? color : 'transparent' }} />
-            <button type="button" onClick={() => pick(i)} title={target === i ? 'Keep him' : 'Change player'} aria-pressed={target === i}
-              style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, padding: 0, border: 0, background: 'transparent', textAlign: 'left', cursor: 'pointer' }}>
-              <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{surname(pl ? pl.name : titled(slug))}</span>
-              {(target === i || note) && <span style={{ ...label, fontSize: 7.5, color: target === i ? color : FAINT, whiteSpace: 'nowrap' }}>{target === i ? 'Pick a replacement' : note}</span>}
+            <button type="button" className="cg-name-btn" onClick={() => setEditing(i)} title="Change player"
+              style={{ display: 'flex', flexDirection: 'column', minWidth: 0, padding: 0, border: 0, background: 'transparent', textAlign: 'left', cursor: 'text' }}>
+              <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{surname(name)}</span>
+              {note && <span style={{ ...label, fontSize: 7.5, color: FAINT, whiteSpace: 'nowrap' }}>{note}</span>}
             </button>
-            <Link to={playerPath(slug)} aria-label={`${pl ? pl.name : titled(slug)}'s profile`} title="Profile"
-              style={{ flex: 'none', fontFamily: MONO, fontSize: 11, color: DIM, textDecoration: 'none' }}>↗</Link>
-            <button type="button" aria-label={`Remove ${pl ? pl.name : titled(slug)}`} onClick={() => remove(i)}
+            <Link to={playerPath(slug)} aria-label={`${name}'s profile`} title="Profile"
+              style={{ flex: 'none', marginLeft: 4, fontFamily: MONO, fontSize: 11, color: DIM, textDecoration: 'none' }}>↗</Link>
+            <button type="button" aria-label={`Remove ${name}`} onClick={() => remove(i)}
               style={{ flex: 'none', width: 18, height: 18, padding: 0, border: 0, background: 'transparent', color: DIM, fontFamily: MONO, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>×</button>
           </span>
         )
       })}
+      {editing === slots.length
+        ? search(slots.length)
+        : slots.length < MAX && (
+          <button type="button" onClick={() => setEditing(slots.length)}
+            style={{ flex: 'none', height: 34, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 12px', border: `1px dashed ${EDGE}`, background: 'transparent', color: '#b8b2ab', fontFamily: MONO, fontSize: 9.5, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            <span style={{ width: 9, height: 9, border: `1.5px solid ${CHANNELS[slots.length]}` }} />+ Add player
+          </button>
+        )}
     </div>
   )
 }
@@ -225,7 +233,6 @@ export default function Careers() {
   const [params, setParams] = useSearchParams()
   const [loaded, setLoaded] = useState({})
   const [progress, setProgress] = useState({})
-  const search = useRef(null)
 
   useEffect(() => {
     if (built[kind]) return
@@ -257,25 +264,16 @@ export default function Careers() {
     }
     return q
   }, { replace: true })
-  const slots = useMemo(() => {
-    const p = (params.get('p') || '').split(',').slice(0, 4)
-    return CHANNELS.map((_, i) => p[i] || null)
-  }, [params])
-  const setSlots = next => {
-    const p = next.map(s => s || '').join(',').replace(/,+$/, '')
-    set({ p: p || null })
-  }
-  // The slot the next pick goes to (one clicked), else the first empty one.
-  const [target, setTarget] = useState(null)
-  const pick = i => setTarget(t => (t === i ? null : i))
-  // Focused once the field is enabled (four full slots leave it off until one is picked).
-  useEffect(() => { if (target !== null) search.current?.focus() }, [target])
-  const add = slug => {
-    const i = target ?? slots.indexOf(null)
-    setTarget(null)
-    if (i < 0 || slots[i] === slug) return
-    // Already in another slot: he moves to this one.
-    setSlots(slots.map((s, j) => (j === i ? slug : s === slug ? null : s)))
+  const slots = useMemo(() => (params.get('p') || '').split(',').filter(Boolean).slice(0, MAX), [params])
+  const setSlots = next => set({ p: next.join(',') || null })
+  // The chip being searched from (a player's index, or slots.length for a new one), or null.
+  const [editing, setEditing] = useState(null)
+  // He goes in at `i` (a new player at the end); already elsewhere, he moves there.
+  const choose = (i, slug) => {
+    const next = [...slots]
+    next[i] = slug
+    setSlots(next.filter((s, j) => s !== slug || j === i))
+    setEditing(null)
   }
 
   // A stat this season type doesn't have (Footprint in the playoffs) shows BPM, or age
@@ -290,7 +288,7 @@ export default function Careers() {
 
   const channels = useMemo(() => (!store ? [] : slots.map((slug, i) => {
     const pl = slug && store.bySlug.get(slug)
-    return pl ? { letter: CHANNELS[i][0], color: CHANNELS[i][1], pl } : null
+    return pl ? { letter: slug, color: CHANNELS[i], pl } : null
   }).filter(Boolean)), [store, slots])
   const ys = useMemo(() => store && column(store, y, smooth), [store, y, smooth])
   const xs = useMemo(() => store && path ? column(store, x, smooth) : null, [store, x, path, smooth])
@@ -315,10 +313,9 @@ export default function Careers() {
       </header>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0 8px', flexWrap: 'wrap' }}>
-        <Slots slots={slots} store={store} y={y} x={x} playoffs={playoffs} playerPath={playerPath} remove={i => { setTarget(null); setSlots(slots.map((s, j) => (j === i ? null : s))) }} pick={pick} target={target} />
-        <PlayerSearch onChoose={add} inputRef={search} placeholder={target !== null && slots[target] ? 'REPLACE WITH…' : slots.includes(null) || target !== null ? 'ADD A PLAYER' : 'CLICK A PLAYER TO CHANGE'} disabled={target === null && !slots.includes(null)} />
+        <Slots slots={slots} store={store} y={y} x={x} playoffs={playoffs} playerPath={playerPath} remove={i => { setEditing(null); setSlots(slots.filter((_, j) => j !== i)) }} editing={editing} setEditing={setEditing} choose={choose} />
       </div>
-      {!slots.some(Boolean) && (
+      {!slots.length && (
         <button type="button" onClick={() => setSlots(TRY)} style={{ ...label, alignSelf: 'flex-start', padding: '0 0 8px', border: 0, background: 'transparent', color: '#b8b2ab', cursor: 'pointer' }}>Try: James · Curry · Jokić · Duncan →</button>
       )}
 

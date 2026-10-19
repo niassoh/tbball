@@ -237,7 +237,7 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
             <span style={{ width: 14, height: 3, background: c.color }} />{surname(c.pl.name)}
           </span>
         ))}
-        <span style={{ ...label, marginLeft: 'auto', fontSize: 8 }}>
+        <span title={path ? undefined : `The band: the 10th to 90th percentile of qualified seasons at ${BAND_AT[x]}${x === 'age' ? ', so only those still playing (survivors)' : ''}`} style={{ ...label, marginLeft: 'auto', fontSize: 8, cursor: path ? 'default' : 'help' }}>
           {path ? '▫ first season · ◉ last · ┼ median' : <><span style={{ display: 'inline-block', width: 10, height: 7, background: 'rgba(236,232,227,.16)', verticalAlign: -1, marginRight: 5 }} />P10–P90 · ┄ median · {store.rows.length.toLocaleString()} seasons</>}
         </span>
       </div>
@@ -282,9 +282,6 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
           {hx !== null && <line x1={px(hx)} x2={px(hx)} y1={Y0} y2={Y1} stroke={INK} strokeOpacity={0.35} />}
           {marks}
           {hover && path && <circle cx={px(hover.a)} cy={py(hover.b)} r={7} fill="none" stroke={INK} strokeWidth={1.5} />}
-          {!path && (
-            <text x={X0 + 6} y={Y0 + 12} style={{ ...label, fontSize: 7.5, fill: FAINT }}>Band = qualified seasons at {BAND_AT[x]}{x === 'age' ? ' (survivors)' : ''}</text>
-          )}
         </svg>
         {card && !docked && (
           <div style={{ position: 'absolute', top: 8, left: cardLeft > w * 0.6 ? cardLeft - 14 - CARD_W : cardLeft + 14, width: CARD_W, pointerEvents: 'none', zIndex: 5 }}>{card}</div>

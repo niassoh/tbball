@@ -134,51 +134,56 @@ const Head = ({ children }) => <div style={{ ...label, fontSize: 8.5, color: INK
 function Prime({ store, channels, y }) {
   const st = store.stats[y]
   const k = store.labels.indexOf(y)
-  return channels.map(c => {
-    const rows = c.pl.rows
-    const { peak, run, elite } = peakOf(store, c.pl, y)
-    const ages = rows.map(r => r.age).filter(a => a !== null)
-    const cell = { padding: '6px 10px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, borderLeft: `1px solid ${RULE}` }
-    const big = { fontFamily: MONO, fontSize: 14, fontWeight: 600, color: INK, lineHeight: 1 }
-    const n = elite.filter(e => e !== null)
-    return (
-      <div key={`${c.letter}${y}`} style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', alignItems: 'start', borderBottom: `1px solid ${RULE}`, padding: '8px 0 8px 12px' }}>
-        <Portrait pl={c.pl} color={c.color} />
-        <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px 6px 10px' }}>
-          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: c.color }}>{surname(c.pl.name)}</span>
-          <span style={{ ...label, fontSize: 8, marginLeft: 'auto' }}>{shortYears(rows[0].season, rows[rows.length - 1].season)}{ages.length ? ` · ages ${Math.min(...ages)}–${Math.max(...ages)}` : ''}</span>
-        </div>
-        {peak === null
-          ? <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 0 10px' }}>No {y}{st.since ? ` · from ${st.since.replace('-', '–')}` : ''}</div>
-          : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-              <div style={{ ...cell, borderLeft: 0 }}>
-                <span style={label}>Peak ’{rows[peak].season.slice(5)}</span>
-                <span style={big}>{fmt(st, rows[peak].v[k])}</span>
-                <Meter pc={rows[peak].p[k]} color={c.color} />
-              </div>
-              <div style={cell}>
-                <span style={label}>Best 3 {run ? shortYears(rows[run.from].season, rows[run.to].season) : ''}</span>
-                <span style={big}>{run ? fmt(st, run.v) : '—'}</span>
-                <Meter pc={run ? run.p : null} color={c.color} delay={200} />
-              </div>
-              <div style={cell}>
-                <span style={label}>≥90th <span style={{ color: INK }}>{n.filter(Boolean).length}/{n.length}</span></span>
-                <span aria-hidden="true" style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginTop: 'auto' }}>
-                  {elite.map((e, i) => <span key={i} title={rows[i].season} style={{ width: 5, height: 9, boxSizing: 'border-box', border: e === null ? `1px solid ${RULE}` : 0, background: e ? c.color : e === false ? '#34312e' : 'transparent' }} />)}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
+  const cols = '30px minmax(0, 1.3fr) repeat(3, minmax(0, 1fr))'
+  const big = { fontFamily: MONO, fontSize: 13, fontWeight: 600, color: INK, lineHeight: 1 }
+  const small = { ...label, fontSize: 7.5, color: FAINT, marginLeft: 5 }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', padding: '0 12px 6px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, padding: '0 0 4px' }}>
+        <span /><span />
+        {['Peak', 'Best 3', '≥90th'].map(h => <span key={h} style={{ ...label, fontSize: 7.5, color: FAINT }}>{h}</span>)}
       </div>
-    )
-  })
+      {channels.map(c => {
+        const rows = c.pl.rows
+        const { peak, run, elite } = peakOf(store, c.pl, y)
+        const n = elite.filter(e => e !== null)
+        return (
+          <div key={`${c.letter}${y}`} style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, alignItems: 'center', padding: '6px 0', borderTop: `1px solid ${RULE}` }}>
+            <Portrait pl={c.pl} color={c.color} size={30} />
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+              <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: c.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{surname(c.pl.name)}</span>
+              <span style={{ ...label, fontSize: 7.5 }}>{shortYears(rows[0].season, rows[rows.length - 1].season)}</span>
+            </span>
+            {peak === null
+              ? <span style={{ ...label, fontSize: 8, color: FAINT, gridColumn: 'span 3' }}>No {y}{st.since ? ` · from ${st.since.replace('-', '–')}` : ''}</span>
+              : (
+                <>
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                    <span style={{ whiteSpace: 'nowrap' }}><span style={big}>{fmt(st, rows[peak].v[k])}</span><span style={small}>’{rows[peak].season.slice(5)}</span></span>
+                    <Meter pc={rows[peak].p[k]} color={c.color} />
+                  </span>
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                    <span style={{ whiteSpace: 'nowrap' }}><span style={big}>{run ? fmt(st, run.v) : '—'}</span>{run && <span style={small}>{shortYears(rows[run.from].season, rows[run.to].season)}</span>}</span>
+                    <Meter pc={run ? run.p : null} color={c.color} delay={200} />
+                  </span>
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                    <span style={big}>{n.filter(Boolean).length}<span style={{ ...small, marginLeft: 2 }}>/{n.length}</span></span>
+                    <span aria-hidden="true" style={{ display: 'flex', gap: 1.5, overflow: 'hidden' }}>
+                      {elite.map((e, i) => <span key={i} title={rows[i].season} style={{ flex: '0 1 5px', minWidth: 2, height: 4, boxSizing: 'border-box', border: e === null ? `1px solid ${RULE}` : 0, background: e ? c.color : e === false ? '#34312e' : 'transparent' }} />)}
+                    </span>
+                  </span>
+                </>
+              )}
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
-// The stat's group, a squarish chart of percentiles over time for each of its stats (the
-// 50th dashed); one clicked puts its stat up the side, the one up now lit.
+// The stat's group, a chart of percentiles over time for each of its stats (the 50th
+// dashed), the cells sharing whatever height the panel has left so the whole group shows
+// at once; one clicked puts its stat up the side, the one up now lit.
 function StatGrid({ store, group, y, setY, channels, mode, dim }) {
   const at = TIME[mode]
   const cols = useMemo(() => Object.fromEntries(group.stats.map(l => [l, column(store, l, 1, channels.map(c => c.pl))])), [store, group, channels])
@@ -186,19 +191,20 @@ function StatGrid({ store, group, y, setY, channels, mode, dim }) {
   const d0 = xs.length ? Math.min(...xs) : 0
   const d1 = xs.length ? Math.max(...xs) : 1
   const px = v => 4 + ((v - d0) / ((d1 - d0) || 1)) * 92
+  const stats = group.stats.filter(l => store.stats[l] && store.stats[l].since)
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', borderTop: `1px solid ${RULE}`, borderLeft: `1px solid ${RULE}` }}>
-      {group.stats.filter(l => store.stats[l] && store.stats[l].since).map(l => {
+    <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: `repeat(${stats.length > 9 ? 4 : 3}, minmax(0, 1fr))`, gridAutoRows: 'minmax(84px, 1fr)', borderTop: `1px solid ${RULE}` }}>
+      {stats.map(l => {
         const on = l === y
         const why = dim(l)
         return (
           <button key={l} type="button" className="cg-cell" onClick={() => setY(l)} aria-pressed={on} title={why || `Chart ${l}`}
-            style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 10px 8px', border: 0, background: on ? '#3a3734' : 'transparent', boxShadow: `inset -1px -1px 0 ${RULE}${on ? `, inset 0 0 0 1px ${INK}, inset 0 -3px 0 var(--accent)` : ''}`, cursor: 'pointer', textAlign: 'left', opacity: why ? 0.45 : 1 }}>
+            style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0, padding: '8px 9px 7px', border: 0, background: on ? '#3a3734' : 'transparent', boxShadow: `inset -1px -1px 0 ${RULE}${on ? `, inset 0 0 0 1px ${INK}, inset 0 -3px 0 var(--accent)` : ''}`, cursor: 'pointer', textAlign: 'left', opacity: why ? 0.45 : 1 }}>
             <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6, width: '100%' }}>
               <span className="cg-name" style={{ ...label, fontSize: 8.5, color: on ? INK : '#b8b2ab', fontWeight: on ? 700 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</span>
               {on && <span aria-hidden="true" style={{ width: 6, height: 6, flex: 'none', marginTop: 2, background: 'var(--accent)' }} />}
             </span>
-            <svg viewBox="0 0 100 80" preserveAspectRatio="none" aria-hidden="true" style={{ width: '100%', aspectRatio: '5 / 4', display: 'block' }}>
+            <svg viewBox="0 0 100 80" preserveAspectRatio="none" aria-hidden="true" style={{ width: '100%', flex: 1, minHeight: 0, display: 'block' }}>
               <rect x={0} y={0} width={100} height={80} fill="none" stroke={RULE} vectorEffect="non-scaling-stroke" />
               <line x1={0} x2={100} y1={40} y2={40} stroke={EDGE} strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />
               {channels.map((c, j) => {
@@ -329,13 +335,13 @@ export default function Careers() {
 
       {store === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
       {store !== false && (
-        <div className="lb-body">
+        <div className="lb-body" style={{ gridTemplateRows: 'minmax(0, 1fr)' }}>
           <div className="lb-side">
             {store
               ? <CareerChart store={store} x={x} y={y} scale={scale} ys={ys} xs={xs} channels={channels} />
               : <Loader list={prog ? prog.list : []} done={prog ? prog.done : []} />}
           </div>
-          <div className="lb-side cg-scroll" style={{ overflow: 'auto' }}>
+          <div className="lb-side cg-scroll" style={{ overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
             {store && (
               <>
                 <div style={{ ...label, fontSize: 8.5, color: INK, fontWeight: 700, padding: '10px 12px 8px' }}>Peak & prime · {y}</div>
@@ -344,7 +350,6 @@ export default function Careers() {
                 {channels.length
                   ? <StatGrid store={store} group={group} y={y} setY={v => set({ y: v })} channels={channels} mode={path ? 'age' : x} dim={dim} />
                   : <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>Add a player to see his {group.name.toLowerCase()} stats</div>}
-                <div style={{ ...label, fontSize: 7.5, color: FAINT, padding: '10px 12px' }}>{store.rows.length.toLocaleString()} {playoffs ? 'playoff runs' : 'seasons'} · {store.players.length.toLocaleString()} players · {shortYears(store.seasons[0], store.seasons[store.seasons.length - 1])} · {store.groups.flatMap(g => g.stats).filter(has).length} stats</div>
               </>
             )}
           </div>

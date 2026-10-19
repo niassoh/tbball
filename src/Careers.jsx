@@ -15,7 +15,7 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // Career Trajectories: every career on the season boards (1996-97 on; lib/careers.js) at
 // once, any stat up the side and time across (a season, his age, his year of career) or
 // another stat (a career as a path through stat space). Up to four players are channels,
-// A to D, in the four colours of a teenage engineering OP-1's encoders; a channel's colour
+// each in one of the four colours of a teenage engineering OP-1's encoders; a channel's colour
 // is who he is, never better or worse (position says that), so no channel mark here uses
 // the site's blue-good, orange-bad scale. Beside the chart, for the stat on show: each
 // channel's peak and prime, the careers nearest the first channel's by age, and the stat's
@@ -58,8 +58,9 @@ function Face({ pl, size = 22 }) {
   )
 }
 
-// The four channels: fixed slots, so a colour never moves to another player. A filled
-// slot's square is hollow when he has no value in the stat up the side.
+// The four channels: fixed slots, so a colour never moves to another player; each slot is
+// washed in its colour with a solid bar down its left edge. A filled slot's square is
+// hollow when he has no value in the stat up the side.
 function Slots({ slots, store, y, x, playoffs, playerPath, remove, focus }) {
   const k = store ? store.labels.indexOf(y) : -1
   return (
@@ -69,24 +70,25 @@ function Slots({ slots, store, y, x, playoffs, playerPath, remove, focus }) {
         const pl = store && slug ? store.bySlug.get(slug) : null
         const has = pl && k >= 0 && pl.rows.some(r => r.v[k] !== null && r.v[k] !== undefined)
         const note = !slug || !store ? null : !pl ? (playoffs ? 'Not on the playoff boards' : 'Not on the boards') : x === 'age' && !pl.born ? 'No birth date' : x === 'career' && pl.censored ? 'Began before ’97' : null
-        const box = { flex: '1 1 140px', minWidth: 0, height: 34, display: 'flex', alignItems: 'center', gap: 7, padding: '0 8px', boxSizing: 'border-box' }
+        const box = { flex: '1 1 140px', minWidth: 0, height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px 0 0', boxSizing: 'border-box' }
+        const bar = <span style={{ alignSelf: 'stretch', width: 5, flex: 'none', background: color, opacity: slug ? 1 : 0.35 }} />
         if (!slug) {
           return (
             <button key={letter} type="button" onClick={focus} title="Add a player"
-              style={{ ...box, border: `1px dashed ${EDGE}`, background: 'transparent', color: FAINT, fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', cursor: 'pointer' }}>
-              <span style={{ width: 7, height: 7, border: `1px solid ${color}`, opacity: 0.5 }} />{letter} <span>—</span>
+              style={{ ...box, border: `1px dashed ${EDGE}`, background: 'transparent', color: FAINT, fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              {bar}+ Add
             </button>
           )
         }
         return (
-          <span key={letter} style={{ ...box, border: `1px solid ${EDGE}`, boxShadow: `inset 0 -2px 0 ${color}` }}>
-            <span title={has ? undefined : `No ${y}`} style={{ width: 7, height: 7, flex: 'none', border: `1px solid ${color}`, background: has ? color : 'transparent' }} />
-            <span style={{ fontFamily: MONO, fontSize: 10, fontWeight: 700, color: INK }}>{letter}</span>
+          <span key={letter} style={{ ...box, border: `1px solid color-mix(in srgb, ${color} 55%, transparent)`, background: `color-mix(in srgb, ${color} 14%, transparent)` }}>
+            {bar}
+            <span title={has ? undefined : `No ${y}`} style={{ width: 9, height: 9, flex: 'none', border: `1.5px solid ${color}`, background: has ? color : 'transparent' }} />
             <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
               <Link to={playerPath(slug)} style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: INK, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{surname(pl ? pl.name : titled(slug))}</Link>
               {note && <span style={{ ...label, fontSize: 7.5, color: FAINT, whiteSpace: 'nowrap' }}>{note}</span>}
             </span>
-            <button type="button" aria-label={`Remove ${letter}`} onClick={() => remove(i)}
+            <button type="button" aria-label={`Remove ${pl ? pl.name : titled(slug)}`} onClick={() => remove(i)}
               style={{ flex: 'none', width: 18, height: 18, padding: 0, border: 0, background: 'transparent', color: DIM, fontFamily: MONO, fontSize: 13, lineHeight: 1, cursor: 'pointer' }}>×</button>
           </span>
         )
@@ -123,9 +125,8 @@ function Prime({ store, channels, y }) {
     return (
       <div key={`${c.letter}${y}`} style={{ borderBottom: `1px solid ${RULE}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px 6px' }}>
-          <span style={{ width: 7, height: 7, background: c.color }} />
-          <span style={{ fontFamily: MONO, fontSize: 10, fontWeight: 700 }}>{c.letter}</span>
-          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase' }}>{surname(c.pl.name)}</span>
+          <span style={{ width: 9, height: 9, background: c.color }} />
+          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: c.color }}>{surname(c.pl.name)}</span>
           <span style={{ ...label, fontSize: 8, marginLeft: 'auto' }}>{shortYears(rows[0].season, rows[rows.length - 1].season)}{ages.length ? ` · ages ${Math.min(...ages)}–${Math.max(...ages)}` : ''}</span>
         </div>
         {peak === null
@@ -160,7 +161,7 @@ function Nearest({ store, anchor, arcs, skip, add, full }) {
   if (!anchor) return <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>Add a player to find the careers nearest his</div>
   if (!anchor.pl.born) return <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>No birth date on file · nearest arcs need ages</div>
   const mine = arcs.get(anchor.pl.slug)
-  if (!mine) return <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>No values for {anchor.letter} in this stat</div>
+  if (!mine) return <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>No values for {surname(anchor.pl.name)} in this stat</div>
   const near = nearestArcs(arcs, anchor.pl.slug, { skip })
   return near.map(n => {
     const pl = store.bySlug.get(n.slug)
@@ -335,7 +336,7 @@ export default function Careers() {
               <>
                 <div style={{ ...label, fontSize: 8.5, color: INK, fontWeight: 700, padding: '10px 12px 8px' }}>Peak & prime · {y}</div>
                 {channels.length ? <Prime store={store} channels={channels} y={y} /> : <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>Add a player to read his peak</div>}
-                <Head>Nearest to {anchor ? anchor.letter : 'A'} · {y} · by age</Head>
+                <Head>Nearest to {anchor ? <span style={{ color: anchor.color }}>{surname(anchor.pl.name)}</span> : 'your first player'} · {y} · by age</Head>
                 <Nearest store={store} anchor={anchor} arcs={arcs} skip={slots.filter(Boolean)} add={add} full={!slots.includes(null)} />
                 <Head>{group.name} · pctl by {path ? 'age' : x === 'career' ? 'career yr' : x}</Head>
                 {channels.length

@@ -39,6 +39,7 @@ const trimmed = vs => {
   return vs.filter(v => v >= lo && v <= hi)
 }
 const tick = (x, mode) => (mode === 'season' ? `’${String(x).slice(2)}` : String(x))
+const surname = n => n.split(' ').slice(1).join(' ') || n
 const seasonOf = r => `’${r.season.slice(5)}`
 
 // Whole-number ticks a step apart, about one per 56px.
@@ -157,7 +158,7 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
       pts.slice(1).forEach((p, j) => {
         const q = pts[j]
         const near = p.year - q.year === 1
-        out.push(<line key={`${t.letter}s${j}`} x1={q.X} y1={q.Y} x2={p.X} y2={p.Y} stroke={t.color} strokeWidth={1.75} strokeOpacity={near ? 1 : 0.4} strokeDasharray={near ? undefined : '2 3'} />)
+        out.push(<line key={`${t.letter}s${j}`} x1={q.X} y1={q.Y} x2={p.X} y2={p.Y} stroke={t.color} strokeWidth={2.25} strokeOpacity={near ? 1 : 0.4} strokeDasharray={near ? undefined : '2 3'} />)
         // A path's direction, on its longer steps.
         if (path && near && Math.hypot(p.X - q.X, p.Y - q.Y) >= 24) {
           const deg = (Math.atan2(p.Y - q.Y, p.X - q.X) * 180) / Math.PI
@@ -180,7 +181,7 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
         }
       }
     }
-    // Time across: each line's letter at its end, nudged apart.
+    // Time across: each line's surname at its end, in its colour, nudged apart.
     if (!path) {
       const tags = tracks.filter(t => t.pts.length).map(t => {
         const [a, b] = t.pts[t.pts.length - 1]
@@ -189,10 +190,8 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
       tags.forEach((g, j) => { if (j && g.Y - tags[j - 1].Y < 13) g.Y = tags[j - 1].Y + 13 })
       for (const g of tags) {
         out.push(
-          <g key={`${g.t.letter}tag`} transform={`translate(${Math.min(g.X + 7, X1 + 20)} ${g.Y - 6})`}>
-            <rect width={12} height={12} fill={g.t.color} />
-            <text x={6} y={9} textAnchor="middle" style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, fill: '#1f1d1c' }}>{g.t.letter}</text>
-          </g>
+          <text key={`${g.t.letter}tag`} x={g.X + 8} y={g.Y + 3.5} textAnchor={g.X + 8 + 70 > w ? 'end' : 'start'} dx={g.X + 8 + 70 > w ? -16 : 0}
+            style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', fill: g.t.color, paintOrder: 'stroke', stroke: BG, strokeWidth: 3 }}>{surname(g.t.pl.name)}</text>
         )
       }
     }
@@ -230,8 +229,8 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 12px', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap' }}>
         {channels.map(c => (
-          <span key={c.letter} style={{ ...label, display: 'inline-flex', alignItems: 'center', gap: 5, color: INK }}>
-            <span style={{ width: 7, height: 7, background: c.color }} />{c.letter} <span style={{ color: DIM }}>{c.pl.name.split(' ').slice(1).join(' ') || c.pl.name}</span>
+          <span key={c.letter} style={{ ...label, display: 'inline-flex', alignItems: 'center', gap: 6, color: c.color, fontWeight: 700 }}>
+            <span style={{ width: 14, height: 3, background: c.color }} />{surname(c.pl.name)}
           </span>
         ))}
         <span style={{ ...label, marginLeft: 'auto', fontSize: 8 }}>
@@ -293,7 +292,6 @@ export default function CareerChart({ store, x, y, scale, ys, xs, channels }) {
 }
 
 const cardStyle = { background: '#1f1d1c', border: '1px solid #837d76', borderTop: '2px solid #fa962a', boxShadow: '5px 5px 0 rgba(0,0,0,.55)', padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }
-const surname = n => n.split(' ').slice(1).join(' ') || n
 
 // Time across: each channel's season at the x under the pointer, and the league's spread.
 function TimeCard({ store, mode, y, hx, tracks, ys, band, pct }) {
@@ -309,7 +307,7 @@ function TimeCard({ store, mode, y, hx, tracks, ys, band, pct }) {
           <span key={c.letter} style={{ display: 'grid', gridTemplateColumns: '9px minmax(0, 1fr) auto', gap: 6, alignItems: 'baseline' }}>
             <span style={{ width: 7, height: 7, background: c.color }} />
             <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-              <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{surname(c.pl.name)}</span>
+              <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: c.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{surname(c.pl.name)}</span>
               <span style={{ ...label, fontSize: 8 }}>{k < 0 ? '— not on the board' : `${c.pl.rows[k].season.replace('-', '–')} · ${c.pl.rows[k].team}`}</span>
             </span>
             <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 600, color: v === null ? FAINT : INK, textAlign: 'right' }}>
@@ -339,7 +337,7 @@ function PathCard({ store, x, y, hover, xs, ys }) {
     <div style={cardStyle}>
       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ width: 7, height: 7, background: t.color }} />
-        <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: INK }}>{t.pl.name}</span>
+        <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: t.color }}>{t.pl.name}</span>
       </span>
       <span style={{ ...label, fontSize: 8 }}>{[r.season.replace('-', '–'), r.team, r.age !== null && `age ${r.age}`].filter(Boolean).join(' · ')}</span>
       <span style={{ height: 1, background: RULE }} />

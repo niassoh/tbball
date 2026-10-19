@@ -31,6 +31,7 @@ const RULE = '#3d3a37'
 const DEF_LONE = '#b8a1e8'
 const MID = '#b3ada6'
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
+const tone = (v, good) => (v === null || v === undefined ? DIM : v * good >= 0 ? TONES.good : TONES.bad)
 const initialsOf = name => (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 // The medals' colors: gold, silver and bronze for the league's top 1, 2 and 3%.
 const MEDALS = ['#d4af37', '#c3c9cf', '#b8794a']
@@ -576,6 +577,19 @@ function Views({ p, doc, faces }) {
   const offOn = lone && !!picked.off
   const defOn = lone && !!picked.def
   const loneOn = offOn || defOn
+  // His team's points per 100 scored and allowed with him on against the league's (rORTG,
+  // rDRTG), and from him off to on; blue where it helps (more scored, fewer allowed). With
+  // REMOVE BEST, rORTG is its OFFENSE tile's over the minutes the picked stars sit and rDRTG
+  // its DEFENSE tile's over those the picked defender sits; a side with none stays on all
+  // his minutes, dimmed as its row is.
+  const ortg = (offOn && picked.off.tiles.ortg) || fp.ortg
+  const drtg = (defOn && picked.def.tiles.drtg) || fp.drtg
+  const rating = (name, x, good) => (
+    <span>
+      <span style={{ color: DIM }}>ON {name}</span> <span style={{ color: tone(x.r, good) }}>{swingText(x.r)}</span>{' '}
+      <span style={{ color: DIM }}>(</span><span style={{ color: tone(x.on - x.off, good) }}>{swingText(x.on - x.off)}</span><span style={{ color: DIM }}> ON/OFF)</span>
+    </span>
+  )
   const legendKey = { display: 'inline-flex', gap: 6, alignItems: 'center' }
   // A row: TEAM and its word on the left, its tiles side by side, every row on the widest
   // one's columns so the tiles are the same boxes throughout.
@@ -624,6 +638,11 @@ function Views({ p, doc, faces }) {
           ) : (
             <p style={{ margin: 0, maxWidth: '72ch', fontSize: 12, lineHeight: 1.6, color: '#b3ada6', textWrap: 'pretty' }}>in {lastName(p.name)}&apos;s {fp.minutes.on.toLocaleString()} ON court vs {fp.minutes.off.toLocaleString()} OFF</p>
           )}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', fontSize: 11, letterSpacing: '.08em', whiteSpace: 'nowrap' }} title={`His team's points per 100 possessions scored (rORTG) and allowed (rDRTG) with him on, against the league's, and the change from him off to on${loneOn ? `; rORTG over ${offOn ? 'the minutes the picked stars sit' : 'all his minutes'}, rDRTG over ${defOn ? 'the minutes the picked defender sits' : 'all his minutes'}` : ''}`}>
+          {rating('rORTG', ortg, 1)}
+          <span style={{ color: DIM }}>·</span>
+          <span style={{ opacity: loneOn && !defOn ? 0.45 : 1, transition: 'opacity .3s' }}>{rating('rDRTG', drtg, -1)}</span>
         </div>
       </div>
       {/* TEAM MATES, then TEAM OFFENSE, then TEAM DEFENSE, a row each. */}

@@ -54,7 +54,7 @@ deep links (`/player/<slug>`) work on Pages. The daily-refresh plan is in thinki
 
 - `src/lib/` — pure logic ported from the design (percentile colors, chart geometry, shot-zone map) and season-span averages (`span.js`: minutes-weighted, shooting % attempts-weighted; used by the stat tables' drag-to-average and career rows); unit tested.
 - `src/components/` — one component per design section.
-- Routes: `/` player search, `/player/:slug` profile, `/leaderboard` leaderboard, `/careers` career trajectories.
+- Routes: `/` player search, `/player/:slug` profile, `/leaderboard` leaderboard, `/careers` career trajectories (not linked from the site yet; reach it by URL).
 - `/careers` builds every career from the 30 season boards (`lib/careers.js`, once a session per season type, about 2 MB gzipped). Its state lives in the URL: `?p=slug,slug,slug&x=age|season|career&y=<stat>&scale=pctl&smooth=3` (defaults left out), plus `?playoffs`.
 
 ## Differences from the design reference
@@ -62,5 +62,5 @@ deep links (`/player/<slug>`) work on Pages. The daily-refresh plan is in thinki
 - The shift card ("Recent Shift") uses **the last 30 days of the season vs. the rest** (one league-wide window), not last 15 games; the subheader shows how many games that is for the player.
 - The Career "Gravity" cell shows ORTG On / DRTG On per season (the data the handoff specifies); the design's rim-points copy and hard-coded historical peaks are not used.
 - WOWY covers the latest season with the current team rather than career.
-- Careers (not in the design reference): up to six players: the first is green, the rest quieter white, lilac, sand, sage and rose, all kept clear of the site's blue (better), orange (worse) and the playoffs' gold. A colour names a player, not better/worse; better is shown by position only, and the league band is neutral grey. Its 3Y smoothing is centred (a season and those either side), unlike the profile's trailing ROLLING 3-YR, so peaks stay in their year. Ages come from birth dates only, so players without one (mostly pre-1996 careers and this season's rookies) are left out of the age view; careers already under way in 1996-97 have no year of career.
+- Careers (not in the design reference): up to six players: the first is green, the rest quieter white, lilac, sand, teal and rose, all kept clear of the site's blue (better), orange (worse) and the playoffs' gold. A colour names a player, not better/worse; better is shown by position only, and the league band is neutral grey. Its 3Y smoothing is centred (a season and those either side), unlike the profile's trailing ROLLING 3-YR, so peaks stay in their year. Ages come from birth dates only, so players without one (mostly pre-1996 careers and this season's rookies) are left out of the age view; careers already under way in 1996-97 have no year of career.
 - Draft and jersey number are omitted from the bio line; stats without a data source (Matchup DFG% Diff, Pts / 100 Allowed) are hidden.

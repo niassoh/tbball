@@ -53,14 +53,17 @@ function Name({ text, query, whole = false }) {
 // the viewed player's depth slot there, like the team switcher (from Jokic, the
 // starting C, "lakers" opens the Lakers' starting C). "/" focuses it from anywhere.
 // `sheet`: the phone's full-screen search (TopBar), focused on opening, its results
-// always shown under it, `onPick` called when one is picked.
-export default function PlayerSearch({ profile, sheet = false, onPick }) {
+// always shown under it, `onPick` called when one is picked. `onChoose(slug)`: players only,
+// handed to it rather than opened (Careers' channels), the field reading `placeholder` and
+// focusable from outside through `inputRef`.
+export default function PlayerSearch({ profile, sheet = false, onPick, onChoose, placeholder = 'SEARCH PLAYERS/TEAMS', disabled = false, inputRef }) {
   const [players, setPlayers] = useState(null)
   const [teams, setTeams] = useState(null)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
-  const input = useRef(null)
+  const own = useRef(null)
+  const input = inputRef || own
   const navigate = useNavigate()
   const { playerPath } = useSeasonType()
 
@@ -73,10 +76,10 @@ export default function PlayerSearch({ profile, sheet = false, onPick }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [input])
   useEffect(() => {
     if (sheet) input.current?.focus()
-  }, [sheet])
+  }, [sheet, input])
 
   // The index and team list are fetched on first focus, not on every profile load.
   const load = () => {
@@ -84,7 +87,7 @@ export default function PlayerSearch({ profile, sheet = false, onPick }) {
     if (!teams) loadTeams().then(setTeams).catch(() => {})
   }
   const slot = (profile && depthSlot(profile.depth, profile.slug)) || { pos: (profile && profile.bio.position) || 'PG', index: 0 }
-  const teamRows = teams ? searchTeams(teams, query, MAX_TEAMS).map(t => {
+  const teamRows = teams && !onChoose ? searchTeams(teams, query, MAX_TEAMS).map(t => {
     const current = profile && t.team === profile.team
     return { key: `team-${t.team}`, team: t, current, fit: current ? null : bestFit(slot, t.depth) }
   }).filter(r => r.current || r.fit) : []
@@ -96,7 +99,8 @@ export default function PlayerSearch({ profile, sheet = false, onPick }) {
     setOpen(false)
     input.current?.blur()
     const slug = r.player ? r.player.slug : r.fit && r.fit.player.slug
-    if (slug) navigate(playerPath(slug))
+    if (slug && onChoose) onChoose(slug)
+    else if (slug) navigate(playerPath(slug))
     onPick?.()
   }
   const onKeyDown = e => {
@@ -120,8 +124,9 @@ export default function PlayerSearch({ profile, sheet = false, onPick }) {
           onFocus={() => { load(); setOpen(true) }}
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onKeyDown={onKeyDown}
-          placeholder="SEARCH PLAYERS/TEAMS"
-          aria-label="Search players or teams"
+          placeholder={placeholder}
+          disabled={disabled}
+          aria-label={onChoose ? 'Add a player' : 'Search players or teams'}
           className="player-search"
           style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#ece8e3', fontFamily: MONO, fontSize: 11, letterSpacing: '.08em', padding: '8px 8px' }}
         />

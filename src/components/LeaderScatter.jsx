@@ -33,21 +33,26 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM
 const M = { l: 30, r: 14, t: 16, b: 30 }
 
 // The stats a board can chart: those with values in it (the last 30 days leave some out).
-function AxisPicker({ doc, axis, value, set }) {
+// `dim(label)`: a reason a stat is faint (Careers: none of the picked players has it),
+// still pickable; `accent`: the box's edge colour.
+export function AxisPicker({ doc, axis, value, set, dim, accent }) {
   const charted = l => !doc.stats[l].na && doc.players.some(p => valueOf(doc, p, l) !== null)
   const groups = doc.groups.map(g => ({ ...g, stats: g.stats.filter(charted) })).filter(g => g.stats.length)
   return (
-    <Popover name={`${axis} axis: ${value}`} minWidth={300} trigger={<><span style={{ ...label, fontWeight: 400 }}>{axis}</span>{value}</>}>
+    <Popover name={`${axis} axis: ${value}`} minWidth={300} accent={accent} trigger={<><span style={{ ...label, fontWeight: 400 }}>{axis}</span>{value}</>}>
       {close => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 460 }}>
           {groups.map(g => (
             <div key={g.id} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <span style={{ ...label, fontSize: 8, color: FAINT }}>{g.name}</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {g.stats.map(l => (
-                  <button key={l} type="button" className="lb-chip" onClick={() => { set(l); close() }}
-                    style={{ padding: '3px 6px', border: `1px solid ${l === value ? INK : EDGE}`, background: l === value ? '#3a3734' : 'transparent', color: l === value ? INK : '#b8b2ab', fontFamily: MONO, fontSize: 10, cursor: 'pointer' }}>{l}</button>
-                ))}
+                {g.stats.map(l => {
+                  const why = dim && l !== value ? dim(l) : null
+                  return (
+                    <button key={l} type="button" className="lb-chip" title={why || undefined} onClick={() => { set(l); close() }}
+                      style={{ padding: '3px 6px', border: `1px ${why ? 'dashed' : 'solid'} ${l === value ? INK : EDGE}`, background: l === value ? '#3a3734' : 'transparent', color: l === value ? INK : why ? FAINT : '#b8b2ab', fontFamily: MONO, fontSize: 10, cursor: 'pointer' }}>{l}</button>
+                  )
+                })}
               </div>
             </div>
           ))}

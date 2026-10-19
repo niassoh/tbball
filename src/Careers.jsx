@@ -15,9 +15,9 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // Career Trajectories: every career on the season boards (1996-97 on; lib/careers.js) at
 // once, any stat up the side and time across (a season, his age, his year of career) or
 // another stat (a career as a path through stat space). Up to four players are channels,
-// each in one of the four colours of a teenage engineering OP-1's encoders; a channel's colour
-// is who he is, never better or worse (position says that), so no channel mark here uses
-// the site's blue-good, orange-bad scale. Beside the chart, for the stat on show: each
+// each in a colour of its own; a channel's colour is who he is, never better or worse
+// (position says that), so the channels keep clear of the site's blue (better), orange
+// (worse) and the playoffs' gold. Beside the chart, for the stat on show: each
 // channel's peak and prime, the careers nearest the first channel's by age, and the stat's
 // group as small charts that put any of its stats up the side. All of it lives in the URL
 // (?p=slug,slug,,slug&x=age&y=BPM&scale=pctl&smooth=3), so a view is a link.
@@ -28,7 +28,7 @@ const RULE = '#3d3a37'
 const EDGE = '#544f4b'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
-const CHANNELS = [['A', '#8fb0e6'], ['B', '#97c197'], ['C', '#ece8e3'], ['D', '#fa962a']]
+const CHANNELS = [['A', '#ece8e3'], ['B', '#97c197'], ['C', '#c4a1ec'], ['D', '#e48ab8']]
 const TRY = ['lebron-james', 'stephen-curry', 'nikola-jokic', 'tim-duncan']
 const X_MODES = [['season', 'Season'], ['age', 'Age'], ['career', 'Career yr']]
 const SMOOTH = [['1', '1Y'], ['3', '3Y']]

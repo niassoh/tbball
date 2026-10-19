@@ -286,7 +286,6 @@ export default function PlayerIndex() {
         <input ref={search} className="idx-input" aria-label="Search players" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search" spellCheck={false}
           style={{ flex: 1, minWidth: 0, padding: '18px 0', background: 'transparent', border: 'none', color: INK, fontFamily: MONO, fontSize: 'clamp(16px, 2vw, 22px)', letterSpacing: '.02em', outline: 'none', caretColor: 'var(--accent)' }} />
         <Link to="/careers" style={{ ...label, flex: 'none', color: INK, border: `1px solid ${EDGE}`, padding: '7px 10px' }}>Careers →</Link>
-        <Link to="/leaderboard" style={{ ...label, flex: 'none', color: INK, border: `1px solid ${EDGE}`, padding: '7px 10px' }}>Leaderboard →</Link>
       </div>
       <div className="idx-logos-wrap" style={{ padding: '12px 0 4px' }}>
         <div role="group" aria-label="Filter by team" className="idx-logos">

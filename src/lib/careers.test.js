@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TIME, careersOf, column, envelope, peakOf } from './careers.js'
+import { TIME, careersOf, column, domainOf, envelope, middle98, peakOf } from './careers.js'
 
 const STATS = { BPM: { dec: 1 }, 'C&S 3%': { dec: 1 }, 'C&S 3s/36': { dec: 1 }, '1yr C&S 3%': { dec: 1 } }
 const LABELS = ['BPM', 'C&S 3%', 'C&S 3s/36', '1yr C&S 3%']
@@ -125,5 +125,20 @@ describe('peakOf', () => {
     expect(peakOf(s, a, 'BPM').elite).toEqual([false, true, true, null, false])
     const t = careersOf([doc('2010-11', [['b', null, 900, [1], [50]]], ['BPM'])])
     expect(peakOf(t, t.players[0], 'BPM').run).toBeNull()
+  })
+})
+
+describe('axes', () => {
+  it('keeps the middle 98% of the values', () => {
+    const vs = Array.from({ length: 101 }, (_, i) => i)
+    expect(middle98(vs)).toEqual(vs.slice(1, 100))
+  })
+
+  it('spans the players, eight years at least, inside the league', () => {
+    const league = Array.from({ length: 24 }, (_, i) => 19 + i)
+    expect(domainOf([25, 31], league)).toEqual([25, 33])
+    expect(domainOf([20, 22], league)).toEqual([20, 28])
+    expect(domainOf([40, 41], league)).toEqual([34, 42])
+    expect(domainOf([], league)).toEqual([19, 42])
   })
 })

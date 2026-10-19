@@ -138,3 +138,28 @@ export const peakOf = (store, player, label) => {
   }
   return { peak, run, elite: rows.map(r => (pc(r) === null ? null : pc(r) >= 90)) }
 }
+
+// A raw axis's values: the league's middle 98%, so a handful of extreme seasons don't
+// squeeze every career into the middle of the frame (they run off its edge instead).
+export const middle98 = vs => {
+  const lo = quantile(vs, 0.01)
+  const hi = quantile(vs, 0.99)
+  return vs.filter(v => v >= lo && v <= hi)
+}
+
+// The years a time chart spans: the shown players' (`mine`; the league's when there are
+// none), eight at least, never past the league's own (no age 18 when no one on the boards
+// was 18), edge to edge.
+export const domainOf = (mine, league) => {
+  const xs = mine.length ? mine : league
+  if (!xs.length) return [0, 1]
+  const lo = Math.min(...league)
+  const hi = Math.max(...league)
+  let d0 = Math.max(lo, Math.min(...xs))
+  let d1 = Math.min(hi, Math.max(...xs))
+  if (d1 - d0 < 8) {
+    d1 = Math.min(hi, d0 + 8)
+    d0 = Math.max(lo, d1 - 8)
+  }
+  return [d0, d1]
+}

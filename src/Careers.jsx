@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardSeasons, headshotUrl } from './api.js'
-import { TIME, careersOf, column, peakOf } from './lib/careers.js'
+import { TIME, careersOf, column, domainOf, middle98, peakOf } from './lib/careers.js'
+import { axisOf } from './lib/leaderboard.js'
 import { MONO, fmt } from './lib/format.js'
 import { withMode } from './lib/mode.js'
 import { initials } from './lib/teams.js'
@@ -195,18 +196,26 @@ function Prime({ store, channels, y }) {
   )
 }
 
-// The stat's group, a chart of percentiles over time for each of its stats (3-season
-// averages, the 50th dashed, the first player on top), the cells sharing whatever height the panel has left so the whole group shows
-// at once; one clicked puts its stat up the side, the one up now lit.
-function StatGrid({ store, group, y, setY, channels, mode, dim }) {
+// The stat's group, each of its stats a small copy of the main chart: the same scale (raw
+// or percentiles), smoothing, years across and axis (lib/careers.js middle98: the league's
+// middle 98% with the players' own seasons kept in), the league's median dashed, a season
+// off the board a break. The cells share whatever height the panel has left, so the whole
+// group shows at once; one clicked puts its stat up the side, the one up now lit.
+function StatGrid({ store, group, y, setY, channels, mode, scale, smooth, dim }) {
   const at = TIME[mode]
-  // Three-season centred averages: a season's percentile alone jumps too much to read small.
-  const cols = useMemo(() => Object.fromEntries(group.stats.map(l => [l, column(store, l, 3, channels.map(c => c.pl))])), [store, group, channels])
-  const xs = channels.flatMap(c => c.pl.rows.map(at)).filter(v => v !== null)
-  const d0 = xs.length ? Math.min(...xs) : 0
-  const d1 = xs.length ? Math.max(...xs) : 1
-  const px = v => 4 + ((v - d0) / ((d1 - d0) || 1)) * 92
+  const pct = scale === 'pctl'
   const stats = group.stats.filter(l => store.stats[l] && store.stats[l].since)
+  const cols = useMemo(() => Object.fromEntries(stats.map(l => [l, column(store, l, smooth, channels.map(c => c.pl))])), [store, group, channels, smooth]) // eslint-disable-line react-hooks/exhaustive-deps -- stats is group's
+  const axes = useMemo(() => Object.fromEntries(stats.map(l => {
+    if (pct) return [l, v => v / 100]
+    const k = store.labels.indexOf(l)
+    const mine = cols[l].flatMap(c => c.v).filter(v => v !== null)
+    return [l, axisOf([...middle98(store.rows.map(r => r.v[k]).filter(v => v !== null && v !== undefined)), ...mine], store.stats[l].lowerBetter).pos]
+  })), [store, cols, pct]) // eslint-disable-line react-hooks/exhaustive-deps -- stats is cols' keys
+  const league = useMemo(() => store.rows.map(at).filter(v => v !== null), [store, at])
+  const [d0, d1] = domainOf(channels.flatMap(c => c.pl.rows.map(at)).filter(v => v !== null), league)
+  const px = v => ((v - d0) / ((d1 - d0) || 1)) * 100
+  const py = (l, v) => 78 - Math.max(0, Math.min(1, axes[l](v))) * 76
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: `repeat(${stats.length > 9 ? 4 : 3}, minmax(0, 1fr))`, gridAutoRows: 'minmax(84px, 1fr)', borderTop: `1px solid ${RULE}` }}>
       {stats.map(l => {
@@ -223,8 +232,19 @@ function StatGrid({ store, group, y, setY, channels, mode, dim }) {
               <rect x={0} y={0} width={100} height={80} fill="none" stroke={RULE} vectorEffect="non-scaling-stroke" />
               <line x1={0} x2={100} y1={40} y2={40} stroke={EDGE} strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />
               {channels.map((c, j) => [c, j]).reverse().map(([c, j]) => {
-                const pts = c.pl.rows.map((r, k) => [at(r), cols[l][j].p[k]]).filter(([a, b]) => a !== null && b !== null)
-                return <polyline key={c.letter} points={pts.map(([a, b]) => `${px(a)},${76 - b * 0.72}`).join(' ')} fill="none" stroke={c.color} strokeWidth={j ? 1 : 2} strokeOpacity={j ? 0.55 : 1} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                const vals = pct ? cols[l][j].p : cols[l][j].v
+                // Runs of consecutive years, each its own line.
+                const runs = []
+                c.pl.rows.forEach((r, k) => {
+                  if (at(r) === null || vals[k] === null) return
+                  const run = runs[runs.length - 1]
+                  const pt = [at(r), vals[k]]
+                  if (run && pt[0] - run[run.length - 1][0] === 1) run.push(pt)
+                  else runs.push([pt])
+                })
+                return runs.map((run, n) => (
+                  <polyline key={`${c.letter}${n}`} points={run.map(([a, b]) => `${px(a)},${py(l, b)}`).join(' ')} fill="none" stroke={c.color} strokeWidth={j ? 1.25 : 2} strokeOpacity={j ? 0.7 : 1} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                ))
               })}
             </svg>
           </button>
@@ -346,9 +366,9 @@ export default function Careers() {
               <>
                 <div style={{ ...label, fontSize: 8.5, color: INK, fontWeight: 700, padding: '10px 12px 8px' }}>Peak & prime · {y}</div>
                 {channels.length ? <Prime store={store} channels={channels} y={y} /> : <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>Add a player to read his peak</div>}
-                <Head>{group.name} · pctl by {x === 'career' ? 'career yr' : x}</Head>
+                <Head>{group.name} · {scale === 'pctl' ? 'pctl' : 'raw'} by {x === 'career' ? 'career yr' : x}{smooth === 3 ? ' · 3Y' : ''}</Head>
                 {channels.length
-                  ? <StatGrid store={store} group={group} y={y} setY={v => set({ y: v })} channels={channels} mode={x} dim={dim} />
+                  ? <StatGrid store={store} group={group} y={y} setY={v => set({ y: v })} channels={channels} mode={x} scale={scale} smooth={smooth} dim={dim} />
                   : <div style={{ ...label, fontSize: 8, color: FAINT, padding: '0 12px 10px' }}>Add a player to see his {group.name.toLowerCase()} stats</div>}
               </>
             )}

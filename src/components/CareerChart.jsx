@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { MONO, fmt, ord } from '../lib/format.js'
-import { TIME, envelope } from '../lib/careers.js'
-import { axisOf, median, quantile } from '../lib/leaderboard.js'
+import { TIME, domainOf, envelope, middle98 } from '../lib/careers.js'
+import { axisOf, median } from '../lib/leaderboard.js'
 
 // Careers' chart, time across (a season, his age or his year of career): every career on
 // the boards a faint line painted on one canvas, the league's 10th–90th percentile band
@@ -26,13 +26,6 @@ const CARD_W = 236
 const DOCK = 520
 const X_NAMES = { season: 'Season', age: 'Age', career: 'Year of career' }
 const BAND_AT = { season: 'each season', age: 'each age', career: 'each year of career' }
-// A raw axis over the league's middle 98%: a handful of extreme seasons would otherwise
-// squeeze every career into the middle of the frame (they run off its edge instead).
-const trimmed = vs => {
-  const lo = quantile(vs, 0.01)
-  const hi = quantile(vs, 0.99)
-  return vs.filter(v => v >= lo && v <= hi)
-}
 const tick = (x, mode) => (mode === 'season' ? `’${String(x).slice(2)}` : String(x))
 const surname = n => n.split(' ').slice(1).join(' ') || n
 
@@ -67,7 +60,7 @@ export default function CareerChart({ store, x, y, scale, ys, channels }) {
     const all = lines.flat()
     return {
       lines,
-      ly: trimmed(all.map(p => p[1])),
+      ly: middle98(all.map(p => p[1])),
       yMid: pct ? 50 : median(all.map(p => p[1])),
       band: envelope(all)
     }
@@ -80,23 +73,10 @@ export default function CareerChart({ store, x, y, scale, ys, channels }) {
     return { ya: axisOf([...field.ly, ...channels.flatMap(c => field.lines[c.pl.i]).map(p => p[1])], sy.lowerBetter) }
   }, [field, channels, pct, sy])
 
-  // Across: the channels' span (eight years at least), or the band's, never past the
-  // league's own (no age 18 when no one on the boards was 18). The data runs edge to edge
-  // of the frame.
+  // Across: the channels' years (lib/careers.js domainOf), or the band's.
   const domain = useMemo(() => {
-    const xsOn = channels.flatMap(c => field.lines[c.pl.i].map(p => p[0]))
-    const xsAll = xsOn.length ? xsOn : field.band.map(b => b.x)
-    if (!xsAll.length) return [0, 1]
-    const league = field.lines.flat().map(p => p[0])
-    const lo = Math.min(...league)
-    const hi = Math.max(...league)
-    let d0 = Math.max(lo, Math.min(...xsAll))
-    let d1 = Math.min(hi, Math.max(...xsAll))
-    if (d1 - d0 < 8) {
-      d1 = Math.min(hi, d0 + 8)
-      d0 = Math.max(lo, d1 - 8)
-    }
-    return [d0, d1]
+    const mine = channels.flatMap(c => field.lines[c.pl.i].map(p => p[0]))
+    return domainOf(mine.length ? mine : field.band.map(b => b.x), field.lines.flat().map(p => p[0]))
   }, [channels, field])
 
   const X0 = M.l

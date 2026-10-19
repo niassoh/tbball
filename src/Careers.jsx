@@ -28,7 +28,9 @@ const RULE = '#3d3a37'
 const EDGE = '#544f4b'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
-const CHANNELS = [['A', '#ece8e3'], ['B', '#97c197'], ['C', '#c4a1ec'], ['D', '#c9b994']]
+// The first player, the one the page is about, in the site's green at full strength; the
+// others he's compared with in quieter tones, so he leads.
+const CHANNELS = [['A', '#97c197'], ['B', '#c9c3bc'], ['C', '#a898c4'], ['D', '#b3a888']]
 const TRY = ['lebron-james', 'stephen-curry', 'nikola-jokic', 'tim-duncan']
 const X_MODES = [['season', 'Season'], ['age', 'Age'], ['career', 'Career yr']]
 const SMOOTH = [['1', '1Y'], ['3', '3Y']]
@@ -94,7 +96,7 @@ function Slots({ slots, store, y, x, playoffs, playerPath, remove, pick, target 
           )
         }
         return (
-          <span key={letter} style={{ ...box, border: `1px solid ${target === i ? color : `color-mix(in srgb, ${color} 55%, transparent)`}`, background: `color-mix(in srgb, ${color} ${target === i ? 26 : 14}%, transparent)` }}>
+          <span key={letter} style={{ ...box, border: `1px solid ${target === i ? color : `color-mix(in srgb, ${color} ${i ? 35 : 55}%, transparent)`}`, background: `color-mix(in srgb, ${color} ${target === i ? 22 : i ? 7 : 14}%, transparent)` }}>
             {bar}
             {pl && <Face pl={pl} size={24} />}
             <span title={has ? undefined : `No ${y}`} style={{ width: 9, height: 9, flex: 'none', border: `1.5px solid ${color}`, background: has ? color : 'transparent' }} />

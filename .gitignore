@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# The data: exported in CI from thinking-bball (.github/workflows/pages.yml); locally by
+# its `npm run export:static -- --out <this repo>/public`
+public/api/
+public/assets/players/

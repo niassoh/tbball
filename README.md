@@ -47,7 +47,8 @@ npx vite preview --base /tbball/
 
 Pushing `main` runs `.github/workflows/pages.yml`, which tests, checks out thinking-bball
 with a read-only deploy key (secret `BACKEND_DEPLOY_KEY`), exports its data into `public/`
-as above, builds and publishes to https://niassoh.github.io/tbball/ (repo `niassoh/tbball`).
+as above (not committed here: `.gitignore`), builds and publishes to
+https://niassoh.github.io/tbball/ (repo `niassoh/tbball`).
 thinking-bball's nightly run dispatches it after committing new data (its
 `docs/daily-pipeline-requirements.md`). `dist/404.html` is a copy of the app so deep links
 (`/player/<slug>`) work on Pages.

@@ -403,13 +403,18 @@ function CareerShift({ profile: p, season: k, active = false }) {
 export default function RecentShift({ profile: p, season }) {
   if (p.seasonType === 'playoffs') return <PlayoffShift profile={p} season={season} />
   if (p.active === false) return <CareerShift profile={p} season={season} />
-  // An active player's past season: his career view; his latest, the last 30 days.
-  if (season !== p.seasons.findLastIndex(x => !x.empty) && p.seasons[season].career) return <CareerShift profile={p} season={season} active />
+  // An active player's past season, or his latest while he's yet to play in the season
+  // being played (last season's players count as active in its first weeks): his career
+  // view; otherwise the last 30 days.
+  const playing = !p.recentShift || p.recentShift.season === p.seasons[season].season
+  if ((season !== p.seasons.findLastIndex(x => !x.empty) || !playing) && p.seasons[season].career) return <CareerShift profile={p} season={season} active />
   const games = p.gameLog && p.gameLog.recent ? p.gameLog.recent.games : null
   // Not in the pull, which keeps only players over the sheet's minutes floor: for the
   // season (no game log, so no shot data either), or, scaled to each window, in both
   // the last 30 days and the rest of the season. The window label says why on hover.
   const unqualified = games !== 0 && !p.recentShift
+  // Under 30 days in, there's no rest of the season to set the window against.
+  const young = !!p.recentShift && !p.recentShift.window.restEnd
   const whyUnqualified = games === null
     ? 'Too few minutes this season to qualify'
     : 'Too few minutes in the last 30 days or the rest of the season to qualify'
@@ -423,12 +428,12 @@ export default function RecentShift({ profile: p, season }) {
           </span>
         </div>
       </div>
-      {games === 0 || unqualified
-        ? <EmptyStats reason={games === 0 ? 'NO GAMES IN THE LAST 30 DAYS' : 'NOT QUALIFIED'} />
+      {young || games === 0 || unqualified
+        ? <EmptyStats reason={young ? 'SEASON UNDER 30 DAYS OLD' : games === 0 ? 'NO GAMES IN THE LAST 30 DAYS' : 'NOT QUALIFIED'} />
         : <CoreStats profile={p} shift={p.recentShift} />}
-      {games !== 0 && p.shotShift
+      {!young && games !== 0 && p.shotShift
         ? <ShotMap shotShift={p.shotShift} divided />
-        : <EmptyShotMap reason={games === 0 ? 'NO RECENT SHOTS' : 'NOT QUALIFIED'} divided />}
+        : <EmptyShotMap reason={young ? 'SEASON UNDER 30 DAYS OLD' : games === 0 ? 'NO RECENT SHOTS' : 'NOT QUALIFIED'} divided />}
     </div>
   )
 }

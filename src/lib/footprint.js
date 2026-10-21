@@ -77,23 +77,3 @@ export const topPlaceOf = e => (e.rank && e.rank[0] <= TOP_PLACES ? { place: e.r
 // A place among the league's 10 worst, in words: "LEAGUE WORST", "2ND WORST".
 export const worstText = place => (place === 1 ? 'LEAGUE WORST' : `${ordinal(place)} WORST`)
 
-// An all-timer whose whole career is on the boards: three or more All-NBA teams, and a
-// debut of 1997-98 or later (the boards begin in 1996-97, so a career already under way
-// then is cut short). His debut is the earliest season he was on a team (the bio's teams
-// by season reach back before the boards; his profile's seasons don't).
-export const ALL_NBA_LEAST = 3
-export const FIRST_FULL = '1997-98'
-export const isModernGreat = profile => {
-  const a = profile.awards || {}
-  const teams = ['allnba1', 'allnba2', 'allnba3'].reduce((n, k) => n + (a[k] ? a[k].length : 0), 0)
-  const seasons = [...Object.keys((profile.bio && profile.bio.teamsBySeason) || {}), ...profile.seasons.map(s => s.season)]
-  return teams >= ALL_NBA_LEAST && seasons.length > 0 && seasons.every(s => s >= FIRST_FULL)
-}
-
-// The view of `n` seasons where his team swung most with him on: its offensive rating's
-// on/off change less its defensive rating's (more scored, fewer allowed), the headline of
-// a footprint. Null when he has no such view.
-export const netSwing = v => (v.ortg.on - v.ortg.off) - (v.drtg.on - v.drtg.off)
-export const bestSpan = (views, n = 3) => views
-  .filter(v => v.seasons.length === n && v.ortg && v.drtg && [v.ortg.on, v.ortg.off, v.drtg.on, v.drtg.off].every(x => x !== null && x !== undefined))
-  .reduce((best, v) => (!best || netSwing(v) > netSwing(best) ? v : best), null)

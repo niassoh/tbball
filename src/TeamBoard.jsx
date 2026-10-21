@@ -8,7 +8,7 @@ import { placeOf, tiedOf } from './lib/teamboard.js'
 import ModeSwitch from './components/ModeSwitch.jsx'
 import TeamScatter from './components/TeamScatter.jsx'
 
-// The Team board: the 30 teams' 2025-26 from the team sheet (thinking-bball
+// The Team board: the 30 teams' 2026-27 from the team sheet (thinking-bball
 // lib/teamboard.js), one screen like the Leaderboard (index.css .lb): ORTG against DRTG on
 // the left, each team its logo, and a table on the right of the picked group's stats (the
 // sheet's own categories: Overview, Playtype, Offense, Defense, Home-Away, v Good/Bad, O
@@ -16,7 +16,7 @@ import TeamScatter from './components/TeamScatter.jsx'
 // shaded by its percentile among the 30 (blue above the middle, orange below, a style stat
 // in grey), RAW its value or RANK its place among the 30, the league's average along the foot. The team under the pointer in either is lit
 // in the other.
-const SEASON = '2025-26'
+const SEASON = '2026-27'
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'

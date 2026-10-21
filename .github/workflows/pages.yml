@@ -1,5 +1,7 @@
-# Builds the static site (data from public/, exported by thinking-bball's
-# `npm run export:static`) and publishes it to GitHub Pages on every push to main.
+# Builds the static site and publishes it to GitHub Pages: on every push to main, and when
+# thinking-bball's nightly run has committed new data (it dispatches this workflow). The
+# data (public/api and the headshots) is exported here from that repo's data/, which the
+# deploy key in secret BACKEND_DEPLOY_KEY reads.
 name: Deploy to GitHub Pages
 
 on:
@@ -26,12 +28,25 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Before the backend is checked out into backend/, where vitest would find its tests.
       - run: npm test
+      - uses: actions/checkout@v4
+        with:
+          repository: niassoh/thinking-bball
+          ssh-key: ${{ secrets.BACKEND_DEPLOY_KEY }}
+          path: backend
+      - run: npm ci --prefix backend
+        env:
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: '1'
+      - run: node backend/scripts/export-static.js --out public
       - run: npm run build
         env:
           VITE_STATIC: '1'
           VITE_BASE: /${{ github.event.repository.name }}/
-          VITE_DATA_VERSION: ${{ github.sha }}
+          # Each deploy's data is new even when the app's commit isn't.
+          VITE_DATA_VERSION: ${{ github.run_id }}
+      # Pages publishes a site of up to 1 GB.
+      - run: test "$(du -sm --apparent-size dist | cut -f1)" -lt 950
       # Pages has no SPA fallback: its 404 page is the app, so deep links
       # (/player/<slug>) load and the router takes over.
       - run: cp dist/index.html dist/404.html

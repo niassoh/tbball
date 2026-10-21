@@ -1,7 +1,17 @@
 import { describe, expect, test } from 'vitest'
-import { emptyNote, seasonsBetween, shortSeason, spanId, spanText } from './seasons.js'
+import { emptyNote, openingSeasons, seasonsBetween, shortSeason, spanId, spanText } from './seasons.js'
 
 describe('seasons', () => {
+  test('a card opens on his last three seasons until he has 500 minutes in the latest, then his last two', () => {
+    const his = ['2023-24', '2024-25', '2025-26', '2026-27']
+    const p = mp => ({ seasons: [{ season: '2025-26', mp: 2400 }, { season: '2026-27', mp }] })
+    expect(openingSeasons(p(36), his)).toEqual(['2024-25', '2025-26', '2026-27'])
+    expect(openingSeasons(p(500), his)).toEqual(['2025-26', '2026-27'])
+    // No row for the latest (under the sheet's floor) counts as under 500.
+    expect(openingSeasons({ seasons: [] }, his)).toEqual(['2024-25', '2025-26', '2026-27'])
+    expect(openingSeasons(p(36), ['2026-27'])).toEqual(['2026-27'])
+  })
+
   test('an empty season says whether he played under the floor or not at all', () => {
     // Rondo's two games for Dallas in the 2015 playoffs: 37 minutes, under the sheet's 50.
     expect(emptyNote({ card: { lineups: { on: { minutes: 37 } } } }, 'playoffs')).toBe('37 MIN · UNDER THE 50-MIN FLOOR')

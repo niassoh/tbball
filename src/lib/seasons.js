@@ -10,6 +10,12 @@ export const seasonsBetween = (first, last) => Array.from({ length: Number(last.
 })
 export const spanText = (from, to) => (from === to ? from : `${from} → ${to}`).replace(/-/g, '–')
 export const spanId = (from, to) => (from === to ? from : `${from}..${to}`)
+// The seasons a card opens on: his last three while he has under 500 minutes in the latest
+// (a season just begun, its few games pooled with the two before), then his last two.
+export const openingSeasons = (p, seasons) => {
+  const latest = p.seasons.find(s => s.season === seasons[seasons.length - 1])
+  return seasons.slice(latest && latest.mp >= 500 ? -2 : -3)
+}
 
 // Why a profile's season has none of its type's values (`empty`): he played under the
 // sheet's minutes floor (his lineups that season have him on the floor), or not at all. A

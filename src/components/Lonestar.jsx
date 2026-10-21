@@ -3,7 +3,7 @@ import { fetchLonestar, headshotUrl } from '../api.js'
 import { seasonAges } from '../lib/age.js'
 import { MONO } from '../lib/format.js'
 import { STATS, change, lastName, namesText, posOf, seasonRanges, starsText, toneOf, value } from '../lib/lonestar.js'
-import { seasonsBetween, spanId, spanText } from '../lib/seasons.js'
+import { openingSeasons, seasonsBetween, spanId, spanText } from '../lib/seasons.js'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import ModeSwitch from './ModeSwitch.jsx'
 import Popover from './Popover.jsx'
@@ -452,13 +452,14 @@ export default function Lonestar({ profile: p }) {
 }
 
 function Frame({ p, ls }) {
-  // The span first (his last two seasons, or the first with something to offer), then the
+  // The span first (his opening seasons, lib/seasons.js, or the first with something to offer), then the
   // scenario within it. A season or span with nothing to offer has no view: the module says
   // so in place of its body.
   const viewOf = (from, to) => ls.views.find(v => v.id === spanId(from, to))
   const [span, setSpan] = useState(() => {
-    const [a, b] = ls.seasons.slice(-2)
-    if (b && viewOf(a, b)) return { from: a, to: b }
+    const open = openingSeasons(p, ls.seasons)
+    const [a, b] = [open[0], open[open.length - 1]]
+    if (open.length > 1 && viewOf(a, b)) return { from: a, to: b }
     const first = ls.views[0].seasons
     return { from: first[0], to: first[first.length - 1] }
   })

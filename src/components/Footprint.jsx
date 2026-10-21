@@ -4,7 +4,7 @@ import { seasonAges } from '../lib/age.js'
 import { MONO } from '../lib/format.js'
 import { MEDAL_SHARES, anchorName, bar, bestSpan, isModernGreat, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from '../lib/footprint.js'
 import { namesText, posOf, seasonRanges, starsText } from '../lib/lonestar.js'
-import { spanId, spanText } from '../lib/seasons.js'
+import { openingSeasons, spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
 import { Portrait, Slider } from './Lonestar.jsx'
 import Popover from './Popover.jsx'
@@ -532,14 +532,15 @@ function Options({ options, sections, at, pick, close, color, meta, faceOf, laye
 
 // The span on show and its tiles. At first: for a modern great (lib/footprint.js
 // isModernGreat), his three seasons in a row with the biggest net on/off swing; else his
-// last two seasons, or his only one.
+// opening seasons (lib/seasons.js), or his only one.
 function Views({ p, doc, faces }) {
   const viewOf = (from, to) => doc.views.find(v => v.id === spanId(from, to))
   const [span, setSpan] = useState(() => {
     const best = isModernGreat(p) && bestSpan(doc.views)
     if (best) return { from: best.seasons[0], to: best.seasons[best.seasons.length - 1] }
-    const [a, b] = doc.seasons.slice(-2)
-    return b && viewOf(a, b) ? { from: a, to: b } : { from: doc.views[0].id, to: doc.views[0].id }
+    const open = openingSeasons(p, doc.seasons)
+    const [a, b] = [open[0], open[open.length - 1]]
+    return open.length > 1 && viewOf(a, b) ? { from: a, to: b } : { from: doc.views[0].id, to: doc.views[0].id }
   })
   const fp = viewOf(span.from, span.to)
   // The picker by age (his age in each season) or by year.

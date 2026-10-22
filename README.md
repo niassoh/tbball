@@ -40,15 +40,16 @@ instead of the API, under the base path `VITE_BASE`.
 ```sh
 # in thinking-bball, after a data pull
 npm run export:static -- --out ../thinking-bball-profile/public
-# here: preview the static build at its Pages path
-VITE_STATIC=1 VITE_BASE=/tbball/ npm run build && cp dist/index.html dist/404.html
-npx vite preview --base /tbball/
+# here: preview the static build as Pages serves it
+VITE_STATIC=1 npm run build && cp dist/index.html dist/404.html
+npx vite preview
 ```
 
 Pushing `main` runs `.github/workflows/pages.yml`, which tests, checks out thinking-bball
 with a read-only deploy key (secret `BACKEND_DEPLOY_KEY`), exports its data into `public/`
 as above (not committed here: `.gitignore`), builds and publishes to
-https://niassoh.github.io/tbball/ (repo `niassoh/tbball`).
+https://data.thinkingbasketball.net/ (repo `niassoh/tbball`'s Pages custom domain; the DNS
+is thinkingbasketball.net's, on SiteGround). Old niassoh.github.io/tbball/ links redirect there.
 thinking-bball's nightly run dispatches it after committing new data (its
 `docs/daily-pipeline-requirements.md`). `dist/404.html` is a copy of the app so deep links
 (`/player/<slug>`) work on Pages.

@@ -42,7 +42,6 @@ jobs:
       - run: npm run build
         env:
           VITE_STATIC: '1'
-          VITE_BASE: /${{ github.event.repository.name }}/
           # Each deploy's data is new even when the app's commit isn't.
           VITE_DATA_VERSION: ${{ github.run_id }}
       # Pages publishes a site of up to 1 GB.

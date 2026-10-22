@@ -17,8 +17,8 @@ const preloadPlayers = () => ({
 })
 
 // https://vite.dev/config/
-// VITE_BASE is the path the site is served from: '/tbball/' on GitHub
-// Pages (.github/workflows/pages.yml), '/' locally.
+// VITE_BASE is the path the site is served from: '/' locally and on GitHub
+// Pages, whose custom domain (data.thinkingbasketball.net) serves it at the root.
 export default defineConfig({
   base: process.env.VITE_BASE || '/',
   plugins: [react(), preloadPlayers()],

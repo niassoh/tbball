@@ -45,7 +45,8 @@ const AXES = {
   shooting: ['C&S 3s/36', 'C&S 3%'],
   defense: ['Def FGA <6ft /36', 'Def FGA Diff%'],
   team: ['Team Off', 'Team Def'],
-  footprint: ['Rim scoring', 'Rim protection']
+  footprint: ['Rim scoring', 'Rim protection'],
+  lonestar: ['Load Δ', 'Net Δ']
 }
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 // A board longer than any one season's (eras, many seasons) comes in pages of PAGE rows.
@@ -383,8 +384,8 @@ export default function Leaderboard() {
   // a sort or axis the document lacks, to the group's own. A default axis with no values (a
   // stat its season's data doesn't have yet) gives way to the group's next one that has.
   // The table's tabs: every group but those only for the chart's axes (Player).
-  // A board without Footprint (the playoffs') keeps its tab in place, greyed.
-  const tabs = !doc ? [] : [...doc.groups.filter(x => !x.axesOnly), ...(doc.groups.some(x => x.id === 'footprint') ? [] : [{ id: 'footprint', name: 'Footprint', stats: [], na: 'Regular season only' }])]
+  // A board without Footprint or Lonestar (the playoffs') keeps their tabs in place, greyed.
+  const tabs = !doc ? [] : [...doc.groups.filter(x => !x.axesOnly), ...[['footprint', 'Footprint'], ['lonestar', 'Lonestar']].filter(([id]) => !doc.groups.some(x => x.id === id)).map(([id, name]) => ({ id, name, stats: [], na: 'Regular season only' }))]
   const g = doc ? tabs.find(x => x.id === group && !x.na) || tabs[0] : null
   const has = l => doc && doc.labels.includes(l)
   const filled = l => has(l) && doc.players.some(p => p.v[doc.labels.indexOf(l)] !== null)

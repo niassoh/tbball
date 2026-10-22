@@ -60,7 +60,9 @@ export const eachSeason = docs => {
 // One player's seasons (`entries`: [{ doc, p }]) as one: games and minutes summed, every
 // stat averaged as the profile averages a span (lib/span.js spanMean): weighted by
 // minutes, a shooting stat by minutes times its attempt rate that season, a season
-// without the stat (or its attempt rate) left out.
+// without the stat (or its attempt rate) left out. Lonestar's columns (`stats`, thinking-bball
+// lib/profile.js LONESTAR_COLUMNS): a side by its own minutes (`weight`), its minutes
+// added up (`sum`), and a change taken again from the combined sides (`diff`).
 // A document's label positions, found once (eras average thousands of rows).
 const POSITIONS = new WeakMap()
 const positionsOf = doc => {
@@ -68,7 +70,7 @@ const positionsOf = doc => {
   return POSITIONS.get(doc)
 }
 
-const combineOne = (entries, labels) => {
+const combineOne = (entries, labels, stats = {}) => {
   const last = entries[entries.length - 1].p
   // His age over the seasons: the plain mean of theirs (25 to 28 reads 26.5), in the Age
   // stat too, not weighted by minutes as the other stats are.
@@ -77,7 +79,8 @@ const combineOne = (entries, labels) => {
   const teams = [...new Set(entries.flatMap(({ p }) => p.teams || [p.team]).filter(t => !/TM$/.test(t)))]
   const at = entries.map(({ doc }) => positionsOf(doc))
   const v = labels.map(l => {
-    const volume = SHOT_VOLUME[l]
+    const { weight: by, sum: added } = stats[l] || {}
+    const volume = SHOT_VOLUME[l] || by
     let sum = 0
     let weight = 0
     entries.forEach(({ p }, i) => {
@@ -86,10 +89,17 @@ const combineOne = (entries, labels) => {
       if (x === null || !p.mp) return
       const shots = volume ? p.v[at[i].get(volume)] ?? null : 1
       if (!shots) return
-      sum += x * p.mp * shots
-      weight += p.mp * shots
+      const w = by ? shots : p.mp * shots
+      sum += added ? x : x * w
+      weight += w
     })
-    return weight ? sum / weight : null
+    return !weight ? null : added ? sum : sum / weight
+  })
+  labels.forEach((l, k) => {
+    const pair = stats[l] && stats[l].diff
+    if (!pair) return
+    const [a, b] = pair.map(x => v[labels.indexOf(x)])
+    v[k] = a === null || b === null ? null : a - b
   })
   if (labels.includes('Age')) v[labels.indexOf('Age')] = age
   return {
@@ -148,7 +158,7 @@ const bySlug = docs => {
 // can't be told from them, so it carries no mark.
 export const combined = docs => {
   const meta = docs[docs.length - 1]
-  const players = [...bySlug(docs).values()].map(entries => ({ ...combineOne(entries, meta.labels), season: meta.season, p: [] }))
+  const players = [...bySlug(docs).values()].map(entries => ({ ...combineOne(entries, meta.labels, meta.stats), season: meta.season, p: [] }))
   return { ...meta, combined: true, players: ranked(meta.labels, meta.stats, players) }
 }
 
@@ -163,7 +173,7 @@ export const eras = (docs, n) => {
     for (let i = 0; i + n <= entries.length; i++) {
       const run = entries.slice(i, i + n)
       const era = [run[0].doc.season, run[n - 1].doc.season]
-      const row = combineOne(run, meta.labels)
+      const row = combineOne(run, meta.labels, meta.stats)
       players.push({ ...row, id: `${row.slug}|${era.join('..')}`, season: era[1], era, p: [] })
     }
   }

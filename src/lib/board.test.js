@@ -70,6 +70,23 @@ describe('board', () => {
     expect(a.p[0]).toBe(67)
   })
 
+  test('combined: Lonestar sides by their own minutes, minutes added up, the change from the combined sides', () => {
+    const ls = ['Net Δ', 'Net on', 'Net off', 'Min on', 'Min off']
+    const lsStats = {
+      'Net Δ': { dec: 1, diff: ['Net off', 'Net on'] },
+      'Net on': { dec: 1, weight: 'Min on' },
+      'Net off': { dec: 1, weight: 'Min off' },
+      'Min on': { dec: 0, sum: true },
+      'Min off': { dec: 0, sum: true }
+    }
+    const lsDoc = (season, v, mp) => ({ season, type: 'regular', labels: ls, stats: lsStats, groups: [], players: [P('a', mp, v)] })
+    const [a] = combined([lsDoc('2023-24', [-2, 4, 2, 600, 200], 2000), lsDoc('2024-25', [4, 0, 4, 200, 600], 2500)]).players
+    // On: (4·600 + 0·200) / 800; off: (2·200 + 4·600) / 800; the change 3.5 − 3, not the
+    // minutes-weighted mean of -2 and 4.
+    expect(a.v.slice(1)).toEqual([3, 3.5, 800, 800])
+    expect(a.v[0]).toBe(0.5)
+  })
+
   test('combined: his age is the plain mean of his seasons\' ages, in the Age stat too', () => {
     // 25.4 over 1,000 minutes and 26.4 over 3,000: 25.9, not the minutes-weighted 26.15.
     const aged = (season, age, mp) => withPlayer(doc(season, [P('a', mp, [1, 30, 1], { age })]))

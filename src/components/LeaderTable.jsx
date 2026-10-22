@@ -21,7 +21,8 @@ import { initials } from '../lib/teams.js'
 // scroll shows on a rail of its own under the stats alone (the browser's bar is hidden,
 // index.css). A long board's page control (`pager`) sits in the Player header. A stat's
 // head carries its percentile filter (`filters`: label -> the top share kept), marked
-// there while on.
+// there while on. A column with two sides (Lonestar's change: `sub`, its on and off) opens
+// them beside it from a small box in its head's top corner, each headed by its side (`head`).
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -138,6 +139,9 @@ const lockOf = (lefts, narrow) => k => (lefts.length && !narrow ? stick(lefts[k]
 // The held block's right edge, a rule the stats slide under.
 const edge = i => (i === BIO.length - 1 ? { borderRight: `1px solid ${RULE}` } : {})
 
+// An opened column's first side: a dashed rule down its left, setting the pair off.
+const sideRule = (stat, color) => (stat.head === 'On' ? { borderLeft: `1px dashed ${color}` } : {})
+
 // A player's row. Its own component, kept while its props hold, so when the drawn rows
 // move (Leaderboard.jsx) only the newly drawn ones are made.
 const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel, pct, narrow, lefts, bioCh }) {
@@ -163,7 +167,7 @@ const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel
         const pc = p.p[k]
         const shade = v === null || pc === null ? undefined : stat.neutral ? plain(pc) : heat(pc)
         return (
-          <td key={l} style={{ ...CELL, textAlign: 'right', background: shade, ...(turnsDef(doc, group, i) ? { borderLeft: '1px solid #544f4b' } : {}), color: v === null ? FAINT : INK, fontWeight: sortLabel === l ? 600 : 400 }}>
+          <td key={l} style={{ ...CELL, textAlign: 'right', background: shade, ...(turnsDef(doc, group, i) ? { borderLeft: '1px solid #544f4b' } : {}), ...sideRule(stat, '#544f4b'), color: v === null ? FAINT : INK, fontWeight: sortLabel === l ? 600 : 400 }}>
             {lit.has(k) && <span aria-label="clears the noise" style={{ display: 'inline-block', width: 4, height: 4, marginRight: 5, verticalAlign: 2, background: INK }} />}
             {pct ? (v === null || pc === null ? '—' : pc) : fmt(stat, v)}
           </td>
@@ -182,6 +186,14 @@ export function FilterMark({ size = 9 }) {
       <rect x="2" y="3.7" width="5" height="1.6" fill="currentColor" />
       <rect x="3.6" y="6.9" width="1.8" height="1.6" fill="currentColor" />
     </svg>
+  )
+}
+
+// The box on a two-sided column's head: + opens its on and off beside it, − closes them.
+function Expand({ open, stat, toggle }) {
+  return (
+    <button type="button" aria-expanded={open} aria-label={`${open ? 'Hide' : 'Show'} ${stat} on and off`} title={open ? 'Hide on and off' : 'Show on and off'} onClick={toggle}
+      style={{ position: 'absolute', top: 3, left: 7, width: 11, height: 11, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${open ? INK : FAINT}`, background: 'transparent', color: open ? INK : DIM, fontFamily: MONO, fontSize: 9, lineHeight: 1, cursor: 'pointer' }}>{open ? '−' : '+'}</button>
   )
 }
 
@@ -276,6 +288,15 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
   // Each detail column's widest value on the whole board (in characters: the table is
   // monospaced), so a page of short values doesn't narrow it.
   const bioCh = useMemo(() => BIO.map(([, of]) => Math.max(1, ...doc.players.map(p => String(of(p)).length))), [doc])
+  // The opened columns, and the group's columns with each one's sides after it.
+  const [open, setOpen] = useState(() => new Set())
+  const toggle = l => setOpen(o => {
+    const next = new Set(o)
+    if (next.has(l)) next.delete(l)
+    else next.add(l)
+    return next
+  })
+  const shown = useMemo(() => ({ ...group, stats: group.stats.flatMap(l => (open.has(l) && doc.stats[l].sub ? [l, ...doc.stats[l].sub] : [l])) }), [group, open, doc])
   return (
     <table className="lb-table" style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
       <thead>
@@ -286,21 +307,25 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
           </th>
           {doc.many && <th data-lock style={{ ...head, ...lock(0), zIndex: narrow ? 2 : 3, width: '1%', textAlign: 'left' }}><span style={label}>Yr</span></th>}
           {BIO.map(([name], i) => <th key={name} data-lock style={{ ...head, ...lock(yr + i), zIndex: narrow ? 2 : 3, width: '1%', textAlign: i < 2 ? 'left' : 'right', ...edge(i) }}><span style={label}>{name}</span></th>)}
-          {group.stats.map((l, i) => {
+          {shown.stats.map((l, i) => {
             const on = sortLabel === l
             const years = doc.stats[l].years
             // A stat the last 30 days can't have: greyed, its cells empty.
             const na = doc.stats[l].na
-            const yearsAt = j => (j >= 0 && j < group.stats.length ? doc.stats[group.stats[j]].years : null)
+            // A side's head is its side; a change's Δ stays on its name's last line.
+            const part = doc.stats[l].head
+            const name = part || l.replace(/ Δ$/, '\u00a0Δ')
+            const yearsAt = j => (j >= 0 && j < shown.stats.length ? doc.stats[shown.stats[j]].years : null)
             return (
-              <th key={l} style={{ ...head, minWidth: 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none', ...(turnsDef(doc, group, i) ? { borderLeft: '1px solid #837d76' } : {}) }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
+              <th key={l} style={{ ...head, minWidth: part ? 46 : 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none', ...(turnsDef(doc, shown, i) ? { borderLeft: '1px solid #837d76' } : {}), ...sideRule(doc.stats[l], '#837d76') }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
                 {years && <Bracket years={years} start={yearsAt(i - 1) !== years} end={yearsAt(i + 1) !== years} />}
-                {sideStarts(doc, group, i) && <span style={{ position: 'absolute', top: 4, left: 7, fontSize: 8, letterSpacing: '.14em', color: '#837d76', whiteSpace: 'nowrap' }}>{doc.stats[l].side === 'def' ? 'DEFENSE' : 'OFFENSE'}</span>}
+                {doc.stats[l].sub && <Expand open={open.has(l)} stat={l} toggle={() => toggle(l)} />}
+                {sideStarts(doc, shown, i) && <span style={{ position: 'absolute', top: 4, left: 7, fontSize: 8, letterSpacing: '.14em', color: '#837d76', whiteSpace: 'nowrap' }}>{doc.stats[l].side === 'def' ? 'DEFENSE' : 'OFFENSE'}</span>}
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4 }}>
                   {!na && setFilter && <ColumnFilter stat={l} share={filters[l]} set={setFilter} />}
                   <button type="button" className="lb-head-cell" disabled={na} onClick={() => onSort(l)} title={na ? 'Unavailable for the last 30 days' : on ? 'Sorted best first; click for worst first' : 'Sort by this stat, best first'}
                     style={{ ...label, display: 'flex', width: '100%', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 3, padding: 0, border: 0, background: 'transparent', cursor: na ? 'not-allowed' : 'pointer', textAlign: 'right', lineHeight: 1.25, color: na ? '#6a645e' : on ? INK : DIM, textDecoration: na ? 'line-through' : 'none' }}>
-                    <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={na ? undefined : doc.stats[l].desc ? `${l}: ${doc.stats[l].desc}` : l}>{l}</span>
+                    <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={na ? undefined : doc.stats[l].desc ? `${l}: ${doc.stats[l].desc}` : l}>{name}</span>
                     <span aria-hidden="true" style={{ width: 7, flex: 'none', textAlign: 'left', color: on ? INK : 'transparent' }}>{reverse ? '↑' : '↓'}</span>
                   </button>
                 </div>
@@ -310,9 +335,9 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
         </tr>
       </thead>
       <tbody>
-        {rows.map(p => <Row key={p.id} p={p} rank={rank.get(p.id)} selected={picked === p.id} onPick={onPick} doc={doc} group={group} sortLabel={sortLabel} pct={pct} narrow={narrow} lefts={lefts} bioCh={bioCh} />)}
+        {rows.map(p => <Row key={p.id} p={p} rank={rank.get(p.id)} selected={picked === p.id} onPick={onPick} doc={doc} group={shown} sortLabel={sortLabel} pct={pct} narrow={narrow} lefts={lefts} bioCh={bioCh} />)}
       </tbody>
-      {scroller && lefts.length > 0 && <Rail scroller={scroller} held={held} span={2 + yr + BIO.length + group.stats.length} />}
+      {scroller && lefts.length > 0 && <Rail scroller={scroller} held={held} span={2 + yr + BIO.length + shown.stats.length} />}
     </table>
   )
 }

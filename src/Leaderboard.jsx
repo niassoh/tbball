@@ -25,7 +25,7 @@ import SeasonToggle from './components/SeasonToggle.jsx'
 // a small calendar beside it switches to the latest season's last 30 days (its
 // stats that can't be scoped to dates, and Footprint, greyed); RUNS (eras in the code)
 // turns the regular season's board into every player's runs of 3, 5 or 7 seasons over all
-// the years, each averaged; spans read by the years their seasons end ("2023–25"); RAW | PCTL sets what the table's cells read in; the row under the pointer,
+// the years, each averaged; spans read by the years their seasons end ("2023–25"); RAW | PCTL, small in the table's top right corner, sets what the table's cells read in; the row under the pointer,
 // as it moves or as the table scrolls beneath it, lights its player's dot. A board longer
 // than any season's (eras, many seasons) comes in pages, the scatter drawing the page. A
 // stat's head filters the board to its top 75, 50 or 25% by percentile; filters add up
@@ -171,9 +171,10 @@ function RecentButton({ on, set, disabled }) {
   )
 }
 
-// The top boxes' widths, each its longest reading's ("30 days Mar 14–Apr 12", "Min 75%":
-// the box says the share, its panel says top), so a choice never moves the controls.
-const SEASONS_W = 200
+// The top boxes' widths, each its longest reading's ("Min 75%": the box says the share, its
+// panel says top), so a choice never moves the controls. The seasons box is as wide as
+// what it says, so the tabs have room; SEASONS_W, a single season's, sizes its placeholder.
+const SEASONS_W = 144
 const MIN_W = 94
 const TEAM_W = 104
 
@@ -482,7 +483,7 @@ export default function Leaderboard() {
             picker off; it's a placeholder of its size until the seasons are known. */}
         {seasons && span
           ? (
-            <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} width={SEASONS_W}
+            <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} width="auto"
               title={windowed ? '30 days' : 'Seasons'} disabled={windowed}
               pick={(from, to) => { setSpan({ from, to }); setEra(null); setEach(false); setTop(null) }}
               ages={{
@@ -502,7 +503,6 @@ export default function Leaderboard() {
         {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : <Skel w={MIN_W} h={30} />}
         {doc ? <Groups groups={tabs} active={g.id} pick={choose} filtered={filtered} /> : doc === null && <Skel w={586} h={30} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', maxWidth: '100%' }}>
-          <ModeSwitch mode={mode} setMode={setMode} height={28} />
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${EDGE}` }}>
             <span aria-hidden="true" style={{ ...label, color: FAINT }}>Find</span>
             <input value={find} onChange={e => setFind(e.target.value)} aria-label="Find a player" spellCheck={false}
@@ -519,6 +519,10 @@ export default function Leaderboard() {
           {/* Many seasons (a long span, or eras' every one) fill it as they come in. */}
           {loading && <Progress share={progress} />}
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
+            {/* RAW | PCTL in the corner, held there as the table scrolls either way. */}
+            <div style={{ position: 'sticky', top: 0, left: 0, height: 0, zIndex: 5 }}>
+              <span style={{ position: 'absolute', top: 2, right: 2, background: '#262422' }}><ModeSwitch mode={mode} setMode={setMode} height={14} compact /></span>
+            </div>
             <LeaderTable doc={doc} group={g} rows={drawn} pager={pager} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'} filters={filters} setFilter={setFilter}
               picked={picked} onPick={setPicked} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'No players match'}</div>}

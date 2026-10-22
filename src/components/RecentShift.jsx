@@ -313,9 +313,10 @@ function EmptyShotMap({ reason, divided }) {
   )
 }
 
-// The shared 30-day window, counted in this player's games when known.
-const windowLabel = games =>
-  games === null ? 'THE LAST 30 DAYS' : `LAST ${games} GAME${games === 1 ? '' : 'S'}`
+// The shared 30-day window, counted in this player's games when known; under 30 days in,
+// the season so far.
+const windowLabel = (games, young) =>
+  games === null ? (young ? 'THE SEASON SO FAR' : 'THE LAST 30 DAYS') : `${young ? 'FIRST' : 'LAST'} ${games} GAME${games === 1 ? '' : 'S'}`
 
 // Playoffs mode: the picked season's playoffs against its regular season (`shift`). A run
 // without one wasn't in the regular season's pull (under its minutes floor); an empty
@@ -413,8 +414,16 @@ export default function RecentShift({ profile: p, season }) {
   // season (no game log, so no shot data either), or, scaled to each window, in both
   // the last 30 days and the rest of the season. The window label says why on hover.
   const unqualified = games !== 0 && !p.recentShift
-  // Under 30 days in, there's no rest of the season to set the window against.
+  // Under 30 days in, there's no rest of the season to set the window against, so the season
+  // so far is set against last season (lib/profile.js lastSeasonShift and youngShots), for a
+  // player in both seasons' pulls.
   const young = !!p.recentShift && !p.recentShift.window.restEnd
+  const was = young && `’${p.recentShift.season.slice(2, 4)}`
+  const labels = young ? { base: was, window: yy(p.recentShift.season), short: was, windowFirst: true } : WINDOWS.regular
+  const compared = young ? p.recentShift.stats.length > 0 : games !== 0 && !unqualified
+  const reason = young
+    ? (games === 0 ? 'NO GAMES THIS SEASON' : 'NO LAST SEASON TO COMPARE')
+    : games === 0 ? 'NO GAMES IN THE LAST 30 DAYS' : 'NOT QUALIFIED'
   const whyUnqualified = games === null
     ? 'Too few minutes this season to qualify'
     : 'Too few minutes in the last 30 days or the rest of the season to qualify'
@@ -424,16 +433,16 @@ export default function RecentShift({ profile: p, season }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Last 30 Days</span>
           <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
-            DIFFERENCE BETWEEN <span title={unqualified ? whyUnqualified : undefined} style={{ color: '#ece8e3', fontWeight: 700, textDecoration: unqualified ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}>{windowLabel(games)}</span> AND REST OF SEASON
+            DIFFERENCE BETWEEN <span title={unqualified ? whyUnqualified : undefined} style={{ color: '#ece8e3', fontWeight: 700, textDecoration: unqualified ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}>{windowLabel(games, young)}</span> AND {young ? 'LAST SEASON' : 'REST OF SEASON'}
           </span>
         </div>
       </div>
-      {young || games === 0 || unqualified
-        ? <EmptyStats reason={young ? 'SEASON UNDER 30 DAYS OLD' : games === 0 ? 'NO GAMES IN THE LAST 30 DAYS' : 'NOT QUALIFIED'} />
-        : <CoreStats profile={p} shift={p.recentShift} />}
-      {!young && games !== 0 && p.shotShift
-        ? <ShotMap shotShift={p.shotShift} divided />
-        : <EmptyShotMap reason={young ? 'SEASON UNDER 30 DAYS OLD' : games === 0 ? 'NO RECENT SHOTS' : 'NOT QUALIFIED'} divided />}
+      {compared
+        ? <CoreStats profile={p} shift={p.recentShift} labels={labels} />
+        : <EmptyStats reason={reason} />}
+      {games !== 0 && p.shotShift
+        ? <ShotMap shotShift={p.shotShift} divided labels={labels} />
+        : <EmptyShotMap reason={young ? reason : games === 0 ? 'NO RECENT SHOTS' : 'NOT QUALIFIED'} divided />}
     </div>
   )
 }

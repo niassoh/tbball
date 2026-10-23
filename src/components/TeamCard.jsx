@@ -7,10 +7,10 @@ import { initials } from '../lib/teams.js'
 import { CountUp, Meter } from './PlayerCard.jsx'
 
 // A team's card on the Team board, in the chart's place, sized to fit a laptop's screen.
-// Its head: logo, name, record, win pace and net. Then one of its units that season (three-
-// man unless picked), most used or best by net (as the players' cards show theirs); its ratings as
-// strips of the 30 teams with it marked, better always to the right; its splits (home and away, against the
-// bottom and top 10) as net-rating bars; its play types as a mosaic, each as wide as its
+// Its head: logo, name, record, win pace and net. Then one of its units that season (five-
+// man unless picked), most used or best by net (as the players' cards show theirs); its
+// ratings as a grid of strips of the 30 teams with it marked, better always to the right,
+// for the season and its splits; its play types as a mosaic, each as wide as its
 // share of the offense and as tall as its points a play above or below the league's; its
 // shots and its opponents' as numbers with meters. Blue is better than the league,
 // orange worse, grey a style. It comes in on opening, and again for another team: the
@@ -74,7 +74,7 @@ function Head({ t, x, season, closeButton }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
         <span style={label}>{t.team} · {season.replace('-', '–')} · regular season</span>
         <span style={{ display: 'flex', alignItems: 'baseline', gap: 14, minWidth: 0 }}>
-          <span className="tc-wipe" style={{ ...big, fontSize: 28, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+          <span className="tc-wipe" style={{ ...big, fontSize: Math.min(28, Math.floor(230 / t.name.length)), textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
           <span style={{ ...big, fontSize: 18, flex: 'none' }}><CountUp stat={{ dec: 0 }} value={x.v('Wins')} delay={150} />–<CountUp stat={{ dec: 0 }} value={x.v('Losses')} delay={150} /></span>
         </span>
       </div>
@@ -92,7 +92,7 @@ function Head({ t, x, season, closeButton }) {
 // then the unit's net, minutes and rank among the league's units of that size (none under
 // its minutes floor). Faces come from the players index.
 // One height whether or not there's a unit to show, so the card never jumps.
-const UNITS_H = 92
+const UNITS_H = 86
 function Units({ team, season, n, pick }) {
   const [doc, setDoc] = useState(null)
   useEffect(() => {
@@ -115,7 +115,7 @@ function Units({ team, season, n, pick }) {
           const p = m.slug && doc.bySlug.get(m.slug)
           return (
             <div key={m.slug || m.name || j} className="tc-fade" style={{ animationDelay: `${40 + j * 60}ms`, flex: '1 1 0', minWidth: 0, maxWidth: 130, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: `1px solid ${EDGE}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: DIM, flex: 'none' }}>
+              <span style={{ width: '100%', maxWidth: 56, aspectRatio: '1', borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: `1px solid ${EDGE}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: DIM, flex: 'none' }}>
                 {p && p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={56} height={56} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(m.name || '?')}
               </span>
               <span title={m.name} style={{ ...label, fontSize: 9, color: INK, maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(m.name || '?').split(' ').slice(1).join(' ') || m.name}</span>
@@ -146,10 +146,21 @@ function Pick({ options, value, set, label: name }) {
 const SIZES = [[2, '2'], [3, '3'], [4, '4'], [5, '5']]
 const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
 
-// A stat as a strip: the 30 teams as ticks, the league's average dashed, the team's mark
-// sliding out from it; better is always to the right.
-function Strip({ x, l, name }) {
-  if (!x.has(l)) return null
+// Its ratings as a grid: offense, defense and net across; the season, adjusted, home and
+// away, and against the bottom and top 10 down. Each cell is the number, its place among
+// the 30, and a strip of the 30 teams as ticks with the league's average dashed and the
+// team's mark sliding out from it; better is always to the right.
+const RATINGS = [
+  ['Season', 'ORTG', 'DRTG', 'Net'],
+  ['Adjusted', 'Adj rORTG', 'Adj rDRTG', null],
+  ['Home', 'Home ORTG', 'Home DRTG', 'Home Net'],
+  ['Away', 'Away ORTG', 'Away DRTG', 'Away Net'],
+  ['v Bottom 10', 'ORTG v Bot10', 'DRTG v Bot10', 'Net v Bot10'],
+  ['v Top 10', 'ORTG v Top10', 'DRTG v Top10', 'Net v Top10']
+]
+const GRID = { display: 'grid', gridTemplateColumns: '78px repeat(3, minmax(0, 1fr))', columnGap: 18 }
+function Cell({ x, l }) {
+  if (!l || !x.has(l)) return <span style={{ ...label, fontSize: 8, color: FAINT, alignSelf: 'center' }}>{l ? '—' : ''}</span>
   const vs = x.all(l)
   const v = x.v(l)
   const lg = x.lg(l) ?? (RELATIVE.test(l) ? 0 : vs.reduce((a, b) => a + b, 0) / vs.length)
@@ -159,64 +170,33 @@ function Strip({ x, l, name }) {
   const flip = x.stat(l).lowerBetter
   const pos = n => `${(((flip ? hi + pad - n : n - lo + pad) / (hi - lo + 2 * pad)) * 100).toFixed(2)}%`
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '84px minmax(0, 1fr) 46px 34px', alignItems: 'center', columnGap: 10, height: 22 }} title={x.stat(l).desc || undefined}>
-      <span style={{ ...label, fontSize: 8.5, color: '#c9c3bc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name || l}</span>
-      <span style={{ position: 'relative', height: 20 }}>
-        <span style={{ position: 'absolute', left: 0, right: 0, top: 10, height: 1, background: RULE }} />
-        {vs.map((n, i) => <span key={i} style={{ position: 'absolute', left: pos(n), top: 5, width: 1, height: 11, background: '#57524d' }} />)}
-        <span style={{ position: 'absolute', left: pos(lg), top: 1, height: 19, borderLeft: `1px dashed ${DIM}` }} />
-        {v !== null && <span className="tc-slide" style={{ position: 'absolute', left: pos(v), top: 2, width: 5, height: 17, marginLeft: -2, background: x.tone(l), boxShadow: '0 0 0 1px #262422', '--from': pos(lg) }} />}
+    <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }} title={x.stat(l).desc || undefined}>
+      <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
+        <span style={{ fontSize: 14, lineHeight: '16px', fontWeight: 700, color: v === null ? FAINT : INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}</span>
+        <span style={{ ...label, fontSize: 8 }}>{v === null ? '' : x.place(l)}</span>
       </span>
-      <span style={{ textAlign: 'right', fontSize: 12, fontWeight: 700, color: INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}</span>
-      <span style={{ ...label, fontSize: 8, textAlign: 'right' }}>{x.place(l)}</span>
-    </div>
+      <span style={{ position: 'relative', height: 14 }}>
+        <span style={{ position: 'absolute', left: 0, right: 0, top: 7, height: 1, background: RULE }} />
+        {vs.map((n, i) => <span key={i} style={{ position: 'absolute', left: pos(n), top: 3, width: 1, height: 9, background: '#57524d' }} />)}
+        <span style={{ position: 'absolute', left: pos(lg), top: 0, height: 14, borderLeft: `1px dashed ${DIM}` }} />
+        {v !== null && <span className="tc-slide" style={{ position: 'absolute', left: pos(v), top: 1, width: 5, height: 12, marginLeft: -2, background: x.tone(l), boxShadow: '0 0 0 1px #262422', '--from': pos(lg) }} />}
+      </span>
+    </span>
   )
 }
-
-// The splits as net-rating bars from zero, on one axis: home and away, then against the
-// bottom 10 and the top 10; the league's average for each a dashed tick, each bar's net,
-// ORTG and DRTG beside it. The bars grow out from zero.
-const SPLITS = [
-  ['Venue', [['Home', 'Home Net', 'Home ORTG', 'Home DRTG'], ['Away', 'Away Net', 'Away ORTG', 'Away DRTG']]],
-  ['Opponent', [['v Bottom 10', 'Net v Bot10', 'ORTG v Bot10', 'DRTG v Bot10'], ['v Top 10', 'Net v Top10', 'ORTG v Top10', 'DRTG v Top10']]]
-]
-function Splits({ x }) {
-  const vals = SPLITS.flatMap(([, rows]) => rows.flatMap(r => [...x.all(r[1]), x.lg(r[1]) ?? 0]))
-  const reach = Math.max(5, ...vals.map(Math.abs))
-  const pos = n => `${(((n + reach) / (2 * reach)) * 100).toFixed(2)}%`
+function Ratings({ x }) {
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-around', gap: 10 }}>
-      {SPLITS.map(([group, rows], g) => (
-        <div key={group} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ ...label, fontSize: 8, color: FAINT }}>{group}</span>
-          {rows.map(([name, net, o, d], i) => {
-            const v = x.v(net)
-            const lg = x.lg(net)
-            return (
-              <div key={name} style={{ display: 'grid', gridTemplateColumns: '70px minmax(0, 1fr) 76px', alignItems: 'center', columnGap: 10 }}>
-                <span style={{ ...label, fontSize: 9, color: '#c9c3bc', whiteSpace: 'nowrap' }}>{name}</span>
-                <span style={{ position: 'relative', height: 20 }}>
-                  <span style={{ position: 'absolute', left: 0, right: 0, top: 10, height: 1, background: RULE }} />
-                  <span style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: EDGE }} />
-                  {v !== null && (
-                    <span className="tc-grow-x" style={{ position: 'absolute', top: 3, height: 14, left: pos(Math.min(0, v)), width: `${((Math.abs(v) / (2 * reach)) * 100).toFixed(2)}%`, background: x.tone(net), transformOrigin: v >= 0 ? '0 0' : '100% 0', animationDelay: `${150 + (g * 2 + i) * 90}ms` }} />
-                  )}
-                  {lg !== null && <span style={{ position: 'absolute', left: pos(lg), top: -1, bottom: -1, borderLeft: `1px dashed ${INK}`, opacity: 0.6 }} />}
-                </span>
-                <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: v === null ? FAINT : INK }}>{x.text(net)}</span>
-                  <span style={{ fontSize: 9.5, color: DIM }}><span style={{ color: x.tone(o) }}>{x.text(o)}</span> / <span style={{ color: x.tone(d) }}>{x.text(d)}</span></span>
-                </span>
-              </div>
-            )
-          })}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={GRID}>
+        <span />
+        {['Offense', 'Defense', 'Net'].map(h => <span key={h} style={{ ...label, fontSize: 8, color: FAINT }}>{h}</span>)}
+      </div>
+      {RATINGS.map(([name, ...ls], i) => (
+        <div key={name} style={{ ...GRID, height: 31, alignItems: 'end', ...(i === 2 ? { borderTop: `1px solid ${RULE}`, paddingTop: 5, height: 36 } : null) }}>
+          <span style={{ ...label, fontSize: 9, color: '#c9c3bc', whiteSpace: 'nowrap', paddingBottom: 2 }}>{name}</span>
+          {ls.map((l, j) => <Cell key={j} x={x} l={l} />)}
         </div>
       ))}
-      <div style={{ display: 'grid', gridTemplateColumns: '70px minmax(0, 1fr) 76px', columnGap: 10 }}>
-        <span />
-        <span style={{ display: 'flex', justifyContent: 'space-between', ...label, fontSize: 8, color: FAINT }}><span>−{Math.round(reach)}</span><span>0</span><span>+{Math.round(reach)}</span></span>
-        <span style={{ ...label, fontSize: 8, color: FAINT, textAlign: 'right' }}>Net · O / D</span>
-      </div>
     </div>
   )
 }
@@ -236,7 +216,7 @@ function Playtypes({ x }) {
       <span style={{ fontSize: 11, color: DIM }}>
         Half court <span style={{ color: INK, fontWeight: 700 }}>{x.text(`${hc} Share`)}%</span> · <span style={{ color: x.tone(`${hc} PPP`), fontWeight: 700 }}>{x.text(`${hc} PPP`)}</span> a play · {x.place(`${hc} PPP`)}
       </span>
-      <div style={{ flex: 1, display: 'flex', gap: 2, minHeight: 100 }}>
+      <div style={{ flex: 1, display: 'flex', gap: 2, minHeight: 90 }}>
         {cols.map(([k, name], i) => {
           const ppp = x.v(`${k} PPP`)
           const lg = x.lg(`${k} PPP`) ?? ppp
@@ -261,7 +241,6 @@ function Playtypes({ x }) {
           </div>
         )}
       </div>
-      <span style={{ ...label, fontSize: 8, color: FAINT }}>Points a play · bar: v the league's (dashed)</span>
     </div>
   )
 }
@@ -276,7 +255,7 @@ function Shots({ x }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 18 }}>
       {SHOTS.map((side, s) => (
-        <div key={s} style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
+        <div key={s} style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
           <span style={{ ...label, fontSize: 8, color: FAINT }}>{s ? 'Defense' : 'Offense'}</span>
           {side.filter(([l]) => x.has(l)).map(([l, name, unit], i) => (
             <div key={l} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 8, rowGap: 3, alignItems: 'baseline' }} title={x.stat(l).desc || undefined}>
@@ -299,24 +278,17 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
   }, [onClose])
   const x = reader(doc, t)
   const [pick, setPick] = useState('mostUsed')
-  const [n, setN] = useState(3)
+  const [n, setN] = useState(5)
   const close = <button type="button" aria-label="Close the card" onClick={onClose} style={{ alignSelf: 'start', width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
-  // The two rows of pairs share the height the head and units leave.
+  // The last row takes the height the rest leave.
   const pair = { flex: '1 0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }
   return (
     <div className="pc-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <Head t={t} x={x} season={season} closeButton={close} />
       <Section title="Units" right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Units shown" options={PICKS} value={pick} set={setPick} /></span>}><Units team={t.team} season={season} n={n} pick={pick} /></Section>
+      <Section title="Ratings" note="the 30 as ticks · dashed: league · better →"><Ratings x={x} /></Section>
       <div style={pair}>
-        <Section title="Ratings" note="dashed: league · better →">
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {[['ORTG', 'Offense'], ['DRTG', 'Defense'], ['Net', 'Net'], ['Adj rORTG', 'Adj off'], ['Adj rDRTG', 'Adj def']].map(([l, n]) => <Strip key={l} x={x} l={l} name={n} />)}
-          </div>
-        </Section>
-        <Section title="Splits" note="net rating · dashed: league" style={{ borderLeft: `1px solid ${RULE}` }}><Splits x={x} /></Section>
-      </div>
-      <div style={pair}>
-        <Section title="Play types" note="width: share of plays"><Playtypes x={x} /></Section>
+        <Section title="Play types" note="width: share · bar: v league"><Playtypes x={x} /></Section>
         <Section title="Shots" note="meters: percentile" style={{ borderLeft: `1px solid ${RULE}` }}><Shots x={x} /></Section>
       </div>
     </div>

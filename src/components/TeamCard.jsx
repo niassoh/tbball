@@ -7,8 +7,8 @@ import { initials } from '../lib/teams.js'
 import { CountUp, Meter } from './PlayerCard.jsx'
 
 // A team's card on the Team board, in the chart's place, sized to fit a laptop's screen.
-// Its head: logo, name, record, win pace and net. Then its two- to five-man units that
-// season, most used or best by net (as the players' cards show theirs); its ratings as
+// Its head: logo, name, record, win pace and net. Then one of its units that season (three-
+// man unless picked), most used or best by net (as the players' cards show theirs); its ratings as
 // strips of the 30 teams with it marked, better always to the right; its splits (home and away, against the
 // bottom and top 10) as net-rating bars; its play types as a mosaic, each as wide as its
 // share of the offense and as tall as its points a play above or below the league's; its
@@ -87,13 +87,13 @@ function Head({ t, x, season, closeButton }) {
   )
 }
 
-// Its units of each size that season, most-played or best by net rating (`pick`), from
-// thinking-bball's team units (lib/lineups.js teamUnits): faces, surnames, net, minutes and
-// rank among the league's units of that size (none under its minutes floor). Faces come
-// from the players index.
-// One height whether or not a size has a unit to show, so the card never jumps.
-const UNITS_H = 98
-function Units({ team, season, pick }) {
+// Its unit of one size (`n`) that season, most-played or best by net rating (`pick`), from
+// thinking-bball's team units (lib/lineups.js teamUnits): each player's face and surname,
+// then the unit's net, minutes and rank among the league's units of that size (none under
+// its minutes floor). Faces come from the players index.
+// One height whether or not there's a unit to show, so the card never jumps.
+const UNITS_H = 92
+function Units({ team, season, n, pick }) {
   const [doc, setDoc] = useState(null)
   useEffect(() => {
     let live = true
@@ -103,58 +103,48 @@ function Units({ team, season, pick }) {
     }, () => live && setDoc(false))
     return () => { live = false }
   }, [season])
-  if (doc === null) return <div style={{ height: UNITS_H }} />
-  const mine = doc && doc.teams[team]
-  if (!mine) return <span style={{ ...label, color: FAINT, display: 'block', height: UNITS_H }}>No lineups yet</span>
+  const u = doc && doc.teams[team] && doc.teams[team][n] && doc.teams[team][n][pick]
+  if (!u) {
+    const why = doc === null ? '' : !(doc && doc.teams[team]) ? 'No lineups yet' : pick === 'best' ? `No ${n}-man unit at ${doc.floors[n]}+ min yet` : '—'
+    return <div style={{ ...label, color: FAINT, height: UNITS_H, display: 'flex', alignItems: 'center' }}>{why}</div>
+  }
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14, height: UNITS_H }}>
-      {[2, 3, 4, 5].map((n, i) => {
-        const u = mine[n] && mine[n][pick]
-        return (
-          <div key={`${n}${pick}`} className="tc-fade" style={{ animationDelay: `${60 + i * 70}ms`, display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-            <span style={{ ...label, fontSize: 8 }}>{n}-man</span>
-            {u
-              ? (
-                <>
-                  <span style={{ display: 'flex' }}>
-                    {u.mates.map((m, j) => {
-                      const p = m.slug && doc.bySlug.get(m.slug)
-                      return (
-                        <span key={m.slug || m.name || j} style={{ width: 26, height: 26, marginLeft: j ? -8 : 0, borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: `1px solid ${EDGE}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: DIM, flex: 'none' }}>
-                          {p && p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={26} height={26} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(m.name || '?')}
-                        </span>
-                      )
-                    })}
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', color: INK, whiteSpace: 'nowrap' }} title={u.mates.map(m => m.name).join(', ')}>
-                    {u.mates.map((m, j) => <span key={j}>{j > 0 && <span style={{ color: FAINT, fontWeight: 400 }}>/</span>}{initials(m.name || '?')}</span>)}
-                  </span>
-                  <span style={{ fontSize: 9.5, color: DIM, whiteSpace: 'nowrap' }}>
-                    <span style={{ color: u.net === null ? FAINT : u.net >= 0 ? '#8fb0e6' : '#fa962a', fontWeight: 700 }}>{u.net === null ? '—' : `${u.net >= 0 ? '+' : '−'}${Math.abs(u.net).toFixed(1)}`}</span> · {u.minutes.toLocaleString()} min<br />
-                    <span style={{ color: FAINT }}>{u.rank ? `#${u.rank.rank} of ${u.rank.of} ${n}-man units` : `under ${doc.floors[n]} min: unranked`}</span>
-                  </span>
-                </>
-                )
-              : <span style={{ ...label, fontSize: 8, color: FAINT }}>{pick === 'best' ? `none at ${doc.floors[n]}+ min yet` : '—'}</span>}
-          </div>
-        )
-      })}
+    <div key={`${n}${pick}`} style={{ height: UNITS_H, display: 'flex', alignItems: 'center', gap: 18 }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: 10 }}>
+        {u.mates.map((m, j) => {
+          const p = m.slug && doc.bySlug.get(m.slug)
+          return (
+            <div key={m.slug || m.name || j} className="tc-fade" style={{ animationDelay: `${40 + j * 60}ms`, flex: '1 1 0', minWidth: 0, maxWidth: 130, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: `1px solid ${EDGE}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: DIM, flex: 'none' }}>
+                {p && p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={56} height={56} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(m.name || '?')}
+              </span>
+              <span title={m.name} style={{ ...label, fontSize: 9, color: INK, maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(m.name || '?').split(' ').slice(1).join(' ') || m.name}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+        <span style={{ fontSize: 30, fontWeight: 700, lineHeight: 1, color: u.net === null ? FAINT : u.net >= 0 ? '#8fb0e6' : '#fa962a', fontVariantNumeric: 'tabular-nums' }}>{u.net === null ? '—' : `${u.net >= 0 ? '+' : '−'}${Math.abs(u.net).toFixed(1)}`}</span>
+        <span style={{ ...label, fontSize: 8 }}>Net · {u.minutes.toLocaleString()} min</span>
+        <span style={{ ...label, fontSize: 8, color: FAINT }}>{u.rank ? `#${u.rank.rank} of ${u.rank.of} ${n}-man units` : `Unranked under ${doc.floors[n]} min`}</span>
+      </div>
     </div>
   )
 }
 
-// Most used | Best net, for the units (ModeSwitch's look, small enough for a heading).
-const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
-function Pick({ pick, setPick }) {
+// A small segmented switch for a heading (ModeSwitch's look).
+function Pick({ options, value, set, label: name }) {
   return (
-    <span role="group" aria-label="Units shown" style={{ display: 'inline-flex', border: `1px solid ${EDGE}` }}>
-      {PICKS.map(([k, name], i) => (
-        <button key={k} type="button" aria-pressed={pick === k} onClick={() => setPick(k)}
-          style={{ height: 20, padding: '0 8px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: pick === k ? '#3a3734' : 'transparent', color: pick === k ? INK : DIM, fontFamily: MONO, fontSize: 8.5, fontWeight: pick === k ? 700 : 500, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
+    <span role="group" aria-label={name} style={{ display: 'inline-flex', border: `1px solid ${EDGE}` }}>
+      {options.map(([k, text], i) => (
+        <button key={k} type="button" aria-pressed={value === k} onClick={() => set(k)}
+          style={{ height: 20, padding: '0 8px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: value === k ? '#3a3734' : 'transparent', color: value === k ? INK : DIM, fontFamily: MONO, fontSize: 8.5, fontWeight: value === k ? 700 : 500, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{text}</button>
       ))}
     </span>
   )
 }
+const SIZES = [[2, '2'], [3, '3'], [4, '4'], [5, '5']]
+const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
 
 // A stat as a strip: the 30 teams as ticks, the league's average dashed, the team's mark
 // sliding out from it; better is always to the right.
@@ -309,13 +299,14 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
   }, [onClose])
   const x = reader(doc, t)
   const [pick, setPick] = useState('mostUsed')
+  const [n, setN] = useState(3)
   const close = <button type="button" aria-label="Close the card" onClick={onClose} style={{ alignSelf: 'start', width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
   // The two rows of pairs share the height the head and units leave.
   const pair = { flex: '1 0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }
   return (
     <div className="pc-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <Head t={t} x={x} season={season} closeButton={close} />
-      <Section title="Units" right={<Pick pick={pick} setPick={setPick} />}><Units team={t.team} season={season} pick={pick} /></Section>
+      <Section title="Units" right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Units shown" options={PICKS} value={pick} set={setPick} /></span>}><Units team={t.team} season={season} n={n} pick={pick} /></Section>
       <div style={pair}>
         <Section title="Ratings" note="dashed: league · better →">
           <div style={{ display: 'flex', flexDirection: 'column' }}>

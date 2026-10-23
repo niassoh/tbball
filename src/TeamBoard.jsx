@@ -7,6 +7,7 @@ import { asset } from './lib/static.js'
 import { placeOf, tiedOf } from './lib/teamboard.js'
 import ModeSwitch from './components/ModeSwitch.jsx'
 import TeamScatter from './components/TeamScatter.jsx'
+import BrandMark from './components/BrandMark.jsx'
 
 // The Team board: the 30 teams' 2026-27 from the team sheet (thinking-bball
 // lib/teamboard.js), one screen like the Leaderboard (index.css .lb): ORTG against DRTG on
@@ -140,6 +141,7 @@ export default function TeamBoard() {
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}` }}>
+        <BrandMark />
         <Link to="/" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>← All players</Link>
         <span style={{ ...label, fontSize: 10, color: INK, fontWeight: 700, border: `1px solid ${EDGE}`, padding: '5px 9px' }}>Teams</span>
         <Link to="/leaderboard" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>Leaderboard →</Link>

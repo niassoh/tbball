@@ -8,6 +8,7 @@ import TeamInitials from './components/TeamInitials.jsx'
 import JerseyOverlay from './components/JerseyOverlay.jsx'
 import Wink from './components/Wink.jsx'
 import { useSeasonType } from './useSeasonType.js'
+import BrandMark from './components/BrandMark.jsx'
 
 // The player index: a search line (and the way to the Leaderboard) and the 30 teams'
 // logos to filter by, then the
@@ -279,6 +280,7 @@ export default function PlayerIndex() {
   return (
     <main className="page-main" style={{ maxWidth: 1440, margin: '0 auto', padding: '20px var(--page-pad) 64px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderBottom: `1px solid ${EDGE}` }}>
+        <BrandMark large />
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ flex: 'none', color: DIM }}>
           <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
           <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.5" />

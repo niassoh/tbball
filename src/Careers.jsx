@@ -12,6 +12,7 @@ import { AxisPicker } from './components/LeaderScatter.jsx'
 import ModeSwitch from './components/ModeSwitch.jsx'
 import PlayerSearch from './components/PlayerSearch.jsx'
 import SeasonToggle from './components/SeasonToggle.jsx'
+import BrandMark from './components/BrandMark.jsx'
 
 // Career Trajectories: every career on the season boards (1996-97 on; lib/careers.js) at
 // once, any stat up the side and time across (a season, his age, his year of career). Up
@@ -330,6 +331,7 @@ export default function Careers() {
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap' }}>
+        <BrandMark />
         <Link to="/" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>← All players</Link>
         <span style={{ ...label, fontSize: 10, color: INK, fontWeight: 700, border: `1px solid ${EDGE}`, padding: '5px 9px' }}>Careers</span>
         <Link to={withMode('/leaderboard', playoffs)} style={{ ...label, fontSize: 10, color: '#b3ada6' }}>Leaderboard →</Link>

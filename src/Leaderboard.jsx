@@ -15,6 +15,7 @@ import PlayerCard from './components/PlayerCard.jsx'
 import Popover from './components/Popover.jsx'
 import SeasonPicker from './components/SeasonPicker.jsx'
 import SeasonToggle from './components/SeasonToggle.jsx'
+import BrandMark from './components/BrandMark.jsx'
 
 // The Leaderboard: one season's players (regular season or playoffs, thinking-bball
 // lib/profile.js leaderboard), a stat group's stats as a table and any two stats as a
@@ -469,6 +470,7 @@ export default function Leaderboard() {
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}` }}>
+        <BrandMark />
         <Link to="/" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>← All players</Link>
         <span style={{ ...label, fontSize: 10, color: INK, fontWeight: 700, border: `1px solid ${EDGE}`, padding: '5px 9px' }}>Leaderboard</span>
         <Link to="/teams" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>Teams →</Link>

@@ -6,6 +6,7 @@ import { MONO } from '../lib/format.js'
 import { initials } from '../lib/teams.js'
 import SeasonToggle from './SeasonToggle.jsx'
 import PlayerSearch from './PlayerSearch.jsx'
+import BrandMark from './BrandMark.jsx'
 
 // Past this far down the page the cards are behind you: the bar shows whose page this is.
 const SCROLLED_Y = 220
@@ -44,9 +45,10 @@ export default function TopBar({ profile: p, homePath }) {
   }, [])
   const slide = { transition: 'opacity .25s, transform .25s cubic-bezier(.2,.8,.2,1)', opacity: scrolled ? 1 : 0, transform: scrolled ? 'none' : 'translateY(8px)' }
   return (
-    <div ref={bar} className="topbar" style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 calc(-1 * var(--page-pad))', padding: '10px var(--page-pad)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: stuck ? '#262422' : 'transparent', borderBottom: `1px solid ${stuck ? '#3d3a37' : 'transparent'}`, transition: 'background-color .2s, border-color .2s' }}>
+    <div ref={bar} className="topbar" style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 calc(-1 * var(--page-pad))', padding: '14px var(--page-pad)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: stuck ? '#262422' : 'transparent', borderBottom: `1px solid ${stuck ? '#3d3a37' : 'transparent'}`, transition: 'background-color .2s, border-color .2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-        <Link to={homePath} style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', color: '#b3ada6', whiteSpace: 'nowrap' }}>← ALL PLAYERS</Link>
+        <BrandMark />
+        <Link to={homePath} className="topbar-back" style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '.1em', color: '#b3ada6', whiteSpace: 'nowrap' }}>← ALL PLAYERS</Link>
         <span className="topbar-name" aria-hidden={!scrolled} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, pointerEvents: scrolled ? 'auto' : 'none', ...slide }}>
           <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', overflow: 'hidden', background: '#34312e', border: '1px solid #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: '#b3ada6' }}>
             {p.headshot

@@ -131,15 +131,15 @@ function Face({ p }) {
 // Lonestar's stars, those he was without (`stars`: each team's, with its seasons; Min off
 // and Min on are the row's own, `mins` their labels): a star's small face tucked onto his,
 // and over it the whole of them.
+// Seasons in full, a run of them as its first and last ('2016-17 – 2017-18').
 const yrs = seasons => {
-  const ys = seasons.map(s => Number(s.slice(0, 4)) + 1)
   const runs = []
-  for (const y of ys) {
+  for (const s of seasons) {
     const last = runs[runs.length - 1]
-    if (last && y === last[1] + 1) last[1] = y
-    else runs.push([y, y])
+    if (last && Number(s.slice(0, 4)) === Number(last[1].slice(0, 4)) + 1) last[1] = s
+    else runs.push([s, s])
   }
-  return runs.map(([a, b]) => (a === b ? `’${String(a).slice(2)}` : `’${String(a).slice(2)}–’${String(b).slice(2)}`)).join(', ')
+  return runs.map(([a, b]) => (a === b ? a : `${a} – ${b}`)).join(', ')
 }
 function Mini({ who, size, style }) {
   return (

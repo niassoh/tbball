@@ -50,6 +50,8 @@ const AXES = {
   lonestar: ['Load Δ', 'Net Δ'],
   'lonestar-duo': ['Duo Load Δ', 'Duo Net Δ']
 }
+// The minutes a group's rows stand on, where they aren't his whole season's.
+const MIN_OF = { lonestar: 'Min off', 'lonestar-duo': 'Duo Min off' }
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 // A board longer than any one season's (eras, many seasons) comes in pages of PAGE rows.
 const LONG = 600
@@ -387,7 +389,7 @@ export default function Leaderboard() {
       const rs = docsOf('regular')
       if (!po.length || !rs.length) return false
       const board = combinedDelta(po, rs.map(singleYear))
-      return { ...board, players: qualified(board.players, top) }
+      return board
     }
     // Over many seasons the shooting stats are each season's own: their rolling windows
     // would overlap.
@@ -400,17 +402,17 @@ export default function Leaderboard() {
     // By age, a combined row's seasons differ from player to player: each carries its own
     // span (`era`), beside his name as a run's is.
     const players = ageOn && board.combined ? board.players.map(p => ({ ...p, era: [p.seasons[0], p.seasons[p.seasons.length - 1]] })) : board.players
-    return { ...board, players: qualified(players, top) }
-  }, [cache, wantedKey, each, top, eraOn, ageOn])
+    return { ...board, players }
+  }, [cache, wantedKey, each, eraOn, ageOn])
   // While another board loads (a span, eras, the last 30 days, the playoffs) the last one
   // stays up, dimmed under a progress line, and the new one comes up in its place; before
   // the first, the board's shape shows (BoardSkeleton).
   const [held, setHeld] = useState(null)
   if (fresh && fresh !== held) setHeld(fresh)
-  const doc = fresh === null ? held : fresh
+  const board = fresh === null ? held : fresh
   // The table pans under a mouse drag, once the board is in.
-  useDragScroll(wrap, !!doc)
-  const loading = fresh === null && !!doc
+  useDragScroll(wrap, !!board)
+  const loading = fresh === null && !!board
   const wanted = wantedKey ? wantedKey.split(',') : []
   const progress = wanted.length > 1 ? wanted.filter(k => k in cache).length / wanted.length : null
 
@@ -421,10 +423,22 @@ export default function Leaderboard() {
   // The table's tabs: every group but those only for the chart's axes (Player) and a tab's
   // other view (`alt`: Lonestar without his top two, its switch's).
   // A board without Footprint or Lonestar (the playoffs') keeps their tabs in place, greyed.
-  const tabs = !doc ? [] : [...doc.groups.filter(x => !x.axesOnly && !x.alt), ...[['footprint', 'Footprint'], ['lonestar', 'Lonestar']].filter(([id]) => !doc.groups.some(x => x.id === id)).map(([id, name]) => ({ id, name, stats: [], na: 'Regular season only' }))]
-  const g = doc ? doc.groups.find(x => x.id === group && x.alt) || tabs.find(x => x.id === group && !x.na) || tabs[0] : null
+  const tabs = !board ? [] : [...board.groups.filter(x => !x.axesOnly && !x.alt), ...[['footprint', 'Footprint'], ['lonestar', 'Lonestar']].filter(([id]) => !board.groups.some(x => x.id === id)).map(([id, name]) => ({ id, name, stats: [], na: 'Regular season only' }))]
+  const g = board ? board.groups.find(x => x.id === group && x.alt) || tabs.find(x => x.id === group && !x.na) || tabs[0] : null
   const tab = g && (g.alt || g.id)
-  const alts = doc ? doc.groups.filter(x => x.alt === tab) : []
+  const alts = board ? board.groups.filter(x => x.alt === tab) : []
+  // Lonestar's minutes are its own, those without his star (or stars), so on its tab they're
+  // the MIN column, what the minutes filter keeps the top of and the chart's dot sizes: a
+  // run where he had none to be without doesn't stand on his minutes alongside them.
+  const ownMin = g && MIN_OF[g.id]
+  const doc = useMemo(() => {
+    if (!board) return board
+    const rows = ownMin ? board.players.map(p => {
+      const mp = valueOf(board, p, ownMin)
+      return { ...p, mp: mp === null ? null : Math.round(mp) }
+    }) : board.players
+    return { ...board, players: qualified(rows, top) }
+  }, [board, ownMin, top])
   const has = l => doc && doc.labels.includes(l)
   const filled = l => has(l) && doc.players.some(p => p.v[doc.labels.indexOf(l)] !== null)
   const axesOf = gr => [...new Set([...(AXES[gr.id] || []), ...gr.stats])].filter(filled).slice(0, 2)

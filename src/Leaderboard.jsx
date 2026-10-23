@@ -47,7 +47,8 @@ const AXES = {
   defense: ['Def FGA <6ft /36', 'Def FGA Diff%'],
   team: ['Team Off', 'Team Def'],
   footprint: ['Rim scoring', 'Rim protection'],
-  lonestar: ['Load Δ', 'Net Δ']
+  lonestar: ['Load Δ', 'Net Δ'],
+  'lonestar-duo': ['Duo Load Δ', 'Duo Net Δ']
 }
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 // A board longer than any one season's (eras, many seasons) comes in pages of PAGE rows.
@@ -57,21 +58,54 @@ const PAGE = 200
 const NA = 'Unavailable for the last 30 days'
 
 // The stat groups, a tab each; a group with a stat filtered (`filtered`: labels) carries
-// the filter's mark beside its name.
-function Groups({ groups, active, pick, filtered }) {
+// the filter's mark beside its name. The picked tab with other views (`views`: [id, name,
+// the tab's note while on], Lonestar's) opens a menu of them from itself, fixed to the page so the scrolling row
+// doesn't clip it; `view` is the one on show.
+function Groups({ groups, active, pick, filtered, views = [], view }) {
+  const [menu, setMenu] = useState(null)
+  useEffect(() => {
+    if (!menu) return
+    const close = e => { if (!(e.target instanceof Element && e.target.closest('[data-views]'))) setMenu(null) }
+    const escape = e => { if (e.key === 'Escape') setMenu(null) }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', escape)
+    window.addEventListener('scroll', close, true)
+    return () => {
+      document.removeEventListener('pointerdown', close)
+      document.removeEventListener('keydown', escape)
+      window.removeEventListener('scroll', close, true)
+    }
+  }, [menu])
   return (
     <div role="group" aria-label="Stat group" style={{ display: 'flex', border: `1px solid ${EDGE}`, overflowX: 'auto', minWidth: 0, scrollbarWidth: 'none' }}>
       {groups.map((g, i) => {
         const on = g.id === active
         const sieved = g.stats.some(l => filtered.has(l))
+        const menued = on && views.length > 1
+        const click = e => {
+          if (g.na) return
+          if (!menued) return pick(g.id)
+          const r = e.currentTarget.getBoundingClientRect()
+          setMenu(m => (m ? null : { left: r.left, top: r.bottom + 6 }))
+        }
         return (
-          <button key={g.id} type="button" className="lb-group" aria-pressed={on} aria-disabled={g.na || undefined} onClick={() => !g.na && pick(g.id)} title={g.na ? (typeof g.na === 'string' ? g.na : NA) : undefined}
+          <button key={g.id} type="button" className="lb-group" aria-pressed={on} aria-disabled={g.na || undefined} aria-haspopup={menued ? 'menu' : undefined} aria-expanded={menued ? !!menu : undefined} data-views={menued || undefined} onClick={click} title={g.na ? (typeof g.na === 'string' ? g.na : NA) : undefined}
             style={{ flex: 'none', height: 28, padding: '0 11px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: g.na ? FAINT : on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: g.na ? 'not-allowed' : 'pointer' }}>
             {g.name}
+            {menued && view !== g.id && <span style={{ color: DIM, fontWeight: 500 }}>· {views.find(([id]) => id === view)[2]}</span>}
+            {menued && <span aria-hidden="true" style={{ fontSize: 7, color: DIM }}>{menu ? '▲' : '▼'}</span>}
             {sieved && <span title="A stat here is filtered" style={{ color: 'var(--accent)', marginLeft: -1 }}><FilterMark size={8} /></span>}
           </button>
         )
       })}
+      {menu && (
+        <div role="menu" data-views style={{ position: 'fixed', left: menu.left, top: menu.top, zIndex: 20, display: 'flex', flexDirection: 'column', background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 8px 24px rgba(0,0,0,.5)' }}>
+          {views.map(([id, name], i) => (
+            <button key={id} type="button" role="menuitemradio" aria-checked={id === view} className="lb-group" onClick={() => { pick(id); setMenu(null) }}
+              style={{ height: 30, padding: '0 14px', textAlign: 'left', border: 0, borderTop: i ? `1px solid ${EDGE}` : 0, background: id === view ? '#3a3734' : 'transparent', color: id === view ? INK : DIM, fontFamily: MONO, fontSize: 9.5, fontWeight: id === view ? 700 : 400, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer' }}>{name}</button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -384,10 +418,13 @@ export default function Leaderboard() {
   // days, falls back to the first;
   // a sort or axis the document lacks, to the group's own. A default axis with no values (a
   // stat its season's data doesn't have yet) gives way to the group's next one that has.
-  // The table's tabs: every group but those only for the chart's axes (Player).
+  // The table's tabs: every group but those only for the chart's axes (Player) and a tab's
+  // other view (`alt`: Lonestar without his top two, its switch's).
   // A board without Footprint or Lonestar (the playoffs') keeps their tabs in place, greyed.
-  const tabs = !doc ? [] : [...doc.groups.filter(x => !x.axesOnly), ...[['footprint', 'Footprint'], ['lonestar', 'Lonestar']].filter(([id]) => !doc.groups.some(x => x.id === id)).map(([id, name]) => ({ id, name, stats: [], na: 'Regular season only' }))]
-  const g = doc ? tabs.find(x => x.id === group && !x.na) || tabs[0] : null
+  const tabs = !doc ? [] : [...doc.groups.filter(x => !x.axesOnly && !x.alt), ...[['footprint', 'Footprint'], ['lonestar', 'Lonestar']].filter(([id]) => !doc.groups.some(x => x.id === id)).map(([id, name]) => ({ id, name, stats: [], na: 'Regular season only' }))]
+  const g = doc ? doc.groups.find(x => x.id === group && x.alt) || tabs.find(x => x.id === group && !x.na) || tabs[0] : null
+  const tab = g && (g.alt || g.id)
+  const alts = doc ? doc.groups.filter(x => x.alt === tab) : []
   const has = l => doc && doc.labels.includes(l)
   const filled = l => has(l) && doc.players.some(p => p.v[doc.labels.indexOf(l)] !== null)
   const axesOf = gr => [...new Set([...(AXES[gr.id] || []), ...gr.stats])].filter(filled).slice(0, 2)
@@ -504,7 +541,7 @@ export default function Leaderboard() {
           )
           : <Skel w={SEASONS_W} h={30} />}
         {doc ? <Minutes top={top} set={setTop} playoffs={playoffs} /> : <Skel w={MIN_W} h={30} />}
-        {doc ? <Groups groups={tabs} active={g.id} pick={choose} filtered={filtered} /> : doc === null && <Skel w={586} h={30} />}
+        {doc ? <Groups groups={tabs} active={tab} pick={choose} filtered={filtered} views={alts.length ? [[tab, 'Without top star'], ...alts.map(x => [x.id, 'Without top two', 'Top two'])] : []} view={g.id} /> : doc === null && <Skel w={586} h={30} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', maxWidth: '100%' }}>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${EDGE}` }}>
             <span aria-hidden="true" style={{ ...label, color: FAINT }}>Find</span>

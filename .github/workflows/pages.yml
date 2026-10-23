@@ -31,14 +31,25 @@ jobs:
       # Before the backend is checked out into backend/, where vitest would find its tests.
       - run: npm test
       - uses: actions/checkout@v4
+        id: backend
         with:
           repository: niassoh/thinking-bball
           ssh-key: ${{ secrets.BACKEND_DEPLOY_KEY }}
           path: backend
+      # The export takes half an hour and depends only on thinking-bball's commit, so a
+      # deploy with that commit unchanged (an app change here) reuses the last export of it.
+      - uses: actions/cache@v4
+        id: export
+        with:
+          path: |
+            public/api
+            public/assets/players
+          key: export-${{ steps.backend.outputs.commit }}
       - run: npm ci --prefix backend
         env:
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: '1'
-      - run: node backend/scripts/export-static.js --out public
+      - if: steps.export.outputs.cache-hit != 'true'
+        run: node backend/scripts/export-static.js --out public
       - run: npm run build
         env:
           VITE_STATIC: '1'

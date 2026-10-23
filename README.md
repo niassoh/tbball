@@ -47,7 +47,9 @@ npx vite preview
 
 Pushing `main` runs `.github/workflows/pages.yml`, which tests, checks out thinking-bball
 with a read-only deploy key (secret `BACKEND_DEPLOY_KEY`), exports its data into `public/`
-as above (not committed here: `.gitignore`), builds and publishes to
+as above (not committed here: `.gitignore`; about half an hour, so a thinking-bball commit
+already exported restores its export from the Actions cache instead, and an app-only deploy
+takes a few minutes), builds and publishes to
 https://data.thinkingbasketball.net/ (repo `niassoh/tbball`'s Pages custom domain; the DNS
 is thinkingbasketball.net's, on SiteGround). Old niassoh.github.io/tbball/ links redirect there.
 thinking-bball's nightly run dispatches it after committing new data (its

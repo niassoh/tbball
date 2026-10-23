@@ -164,6 +164,15 @@ export const domainOf = (mine, league) => {
   return [d0, d1]
 }
 
+// A line drawn up to `t` along x (its points' xs, in order): where its head is. On the
+// segment it's crossing, `f` of the way from point j - 1 to point j; past its last point,
+// that point (`done`); before its first, nowhere (null).
+export const headAt = (xs, t) => {
+  if (!xs.length || t < xs[0]) return null
+  const j = xs.findIndex(a => a > t)
+  return j < 0 ? { j: xs.length - 1, f: 0, done: true } : { j, f: (t - xs[j - 1]) / (xs[j] - xs[j - 1]), done: false }
+}
+
 // Where a percentile sits on a percentile axis (0–1): partly the even scale and partly a
 // normal curve's, so the ends open up (the 98th to the 99th is a longer step than the
 // 54th to the 55th) without the middle collapsing. `normalQ` is the normal's quantile

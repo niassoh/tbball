@@ -43,6 +43,18 @@ const surname = n => n.split(' ').slice(1).join(' ') || n
 const shortYears = (a, b) => `’${a.slice(5)}–’${b.slice(5)}`
 const titled = slug => slug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
 
+// Play: the chart drawn across from its start, a year at a time (CareerChart); playing, it
+// stops it.
+function Play({ playing, set, disabled }) {
+  return (
+    <button type="button" aria-pressed={playing} disabled={disabled} onClick={() => set(!playing)} title={playing ? 'Stop' : 'Play the careers across, a year at a time'}
+      style={{ height: 30, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 12px', border: `1px solid ${playing ? INK : EDGE}`, background: playing ? '#3a3734' : 'transparent', color: playing ? INK : DIM, fontFamily: MONO, fontSize: 9, fontWeight: playing ? 700 : 500, letterSpacing: '.12em', textTransform: 'uppercase', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1 }}>
+      <svg aria-hidden="true" width="8" height="8" viewBox="0 0 8 8">{playing ? <rect width="8" height="8" fill="currentColor" /> : <path d="M0 0L8 4L0 8Z" fill="currentColor" />}</svg>
+      {playing ? 'Stop' : 'Play'}
+    </button>
+  )
+}
+
 // The careers, built once a session for each season type: 30 boards, about 2 MB.
 const built = {}
 
@@ -296,6 +308,7 @@ export default function Careers() {
   const setSlots = next => set({ p: next.join(',') || null })
   // The chip being searched from (a player's index, or slots.length for a new one), or null.
   const [editing, setEditing] = useState(null)
+  const [playing, setPlaying] = useState(false)
   // He goes in at `i` (a new player at the end); already elsewhere, he moves there.
   const choose = (i, slug) => {
     const next = [...slots]
@@ -353,6 +366,7 @@ export default function Careers() {
         {pickDoc ? <AxisPicker doc={pickDoc} axis="Y" value={y} set={v => set({ y: v })} dim={dim} /> : <span className="lb-skel" style={{ width: 120, height: 30 }} />}
         <ModeSwitch mode={scale} setMode={v => set({ scale: v })} />
         <ModeSwitch name="Smoothing" options={SMOOTH} mode={String(smooth)} setMode={v => set({ smooth: v })} />
+        <Play playing={playing} set={setPlaying} disabled={!store} />
       </div>
 
       {store === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
@@ -360,7 +374,7 @@ export default function Careers() {
         <div className="lb-body" style={{ gridTemplateRows: 'minmax(0, 1fr)' }}>
           <div className="lb-side">
             {store
-              ? <CareerChart store={store} x={x} y={y} scale={scale} ys={ys} channels={channels} />
+              ? <CareerChart store={store} x={x} y={y} scale={scale} ys={ys} channels={channels} playing={playing} setPlaying={setPlaying} />
               : <Loader list={prog ? prog.list : []} done={prog ? prog.done : []} />}
           </div>
           <div className="lb-side cg-scroll" style={{ overflow: 'auto', display: 'flex', flexDirection: 'column' }}>

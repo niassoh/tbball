@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TIME, careersOf, column, domainOf, envelope, middle98, normalQ, peakOf, pctlPos } from './careers.js'
+import { TIME, careersOf, column, domainOf, envelope, headAt, middle98, normalQ, peakOf, pctlPos } from './careers.js'
 
 const STATS = { BPM: { dec: 1 }, 'C&S 3%': { dec: 1 }, 'C&S 3s/36': { dec: 1 }, '1yr C&S 3%': { dec: 1 } }
 const LABELS = ['BPM', 'C&S 3%', 'C&S 3s/36', '1yr C&S 3%']
@@ -161,5 +161,22 @@ describe('pctlPos', () => {
     const step = p => pctlPos(p + 1) - pctlPos(p)
     expect(step(98)).toBeGreaterThan(2 * step(54))
     expect(step(54)).toBeGreaterThan(0.004)
+  })
+})
+
+describe('headAt', () => {
+  const xs = [2003, 2004, 2006, 2007]
+  it('is nowhere before the line starts', () => {
+    expect(headAt(xs, 2002.5)).toBe(null)
+    expect(headAt([], 2005)).toBe(null)
+  })
+  it('crosses each segment, a gap at the same pace a year', () => {
+    expect(headAt(xs, 2003)).toEqual({ j: 1, f: 0, done: false })
+    expect(headAt(xs, 2003.25)).toEqual({ j: 1, f: 0.25, done: false })
+    expect(headAt(xs, 2005)).toEqual({ j: 2, f: 0.5, done: false })
+  })
+  it('rests on the last point once past it', () => {
+    expect(headAt(xs, 2007)).toEqual({ j: 3, f: 0, done: true })
+    expect(headAt(xs, Infinity)).toEqual({ j: 3, f: 0, done: true })
   })
 })

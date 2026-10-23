@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { MONO, fmt, ord } from '../lib/format.js'
-import { TIME, domainOf, envelope, middle98, pctlPos } from '../lib/careers.js'
+import { TIME, domainOf, envelope, headAt, middle98, pctlPos } from '../lib/careers.js'
 import { axisOf, median } from '../lib/leaderboard.js'
 
 // Careers' chart, time across (a season, his age or his year of career): every career on
@@ -9,7 +9,10 @@ import { axisOf, median } from '../lib/leaderboard.js'
 // board a dotted bridge. Better is up: raw values on the Leaderboard's median-centred axes
 // (lib/leaderboard.js axisOf), percentiles 0–100. The canvas is painted when the data or
 // the frame change, never as the pointer moves; the readout follows the pointer, each
-// channel's season at the x under it.
+// channel's season at the x under it. Played (`playing`, the page's Play), it's drawn across
+// from the axis's start, PER_YEAR a year: all of it up to a playhead, so a career's line
+// starts in his first year, its head and his name riding its tip; at the end it's whole
+// again (`setPlaying(false)`).
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -22,6 +25,7 @@ const M = { l: 50, r: 34, t: 14, b: 30 }
 const FIELD_ALPHA = 0.055
 const BAND_FILL = 'rgba(236, 232, 227, .055)'
 const CARD_W = 236
+const PER_YEAR = 800
 // Below this width the readout sits under the chart rather than over it.
 const DOCK = 520
 const X_NAMES = { season: 'Season', age: 'Age', career: 'Year of career' }
@@ -37,7 +41,7 @@ const ticksOf = (d0, d1, room) => {
   return out
 }
 
-export default function CareerChart({ store, x, y, scale, ys, channels }) {
+export default function CareerChart({ store, x, y, scale, ys, channels, playing = false, setPlaying }) {
   const box = useRef(null)
   const faint = useRef(null)
   const [size, setSize] = useState({ w: 640, h: 420 })
@@ -78,6 +82,32 @@ export default function CareerChart({ store, x, y, scale, ys, channels }) {
     const mine = channels.flatMap(c => field.lines[c.pl.i].map(p => p[0]))
     return domainOf(mine.length ? mine : field.band.map(b => b.x), field.lines.flat().map(p => p[0]))
   }, [channels, field])
+
+  // While playing, how far across it's drawn: a share of the axis (so a new axis never sees
+  // the last one's x; it starts over), and the x that is (null: whole).
+  const [share, setShare] = useState(null)
+  useEffect(() => {
+    if (!playing) {
+      setShare(null)
+      return
+    }
+    const span = (domain[1] - domain[0]) * PER_YEAR
+    const start = performance.now()
+    let id
+    const step = now => {
+      const f = Math.max(0, now - start) / span
+      if (f >= 1) {
+        setShare(null)
+        setPlaying(false)
+        return
+      }
+      setShare(f)
+      id = requestAnimationFrame(step)
+    }
+    id = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(id)
+  }, [playing, domain[0], domain[1], setPlaying]) // eslint-disable-line react-hooks/exhaustive-deps -- the axis's ends, not the array
+  const upTo = share === null ? null : domain[0] + share * (domain[1] - domain[0])
 
   const X0 = M.l
   const X1 = w - M.r
@@ -132,22 +162,22 @@ export default function CareerChart({ store, x, y, scale, ys, channels }) {
         out.push(<circle key={`${t.letter}d${j}`} cx={p.X} cy={p.Y} r={last ? 3.5 : lead ? 2.5 : 2} fill={t.color} fillOpacity={fade} stroke={last && lead ? INK : 'none'} strokeWidth={1.5} />)
       })
     }
-    // Each line's surname at its end, in its colour, nudged apart.
-    {
-      const tags = tracks.filter(t => t.pts.length).map(t => {
-        const [a, b] = t.pts[t.pts.length - 1]
-        return { t, X: px(a), Y: py(b) }
-      }).sort((a, b) => a.Y - b.Y)
-      tags.forEach((g, j) => { if (j && g.Y - tags[j - 1].Y < 13) g.Y = tags[j - 1].Y + 13 })
-      for (const g of tags) {
-        out.push(
-          <text key={`${g.t.letter}tag`} opacity={leadOf(g.t) ? 1 : focus ? 0.3 : 0.75} x={g.X + 8} y={g.Y + 3.5} textAnchor={g.X + 8 + 70 > w ? 'end' : 'start'} dx={g.X + 8 + 70 > w ? -16 : 0}
-            style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', fill: g.t.color, paintOrder: 'stroke', stroke: BG, strokeWidth: 3 }}>{surname(g.t.pl.name)}</text>
-        )
-      }
-    }
     return out
   }, [tracks, axes, domain, w, h, focus]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py and leadOf are these
+
+  // Each line's tip: its last point, or while playing where it's drawn to (none before his
+  // first year), on the segment it's crossing. A playing tip carries a head; his surname sits
+  // beside it in his colour, the names nudged apart.
+  const tips = tracks.map(tr => {
+    const hd = headAt(tr.pts.map(p => p[0]), upTo ?? Infinity)
+    if (!hd) return null
+    const [a, b] = tr.pts[hd.j]
+    if (hd.done) return { tr, X: px(a), Y: py(b) }
+    const q = py(tr.pts[hd.j - 1][1])
+    return { tr, X: px(upTo), Y: q + (py(b) - q) * hd.f }
+  }).filter(Boolean).sort((a, b) => leadOf(a.tr) - leadOf(b.tr))
+  const tags = [...tips].sort((a, b) => a.Y - b.Y).map(g => ({ ...g, tagY: g.Y }))
+  tags.forEach((g, j) => { if (j && g.tagY - tags[j - 1].tagY < 13) g.tagY = tags[j - 1].tagY + 13 })
 
   const band = field.band.filter(b => b.x >= domain[0] && b.x <= domain[1])
   const xTicks = ticksOf(Math.ceil(domain[0]), Math.floor(domain[1]), X1 - X0)
@@ -178,8 +208,9 @@ export default function CareerChart({ store, x, y, scale, ys, channels }) {
         </span>
       </div>
       <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 340, touchAction: 'pan-y' }} onPointerMove={move} onPointerLeave={() => setHover(null)}>
-        <canvas ref={faint} aria-hidden="true" style={{ position: 'absolute', inset: 0, width: w, height: h, pointerEvents: 'none' }} />
+        <canvas ref={faint} aria-hidden="true" style={{ position: 'absolute', inset: 0, width: w, height: h, pointerEvents: 'none', clipPath: upTo === null ? undefined : `inset(0 ${w - px(upTo)}px 0 0)` }} />
         <svg width={w} height={h} style={{ position: 'absolute', inset: 0, display: 'block' }} role="img" aria-label={`${y} by ${X_NAMES[x]}`}>
+          <defs><clipPath id="career-play"><rect width={upTo === null ? w : px(upTo)} height={h} /></clipPath></defs>
           <rect x={X0} y={Y0} width={X1 - X0} height={Y1 - Y0} fill="none" stroke={RULE} />
           {yTicks.map((v, j) => (
             <g key={j}>
@@ -188,21 +219,34 @@ export default function CareerChart({ store, x, y, scale, ys, channels }) {
             </g>
           ))}
           {band.length > 1 && (
-            <>
+            <g clipPath="url(#career-play)">
               <polygon points={[...band.map(b => `${px(b.x)},${py(b.hi)}`), ...[...band].reverse().map(b => `${px(b.x)},${py(b.lo)}`)].join(' ')} fill={BAND_FILL} />
               <polyline points={band.map(b => `${px(b.x)},${py(b.mid)}`).join(' ')} fill="none" stroke={DIM} strokeWidth={1.25} strokeDasharray="4 3" />
               {[['P90', 'hi'], ['MED', 'mid'], ['P10', 'lo']].map(([n, k]) => (
                 <text key={n} x={Math.min(px(band[band.length - 1].x) + 4, X1 + 2)} y={py(band[band.length - 1][k]) + 3} style={{ ...label, fontSize: 7.5, fill: FAINT }}>{n}</text>
               ))}
-            </>
+            </g>
           )}
-          {xTicks.map(t => (
+          {/* A tick the playhead's year covers gives way to it. */}
+          {xTicks.filter(t => upTo === null || Math.abs(px(t) - px(upTo)) >= 24).map(t => (
             <text key={t} x={px(t)} y={Y1 + 14} textAnchor="middle" style={{ ...label, fontSize: 8.5, fill: FAINT }}>{tick(t, x)}</text>
           ))}
           <text x={(X0 + X1) / 2} y={Y1 + 26} textAnchor="middle" style={{ ...label, fontSize: 8, fill: DIM }}>{X_NAMES[x]}</text>
           <text x={X0 - 40} y={(Y0 + Y1) / 2} textAnchor="middle" transform={`rotate(-90 ${X0 - 40} ${(Y0 + Y1) / 2})`} style={{ ...label, fontSize: 8, fill: DIM }}>{y}{pct ? ' · pctl' : axes.ya.root ? ' · √ scale' : ''} →</text>
           {hx !== null && <line x1={px(hx)} x2={px(hx)} y1={Y0} y2={Y1} stroke={INK} strokeOpacity={0.35} />}
-          {marks}
+          <g clipPath="url(#career-play)">{marks}</g>
+          {upTo !== null && (
+            <g aria-hidden="true">
+              <line x1={px(upTo)} x2={px(upTo)} y1={Y0} y2={Y1} stroke={INK} strokeOpacity={0.3} />
+              <rect x={px(upTo) - 15} y={Y1 + 4} width={30} height={14} fill={INK} />
+              <text x={px(upTo)} y={Y1 + 14} textAnchor="middle" style={{ ...label, fontSize: 8.5, fontWeight: 700, fill: BG }}>{tick(Math.floor(upTo), x)}</text>
+              {tips.map(g => <circle key={g.tr.letter} cx={g.X} cy={g.Y} r={3.5} fill={g.tr.color} fillOpacity={leadOf(g.tr) ? 1 : focus ? 0.25 : 0.7} stroke={leadOf(g.tr) ? INK : 'none'} strokeWidth={1.5} />)}
+            </g>
+          )}
+          {tags.map(g => (
+            <text key={`${g.tr.letter}tag`} opacity={leadOf(g.tr) ? 1 : focus ? 0.3 : 0.75} x={g.X + 8} y={g.tagY + 3.5} textAnchor={g.X + 8 + 70 > w ? 'end' : 'start'} dx={g.X + 8 + 70 > w ? -16 : 0}
+              style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', fill: g.tr.color, paintOrder: 'stroke', stroke: BG, strokeWidth: 3 }}>{surname(g.tr.pl.name)}</text>
+          ))}
         </svg>
         {card && !docked && (
           <div style={{ position: 'absolute', top: 8, left: cardLeft > w * 0.6 ? cardLeft - 14 - CARD_W : cardLeft + 14, width: CARD_W, pointerEvents: 'none', zIndex: 5 }}>{card}</div>

@@ -512,6 +512,7 @@ export default function Leaderboard() {
               style={{ width: 96, background: 'transparent', border: 0, outline: 'none', color: INK, fontFamily: MONO, fontSize: 11, caretColor: 'var(--accent)' }} />
           </label>
           {doc ? <Teams teams={teams} team={team} set={setTeam} /> : <Skel w={TEAM_W} h={30} />}
+          <ModeSwitch mode={mode} setMode={setMode} />
         </span>
       </div>
 
@@ -522,10 +523,6 @@ export default function Leaderboard() {
           {/* Many seasons (a long span, or eras' every one) fill it as they come in. */}
           {loading && <Progress share={progress} />}
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
-            {/* RAW | PCTL in the corner, held there as the table scrolls either way. */}
-            <div style={{ position: 'sticky', top: 0, left: 0, height: 0, zIndex: 5 }}>
-              <span style={{ position: 'absolute', top: 2, right: 2, background: '#262422' }}><ModeSwitch mode={mode} setMode={setMode} height={14} compact /></span>
-            </div>
             <LeaderTable doc={doc} group={g} rows={drawn} pager={pager} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'} filters={filters} setFilter={setFilter}
               picked={picked} onPick={setPicked} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'No players match'}</div>}

@@ -22,7 +22,8 @@ import { initials } from '../lib/teams.js'
 // index.css). A long board's page control (`pager`) sits in the Player header. A stat's
 // head carries its percentile filter (`filters`: label -> the top share kept), marked
 // there while on. A column with two sides (Lonestar's change: `sub`, its on and off) opens
-// them beside it from a small box in its head's top corner, each headed by its side (`head`).
+// them beside it from a small box in its head's top corner, each headed by its side (`head`,
+// shown as the star's: w/ Star, w/o Star), the three framed together.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -139,8 +140,17 @@ const lockOf = (lefts, narrow) => k => (lefts.length && !narrow ? stick(lefts[k]
 // The held block's right edge, a rule the stats slide under.
 const edge = i => (i === BIO.length - 1 ? { borderRight: `1px solid ${RULE}` } : {})
 
-// An opened column's first side: a dashed rule down its left, setting the pair off.
-const sideRule = (stat, color) => (stat.head === 'On' ? { borderLeft: `1px dashed ${color}` } : {})
+// An opened column (its change, then its sides) is framed: solid rules down the change's left
+// and the last side's right (and along their heads' top), a dashed one between the change and
+// its sides.
+const SIDES = { On: 'w/ Star', Off: 'w/o Star' }
+const opened = (doc, stats, i) => !!doc.stats[stats[i]].sub && stats[i + 1] === doc.stats[stats[i]].sub[0]
+const sideRule = (doc, stats, i, color) => {
+  const { head } = doc.stats[stats[i]]
+  if (opened(doc, stats, i)) return { borderLeft: `1px solid ${color}` }
+  if (head === 'On') return { borderLeft: `1px dashed ${color}` }
+  return head === 'Off' ? { borderRight: `1px solid ${color}` } : {}
+}
 
 // A player's row. Its own component, kept while its props hold, so when the drawn rows
 // move (Leaderboard.jsx) only the newly drawn ones are made.
@@ -167,7 +177,7 @@ const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel
         const pc = p.p[k]
         const shade = v === null || pc === null ? undefined : stat.neutral ? plain(pc) : heat(pc)
         return (
-          <td key={l} style={{ ...CELL, textAlign: 'right', background: shade, ...(turnsDef(doc, group, i) ? { borderLeft: '1px solid #544f4b' } : {}), ...sideRule(stat, '#544f4b'), color: v === null ? FAINT : INK, fontWeight: sortLabel === l ? 600 : 400 }}>
+          <td key={l} style={{ ...CELL, textAlign: 'right', background: shade, ...(turnsDef(doc, group, i) ? { borderLeft: '1px solid #544f4b' } : {}), ...sideRule(doc, group.stats, i, '#837d76'), color: v === null ? FAINT : INK, fontWeight: sortLabel === l ? 600 : 400 }}>
             {lit.has(k) && <span aria-label="clears the noise" style={{ display: 'inline-block', width: 4, height: 4, marginRight: 5, verticalAlign: 2, background: INK }} />}
             {pct ? (v === null || pc === null ? '—' : pc) : fmt(stat, v)}
           </td>
@@ -189,10 +199,10 @@ export function FilterMark({ size = 9 }) {
   )
 }
 
-// The box on a two-sided column's head: + opens its on and off beside it, − closes them.
+// The box on a two-sided column's head: + opens its sides beside it, − closes them.
 function Expand({ open, stat, toggle }) {
   return (
-    <button type="button" aria-expanded={open} aria-label={`${open ? 'Hide' : 'Show'} ${stat} on and off`} title={open ? 'Hide on and off' : 'Show on and off'} onClick={toggle}
+    <button type="button" aria-expanded={open} aria-label={`${open ? 'Hide' : 'Show'} ${stat} with and without the star`} title={open ? 'Hide w/ and w/o Star' : 'Show w/ and w/o Star'} onClick={toggle}
       style={{ position: 'absolute', top: 3, left: 7, width: 11, height: 11, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${open ? INK : FAINT}`, background: 'transparent', color: open ? INK : DIM, fontFamily: MONO, fontSize: 9, lineHeight: 1, cursor: 'pointer' }}>{open ? '−' : '+'}</button>
   )
 }
@@ -314,10 +324,10 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
             const na = doc.stats[l].na
             // A side's head is its side; a change's Δ stays on its name's last line.
             const part = doc.stats[l].head
-            const name = part || l.replace(/ Δ$/, '\u00a0Δ')
+            const name = part ? SIDES[part] : l.replace(/ Δ$/, '\u00a0Δ')
             const yearsAt = j => (j >= 0 && j < shown.stats.length ? doc.stats[shown.stats[j]].years : null)
             return (
-              <th key={l} style={{ ...head, minWidth: part ? 46 : 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none', ...(turnsDef(doc, shown, i) ? { borderLeft: '1px solid #837d76' } : {}), ...sideRule(doc.stats[l], '#837d76') }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
+              <th key={l} style={{ ...head, minWidth: part ? 46 : 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none', ...(turnsDef(doc, shown, i) ? { borderLeft: '1px solid #837d76' } : {}), ...sideRule(doc, shown.stats, i, '#837d76'), ...(part || opened(doc, shown.stats, i) ? { borderTop: '1px solid #837d76' } : {}) }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
                 {years && <Bracket years={years} start={yearsAt(i - 1) !== years} end={yearsAt(i + 1) !== years} />}
                 {doc.stats[l].sub && <Expand open={open.has(l)} stat={l} toggle={() => toggle(l)} />}
                 {sideStarts(doc, shown, i) && <span style={{ position: 'absolute', top: 4, left: 7, fontSize: 8, letterSpacing: '.14em', color: '#837d76', whiteSpace: 'nowrap' }}>{doc.stats[l].side === 'def' ? 'DEFENSE' : 'OFFENSE'}</span>}

@@ -9,8 +9,7 @@ import { CountUp, Meter } from './PlayerCard.jsx'
 // A team's card on the Team board, in the chart's place, sized to fit a laptop's screen.
 // Its head: logo, name, record, win pace and net. Then one of its units that season (five-
 // man unless picked), most used or best by net (as the players' cards show theirs); its
-// ratings as a grid of strips of the 30 teams with it marked, better always to the right,
-// for the season and its splits; its play types as a mosaic, each as wide as its
+// ratings, the season's and its splits', as a table tinted by percentile; its play types as a mosaic, each as wide as its
 // share of the offense and as tall as its points a play above or below the league's; its
 // shots and its opponents' as numbers with meters. Blue is better than the league,
 // orange worse, grey a style. It comes in on opening, and again for another team: the
@@ -146,10 +145,9 @@ function Pick({ options, value, set, label: name }) {
 const SIZES = [[2, '2'], [3, '3'], [4, '4'], [5, '5']]
 const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
 
-// Its ratings as a grid: offense, defense and net across; the season, adjusted, home and
-// away, and against the bottom and top 10 down. Each cell is the number, its place among
-// the 30, and a strip of the 30 teams as ticks with the league's average dashed and the
-// team's mark sliding out from it; better is always to the right.
+// Its ratings as a table, the Team board's way: offense, defense and net across; the
+// season and adjusted, then home and away and against the bottom and top 10, down. Each
+// cell is the number and its place among the 30, tinted by its percentile.
 const RATINGS = [
   ['Season', 'ORTG', 'DRTG', 'Net'],
   ['Adjusted', 'Adj rORTG', 'Adj rDRTG', null],
@@ -158,43 +156,26 @@ const RATINGS = [
   ['v Bottom 10', 'ORTG v Bot10', 'DRTG v Bot10', 'Net v Bot10'],
   ['v Top 10', 'ORTG v Top10', 'DRTG v Top10', 'Net v Top10']
 ]
-const GRID = { display: 'grid', gridTemplateColumns: '78px repeat(3, minmax(0, 1fr))', columnGap: 18 }
-function Cell({ x, l }) {
-  if (!l || !x.has(l)) return <span style={{ ...label, fontSize: 8, color: FAINT, alignSelf: 'center' }}>{l ? '—' : ''}</span>
-  const vs = x.all(l)
-  const v = x.v(l)
-  const lg = x.lg(l) ?? (RELATIVE.test(l) ? 0 : vs.reduce((a, b) => a + b, 0) / vs.length)
-  const lo = Math.min(...vs, lg)
-  const hi = Math.max(...vs, lg)
-  const pad = (hi - lo) * 0.06 || 1
-  const flip = x.stat(l).lowerBetter
-  const pos = n => `${(((flip ? hi + pad - n : n - lo + pad) / (hi - lo + 2 * pad)) * 100).toFixed(2)}%`
-  return (
-    <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }} title={x.stat(l).desc || undefined}>
-      <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
-        <span style={{ fontSize: 14, lineHeight: '16px', fontWeight: 700, color: v === null ? FAINT : INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}</span>
-        <span style={{ ...label, fontSize: 8 }}>{v === null ? '' : x.place(l)}</span>
-      </span>
-      <span style={{ position: 'relative', height: 14 }}>
-        <span style={{ position: 'absolute', left: 0, right: 0, top: 7, height: 1, background: RULE }} />
-        {vs.map((n, i) => <span key={i} style={{ position: 'absolute', left: pos(n), top: 3, width: 1, height: 9, background: '#57524d' }} />)}
-        <span style={{ position: 'absolute', left: pos(lg), top: 0, height: 14, borderLeft: `1px dashed ${DIM}` }} />
-        {v !== null && <span className="tc-slide" style={{ position: 'absolute', left: pos(v), top: 1, width: 5, height: 12, marginLeft: -2, background: x.tone(l), boxShadow: '0 0 0 1px #262422', '--from': pos(lg) }} />}
-      </span>
-    </span>
-  )
-}
+const GRID = { display: 'grid', gridTemplateColumns: '92px repeat(3, minmax(0, 1fr))', columnGap: 3 }
 function Ratings({ x }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={GRID}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div style={{ ...GRID, marginBottom: 2 }}>
         <span />
-        {['Offense', 'Defense', 'Net'].map(h => <span key={h} style={{ ...label, fontSize: 8, color: FAINT }}>{h}</span>)}
+        {['Offense', 'Defense', 'Net'].map(h => <span key={h} style={{ ...label, fontSize: 8, padding: '0 10px' }}>{h}</span>)}
       </div>
       {RATINGS.map(([name, ...ls], i) => (
-        <div key={name} style={{ ...GRID, height: 31, alignItems: 'end', ...(i === 2 ? { borderTop: `1px solid ${RULE}`, paddingTop: 5, height: 36 } : null) }}>
-          <span style={{ ...label, fontSize: 9, color: '#c9c3bc', whiteSpace: 'nowrap', paddingBottom: 2 }}>{name}</span>
-          {ls.map((l, j) => <Cell key={j} x={x} l={l} />)}
+        <div key={name} style={{ ...GRID, height: 26, ...(i === 2 ? { marginTop: 8 } : null) }}>
+          <span style={{ ...label, fontSize: 9, color: '#c9c3bc', alignSelf: 'center', whiteSpace: 'nowrap' }}>{name}</span>
+          {ls.map((l, j) => {
+            const v = l && x.has(l) ? x.v(l) : null
+            return (
+              <span key={j} className="tc-fade" title={l ? x.stat(l)?.desc : undefined} style={{ animationDelay: `${i * 40}ms`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 10px', background: v === null ? 'transparent' : x.shade(l), fontVariantNumeric: 'tabular-nums' }}>
+                {l && <span style={{ fontSize: 13, fontWeight: 700, color: v === null ? FAINT : INK }}>{v === null ? '—' : x.text(l)}</span>}
+                {v !== null && <span style={{ fontSize: 9, color: '#d6d1cb' }}>{x.place(l)}</span>}
+              </span>
+            )
+          })}
         </div>
       ))}
     </div>
@@ -286,7 +267,7 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
     <div className="pc-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <Head t={t} x={x} season={season} closeButton={close} />
       <Section title="Units" right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Units shown" options={PICKS} value={pick} set={setPick} /></span>}><Units team={t.team} season={season} n={n} pick={pick} /></Section>
-      <Section title="Ratings" note="the 30 as ticks · dashed: league · better →"><Ratings x={x} /></Section>
+      <Section title="Ratings" note="tint: percentile"><Ratings x={x} /></Section>
       <div style={pair}>
         <Section title="Play types" note="width: share · bar: v league"><Playtypes x={x} /></Section>
         <Section title="Shots" note="meters: percentile" style={{ borderLeft: `1px solid ${RULE}` }}><Shots x={x} /></Section>

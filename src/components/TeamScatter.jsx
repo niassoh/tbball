@@ -9,7 +9,7 @@ import { frameOf, netLines, placeOf, tiedOf } from '../lib/teamboard.js'
 // good-defense corner is washed blue, the bad-bad one orange (the site's better and worse).
 // Each logo is in its colours with a dark halo; the team under the pointer, here or in
 // the table (`hot`), lifts as the rest step back, and a hover brings its card: record, the
-// two ratings and net, each with its place among the 30.
+// two ratings and net, each with its place among the 30; a click opens its card.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -25,7 +25,7 @@ const LOGO = 30
 const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rgba(0,0,0,.6))'
 const CARD_W = 210
 
-export default function TeamScatter({ doc, hot, setHot }) {
+export default function TeamScatter({ doc, hot, setHot, onPick }) {
   const box = useRef(null)
   const [size, setSize] = useState({ w: 560, h: 520 })
   const [hover, setHover] = useState(null)
@@ -111,7 +111,7 @@ export default function TeamScatter({ doc, hot, setHot }) {
             const s = on ? LOGO * 1.3 : LOGO
             return (
               <g key={tm.team} className="tb-logo" style={{ transform: `translate(${px(tm.v[kx])}px, ${py(tm.v[ky])}px)`, opacity: lit && !on ? 0.25 : 1, cursor: 'pointer' }}
-                onMouseEnter={() => { setHover(tm.team); setHot(tm.team) }}>
+                onMouseEnter={() => { setHover(tm.team); setHot(tm.team) }} onClick={() => onPick(tm.team)}>
                 <image href={asset(`logos/color/${tm.team}.png`)} x={-s / 2} y={-s / 2} width={s} height={s} style={{ filter: HALO }} />
               </g>
             )

@@ -111,7 +111,7 @@ const still = () => window.matchMedia('(prefers-reduced-motion: reduce)').matche
 // A number counting up to its value, eased out over COUNT_MS after `delay` ms (the effect
 // writes its text, so the count runs between renders); straight to it with reduced motion.
 const COUNT_MS = 700
-function CountUp({ stat, value, delay }) {
+export function CountUp({ stat, value, delay }) {
   const el = useRef(null)
   useLayoutEffect(() => {
     const node = el.current
@@ -134,7 +134,7 @@ function CountUp({ stat, value, delay }) {
 }
 
 // A percentile on ten steps, lit in its color one after another from `delay` ms.
-function Meter({ pc, delay }) {
+export function Meter({ pc, delay }) {
   const lit = pc === null ? 0 : Math.max(1, Math.round(pc / 10))
   return (
     <span aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(10, minmax(0, 1fr))', gap: 2 }}>

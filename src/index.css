@@ -500,3 +500,34 @@ a:hover > .lineup-tile > * { filter: none; }
 @media (max-width: 1000px), (max-height: 600px) { .tb-body { grid-template-columns: minmax(0, 1fr); } }
 .tb-logo { transition: transform .45s cubic-bezier(.2, .8, .2, 1), opacity .2s; }
 @media (prefers-reduced-motion: reduce) { .tb-logo { transition: none; } }
+
+/* The Team board's team card (TeamCard.jsx): its logo settles, its name wipes in, the level
+   bars rise, strips' marks and splits' dots slide out from the league's average, the courts'
+   lines and the dials' arcs draw, the pointers turn and the pads light one after another. */
+@keyframes tc-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes tc-slide { from { left: var(--from); } }
+@keyframes tc-slidex { from { transform: translateX(var(--dx)); } to { transform: none; } }
+@keyframes tc-turn { from { transform: rotate(var(--from)); } }
+@keyframes tc-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes tc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tc-pad { 0% { background: #3a3734; box-shadow: inset 0 0 0 1px var(--accent); } 100% { background: #2c2a28; box-shadow: none; } }
+.tc-logo { animation: pc-settle .6s cubic-bezier(.2, .8, .2, 1) both; }
+.tc-wipe { animation: pc-wipe .6s cubic-bezier(.65, 0, .2, 1) both .12s; }
+.tc-rise, .tc-grow { transform-box: view-box; animation: tc-rise .5s cubic-bezier(.2, .8, .2, 1) both; }
+.tc-slide { animation: tc-slide .7s cubic-bezier(.2, .8, .2, 1) both .15s; }
+.tc-slidex { animation: tc-slidex .7s cubic-bezier(.2, .8, .2, 1) both; }
+.tc-turn { animation: tc-turn .9s cubic-bezier(.3, 1.3, .4, 1) both .15s; }
+.tc-draw { stroke-dasharray: 1; animation: tc-draw .8s cubic-bezier(.4, 0, .2, 1) both var(--delay, 0ms); }
+.tc-fade { animation: tc-fade .4s ease both; }
+.tc-pad { animation: tc-pad .5s steps(4, end) both var(--d, 0ms); }
+@media (prefers-reduced-motion: reduce) {
+  .tc-logo, .tc-wipe, .tc-rise, .tc-grow, .tc-slide, .tc-slidex, .tc-turn, .tc-draw, .tc-fade, .tc-pad { animation: none; }
+}
+@media (max-width: 560px) {
+  .tc-head { grid-template-columns: 64px minmax(0, 1fr) !important; }
+  .tc-head > img { width: 64px; height: 64px; }
+  .tc-head > :last-child { grid-column: 1 / -1; }
+  .tc-pads { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .tc-pads > .tc-blank { display: none; }
+  .tc-pads > .tc-rowname { grid-column: 1 / -1; margin-top: 4px; }
+}

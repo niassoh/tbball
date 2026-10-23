@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchTeamboard } from './api.js'
 import { MONO, fmt, heat, ord } from './lib/format.js'
@@ -8,6 +8,7 @@ import { placeOf, tiedOf } from './lib/teamboard.js'
 import ModeSwitch from './components/ModeSwitch.jsx'
 import TeamScatter from './components/TeamScatter.jsx'
 import BrandMark from './components/BrandMark.jsx'
+import TeamCard from './components/TeamCard.jsx'
 
 // The Team board: the 30 teams' 2026-27 from the team sheet (thinking-bball
 // lib/teamboard.js), one screen like the Leaderboard (index.css .lb): ORTG against DRTG on
@@ -16,7 +17,7 @@ import BrandMark from './components/BrandMark.jsx'
 // after D, D after O), a head sorting by its stat, best first, again for worst, each cell
 // shaded by its percentile among the 30 (blue above the middle, orange below, a style stat
 // in grey), RAW its value or RANK its place among the 30, the league's average along the foot. The team under the pointer in either is lit
-// in the other.
+// in the other. A row or a logo opens the team's card in the chart's place (TeamCard).
 const SEASON = '2026-27'
 const INK = '#ece8e3'
 const DIM = '#a09a93'
@@ -51,7 +52,7 @@ const RECORD = ['Wins', 'Losses']
 const NAMES = { 'LA Bayes Win-pace': 'Luck Adjusted\nBayes Win-pace' }
 // RAW | RANK: a cell's value, or its place among the 30 ("1st", "4th", a shared one "T-6th").
 const MODES = [['raw', 'Raw'], ['rank', 'Rank']]
-function Table({ doc, group, sort, onSort, rankView, hot, setHot }) {
+function Table({ doc, group, sort, onSort, rankView, hot, setHot, picked, onPick }) {
   const shown = group.stats.filter(l => !RECORD.includes(l))
   const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
   const rows = useMemo(() => ranked(doc, doc.teams, sort.label, sort.reverse), [doc, sort])
@@ -83,7 +84,7 @@ function Table({ doc, group, sort, onSort, rankView, hot, setHot }) {
       </thead>
       <tbody>
         {rows.map(t => (
-          <tr key={t.team} className="lb-row" aria-selected={t.team === hot} onMouseEnter={() => setHot(t.team)} onMouseLeave={() => setHot(null)}>
+          <tr key={t.team} className="lb-row" aria-selected={t.team === hot || t.team === picked} onMouseEnter={() => setHot(t.team)} onMouseLeave={() => setHot(null)} onClick={() => onPick(t.team)} style={{ cursor: 'pointer' }}>
             <td style={{ ...td, textAlign: 'center', padding: 0, color: DIM, fontSize: 11 }}>{rank.get(t.team)}</td>
             <td style={{ ...td, textAlign: 'left', borderRight: `1px solid ${RULE}` }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
@@ -127,6 +128,8 @@ export default function TeamBoard() {
   const [sort, setSort] = useState({ label: 'LA Bayes Win-pace', reverse: false })
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
+  const [picked, setPicked] = useState(null)
+  const close = useCallback(() => setPicked(null), [])
   useEffect(() => {
     let live = true
     fetchTeamboard(SEASON).then(d => live && setDoc(d || false), () => live && setDoc(false))
@@ -154,9 +157,13 @@ export default function TeamBoard() {
       {doc === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
       {doc && (
         <div className="lb-body tb-body lb-enter">
-          <div className="lb-side"><TeamScatter doc={doc} hot={hot} setHot={setHot} /></div>
+          <div className={`lb-side${picked ? ' lb-carded' : ''}`}>
+            {picked
+              ? <TeamCard key={picked} doc={doc} team={doc.teams.find(t => t.team === picked)} season={SEASON} onClose={close} />
+              : <TeamScatter doc={doc} hot={hot} setHot={setHot} onPick={setPicked} />}
+          </div>
           <div className="lb-table-wrap" style={{ scrollSnapType: 'none' }}>
-            <Table doc={doc} group={g} sort={sort} onSort={l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false }))} rankView={mode === 'rank'} hot={hot} setHot={setHot} />
+            <Table doc={doc} group={g} sort={sort} onSort={l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false }))} rankView={mode === 'rank'} hot={hot} setHot={setHot} picked={picked} onPick={setPicked} />
           </div>
         </div>
       )}

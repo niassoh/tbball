@@ -102,6 +102,19 @@ const combineOne = (entries, labels, stats = {}) => {
     v[k] = a === null || b === null ? null : a - b
   })
   if (labels.includes('Age')) v[labels.indexOf('Age')] = age
+  // Lonestar's stars over his seasons: each team's same stars as one, their seasons joined.
+  const stars = {}
+  for (const { p } of entries) {
+    for (const [gid, parts] of Object.entries(p.stars || {})) {
+      const into = (stars[gid] = stars[gid] || [])
+      for (const pt of parts) {
+        const key = `${pt.team}|${pt.stars.map(t => t.name).join()}`
+        const held = into.find(x => x.key === key)
+        if (held) held.seasons = [...new Set([...held.seasons, ...pt.seasons])].sort()
+        else into.push({ ...pt, key })
+      }
+    }
+  }
   return {
     slug: last.slug,
     id: last.slug,
@@ -115,6 +128,7 @@ const combineOne = (entries, labels, stats = {}) => {
     headshot: last.headshot,
     headshotVersion: last.headshotVersion,
     seasons: entries.map(({ doc }) => doc.season),
+    ...(Object.keys(stars).length ? { stars } : {}),
     v
   }
 }

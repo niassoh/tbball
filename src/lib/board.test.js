@@ -87,6 +87,18 @@ describe('board', () => {
     expect(a.v[0]).toBe(0.5)
   })
 
+  test('combined: Lonestar\'s stars, each team\'s same stars as one, their seasons joined', () => {
+    const kd = { name: 'Kevin Durant', slug: 'kevin-durant' }
+    const klay = { name: 'Klay Thompson', slug: 'klay-thompson' }
+    const season = (s, stars) => doc(s, [P('a', 2000, [1, 30, 1], { stars })])
+    const [a] = combined([
+      season('2016-17', { 'lonestar-duo': [{ team: 'GSW', seasons: ['2016-17'], stars: [kd, klay] }] }),
+      season('2017-18', { 'lonestar-duo': [{ team: 'GSW', seasons: ['2017-18'], stars: [kd, klay] }] }),
+      season('2018-19', {})
+    ]).players
+    expect(a.stars['lonestar-duo'].map(x => [x.team, x.seasons])).toEqual([['GSW', ['2016-17', '2017-18']]])
+  })
+
   test('combined: his age is the plain mean of his seasons\' ages, in the Age stat too', () => {
     // 25.4 over 1,000 minutes and 26.4 over 3,000: 25.9, not the minutes-weighted 26.15.
     const aged = (season, age, mp) => withPlayer(doc(season, [P('a', mp, [1, 30, 1], { age })]))

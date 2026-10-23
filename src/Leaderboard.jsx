@@ -50,8 +50,6 @@ const AXES = {
   lonestar: ['Load Δ', 'Net Δ'],
   'lonestar-duo': ['Duo Load Δ', 'Duo Net Δ']
 }
-// The minutes a group's rows stand on, where they aren't his whole season's.
-const MIN_OF = { lonestar: 'Min off', 'lonestar-duo': 'Duo Min off' }
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 // A board longer than any one season's (eras, many seasons) comes in pages of PAGE rows.
 const LONG = 600
@@ -430,7 +428,7 @@ export default function Leaderboard() {
   // Lonestar's minutes are its own, those without his star (or stars), so on its tab they're
   // the MIN column, what the minutes filter keeps the top of and the chart's dot sizes: a
   // run where he had none to be without doesn't stand on his minutes alongside them.
-  const ownMin = g && MIN_OF[g.id]
+  const ownMin = g && g.mins && g.mins[0]
   const doc = useMemo(() => {
     if (!board) return board
     const rows = ownMin ? board.players.map(p => {

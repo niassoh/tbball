@@ -128,6 +128,72 @@ function Face({ p }) {
   )
 }
 
+// Lonestar's stars, those he was without (`stars`: each team's, with its seasons; Min off
+// and Min on are the row's own, `mins` their labels): a star's small face tucked onto his,
+// and over it the whole of them.
+const yrs = seasons => {
+  const ys = seasons.map(s => Number(s.slice(0, 4)) + 1)
+  const runs = []
+  for (const y of ys) {
+    const last = runs[runs.length - 1]
+    if (last && y === last[1] + 1) last[1] = y
+    else runs.push([y, y])
+  }
+  return runs.map(([a, b]) => (a === b ? `’${String(a).slice(2)}` : `’${String(a).slice(2)}–’${String(b).slice(2)}`)).join(', ')
+}
+function Mini({ who, size, style }) {
+  return (
+    <span style={{ width: size, height: size, flex: 'none', borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: size * 0.36, color: DIM, ...style }}>
+      {who.headshot
+        ? <img src={headshotUrl(who.slug || who.face, 100, who.headshotVersion, who.headshot)} alt="" width={size} height={size} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} />
+        : initials(who.name || '?')}
+    </span>
+  )
+}
+function Without({ p, parts, mins, doc }) {
+  const [at, setAt] = useState(null)
+  const tip = useRef(null)
+  const show = e => {
+    const r = e.currentTarget.getBoundingClientRect()
+    setAt({ left: r.right + 10, mid: r.top + r.height / 2, top: null })
+  }
+  // Centred on his face, but kept on screen.
+  useLayoutEffect(() => {
+    if (!at || at.top !== null) return
+    const h = tip.current.offsetHeight
+    setAt(a => ({ ...a, top: Math.max(8, Math.min(window.innerHeight - h - 8, a.mid - h / 2)) }))
+  }, [at])
+  const min = l => {
+    const x = p.v[doc.labels.indexOf(l)]
+    return x === null || x === undefined ? '—' : Math.round(x).toLocaleString()
+  }
+  return (
+    <span onPointerEnter={show} onPointerLeave={() => setAt(null)} style={{ position: 'relative', flex: 'none', display: 'inline-flex' }}>
+      <Face p={p} />
+      <Mini who={parts[0].stars[0]} size={11} style={{ position: 'absolute', right: -4, bottom: -3, boxShadow: '0 0 0 1.5px #1f1d1c' }} />
+      {at && createPortal(
+        <div ref={tip} role="tooltip" style={{ position: 'fixed', left: at.left, top: at.top ?? at.mid, visibility: at.top === null ? 'hidden' : 'visible', zIndex: 40, minWidth: 220, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 9, background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 8px 24px rgba(0,0,0,.5)', fontFamily: MONO, pointerEvents: 'none' }}>
+          <span style={{ fontSize: 8.5, letterSpacing: '.12em', color: FAINT, textTransform: 'uppercase' }}>Without</span>
+          {parts.map((pt, i) => (
+            <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <span style={{ display: 'flex', flex: 'none' }}>{pt.stars.map((t, j) => <Mini key={j} who={t} size={26} style={{ marginLeft: j ? -7 : 0, border: '1px solid #544f4b' }} />)}</span>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>{pt.stars.map(t => t.name).join(' + ')}</span>
+                <span style={{ fontSize: 9.5, letterSpacing: '.06em', color: DIM }}>{pt.team} · {yrs(pt.seasons)}</span>
+              </span>
+            </span>
+          ))}
+          <span style={{ display: 'flex', gap: 14, paddingTop: 8, borderTop: `1px solid ${RULE}`, fontSize: 9.5, letterSpacing: '.06em', color: DIM, textTransform: 'uppercase' }}>
+            <span><span style={{ color: INK, fontWeight: 700 }}>{min(mins[0])}</span> min without</span>
+            <span><span style={{ color: INK, fontWeight: 700 }}>{min(mins[1])}</span> with</span>
+          </span>
+        </div>,
+        document.body
+      )}
+    </span>
+  )
+}
+
 const CELL = { height: 26, padding: '0 7px', borderBottom: `1px solid ${RULE}`, whiteSpace: 'nowrap' }
 // A group with offense and defense stats (Footprint's, by `side`) parts them: a rule down
 // the first defensive column's left, and over each side's first header its name.
@@ -163,7 +229,7 @@ const Row = memo(function Row({ p, rank, selected, onPick, doc, group, sortLabel
       <td style={{ ...CELL, ...stick(0), padding: 0, textAlign: 'center', color: DIM, fontSize: 10.5 }}><span style={{ display: 'inline-block', width: RANK_W }}>{rank ?? '—'}</span></td>
       <td style={{ ...CELL, ...stick(RANK_W), padding: '0 8px 0 4px', borderRight: `1px solid ${RULE}` }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <Face p={p} />
+          {group.mins && p.stars && p.stars[group.id] ? <Without p={p} parts={p.stars[group.id]} mins={group.mins} doc={doc} /> : <Face p={p} />}
           <span title={p.name} style={{ width: narrow ? 84 : 130, flex: 'none', fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 700, color: INK, overflow: 'hidden', textOverflow: 'ellipsis' }}>{short(p.name)}</span>
           {p.era && <span style={{ flex: 'none', fontFamily: MONO, fontSize: 10.5, color: DIM, letterSpacing: '.04em' }}>’{p.era[0].slice(5)}{p.era[1] !== p.era[0] && `–’${p.era[1].slice(5)}`}</span>}
         </span>

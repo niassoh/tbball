@@ -56,6 +56,8 @@ export const fetchLeaderboard = (season, playoffs = false, delta = false) => {
 export const fetchLeaderboardRecent = () => getJson(api('leaderboard/recent', 'leaderboard/recent.json'))
 // The Team board: every team's season from the team sheet (thinking-bball lib/teamboard.js).
 export const fetchTeamboard = season => getJson(api(`teamboard/${season}`, `teamboard/${season}.json`))
+// Each team's most-played and best units of each size in a season (the team card).
+export const fetchTeamUnits = season => getJson(api(`teamunits/${season}`, `teamunits/${season}.json`))
 // The Footprint and Lonestar tabs' views (every season and span), fetched when the tab opens.
 export const fetchFootprint = slug => getJson(api(`footprint/${encodeURIComponent(slug)}`, `footprint/${encodeURIComponent(slug)}.json`)).then(d => (d && d.fields ? unpackFootprint(d) : d))
 // A player's every regular-season shot by season, packed (lib/shot.js unpackDots), for the

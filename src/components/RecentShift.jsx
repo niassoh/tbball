@@ -431,7 +431,7 @@ export default function RecentShift({ profile: p, season }) {
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: '2px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Last 30 Days</span>
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{young ? 'Vs Last Season' : 'Last 30 Days'}</span>
           <span style={{ ...subhead, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
             DIFFERENCE BETWEEN <span title={unqualified ? whyUnqualified : undefined} style={{ color: '#ece8e3', fontWeight: 700, textDecoration: unqualified ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}>{windowLabel(games, young)}</span> AND {young ? 'LAST SEASON' : 'REST OF SEASON'}
           </span>

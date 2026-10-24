@@ -46,6 +46,20 @@ html { scroll-behavior: smooth; }
 .brand-lg { width: 44px; height: 44px; }
 .brand-lg svg { height: 38px; }
 .brand-lg::after { top: 8px; bottom: 8px; }
+/* Its bulb lit: under the pointer (or focus) it flickers on and stays, the ball glowing in
+   its halo; a press throws rays out from the ball as the halo flares. */
+.brand svg { overflow: visible; }
+.bm-lit, .bm-halo { opacity: 0; transition: opacity .25s; }
+.brand:hover .bm-lit, .brand:hover .bm-halo, .brand:focus-visible .bm-lit, .brand:focus-visible .bm-halo { opacity: 1; animation: bm-flicker .6s linear; }
+.bm-halo, .bm-rays { transform-box: view-box; transform-origin: 74.05px 52.6px; }
+.bm-rays { opacity: 0; animation: bm-rays .65s cubic-bezier(.2, .7, .2, 1); }
+.brand:active .bm-halo { opacity: 1; transform: scale(1.35); transition: transform .12s, opacity .12s; }
+@keyframes bm-flicker { 0% { opacity: 0 } 10% { opacity: .85 } 18% { opacity: .1 } 30% { opacity: 1 } 40% { opacity: .35 } 55%, 100% { opacity: 1 } }
+@keyframes bm-rays { 0% { opacity: 0; transform: scale(.7) } 20% { opacity: 1 } 100% { opacity: 0; transform: scale(1.3) } }
+@media (prefers-reduced-motion: reduce) {
+  .brand:hover .bm-lit, .brand:hover .bm-halo, .brand:focus-visible .bm-lit, .brand:focus-visible .bm-halo { animation: none; }
+  .bm-rays { display: none; }
+}
 /* A phone's bars have no width to spare (the profile's would wrap to two lines, the
    teams' too), so there it shows on the home page only. */
 @media (max-width: 560px) { .topbar .brand, .lb .brand { display: none; } }

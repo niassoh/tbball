@@ -9,7 +9,7 @@ import { CountUp, Meter, Section } from './PlayerCard.jsx'
 // A team's card on the Team board, in the chart's place, drawn as a player's card is: its
 // head (logo, name, record and win pace, then ORTG, DRTG and net with their meters and
 // places); its percentiles, offense beside defense; its splits and play types side by
-// side; and its units. Blue is better than the league, orange worse, grey a style. It
+// side; how its possessions start, offense beside defense; and its units. Blue is better than the league, orange worse, grey a style. It
 // comes in on opening: the logo settles, the name wipes in, the numbers count up as their
 // meters light, the bars wipe in and the units' faces arrive (index.css .pc-*, .tc-*).
 const INK = '#ece8e3'
@@ -87,15 +87,15 @@ function Percentiles({ x }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 16 }}>
       {SIDES.map(([side, rows], s) => (
-        <div key={side} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-          <span style={{ ...label, fontSize: 8, color: FAINT }}>{side}</span>
+        <div key={side} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>{side}</span>
           {rows.filter(([l]) => x.has(l)).map(([l, name, unit], i) => {
             const pc = x.p(l)
             return (
-              <div key={l} title={titleOf(x, l)} style={{ display: 'grid', gridTemplateColumns: '84px minmax(0, 1fr) 38px', gap: 6, alignItems: 'center' }}>
-                <span style={{ ...label, fontSize: 8, color: SOFT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+              <div key={l} title={titleOf(x, l)} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0, 1fr) 42px', gap: 6, alignItems: 'center' }}>
+                <span style={{ ...label, fontSize: 8.5, color: SOFT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
                 <Bar w={pc === null ? null : Math.max(pc, 2)} c={x.tone(l)} mark={50} delay={AT.bars + (i * 2 + s) * AT.step} />
-                <span style={{ fontSize: 10, textAlign: 'right', color: x.v(l) === null ? FAINT : INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : unit}</span>
+                <span style={{ fontSize: 11, textAlign: 'right', color: x.v(l) === null ? FAINT : INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : unit}</span>
               </div>
             )
           })}
@@ -114,26 +114,30 @@ function Bar({ w, c, mark, delay }) {
   )
 }
 
-// Its splits: ORTG, DRTG and net at home, away and against the league's bottom and top 10,
-// each coloured by its percentile.
+// A small table: each row's name, then its stats (`ls`) coloured by percentile under `heads`.
+// Its splits are one (ORTG, DRTG and net at home, away and against the league's bottom and
+// top 10); how its possessions start another (after a stop, a make or a set, the share of
+// its possessions and its rating, on offense and on defense).
 const SPLITS = [
   ['Home', 'Home ORTG', 'Home DRTG', 'Home Net'],
   ['Away', 'Away ORTG', 'Away DRTG', 'Away Net'],
   ['v Bottom 10', 'ORTG v Bot10', 'DRTG v Bot10', 'Net v Bot10'],
   ['v Top 10', 'ORTG v Top10', 'DRTG v Top10', 'Net v Top10']
 ]
-const SPLIT_COLS = { display: 'grid', gridTemplateColumns: '84px repeat(3, minmax(0, 1fr))', gap: 6, alignItems: 'center' }
-function Splits({ x }) {
+const STARTS = [['stop', 'STOP'], ['make', 'MAKE'], ['set', 'SET']]
+const startsOf = side => STARTS.map(([name, k]) => [`After ${name}`, `${side} after ${k}`, `${side === 'Off' ? 'ORTG' : 'DRTG'} after ${k}`])
+function Rows({ x, heads, rows, delay, units = [] }) {
+  const cols = { display: 'grid', gridTemplateColumns: `92px repeat(${heads.length}, minmax(0, 1fr))`, gap: 6, alignItems: 'center' }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <div style={SPLIT_COLS}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={cols}>
         <span />
-        {['ORTG', 'DRTG', 'Net'].map(h => <span key={h} style={{ ...label, fontSize: 8, color: FAINT, textAlign: 'right' }}>{h}</span>)}
+        {heads.map(h => <span key={h} style={{ ...label, fontSize: 8, color: FAINT, textAlign: 'right' }}>{h}</span>)}
       </div>
-      {SPLITS.map(([name, ...ls], i) => (
-        <div key={name} className="tc-fade" style={{ ...SPLIT_COLS, animationDelay: `${AT.rows + i * AT.step}ms` }}>
-          <span style={{ ...label, fontSize: 8, color: SOFT, whiteSpace: 'nowrap' }}>{name}</span>
-          {ls.map(l => <span key={l} title={titleOf(x, l)} style={{ fontSize: 10, textAlign: 'right', color: x.tone(l), fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}</span>)}
+      {rows.map(([name, ...ls], i) => (
+        <div key={name} className="tc-fade" style={{ ...cols, animationDelay: `${delay + i * AT.step}ms` }}>
+          <span style={{ ...label, fontSize: 8.5, color: SOFT, whiteSpace: 'nowrap' }}>{name}</span>
+          {ls.map((l, j) => <span key={l} title={titleOf(x, l)} style={{ fontSize: 11, textAlign: 'right', color: x.tone(l), fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : units[j] || ''}</span>)}
         </div>
       ))}
     </div>
@@ -144,13 +148,13 @@ function Splits({ x }) {
 // marked) and its points a play, coloured by percentile; the rest (transition and the
 // like) its share alone.
 const TYPES = [['Off-Ball', 'Off-ball'], ['PnR Game', 'PnR'], ['Iso-Post', 'Iso / post']]
-const TYPE_COLS = { display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) 30px 32px', gap: 6, alignItems: 'center' }
+const TYPE_COLS = { display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr) 32px 36px', gap: 6, alignItems: 'center' }
 function Playtypes({ x }) {
   const shown = TYPES.filter(([k]) => x.v(`${k} Share`) !== null)
   const rest = Math.max(0, 100 - shown.reduce((s, [k]) => s + x.v(`${k} Share`), 0))
   const rows = [...shown.map(([k, name]) => ({ name, share: x.v(`${k} Share`), lg: x.lg(`${k} Share`), l: `${k} PPP` })), { name: 'Transition', share: rest, lg: null, l: null, title: 'Transition and the rest' }]
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={TYPE_COLS}>
         <span />
         <span style={{ ...label, fontSize: 8, color: FAINT }}>Share</span>
@@ -159,10 +163,10 @@ function Playtypes({ x }) {
       </div>
       {rows.map((r, i) => (
         <div key={r.name} title={r.title || titleOf(x, r.l)} style={TYPE_COLS}>
-          <span style={{ ...label, fontSize: 8, color: SOFT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</span>
+          <span style={{ ...label, fontSize: 8.5, color: SOFT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</span>
           <Bar w={r.share} c={MID} mark={r.lg} delay={AT.rows + i * AT.step} />
-          <span style={{ fontSize: 10, textAlign: 'right', color: DIM, fontVariantNumeric: 'tabular-nums' }}>{Math.round(r.share)}%</span>
-          <span style={{ fontSize: 10, textAlign: 'right', color: r.l ? x.tone(r.l) : FAINT, fontVariantNumeric: 'tabular-nums' }}>{r.l ? x.text(r.l) : ''}</span>
+          <span style={{ fontSize: 11, textAlign: 'right', color: DIM, fontVariantNumeric: 'tabular-nums' }}>{Math.round(r.share)}%</span>
+          <span style={{ fontSize: 11, textAlign: 'right', color: r.l ? x.tone(r.l) : FAINT, fontVariantNumeric: 'tabular-nums' }}>{r.l ? x.text(r.l) : ''}</span>
         </div>
       ))}
     </div>
@@ -267,9 +271,15 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
       <Head t={t} x={x} intro={intro} />
       <Section title="Percentiles" right="among the 30"><Percentiles x={x} /></Section>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-        <Section title="Splits" right="per 100"><Splits x={x} /></Section>
+        <Section title="Splits" right="per 100"><Rows x={x} heads={['ORTG', 'DRTG', 'Net']} rows={SPLITS} delay={AT.rows} /></Section>
         <div style={{ borderLeft: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column' }}>
           <Section title="Play types" right={`half court ${x.text('Half-Court Share')}%`}><Playtypes x={x} /></Section>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+        <Section title="Offense by start" right="share · rating"><Rows x={x} heads={['Share', 'ORTG']} rows={startsOf('Off')} delay={AT.rows + 4 * AT.step} units={['%']} /></Section>
+        <div style={{ borderLeft: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column' }}>
+          <Section title="Defense by start" right="share · rating"><Rows x={x} heads={['Share', 'DRTG']} rows={startsOf('Def')} delay={AT.rows + 4 * AT.step} units={['%']} /></Section>
         </div>
       </div>
       <Section title="Units" right={<Pick label="Unit size" options={SIZES} value={n} set={setN} />}><Units team={t.team} season={season} n={n} intro={intro} /></Section>

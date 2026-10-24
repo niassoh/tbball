@@ -95,7 +95,7 @@ const seasonView = (p, i) => {
   return { team: s.card.team, teamName: s.card.teamName, age: ageOf(s.season, s.age), lineups: s.card.lineups, chart: s.card.rotation, rotation: true }
 }
 
-export default function BioCard({ profile: p, season, loading = false }) {
+export default function BioCard({ profile: p, season, loading = false, playing = false }) {
   const { playerPath } = useSeasonType()
   const v = seasonView(p, season)
   const layers = p.jerseys ? p.jerseys[p.slug] : null
@@ -184,7 +184,7 @@ export default function BioCard({ profile: p, season, loading = false }) {
 
   return (
     <div ref={cardRef} style={card}>
-      <div ref={heroRef} className={loading ? 'hero loading' : 'hero'} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid var(--trim)', overflow: 'hidden' }}>
+      <div ref={heroRef} className={`hero${loading ? ' loading' : ''}${playing ? ' playing' : ''}`} style={{ position: 'relative', height: HERO_H, background: '#1f1d1c', borderBottom: '2px solid var(--trim)', overflow: 'hidden' }}>
         <img className="hero-bokeh" src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55, display: 'block' }} />
         <Headshot key={p.slug} slug={p.slug} version={p.headshotVersion} source={p.headshot} name={p.name} team={v.team} layers={layers} jersey={p.seasons[season] ? p.seasons[season].jersey : null} split={splitIds(layers, p.seasons[season] && p.seasons[season].jerseys)} winkDelay={trophiesRisen(p.awards, shown, trophyRoom)} />
         {/* A soft overhead light along the top-right hides the seam where the headshot box begins. */}

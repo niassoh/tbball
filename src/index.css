@@ -436,15 +436,16 @@ a:hover > .lineup-tile > * { filter: none; }
   .lb-dot { transition: none; }
 }
 /* The bio card's trophy case: hidden until the banner is under the pointer (or holds
-   focus), when its trophies rise in turn (`--d`) with their names over them; a screen
-   without hover shows the trophies throughout and their names on a tap. */
+   focus), or the career is playing, when its trophies rise in turn (`--d`) with their
+   names over them (each season's case is a new one, so they rise again every step); a
+   screen without hover shows the trophies throughout and their names on a tap. */
 .tc-item { opacity: 0; }
-.hero:hover .tc-item, .hero:focus-within .tc-item { animation: pf-in .4s cubic-bezier(.2, .7, .2, 1) both var(--d, 0ms); }
+.hero:hover .tc-item, .hero:focus-within .tc-item, .hero.playing .tc-item { animation: pf-in .4s cubic-bezier(.2, .7, .2, 1) both var(--d, 0ms); }
 .tc-tag { opacity: 0; transform: translate(-50%, 3px); transition: opacity .15s, transform .15s; text-shadow: 0 1px 4px rgba(0, 0, 0, .8); }
-.hero:hover .tc-tag, .hero:focus-within .tc-tag { opacity: 1; transform: translate(-50%, 0); transition-delay: var(--d, 0ms); }
+.hero:hover .tc-tag, .hero:focus-within .tc-tag, .hero.playing .tc-tag { opacity: 1; transform: translate(-50%, 0); transition-delay: var(--d, 0ms); }
 @media (hover: none) { .tc-item { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .hero:hover .tc-item, .hero:focus-within .tc-item { animation: none; opacity: 1; }
+  .hero:hover .tc-item, .hero:focus-within .tc-item, .hero.playing .tc-item { animation: none; opacity: 1; }
   .tc-tag { transition: none; }
 }
 /* The card's head (PlayerCard) on opening: his portrait settles out of grey, his bio

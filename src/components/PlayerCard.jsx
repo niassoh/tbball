@@ -68,9 +68,9 @@ const fit = (vs, least) => {
 const careerWindow = (p, l) => (rollingStat(p, l, ROLL).vals.filter(Boolean).length >= ROLL ? ROLL : 1)
 const lastName = name => (name || '').split(' ').slice(1).join(' ') || name
 
-export function Section({ title, children, right }) {
+export function Section({ title, children, right, style }) {
   return (
-    <div style={{ padding: '9px 14px', borderTop: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column', gap: 7 }}>
+    <div style={{ padding: '9px 14px', borderTop: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column', gap: 7, ...style }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ ...label, color: '#b8b2ab' }}>{title}</span>
         {right && <span style={{ ...label, color: FAINT }}>{right}</span>}

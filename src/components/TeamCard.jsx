@@ -266,7 +266,7 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
   const [n, setN] = useState(5)
   const [pick, setPick] = useState('mostUsed')
   return (
-    <div className={`pc-card${!settling ? ' tc-still' : quick ? ' tc-quick' : ' pc-intro'}`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
+    <div className={`pc-card${!settling ? ' tc-still' : quick ? ' tc-quick' : ' pc-intro'}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <Head t={t} x={x} season={season} intro={intro} closeButton={<button type="button" aria-label="Close the card" onClick={onClose} style={{ marginLeft: 'auto', flex: 'none', width: 22, height: 22, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>} />
       <div style={{ padding: '10px 14px', borderTop: `1px solid ${RULE}` }}><Percentiles x={x} /></div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
@@ -281,7 +281,8 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
           <Section title="Defense by start" right="share · rating"><Rows x={x} heads={['Share', 'DRTG']} rows={startsOf('Def')} delay={AT.rows + 4 * AT.step} units={['%']} /></Section>
         </div>
       </div>
-      <Section title="Units" right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Unit shown" options={PICKS} value={pick} set={setPick} /></span>}><Units team={t.team} season={season} n={n} pick={pick} intro={intro} /></Section>
+      {/* The last section takes the card's spare height, its unit centred in it. */}
+      <Section title="Units" style={{ flex: '1 0 auto' }} right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Unit shown" options={PICKS} value={pick} set={setPick} /></span>}><div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}><Units team={t.team} season={season} n={n} pick={pick} intro={intro} /></div></Section>
     </div>
   )
 }

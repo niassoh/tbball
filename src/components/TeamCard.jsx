@@ -83,7 +83,7 @@ function Head({ t, x, season, intro, closeButton }) {
   )
 }
 
-// Its percentiles, as a player's card's: offense beside defense, each stat a bar to its
+// Its percentiles, as a player's card's but untitled: offense beside defense, each headed, each stat a bar to its
 // percentile (the league's median marked) and its value.
 const SIDES = [
   ['Offense', [['Adj rORTG', 'Opp-adjusted', ''], ['Half-Court PPP', 'Half court', ''], ['3p', '3P%', '%'], ['Rim/FTA Share', 'Rim + FT', '%'], ['LayupAst', 'Layup ast', '%']]],
@@ -94,7 +94,7 @@ function Percentiles({ x }) {
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 16 }}>
       {SIDES.map(([side, rows], s) => (
         <div key={side} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>{side}</span>
+          <span style={{ ...label, fontSize: 10.5, fontWeight: 700, color: INK, paddingBottom: 5, marginBottom: 2, borderBottom: `1px solid ${RULE}` }}>{side}</span>
           {rows.filter(([l]) => x.has(l)).map(([l, name, unit], i) => {
             const pc = x.p(l)
             return (
@@ -271,7 +271,7 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
   return (
     <div className={`pc-card${!settling ? ' tc-still' : quick ? ' tc-quick' : ' pc-intro'}`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <Head t={t} x={x} season={season} intro={intro} closeButton={<button type="button" aria-label="Close the card" onClick={onClose} style={{ marginLeft: 'auto', flex: 'none', width: 22, height: 22, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>} />
-      <Section title="Percentiles" right="among the 30"><Percentiles x={x} /></Section>
+      <div style={{ padding: '10px 14px', borderTop: `1px solid ${RULE}` }}><Percentiles x={x} /></div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
         <Section title="Splits" right="per 100"><Rows x={x} heads={['ORTG', 'DRTG', 'Net']} rows={SPLITS} delay={AT.rows} /></Section>
         <div style={{ borderLeft: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column' }}>

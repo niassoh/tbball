@@ -4,99 +4,176 @@ import { MONO, col, fmt, ord } from '../lib/format.js'
 import { placeOf, tiedOf } from '../lib/teamboard.js'
 import { asset } from '../lib/static.js'
 import { initials } from '../lib/teams.js'
-import { CountUp, Meter } from './PlayerCard.jsx'
+import { CountUp, Meter, Section } from './PlayerCard.jsx'
 
-// A team's card on the Team board, in the chart's place, sized to fit a laptop's screen.
-// Its head: logo, name, record, win pace and net. Then one of its units that season (five-
-// man unless picked), most used or best by net (as the players' cards show theirs); its
-// ratings, the season's and its splits', as a table of percentile sliders; its play types as a mosaic, each as wide as its
-// share of the offense and as tall as its points a play above or below the league's; its
-// shots and its opponents' as numbers with meters. Blue is better than the league,
-// orange worse, grey a style. It comes in on opening, and again for another team: the
-// numbers count up, marks slide out from the league's average and bars grow (index.css .tc-*).
+// A team's card on the Team board, in the chart's place, drawn as a player's card is: its
+// head (logo, name, record and win pace, then ORTG, DRTG and net with their meters and
+// places); its percentiles, offense beside defense; its splits and play types side by
+// side; and its units. Blue is better than the league, orange worse, grey a style. It
+// comes in on opening: the logo settles, the name wipes in, the numbers count up as their
+// meters light, the bars wipe in and the units' faces arrive (index.css .pc-*, .tc-*).
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
 const RULE = '#3d3a37'
 const EDGE = '#544f4b'
-const PAD = '#2c2a28'
+const SOFT = '#b8b2ab'
+const TRACK = '#34312e'
+const MID = '#837d76'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM, textTransform: 'uppercase' }
-const tiny = { fontFamily: MONO, fontSize: 7.5, letterSpacing: '.1em', fill: FAINT, textTransform: 'uppercase' }
+const small = { ...label, fontSize: 8.5, letterSpacing: '.14em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
 const RELATIVE = /^Net|^r|^Adj r| Net$/
-// The card's intro, when a team opens: the head settles, then the unit's faces arrive one
-// by one and its net counts up, then the ratings fill row by row, then the play types and
-// shots (ms from opening). Every number counts up as its bar or knob arrives.
-const AT = { faces: 150, face: 110, ratings: 900, row: 110, col: 45, rest: 1650 }
+// The intro's beats, ms from opening: the head's numbers, the percentile bars, the splits
+// and play types, then the units.
+const AT = { heroes: 350, bars: 650, rows: 950, units: 1200, step: 45 }
 const NET_STAT = { dec: 1, relative: true }
-const WHOLE = { dec: 0 }
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 
-// The team's numbers in a stat: value, percentile, league average, the 30's values, its
-// place, and how to print and colour it.
+// The team's numbers in a stat: value, percentile, league average, its place, and how to
+// print and colour it.
 const reader = (doc, t) => {
   const k = l => doc.labels.indexOf(l)
   const has = l => k(l) >= 0
   const v = l => (has(l) ? t.v[k(l)] : null)
   const p = l => (has(l) ? t.p[k(l)] : null)
   const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
-  const all = l => (has(l) ? doc.teams.map(x => x.v[k(l)]).filter(x => x !== null) : [])
   const place = l => (v(l) === null ? '—' : `${tiedOf(doc, t, l) ? 'T-' : ''}${ord(placeOf(doc, t, l))}`)
-  const tone = l => (p(l) === null ? FAINT : doc.stats[l].neutral ? INK : col(p(l)))
+  const tone = l => (p(l) === null ? FAINT : doc.stats[l].neutral ? MID : col(p(l)))
   const text = (l, n = v(l)) => fmt(stat(l), n)
-  return { has, v, p, stat, all, place, tone, text, lg: l => doc.league[l] ?? null }
+  return { has, v, p, stat, place, tone, text, lg: l => doc.league[l] ?? null }
 }
+const titleOf = (x, l) => [x.v(l) === null ? null : `${x.place(l)} of 30`, x.stat(l).desc].filter(Boolean).join(' · ') || undefined
 
-function Section({ title, note, right, children, style }) {
+// The head, as a player's card's: the logo in the portrait's square; the abbreviation,
+// record and win pace over the name; then ORTG, DRTG and net, each with its meter and place.
+const HEROES = ['ORTG', 'DRTG', 'Net']
+function Head({ t, x, intro }) {
   return (
-    <section style={{ padding: '10px 16px 14px', borderTop: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, ...style }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-        <span style={{ ...label, color: INK, fontWeight: 700 }}>{title}</span>
-        {right && <span style={{ marginLeft: 'auto' }}>{right}</span>}
-        {note && <span style={{ ...label, fontSize: 8, marginLeft: right ? 10 : 'auto', color: FAINT, textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{note}</span>}
+    <div style={{ display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', columnGap: 14, padding: '2px 14px 14px' }}>
+      <div style={{ position: 'relative', width: 104, height: 104, background: '#1f1d1c', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '30% 0%', opacity: 0.15 }} />
+        <img className="tc-logo" src={asset(`logos/color/${t.team}.png`)} alt="" width={72} height={72} style={{ position: 'relative' }} />
       </div>
-      {children}
-    </section>
-  )
-}
-
-// The head: logo, name and record; win pace and net, each with its place and a meter.
-function Head({ t, x, season, closeButton, intro }) {
-  const big = { fontFamily: 'Montserrat, sans-serif', fontWeight: 800, lineHeight: 0.9, color: INK, fontVariantNumeric: 'tabular-nums' }
-  // Called, not rendered as a component: one defined in here would remount each render.
-  const hero = (l, name, delay) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 96 }}>
-      <span style={label}>{name}</span>
-      <span style={{ ...big, fontSize: 26 }}><CountUp stat={x.stat(l)} value={x.v(l)} delay={delay} instant={!intro} /></span>
-      <Meter pc={x.p(l)} delay={delay} />
-      <span style={{ ...label, fontSize: 8, color: FAINT }}>{x.place(l)} of 30</span>
-    </div>
-  )
-  return (
-    <div className="tc-head" style={{ display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) auto auto', alignItems: 'center', columnGap: 18, rowGap: 12, padding: '12px 16px' }}>
-      <img className="tc-logo" src={asset(`logos/color/${t.team}.png`)} alt="" width={64} height={64} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
-        <span style={label}>{t.team} · {season.replace('-', '–')} · regular season</span>
-        <span style={{ display: 'flex', alignItems: 'baseline', gap: 14, minWidth: 0 }}>
-          <span className="tc-wipe" style={{ ...big, fontSize: Math.min(28, Math.floor(230 / t.name.length)), textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-          <span style={{ ...big, fontSize: 18, flex: 'none' }}><CountUp stat={WHOLE} value={x.v('Wins')} delay={150} instant={!intro} />–<CountUp stat={WHOLE} value={x.v('Losses')} delay={150} instant={!intro} /></span>
-        </span>
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <span className="pc-type" style={{ ...small, lineHeight: '13px' }}>{[t.team, x.v('Wins') !== null && `${x.v('Wins')}–${x.v('Losses')}`, x.v('LA Bayes Win-pace') !== null && `${x.text('LA Bayes Win-pace')}-win pace`].filter(Boolean).join(' · ')}</span>
+        <span className="pc-name" style={{ marginTop: 3, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+        <div style={{ marginTop: 'auto', paddingTop: 12, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+          {HEROES.map((l, k) => {
+            const delay = AT.heroes + k * 90
+            return (
+              <div key={l} title={titleOf(x, l)} style={{ padding: k ? '0 0 0 12px' : '0 12px 0 0', borderLeft: k ? `1px solid ${RULE}` : 'none', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                <span style={small}>{l}</span>
+                <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 18, fontWeight: 600, lineHeight: 1, color: INK, fontVariantNumeric: 'tabular-nums' }}><CountUp stat={x.stat(l)} value={x.v(l)} delay={delay} instant={!intro} /></span>
+                  <Meter pc={x.p(l)} delay={delay} />
+                  <span style={{ fontSize: 9, color: x.tone(l) }}>{x.place(l)}</span>
+                </span>
+              </div>
+            )
+          })}
+        </div>
       </div>
-      <div style={{ display: 'flex', gap: 20 }}>
-        {hero('LA Bayes Win-pace', 'Win pace', 200)}
-        {hero('Net', 'Net rating', 320)}
-      </div>
-      {closeButton}
     </div>
   )
 }
 
-// Its unit of one size (`n`) that season, most-played or best by net rating (`pick`), from
-// thinking-bball's team units (lib/lineups.js teamUnits): each player's face and surname,
-// then the unit's net, minutes and rank among the league's units of that size (none under
-// its minutes floor). Faces come from the players index.
-// One height whether or not there's a unit to show, so the card never jumps.
-const UNITS_H = 86
-function Units({ team, season, n, pick, intro }) {
+// Its percentiles, as a player's card's: offense beside defense, each stat a bar to its
+// percentile (the league's median marked) and its value.
+const SIDES = [
+  ['Offense', [['Adj rORTG', 'Opp-adjusted', ''], ['Half-Court PPP', 'Half court', ''], ['3p', '3P%', '%'], ['Rim/FTA Share', 'Rim + FT', '%'], ['LayupAst', 'Layup ast', '%']]],
+  ['Defense', [['Adj rDRTG', 'Opp-adjusted', ''], ['Opp 3p', 'Opp 3P%', '%'], ['Opp Corner3 share', 'Corner 3s', '%'], ['Opp Wide Open 3s/g', 'Open 3s / g', ''], ['Opp Rim Share', 'Rim share', '%'], ['Opp Rim FG', 'Rim FG%', '%']]]
+]
+function Percentiles({ x }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 16 }}>
+      {SIDES.map(([side, rows], s) => (
+        <div key={side} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+          <span style={{ ...label, fontSize: 8, color: FAINT }}>{side}</span>
+          {rows.filter(([l]) => x.has(l)).map(([l, name, unit], i) => {
+            const pc = x.p(l)
+            return (
+              <div key={l} title={titleOf(x, l)} style={{ display: 'grid', gridTemplateColumns: '84px minmax(0, 1fr) 38px', gap: 6, alignItems: 'center' }}>
+                <span style={{ ...label, fontSize: 8, color: SOFT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+                <Bar w={pc === null ? null : Math.max(pc, 2)} c={x.tone(l)} mark={50} delay={AT.bars + (i * 2 + s) * AT.step} />
+                <span style={{ fontSize: 10, textAlign: 'right', color: x.v(l) === null ? FAINT : INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : unit}</span>
+              </div>
+            )
+          })}
+        </div>
+      ))}
+    </div>
+  )
+}
+// A player's card's percentile bar: a track, a bar wiping in to `w`% and a mark at `mark`%.
+function Bar({ w, c, mark, delay }) {
+  return (
+    <span style={{ position: 'relative', height: 8, background: TRACK }}>
+      {w !== null && <span className="lb-bar-in" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${w}%`, background: c, animationDelay: `${delay}ms` }} />}
+      {mark !== null && <span style={{ position: 'absolute', left: `${mark}%`, top: -2, bottom: -2, width: 1, background: MID }} />}
+    </span>
+  )
+}
+
+// Its splits: ORTG, DRTG and net at home, away and against the league's bottom and top 10,
+// each coloured by its percentile.
+const SPLITS = [
+  ['Home', 'Home ORTG', 'Home DRTG', 'Home Net'],
+  ['Away', 'Away ORTG', 'Away DRTG', 'Away Net'],
+  ['v Bottom 10', 'ORTG v Bot10', 'DRTG v Bot10', 'Net v Bot10'],
+  ['v Top 10', 'ORTG v Top10', 'DRTG v Top10', 'Net v Top10']
+]
+const SPLIT_COLS = { display: 'grid', gridTemplateColumns: '84px repeat(3, minmax(0, 1fr))', gap: 6, alignItems: 'center' }
+function Splits({ x }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <div style={SPLIT_COLS}>
+        <span />
+        {['ORTG', 'DRTG', 'Net'].map(h => <span key={h} style={{ ...label, fontSize: 8, color: FAINT, textAlign: 'right' }}>{h}</span>)}
+      </div>
+      {SPLITS.map(([name, ...ls], i) => (
+        <div key={name} className="tc-fade" style={{ ...SPLIT_COLS, animationDelay: `${AT.rows + i * AT.step}ms` }}>
+          <span style={{ ...label, fontSize: 8, color: SOFT, whiteSpace: 'nowrap' }}>{name}</span>
+          {ls.map(l => <span key={l} title={titleOf(x, l)} style={{ fontSize: 10, textAlign: 'right', color: x.tone(l), fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}</span>)}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Its play types: each half-court type's share of the offense as a bar (the league's share
+// marked) and its points a play, coloured by percentile; the rest (transition and the
+// like) its share alone.
+const TYPES = [['Off-Ball', 'Off-ball'], ['PnR Game', 'PnR'], ['Iso-Post', 'Iso / post']]
+const TYPE_COLS = { display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) 30px 32px', gap: 6, alignItems: 'center' }
+function Playtypes({ x }) {
+  const shown = TYPES.filter(([k]) => x.v(`${k} Share`) !== null)
+  const rest = Math.max(0, 100 - shown.reduce((s, [k]) => s + x.v(`${k} Share`), 0))
+  const rows = [...shown.map(([k, name]) => ({ name, share: x.v(`${k} Share`), lg: x.lg(`${k} Share`), l: `${k} PPP` })), { name: 'Transition', share: rest, lg: null, l: null, title: 'Transition and the rest' }]
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <div style={TYPE_COLS}>
+        <span />
+        <span style={{ ...label, fontSize: 8, color: FAINT }}>Share</span>
+        <span />
+        <span style={{ ...label, fontSize: 8, color: FAINT, textAlign: 'right' }}>PPP</span>
+      </div>
+      {rows.map((r, i) => (
+        <div key={r.name} title={r.title || titleOf(x, r.l)} style={TYPE_COLS}>
+          <span style={{ ...label, fontSize: 8, color: SOFT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</span>
+          <Bar w={r.share} c={MID} mark={r.lg} delay={AT.rows + i * AT.step} />
+          <span style={{ fontSize: 10, textAlign: 'right', color: DIM, fontVariantNumeric: 'tabular-nums' }}>{Math.round(r.share)}%</span>
+          <span style={{ fontSize: 10, textAlign: 'right', color: r.l ? x.tone(r.l) : FAINT, fontVariantNumeric: 'tabular-nums' }}>{r.l ? x.text(r.l) : ''}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Its units of one size (`n`) that season, from thinking-bball's team units (lib/lineups.js
+// teamUnits): the most used and the best by net, each as a player's card shows one (faces
+// and surnames, then net, minutes and rank among the league's units of that size; none
+// under its minutes floor). Faces come from the players index.
+function Units({ team, season, n, intro }) {
   const [doc, setDoc] = useState(null)
   useEffect(() => {
     let live = true
@@ -106,31 +183,40 @@ function Units({ team, season, n, pick, intro }) {
     }, () => live && setDoc(false))
     return () => { live = false }
   }, [season])
-  const u = doc && doc.teams[team] && doc.teams[team][n] && doc.teams[team][n][pick]
-  if (!u) {
-    const why = doc === null ? '' : !(doc && doc.teams[team]) ? 'No lineups yet' : pick === 'best' ? `No ${n}-man unit at ${doc.floors[n]}+ min yet` : '—'
-    return <div style={{ ...label, color: FAINT, height: UNITS_H, display: 'flex', alignItems: 'center' }}>{why}</div>
-  }
+  const units = doc && doc.teams[team] && doc.teams[team][n]
+  if (!units) return <span style={{ ...label, color: FAINT, lineHeight: '78px' }}>{doc === null ? '' : 'No lineups yet'}</span>
   return (
-    <div key={`${n}${pick}`} style={{ height: UNITS_H, display: 'flex', alignItems: 'center', gap: 18 }}>
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: 10 }}>
-        {u.mates.map((m, j) => {
-          const p = m.slug && doc.bySlug.get(m.slug)
-          return (
-            <div key={m.slug || m.name || j} className="tc-pop" style={{ animationDelay: `${AT.faces + j * AT.face}ms`, flex: '1 1 0', minWidth: 0, maxWidth: 130, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: '100%', maxWidth: 56, aspectRatio: '1', borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: `1px solid ${EDGE}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: DIM, flex: 'none' }}>
-                {p && p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={56} height={56} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(m.name || '?')}
-              </span>
-              <span title={m.name} style={{ ...label, fontSize: 9, color: INK, maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(m.name || '?').split(' ').slice(1).join(' ') || m.name}</span>
-            </div>
-          )
-        })}
-      </div>
-      <div style={{ flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-        <span style={{ fontSize: 30, fontWeight: 700, lineHeight: 1, color: u.net === null ? FAINT : u.net >= 0 ? '#8fb0e6' : '#fa962a', fontVariantNumeric: 'tabular-nums' }}><CountUp stat={NET_STAT} value={u.net} delay={AT.faces + u.mates.length * AT.face} instant={!intro} /></span>
-        <span style={{ ...label, fontSize: 8 }}>Net · {u.minutes.toLocaleString()} min</span>
-        <span style={{ ...label, fontSize: 8, color: FAINT }}>{u.rank ? `#${u.rank.rank} of ${u.rank.of} ${n}-man units` : `Unranked under ${doc.floors[n]} min`}</span>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {[['mostUsed', 'Most used'], ['best', 'Best net']].map(([k, name], i) => (
+        <Unit key={`${n}${k}`} unit={units[k]} title={`${name} ${n}-man`} none={`No ${n}-man unit at ${doc.floors[n]}+ min yet`} floor={doc.floors[n]} bySlug={doc.bySlug} delay={AT.units + i * 5 * AT.step} intro={intro} />
+      ))}
+    </div>
+  )
+}
+function Unit({ unit: u, title, none, floor, bySlug, delay, intro }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+      <span style={{ ...label, fontSize: 8 }}>{title}</span>
+      {u
+        ? (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span style={{ display: 'flex', flex: 'none' }}>
+              {u.mates.map((m, j) => {
+                const p = m.slug && bySlug.get(m.slug)
+                return (
+                  <span key={m.slug || m.name || j} className="tc-pop" style={{ animationDelay: `${delay + j * AT.step}ms`, width: 24, height: 24, marginLeft: j ? -6 : 0, borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: `1px solid ${EDGE}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: DIM }}>
+                    {p && p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={24} height={24} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(m.name || '?')}
+                  </span>
+                )
+              })}
+            </span>
+            <span style={{ flex: 1, fontSize: 10.5, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.mates.map(m => (m.name || '?').split(' ').slice(1).join(' ') || m.name).join(' · ')}</span>
+            <span style={{ flex: 'none', fontSize: 10, color: DIM, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: u.net === null ? FAINT : u.net >= 0 ? '#8fb0e6' : '#fa962a' }}><CountUp stat={NET_STAT} value={u.net} delay={delay} instant={!intro} /></span> net · {u.minutes.toLocaleString()} min · {u.rank ? `#${u.rank.rank}/${u.rank.of}` : `under ${floor}`}
+            </span>
+          </span>
+        )
+        : <span style={{ ...label, fontSize: 8, color: FAINT, lineHeight: '24px' }}>{none}</span>}
     </div>
   )
 }
@@ -141,176 +227,19 @@ function Pick({ options, value, set, label: name }) {
     <span role="group" aria-label={name} style={{ display: 'inline-flex', border: `1px solid ${EDGE}` }}>
       {options.map(([k, text], i) => (
         <button key={k} type="button" aria-pressed={value === k} onClick={() => set(k)}
-          style={{ height: 20, padding: '0 8px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: value === k ? '#3a3734' : 'transparent', color: value === k ? INK : DIM, fontFamily: MONO, fontSize: 8.5, fontWeight: value === k ? 700 : 500, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{text}</button>
+          style={{ height: 18, padding: '0 7px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: value === k ? '#3a3734' : 'transparent', color: value === k ? INK : DIM, fontFamily: MONO, fontSize: 8.5, fontWeight: value === k ? 700 : 500, letterSpacing: '.1em', cursor: 'pointer' }}>{text}</button>
       ))}
     </span>
   )
 }
 const SIZES = [[2, '2'], [3, '3'], [4, '4'], [5, '5']]
-const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
-
-// Its ratings: offense, defense and net each as a tile (what it counts, the number, its
-// percentile as a slider and its place, then the opponent-adjusted figure); then its
-// splits as a table that reads across: ORTG, DRTG and net, the net drawn either side
-// of zero. Every number is coloured by its percentile (blue better).
-const TILES = [['Offense', 'ORTG', 'Adj rORTG', 'ORTG'], ['Defense', 'DRTG', 'Adj rDRTG', 'DRTG'], ['Net', 'Net', null, 'Net rating']]
-const SPLITS = [
-  ['At home', 'Home ORTG', 'Home DRTG', 'Home Net'],
-  ['Away', 'Away ORTG', 'Away DRTG', 'Away Net'],
-  ['v Bottom 10', 'ORTG v Bot10', 'DRTG v Bot10', 'Net v Bot10'],
-  ['v Top 10', 'ORTG v Top10', 'DRTG v Top10', 'Net v Top10']
-]
-const SPLIT_GRID = { display: 'grid', gridTemplateColumns: '108px 70px 70px 62px minmax(0, 1fr)', columnGap: 12, alignItems: 'center' }
-// The splits' net bar runs to this many points either side of zero.
-const NET_REACH = 25
-function Ratings({ x, intro }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 3 }}>
-        {TILES.map(([name, l, adj, what], j) => {
-          const delay = AT.ratings + j * AT.row
-          return (
-            <div key={l} title={x.stat(l)?.desc || undefined} style={{ background: PAD, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ ...label, fontSize: 10, fontWeight: 700, color: INK }}>{name}</span>
-                <span style={{ ...label, fontSize: 8.5, color: '#c9c3bc', marginLeft: 'auto', whiteSpace: 'nowrap' }}>{x.place(l)} of 30</span>
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="tc-fade" style={{ animationDelay: `${delay}ms`, width: 64, flexShrink: 0, fontSize: 22, fontWeight: 700, lineHeight: 1, color: x.tone(l), fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}</span>
-                <Slider p={x.p(l)} c={x.tone(l)} delay={delay} intro={intro} />
-              </span>
-              <span style={{ fontSize: 9.5, color: DIM, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {what}{adj && x.v(adj) !== null && <> · opp-adj <span style={{ color: x.tone(adj), fontWeight: 700 }}>{x.text(adj)}</span></>}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ ...SPLIT_GRID, paddingBottom: 4 }}>
-          <span style={{ ...label, fontSize: 10, fontWeight: 700, color: INK }}>Splits</span>
-          {['ORTG', 'DRTG'].map(h => <span key={h} style={{ ...label, fontSize: 9.5, color: '#c9c3bc', textAlign: 'right' }}>{h}</span>)}
-          <span style={{ ...label, fontSize: 9.5, color: '#c9c3bc', textAlign: 'right' }}>Net</span>
-          <span />
-        </div>
-        {SPLITS.map(([name, o, d, n], i) => {
-          const delay = AT.ratings + 3 * AT.row + i * AT.row
-          const net = x.v(n)
-          return (
-            <div key={name} className="tc-fade" style={{ ...SPLIT_GRID, animationDelay: `${delay}ms`, height: 30, borderTop: `1px dashed ${RULE}`, fontVariantNumeric: 'tabular-nums' }}>
-              <span style={{ ...label, fontSize: 11, fontWeight: 600, color: INK, whiteSpace: 'nowrap' }}>{name}</span>
-              {[o, d].map(l => <span key={l} title={x.v(l) === null ? undefined : `${x.place(l)} of 30`} style={{ fontSize: 15, fontWeight: 700, textAlign: 'right', color: x.v(l) === null ? FAINT : x.tone(l) }}>{x.text(l)}</span>)}
-              <span style={{ fontSize: 15, fontWeight: 700, textAlign: 'right', color: net === null ? FAINT : x.tone(n) }}>{x.text(n)}</span>
-              {net === null ? <span style={{ ...label, fontSize: 9.5, color: FAINT }}>No games yet</span> : <NetBar v={net} c={x.tone(n)} delay={delay} title={`${x.place(n)} of 30`} />}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-// A net either side of zero, NET_REACH points to an end.
-function NetBar({ v, c, delay, title }) {
-  const w = (Math.min(NET_REACH, Math.abs(v)) / NET_REACH) * 50
-  return (
-    <span title={title} style={{ position: 'relative', height: 20, display: 'flex', alignItems: 'center' }}>
-      <span style={{ position: 'absolute', left: 0, right: 0, height: 16, background: '#34312e' }} />
-      <span className="tc-grow-x" style={{ position: 'absolute', height: 16, width: `${w}%`, left: v >= 0 ? '50%' : `${50 - w}%`, background: c, transformOrigin: v >= 0 ? '0 50%' : '100% 50%', animationDelay: `${delay}ms` }} />
-      <span style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#837d76' }} />
-    </span>
-  )
-}
-
-// A percentile as the profile's Percentiles cards draw it: a bar to it on a track, the
-// league's median marked, its number on the knob; an empty track without one (no home
-// games yet).
-function Slider({ p, c, delay, intro }) {
-  const at = `${Math.max(p, 1)}%`
-  return (
-    <span style={{ position: 'relative', flex: 1, height: 17, display: 'flex', alignItems: 'center', marginRight: 8, opacity: p === null ? 0.45 : 1 }}>
-      <span style={{ position: 'absolute', left: 0, right: 0, height: 12, background: '#34312e' }} />
-      <span style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#837d76' }} />
-      {p !== null && <span className="tc-grow-x" style={{ position: 'absolute', left: 0, height: 12, width: at, background: c, transformOrigin: '0 50%', animationDelay: `${delay}ms` }} />}
-      {p !== null && <span className="tc-knob" style={{ '--from': '0%', animationDelay: `${delay}ms`, position: 'absolute', left: at, transform: 'translateX(-50%)', width: 17, height: 17, borderRadius: '50%', background: c, border: '1.5px solid #ece8e3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, fontWeight: 600, color: '#1f1d1c' }}><CountUp stat={WHOLE} value={p} delay={delay} instant={!intro} /></span>}
-    </span>
-  )
-}
-
-// The play types as a mosaic across all of the offense: each half-court type as wide as its
-// share, its bar as tall as its points a play above (blue) or below (orange) the league's
-// for it, the rest (transition and the like) hatched; the half court's own numbers above.
-const TYPES = [['Off-Ball', 'Off-ball'], ['PnR Game', 'PnR'], ['Iso-Post', 'Iso/post']]
-const REACH = 0.14
-function Playtypes({ x }) {
-  const cols = TYPES.filter(([k]) => x.v(`${k} Share`) !== null)
-  const at = cols.reduce((s, [k]) => s + x.v(`${k} Share`), 0)
-  const rest = Math.max(0, 100 - at)
-  const hc = 'Half-Court'
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 }}>
-      <span style={{ fontSize: 11, color: DIM }}>
-        Half court <span style={{ color: INK, fontWeight: 700 }}>{x.text(`${hc} Share`)}%</span> · <span style={{ color: x.tone(`${hc} PPP`), fontWeight: 700 }}>{x.text(`${hc} PPP`)}</span> a play · {x.place(`${hc} PPP`)}
-      </span>
-      <div style={{ flex: 1, display: 'flex', gap: 2, minHeight: 90 }}>
-        {cols.map(([k, name], i) => {
-          const ppp = x.v(`${k} PPP`)
-          const lg = x.lg(`${k} PPP`) ?? ppp
-          const d = ppp === null ? 0 : Math.max(-REACH, Math.min(REACH, ppp - lg)) / REACH
-          return (
-            <div key={k} style={{ flex: `${x.v(`${k} Share`)} 1 0`, minWidth: 74, display: 'flex', flexDirection: 'column', gap: 4, background: PAD, padding: '7px 8px' }}>
-              <span style={{ ...label, fontSize: 8.5, color: INK, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-              <span style={{ fontSize: 17, fontWeight: 700, color: INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(`${k} PPP`)}</span>
-              <span style={{ ...label, fontSize: 8 }}>{x.place(`${k} PPP`)}</span>
-              <span style={{ position: 'relative', flex: 1, minHeight: 30 }}>
-                <span style={{ position: 'absolute', left: -8, right: -8, top: '50%', borderTop: `1px dashed ${DIM}` }} />
-                <span className="tc-grow" style={{ position: 'absolute', left: 0, right: 0, top: d >= 0 ? `${50 - d * 50}%` : '50%', height: `${Math.max(1, Math.abs(d) * 50)}%`, background: x.tone(`${k} PPP`), opacity: 0.85, transformOrigin: d >= 0 ? '0 100%' : '0 0', animationDelay: `${AT.rest + i * 110}ms` }} />
-              </span>
-              <span style={{ ...label, fontSize: 8.5, color: DIM, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><span style={{ color: INK }}>{x.text(`${k} Share`)}%</span><br />lg {x.lg(`${k} Share`) ?? '—'}%</span>
-            </div>
-          )
-        })}
-        {rest > 0 && (
-          <div title="Transition and the rest" style={{ flex: `${rest} 1 0`, minWidth: 26, background: 'repeating-linear-gradient(45deg, #3d3a37 0 2px, transparent 2px 6px)', padding: '7px 6px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span style={{ ...label, fontSize: 8, color: FAINT, writingMode: 'vertical-rl' }}>Transition</span>
-            <span style={{ ...label, fontSize: 8.5, color: DIM }}>{Math.round(rest)}%</span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Its shots and its opponents', as numbers: each with its place and its percentile on a
-// ten-step meter, the team's on the left and what it allows on the right.
-const SHOTS = [
-  [['3p', '3P%', '%'], ['Rim/FTA Share', 'Rim + FT', '%'], ['LayupAst', 'Layup ast', '%']],
-  [['Opp 3p', '3P%', '%'], ['Opp Corner3 share', 'Corner 3s', '%'], ['Opp Wide Open 3s/g', 'Open 3s / g', ''], ['Opp Rim Share', 'Rim share', '%'], ['Opp Rim FG', 'Rim FG%', '%']]
-]
-function Shots({ x }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 18 }}>
-      {SHOTS.map((side, s) => (
-        <div key={s} style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-          <span style={{ ...label, fontSize: 8, color: FAINT }}>{s ? 'Defense' : 'Offense'}</span>
-          {side.filter(([l]) => x.has(l)).map(([l, name, unit], i) => (
-            <div key={l} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', columnGap: 8, rowGap: 3, alignItems: 'baseline' }} title={x.stat(l).desc || undefined}>
-              <span style={{ ...label, fontSize: 8, color: '#c9c3bc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : unit}<span style={{ ...label, fontSize: 8, fontWeight: 400, marginLeft: 6 }}>{x.place(l)}</span></span>
-              <span style={{ gridColumn: '1 / -1' }}><Meter pc={x.p(l)} delay={AT.rest + 150 + (s * 3 + i) * 60} /></span>
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  )
-}
 
 // The intro (AT) plays as a team's card opens (TeamBoard keys the card by team); after it,
-// unit sizes, Most used and the like show at once. A card opened in place of another (a
-// team picked while one is open: `open` counts the mounted cards, and the old one is
-// still mounted as the new one first renders) settles quickly instead: everything at
-// once in a short fade (tc-quick), its numbers already there.
-const INTRO_MS = 2600
+// unit sizes and the like show at once. A card opened in place of another (a team picked
+// while one is open: `open` counts the mounted cards, and the old one is still mounted as
+// the new one first renders) settles quickly instead: everything at once in a short fade
+// (tc-quick), its numbers already there.
+const INTRO_MS = 2000
 const QUICK_MS = 300
 let open = 0
 export default function TeamCard({ doc, team: t, season, onClose }) {
@@ -328,20 +257,22 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
     return () => document.removeEventListener('keydown', escape)
   }, [onClose])
   const x = reader(doc, t)
-  const [pick, setPick] = useState('mostUsed')
   const [n, setN] = useState(5)
-  const close = <button type="button" aria-label="Close the card" onClick={onClose} style={{ alignSelf: 'start', width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
-  // The last row takes the height the rest leave.
-  const pair = { flex: '1 0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }
   return (
-    <div className={`pc-card${!settling ? ' tc-still' : quick ? ' tc-quick' : ''}`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
-      <Head t={t} x={x} season={season} closeButton={close} intro={intro} />
-      <Section title="Units" right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Units shown" options={PICKS} value={pick} set={setPick} /></span>}><Units team={t.team} season={season} n={n} pick={pick} intro={intro} /></Section>
-      <Section title="Ratings" note="slider: percentile · blue better"><Ratings x={x} intro={intro} /></Section>
-      <div style={pair}>
-        <Section title="Play types" note="width: share · bar: v league"><Playtypes x={x} /></Section>
-        <Section title="Shots" note="meters: percentile" style={{ borderLeft: `1px solid ${RULE}` }}><Shots x={x} /></Section>
+    <div className={`pc-card${!settling ? ' tc-still' : quick ? ' tc-quick' : ' pc-intro'}`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
+        <span style={label}>{season.replace('-', '–')} · Regular season</span>
+        <button type="button" aria-label="Close the card" onClick={onClose} style={{ marginLeft: 'auto', width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
+      <Head t={t} x={x} intro={intro} />
+      <Section title="Percentiles" right="among the 30"><Percentiles x={x} /></Section>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+        <Section title="Splits" right="per 100"><Splits x={x} /></Section>
+        <div style={{ borderLeft: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column' }}>
+          <Section title="Play types" right={`half court ${x.text('Half-Court Share')}%`}><Playtypes x={x} /></Section>
+        </div>
+      </div>
+      <Section title="Units" right={<Pick label="Unit size" options={SIZES} value={n} set={setN} />}><Units team={t.team} season={season} n={n} intro={intro} /></Section>
     </div>
   )
 }

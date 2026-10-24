@@ -501,30 +501,15 @@ a:hover > .lineup-tile > * { filter: none; }
 .tb-logo { transition: transform .45s cubic-bezier(.2, .8, .2, 1), opacity .2s; }
 @media (prefers-reduced-motion: reduce) { .tb-logo { transition: none; } }
 
-/* The Team board's team card (TeamCard.jsx): its logo settles, its name wipes in, the
-   strips' marks slide out from the league's average, bars grow from their base, and the
-   units fade up in turn. */
-@keyframes tc-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-@keyframes tc-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes tc-slide { from { left: var(--from); } }
+/* The Team board's team card (TeamCard.jsx): its logo settles, its splits fade in and its
+   units' faces pop up in turn (the rest as a player's card's, .pc-*, .lb-bar-in). */
 @keyframes tc-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes tc-pop { from { opacity: 0; transform: translateY(8px) scale(.82); } to { opacity: 1; transform: none; } }
 .tc-logo { animation: pc-settle .6s cubic-bezier(.2, .8, .2, 1) both; }
-.tc-wipe { animation: pc-wipe .6s cubic-bezier(.65, 0, .2, 1) both .12s; }
-.tc-grow { transform-box: view-box; animation: tc-rise .5s cubic-bezier(.2, .8, .2, 1) both; }
-svg .tc-grow-x { transform-box: view-box; }
-.tc-grow-x { animation: tc-grow-x .55s cubic-bezier(.2, .8, .2, 1) both; }
-.tc-slide { animation: tc-slide .7s cubic-bezier(.2, .8, .2, 1) both .15s; }
 .tc-fade { animation: tc-fade .4s ease both; }
 .tc-pop { animation: tc-pop .45s cubic-bezier(.2, .8, .2, 1.25) both; }
-.tc-knob { animation: tc-slide .55s cubic-bezier(.2, .8, .2, 1) both, tc-fade .15s ease both; }
 .tc-still, .tc-still * { animation: none !important; }
 .tc-quick, .tc-quick * { animation-delay: 0s !important; animation-duration: .2s !important; }
 @media (prefers-reduced-motion: reduce) {
-  .tc-logo, .tc-wipe, .tc-grow, .tc-grow-x, .tc-slide, .tc-fade, .tc-pop, .tc-knob { animation: none; }
-}
-@media (max-width: 560px) {
-  .tc-head { grid-template-columns: 52px minmax(0, 1fr) auto !important; }
-  .tc-head > img { width: 52px; height: 52px; }
-  .tc-head > :nth-child(3) { grid-column: 1 / -1; grid-row: 2; }
+  .tc-logo, .tc-fade, .tc-pop { animation: none; }
 }

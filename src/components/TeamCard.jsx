@@ -170,7 +170,7 @@ function Ratings({ x }) {
             return (
               <span key={j} className="tc-fade" title={l && v !== null ? `${x.place(l)} · ${x.stat(l)?.desc || l}` : undefined} style={{ animationDelay: `${i * 40}ms`, display: 'flex', alignItems: 'center', gap: 10, padding: '0 10px', fontVariantNumeric: 'tabular-nums' }}>
                 {l && <span style={{ width: 44, flexShrink: 0, fontSize: 13, fontWeight: 700, color: v === null ? FAINT : INK }}>{v === null ? '—' : x.text(l)}</span>}
-                {v !== null && x.p(l) !== null && <Slider p={x.p(l)} c={x.tone(l)} />}
+                {l && <Slider p={v === null ? null : x.p(l)} c={x.tone(l)} />}
               </span>
             )
           })}
@@ -181,15 +181,16 @@ function Ratings({ x }) {
 }
 
 // A percentile as the profile's Percentiles cards draw it: a bar to it on a track, the
-// league's median marked, its number on the knob.
+// league's median marked, its number on the knob; an empty track without one (no home
+// games yet).
 function Slider({ p, c }) {
   const at = `${Math.max(p, 1)}%`
   return (
-    <span style={{ position: 'relative', flex: 1, height: 17, display: 'flex', alignItems: 'center', marginRight: 8 }}>
+    <span style={{ position: 'relative', flex: 1, height: 17, display: 'flex', alignItems: 'center', marginRight: 8, opacity: p === null ? 0.45 : 1 }}>
       <span style={{ position: 'absolute', left: 0, right: 0, height: 12, background: '#34312e' }} />
-      <span style={{ position: 'absolute', left: 0, height: 12, width: at, background: c }} />
       <span style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#837d76' }} />
-      <span style={{ position: 'absolute', left: at, transform: 'translateX(-50%)', width: 17, height: 17, borderRadius: '50%', background: c, border: '1.5px solid #ece8e3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, fontWeight: 600, color: '#1f1d1c' }}>{p}</span>
+      {p !== null && <span style={{ position: 'absolute', left: 0, height: 12, width: at, background: c }} />}
+      {p !== null && <span style={{ position: 'absolute', left: at, transform: 'translateX(-50%)', width: 17, height: 17, borderRadius: '50%', background: c, border: '1.5px solid #ece8e3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, fontWeight: 600, color: '#1f1d1c' }}>{p}</span>}
     </span>
   )
 }

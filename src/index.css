@@ -515,6 +515,7 @@ svg .tc-grow-x { transform-box: view-box; }
 .tc-grow-x { animation: tc-grow-x .55s cubic-bezier(.2, .8, .2, 1) both; }
 .tc-slide { animation: tc-slide .7s cubic-bezier(.2, .8, .2, 1) both .15s; }
 .tc-fade { animation: tc-fade .4s ease both; }
+.tc-still, .tc-still * { animation: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .tc-logo, .tc-wipe, .tc-grow, .tc-grow-x, .tc-slide, .tc-fade { animation: none; }
 }

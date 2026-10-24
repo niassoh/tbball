@@ -111,11 +111,11 @@ const still = () => window.matchMedia('(prefers-reduced-motion: reduce)').matche
 // A number counting up to its value, eased out over COUNT_MS after `delay` ms (the effect
 // writes its text, so the count runs between renders); straight to it with reduced motion.
 const COUNT_MS = 700
-export function CountUp({ stat, value, delay }) {
+export function CountUp({ stat, value, delay, instant }) {
   const el = useRef(null)
   useLayoutEffect(() => {
     const node = el.current
-    if (value === null || value === undefined || still()) {
+    if (instant || value === null || value === undefined || still()) {
       node.textContent = fmt(stat, value)
       return undefined
     }
@@ -129,7 +129,7 @@ export function CountUp({ stat, value, delay }) {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [stat, value, delay])
+  }, [stat, value, delay, instant])
   return <span ref={el} />
 }
 

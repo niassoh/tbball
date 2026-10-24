@@ -54,12 +54,12 @@ function Section({ title, note, right, children, style }) {
 }
 
 // The head: logo, name and record; win pace and net, each with its place and a meter.
-function Head({ t, x, season, closeButton }) {
+function Head({ t, x, season, closeButton, intro }) {
   const big = { fontFamily: 'Montserrat, sans-serif', fontWeight: 800, lineHeight: 0.9, color: INK, fontVariantNumeric: 'tabular-nums' }
   const Hero = ({ l, name, delay }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 96 }}>
       <span style={label}>{name}</span>
-      <span style={{ ...big, fontSize: 26 }}><CountUp stat={x.stat(l)} value={x.v(l)} delay={delay} /></span>
+      <span style={{ ...big, fontSize: 26 }}><CountUp stat={x.stat(l)} value={x.v(l)} delay={delay} instant={!intro} /></span>
       <Meter pc={x.p(l)} delay={delay} />
       <span style={{ ...label, fontSize: 8, color: FAINT }}>{x.place(l)} of 30</span>
     </div>
@@ -71,7 +71,7 @@ function Head({ t, x, season, closeButton }) {
         <span style={label}>{t.team} · {season.replace('-', '–')} · regular season</span>
         <span style={{ display: 'flex', alignItems: 'baseline', gap: 14, minWidth: 0 }}>
           <span className="tc-wipe" style={{ ...big, fontSize: Math.min(28, Math.floor(230 / t.name.length)), textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-          <span style={{ ...big, fontSize: 18, flex: 'none' }}><CountUp stat={{ dec: 0 }} value={x.v('Wins')} delay={150} />–<CountUp stat={{ dec: 0 }} value={x.v('Losses')} delay={150} /></span>
+          <span style={{ ...big, fontSize: 18, flex: 'none' }}><CountUp stat={{ dec: 0 }} value={x.v('Wins')} delay={150} instant={!intro} />–<CountUp stat={{ dec: 0 }} value={x.v('Losses')} delay={150} instant={!intro} /></span>
         </span>
       </div>
       <div style={{ display: 'flex', gap: 20 }}>
@@ -264,7 +264,17 @@ function Shots({ x }) {
   )
 }
 
+// The card plays its intro (count-ups, meters, fades) once a page load, the first time it
+// opens: other teams, unit sizes and the like then show at once.
+const INTRO_MS = 1500
+let introPlayed = false
 export default function TeamCard({ doc, team: t, season, onClose }) {
+  const [intro, setIntro] = useState(() => !introPlayed)
+  useEffect(() => {
+    introPlayed = true
+    const id = setTimeout(() => setIntro(false), INTRO_MS)
+    return () => clearTimeout(id)
+  }, [])
   useEffect(() => {
     const escape = e => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', escape)
@@ -277,8 +287,8 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
   // The last row takes the height the rest leave.
   const pair = { flex: '1 0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }
   return (
-    <div className="pc-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
-      <Head t={t} x={x} season={season} closeButton={close} />
+    <div className={intro ? 'pc-card' : 'pc-card tc-still'} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
+      <Head t={t} x={x} season={season} closeButton={close} intro={intro} />
       <Section title="Units" right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Units shown" options={PICKS} value={pick} set={setPick} /></span>}><Units team={t.team} season={season} n={n} pick={pick} /></Section>
       <Section title="Ratings" note="bar: percentile"><Ratings x={x} /></Section>
       <div style={pair}>

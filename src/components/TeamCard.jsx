@@ -62,7 +62,8 @@ function Section({ title, note, right, children, style }) {
 // The head: logo, name and record; win pace and net, each with its place and a meter.
 function Head({ t, x, season, closeButton, intro }) {
   const big = { fontFamily: 'Montserrat, sans-serif', fontWeight: 800, lineHeight: 0.9, color: INK, fontVariantNumeric: 'tabular-nums' }
-  const Hero = ({ l, name, delay }) => (
+  // Called, not rendered as a component: one defined in here would remount each render.
+  const hero = (l, name, delay) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 96 }}>
       <span style={label}>{name}</span>
       <span style={{ ...big, fontSize: 26 }}><CountUp stat={x.stat(l)} value={x.v(l)} delay={delay} instant={!intro} /></span>
@@ -77,12 +78,12 @@ function Head({ t, x, season, closeButton, intro }) {
         <span style={label}>{t.team} · {season.replace('-', '–')} · regular season</span>
         <span style={{ display: 'flex', alignItems: 'baseline', gap: 14, minWidth: 0 }}>
           <span className="tc-wipe" style={{ ...big, fontSize: Math.min(28, Math.floor(230 / t.name.length)), textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-          <span style={{ ...big, fontSize: 18, flex: 'none' }}><CountUp stat={{ dec: 0 }} value={x.v('Wins')} delay={150} instant={!intro} />–<CountUp stat={{ dec: 0 }} value={x.v('Losses')} delay={150} instant={!intro} /></span>
+          <span style={{ ...big, fontSize: 18, flex: 'none' }}><CountUp stat={WHOLE} value={x.v('Wins')} delay={150} instant={!intro} />–<CountUp stat={WHOLE} value={x.v('Losses')} delay={150} instant={!intro} /></span>
         </span>
       </div>
       <div style={{ display: 'flex', gap: 20 }}>
-        <Hero l="LA Bayes Win-pace" name="Win pace" delay={200} />
-        <Hero l="Net" name="Net rating" delay={320} />
+        {hero('LA Bayes Win-pace', 'Win pace', 200)}
+        {hero('Net', 'Net rating', 320)}
       </div>
       {closeButton}
     </div>
@@ -148,41 +149,75 @@ function Pick({ options, value, set, label: name }) {
 const SIZES = [[2, '2'], [3, '3'], [4, '4'], [5, '5']]
 const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
 
-// Its ratings as a table, the Team board's way: offense, defense and net across; the
-// season and adjusted, then home and away and against the bottom and top 10, down. Each
-// cell is the number and its percentile as a slider, the profile's Percentiles way (its
-// place among the 30 on hover).
-const RATINGS = [
-  ['Season', 'ORTG', 'DRTG', 'Net'],
-  ['Adjusted', 'Adj rORTG', 'Adj rDRTG', null],
-  ['Home', 'Home ORTG', 'Home DRTG', 'Home Net'],
+// Its ratings: offense, defense and net each as a tile (what it counts, the number, its
+// percentile as a slider and its place, then the opponent-adjusted figure); then its
+// splits as a table that reads across: ORTG, DRTG and net, the net drawn either side
+// of zero. Every number is coloured by its percentile (blue better).
+const TILES = [['Offense', 'ORTG', 'Adj rORTG', 'ORTG'], ['Defense', 'DRTG', 'Adj rDRTG', 'DRTG'], ['Net', 'Net', null, 'Net rating']]
+const SPLITS = [
+  ['At home', 'Home ORTG', 'Home DRTG', 'Home Net'],
   ['Away', 'Away ORTG', 'Away DRTG', 'Away Net'],
   ['v Bottom 10', 'ORTG v Bot10', 'DRTG v Bot10', 'Net v Bot10'],
   ['v Top 10', 'ORTG v Top10', 'DRTG v Top10', 'Net v Top10']
 ]
-const GRID = { display: 'grid', gridTemplateColumns: '92px repeat(3, minmax(0, 1fr))', columnGap: 3 }
+const SPLIT_GRID = { display: 'grid', gridTemplateColumns: '92px 64px 64px 52px minmax(0, 1fr)', columnGap: 12, alignItems: 'center' }
+// The splits' net bar runs to this many points either side of zero.
+const NET_REACH = 25
 function Ratings({ x, intro }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <div style={{ ...GRID, marginBottom: 2 }}>
-        <span />
-        {['Offense', 'Defense', 'Net'].map(h => <span key={h} style={{ ...label, fontSize: 10, fontWeight: 700, color: '#d6d1cb', padding: '0 10px' }}>{h}</span>)}
-      </div>
-      {RATINGS.map(([name, ...ls], i) => (
-        <div key={name} style={{ ...GRID, height: 26, ...(i === 2 ? { marginTop: 8 } : null) }}>
-          <span style={{ ...label, fontSize: 10, fontWeight: 600, color: '#d6d1cb', alignSelf: 'center', whiteSpace: 'nowrap' }}>{name}</span>
-          {ls.map((l, j) => {
-            const v = l && x.has(l) ? x.v(l) : null
-            return (
-              <span key={j} title={l && v !== null ? `${x.place(l)} · ${x.stat(l)?.desc || l}` : undefined} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 10px', fontVariantNumeric: 'tabular-nums' }}>
-                {l && <span className="tc-fade" style={{ animationDelay: `${AT.ratings + i * AT.row + j * AT.col}ms`, width: 44, flexShrink: 0, fontSize: 13, fontWeight: 700, color: v === null ? FAINT : INK }}>{v === null ? '—' : x.text(l)}</span>}
-                {l && <Slider p={v === null ? null : x.p(l)} c={x.tone(l)} delay={AT.ratings + i * AT.row + j * AT.col} intro={intro} />}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 3 }}>
+        {TILES.map(([name, l, adj, what], j) => {
+          const delay = AT.ratings + j * AT.row
+          return (
+            <div key={l} title={x.stat(l)?.desc || undefined} style={{ background: PAD, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ ...label, fontSize: 10, fontWeight: 700, color: INK }}>{name}</span>
+                <span style={{ ...label, fontSize: 8.5, color: '#c9c3bc', marginLeft: 'auto', whiteSpace: 'nowrap' }}>{x.place(l)} of 30</span>
               </span>
-            )
-          })}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="tc-fade" style={{ animationDelay: `${delay}ms`, width: 64, flexShrink: 0, fontSize: 22, fontWeight: 700, lineHeight: 1, color: x.tone(l), fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}</span>
+                <Slider p={x.p(l)} c={x.tone(l)} delay={delay} intro={intro} />
+              </span>
+              <span style={{ fontSize: 9.5, color: DIM, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {what}{adj && x.v(adj) !== null && <> · opp-adj <span style={{ color: x.tone(adj), fontWeight: 700 }}>{x.text(adj)}</span></>}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ ...SPLIT_GRID, paddingBottom: 4 }}>
+          <span style={{ ...label, fontSize: 10, fontWeight: 700, color: INK }}>Splits</span>
+          {['ORTG', 'DRTG'].map(h => <span key={h} style={{ ...label, fontSize: 8.5, color: '#c9c3bc', textAlign: 'right' }}>{h}</span>)}
+          <span style={{ ...label, fontSize: 8.5, color: '#c9c3bc', textAlign: 'right' }}>Net</span>
+          <span />
         </div>
-      ))}
+        {SPLITS.map(([name, o, d, n], i) => {
+          const delay = AT.ratings + 3 * AT.row + i * AT.row
+          const net = x.v(n)
+          return (
+            <div key={name} className="tc-fade" style={{ ...SPLIT_GRID, animationDelay: `${delay}ms`, height: 22, borderTop: `1px dashed ${RULE}`, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ ...label, fontSize: 9.5, fontWeight: 600, color: '#d6d1cb', whiteSpace: 'nowrap' }}>{name}</span>
+              {[o, d].map(l => <span key={l} title={x.v(l) === null ? undefined : `${x.place(l)} of 30`} style={{ fontSize: 12, fontWeight: 700, textAlign: 'right', color: x.v(l) === null ? FAINT : x.tone(l) }}>{x.text(l)}</span>)}
+              <span style={{ fontSize: 12, fontWeight: 700, textAlign: 'right', color: net === null ? FAINT : x.tone(n) }}>{x.text(n)}</span>
+              {net === null ? <span style={{ ...label, fontSize: 8.5, color: FAINT }}>No games yet</span> : <NetBar v={net} c={x.tone(n)} delay={delay} title={`${x.place(n)} of 30`} />}
+            </div>
+          )
+        })}
+      </div>
     </div>
+  )
+}
+// A net either side of zero, NET_REACH points to an end.
+function NetBar({ v, c, delay, title }) {
+  const w = (Math.min(NET_REACH, Math.abs(v)) / NET_REACH) * 50
+  return (
+    <span title={title} style={{ position: 'relative', height: 14, display: 'flex', alignItems: 'center' }}>
+      <span style={{ position: 'absolute', left: 0, right: 0, height: 10, background: '#34312e' }} />
+      <span className="tc-grow-x" style={{ position: 'absolute', height: 10, width: `${w}%`, left: v >= 0 ? '50%' : `${50 - w}%`, background: c, transformOrigin: v >= 0 ? '0 50%' : '100% 50%', animationDelay: `${delay}ms` }} />
+      <span style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#837d76' }} />
+    </span>
   )
 }
 
@@ -294,7 +329,7 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
     <div className={intro ? 'pc-card' : 'pc-card tc-still'} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <Head t={t} x={x} season={season} closeButton={close} intro={intro} />
       <Section title="Units" right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Units shown" options={PICKS} value={pick} set={setPick} /></span>}><Units team={t.team} season={season} n={n} pick={pick} intro={intro} /></Section>
-      <Section title="Ratings" note="bar: percentile"><Ratings x={x} intro={intro} /></Section>
+      <Section title="Ratings" note="slider: percentile · blue better"><Ratings x={x} intro={intro} /></Section>
       <div style={pair}>
         <Section title="Play types" note="width: share · bar: v league"><Playtypes x={x} /></Section>
         <Section title="Shots" note="meters: percentile" style={{ borderLeft: `1px solid ${RULE}` }}><Shots x={x} /></Section>

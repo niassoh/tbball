@@ -519,6 +519,7 @@ svg .tc-grow-x { transform-box: view-box; }
 .tc-pop { animation: tc-pop .45s cubic-bezier(.2, .8, .2, 1.25) both; }
 .tc-knob { animation: tc-slide .55s cubic-bezier(.2, .8, .2, 1) both, tc-fade .15s ease both; }
 .tc-still, .tc-still * { animation: none !important; }
+.tc-quick, .tc-quick * { animation-delay: 0s !important; animation-duration: .2s !important; }
 @media (prefers-reduced-motion: reduce) {
   .tc-logo, .tc-wipe, .tc-grow, .tc-grow-x, .tc-slide, .tc-fade, .tc-pop, .tc-knob { animation: none; }
 }

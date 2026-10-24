@@ -306,14 +306,22 @@ function Shots({ x }) {
 }
 
 // The intro (AT) plays as a team's card opens (TeamBoard keys the card by team); after it,
-// unit sizes, Most used and the like show at once.
+// unit sizes, Most used and the like show at once. A card opened in place of another (a
+// team picked while one is open: `open` counts the mounted cards, and the old one is
+// still mounted as the new one first renders) settles quickly instead: everything at
+// once in a short fade (tc-quick), its numbers already there.
 const INTRO_MS = 2600
+const QUICK_MS = 300
+let open = 0
 export default function TeamCard({ doc, team: t, season, onClose }) {
-  const [intro, setIntro] = useState(true)
+  const [quick] = useState(() => open > 0)
+  const [settling, setSettling] = useState(true)
   useEffect(() => {
-    const id = setTimeout(() => setIntro(false), INTRO_MS)
-    return () => clearTimeout(id)
-  }, [])
+    open++
+    const id = setTimeout(() => setSettling(false), quick ? QUICK_MS : INTRO_MS)
+    return () => { open--; clearTimeout(id) }
+  }, [quick])
+  const intro = settling && !quick
   useEffect(() => {
     const escape = e => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', escape)
@@ -326,7 +334,7 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
   // The last row takes the height the rest leave.
   const pair = { flex: '1 0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }
   return (
-    <div className={intro ? 'pc-card' : 'pc-card tc-still'} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
+    <div className={`pc-card${!settling ? ' tc-still' : quick ? ' tc-quick' : ''}`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <Head t={t} x={x} season={season} closeButton={close} intro={intro} />
       <Section title="Units" right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Units shown" options={PICKS} value={pick} set={setPick} /></span>}><Units team={t.team} season={season} n={n} pick={pick} intro={intro} /></Section>
       <Section title="Ratings" note="slider: percentile · blue better"><Ratings x={x} intro={intro} /></Section>

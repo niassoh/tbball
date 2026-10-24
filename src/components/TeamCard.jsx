@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchPlayers, fetchTeamUnits, headshotUrl } from '../api.js'
-import { MONO, col, fmt, heat, ord } from '../lib/format.js'
+import { MONO, col, fmt, ord } from '../lib/format.js'
 import { placeOf, tiedOf } from '../lib/teamboard.js'
 import { asset } from '../lib/static.js'
 import { initials } from '../lib/teams.js'
@@ -9,7 +9,7 @@ import { CountUp, Meter } from './PlayerCard.jsx'
 // A team's card on the Team board, in the chart's place, sized to fit a laptop's screen.
 // Its head: logo, name, record, win pace and net. Then one of its units that season (five-
 // man unless picked), most used or best by net (as the players' cards show theirs); its
-// ratings, the season's and its splits', as a table tinted by percentile; its play types as a mosaic, each as wide as its
+// ratings, the season's and its splits', as a table of percentile sliders; its play types as a mosaic, each as wide as its
 // share of the offense and as tall as its points a play above or below the league's; its
 // shots and its opponents' as numbers with meters. Blue is better than the league,
 // orange worse, grey a style. It comes in on opening, and again for another team: the
@@ -23,8 +23,6 @@ const PAD = '#2c2a28'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM, textTransform: 'uppercase' }
 const tiny = { fontFamily: MONO, fontSize: 7.5, letterSpacing: '.1em', fill: FAINT, textTransform: 'uppercase' }
 const RELATIVE = /^Net|^r|^Adj r| Net$/
-// A style stat's shade, in grey (TeamBoard's).
-const plain = p => `rgba(201,195,188,${((Math.abs(p - 50) / 50) * 0.32).toFixed(2)})`
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 
 // The team's numbers in a stat: value, percentile, league average, the 30's values, its
@@ -38,9 +36,8 @@ const reader = (doc, t) => {
   const all = l => (has(l) ? doc.teams.map(x => x.v[k(l)]).filter(x => x !== null) : [])
   const place = l => (v(l) === null ? '—' : `${tiedOf(doc, t, l) ? 'T-' : ''}${ord(placeOf(doc, t, l))}`)
   const tone = l => (p(l) === null ? FAINT : doc.stats[l].neutral ? INK : col(p(l)))
-  const shade = l => (p(l) === null ? PAD : doc.stats[l].neutral ? plain(p(l)) : heat(p(l)))
   const text = (l, n = v(l)) => fmt(stat(l), n)
-  return { has, v, p, stat, all, place, tone, shade, text, lg: l => doc.league[l] ?? null }
+  return { has, v, p, stat, all, place, tone, text, lg: l => doc.league[l] ?? null }
 }
 
 function Section({ title, note, right, children, style }) {
@@ -147,7 +144,8 @@ const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
 
 // Its ratings as a table, the Team board's way: offense, defense and net across; the
 // season and adjusted, then home and away and against the bottom and top 10, down. Each
-// cell is the number and its place among the 30, tinted by its percentile.
+// cell is the number and its percentile as a slider, the profile's Percentiles way (its
+// place among the 30 on hover).
 const RATINGS = [
   ['Season', 'ORTG', 'DRTG', 'Net'],
   ['Adjusted', 'Adj rORTG', 'Adj rDRTG', null],
@@ -162,23 +160,37 @@ function Ratings({ x }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <div style={{ ...GRID, marginBottom: 2 }}>
         <span />
-        {['Offense', 'Defense', 'Net'].map(h => <span key={h} style={{ ...label, fontSize: 8, padding: '0 10px' }}>{h}</span>)}
+        {['Offense', 'Defense', 'Net'].map(h => <span key={h} style={{ ...label, fontSize: 10, fontWeight: 700, color: '#d6d1cb', padding: '0 10px' }}>{h}</span>)}
       </div>
       {RATINGS.map(([name, ...ls], i) => (
         <div key={name} style={{ ...GRID, height: 26, ...(i === 2 ? { marginTop: 8 } : null) }}>
-          <span style={{ ...label, fontSize: 9, color: '#c9c3bc', alignSelf: 'center', whiteSpace: 'nowrap' }}>{name}</span>
+          <span style={{ ...label, fontSize: 10, fontWeight: 600, color: '#d6d1cb', alignSelf: 'center', whiteSpace: 'nowrap' }}>{name}</span>
           {ls.map((l, j) => {
             const v = l && x.has(l) ? x.v(l) : null
             return (
-              <span key={j} className="tc-fade" title={l ? x.stat(l)?.desc : undefined} style={{ animationDelay: `${i * 40}ms`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 10px', background: v === null ? 'transparent' : x.shade(l), fontVariantNumeric: 'tabular-nums' }}>
-                {l && <span style={{ fontSize: 13, fontWeight: 700, color: v === null ? FAINT : INK }}>{v === null ? '—' : x.text(l)}</span>}
-                {v !== null && <span style={{ fontSize: 9, color: '#d6d1cb' }}>{x.place(l)}</span>}
+              <span key={j} className="tc-fade" title={l && v !== null ? `${x.place(l)} · ${x.stat(l)?.desc || l}` : undefined} style={{ animationDelay: `${i * 40}ms`, display: 'flex', alignItems: 'center', gap: 10, padding: '0 10px', fontVariantNumeric: 'tabular-nums' }}>
+                {l && <span style={{ width: 44, flexShrink: 0, fontSize: 13, fontWeight: 700, color: v === null ? FAINT : INK }}>{v === null ? '—' : x.text(l)}</span>}
+                {v !== null && x.p(l) !== null && <Slider p={x.p(l)} c={x.tone(l)} />}
               </span>
             )
           })}
         </div>
       ))}
     </div>
+  )
+}
+
+// A percentile as the profile's Percentiles cards draw it: a bar to it on a track, the
+// league's median marked, its number on the knob.
+function Slider({ p, c }) {
+  const at = `${Math.max(p, 1)}%`
+  return (
+    <span style={{ position: 'relative', flex: 1, height: 17, display: 'flex', alignItems: 'center', marginRight: 8 }}>
+      <span style={{ position: 'absolute', left: 0, right: 0, height: 12, background: '#34312e' }} />
+      <span style={{ position: 'absolute', left: 0, height: 12, width: at, background: c }} />
+      <span style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#837d76' }} />
+      <span style={{ position: 'absolute', left: at, transform: 'translateX(-50%)', width: 17, height: 17, borderRadius: '50%', background: c, border: '1.5px solid #ece8e3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, fontWeight: 600, color: '#1f1d1c' }}>{p}</span>
+    </span>
   )
 }
 
@@ -267,7 +279,7 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
     <div className="pc-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <Head t={t} x={x} season={season} closeButton={close} />
       <Section title="Units" right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Units shown" options={PICKS} value={pick} set={setPick} /></span>}><Units team={t.team} season={season} n={n} pick={pick} /></Section>
-      <Section title="Ratings" note="tint: percentile"><Ratings x={x} /></Section>
+      <Section title="Ratings" note="bar: percentile"><Ratings x={x} /></Section>
       <div style={pair}>
         <Section title="Play types" note="width: share · bar: v league"><Playtypes x={x} /></Section>
         <Section title="Shots" note="meters: percentile" style={{ borderLeft: `1px solid ${RULE}` }}><Shots x={x} /></Section>

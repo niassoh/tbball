@@ -23,6 +23,11 @@ const mix = (a, b, t) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).
 
 // Percentile color: grey -> blue above 50, grey -> orange below 50.
 export const col = p => (p >= 50 ? mix(GREY, BLUE, (p - 50) / 50) : mix(GREY, ORANGE, (50 - p) / 50))
+// The same for text on the dark ground, lighter throughout so a middling percentile still reads.
+const TEXT_GREY = [190, 184, 177]
+const TEXT_BLUE = [143, 176, 230]
+const TEXT_ORANGE = [250, 165, 80]
+export const colText = p => (p >= 50 ? mix(TEXT_GREY, TEXT_BLUE, (p - 50) / 50) : mix(TEXT_GREY, TEXT_ORANGE, (50 - p) / 50))
 
 // Table cell shading; the current season gets a small alpha boost.
 export const heat = (p, boost = 0) => {

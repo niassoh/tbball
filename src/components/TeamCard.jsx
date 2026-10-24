@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchPlayers, fetchTeamUnits, headshotUrl } from '../api.js'
-import { MONO, col, fmt, ord } from '../lib/format.js'
+import { MONO, col, colText, fmt, ord } from '../lib/format.js'
 import { placeOf, tiedOf } from '../lib/teamboard.js'
 import { asset } from '../lib/static.js'
 import { initials } from '../lib/teams.js'
@@ -30,7 +30,7 @@ const NET_STAT = { dec: 1, relative: true }
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 
 // The team's numbers in a stat: value, percentile, league average, its place, and how to
-// print and colour it.
+// print and colour it (`tone` for bars, `ink` for text).
 const reader = (doc, t) => {
   const k = l => doc.labels.indexOf(l)
   const has = l => k(l) >= 0
@@ -39,8 +39,9 @@ const reader = (doc, t) => {
   const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
   const place = l => (v(l) === null ? '—' : `${tiedOf(doc, t, l) ? 'T-' : ''}${ord(placeOf(doc, t, l))}`)
   const tone = l => (p(l) === null ? FAINT : doc.stats[l].neutral ? MID : col(p(l)))
+  const ink = l => (p(l) === null ? FAINT : doc.stats[l].neutral ? SOFT : colText(p(l)))
   const text = (l, n = v(l)) => fmt(stat(l), n)
-  return { has, v, p, stat, place, tone, text, lg: l => doc.league[l] ?? null }
+  return { has, v, p, stat, place, tone, ink, text, lg: l => doc.league[l] ?? null }
 }
 const titleOf = (x, l) => [x.v(l) === null ? null : `${x.place(l)} of 30`, x.stat(l).desc].filter(Boolean).join(' · ') || undefined
 
@@ -69,7 +70,7 @@ function Head({ t, x, season, intro, closeButton }) {
                 <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: 8, alignItems: 'center' }}>
                   <span style={{ fontSize: 18, fontWeight: 600, lineHeight: 1, color: INK, fontVariantNumeric: 'tabular-nums' }}><CountUp stat={x.stat(l)} value={x.v(l)} delay={delay} instant={!intro} /></span>
                   <Meter pc={x.p(l)} delay={delay} />
-                  <span style={{ fontSize: 9, color: x.tone(l) }}>{x.place(l)}</span>
+                  <span style={{ fontSize: 9, color: x.ink(l) }}>{x.place(l)}</span>
                 </span>
               </div>
             )
@@ -140,7 +141,7 @@ function Rows({ x, heads, rows, delay, units = [] }) {
       {rows.map(([name, ...ls], i) => (
         <div key={name} className="tc-fade" style={{ ...cols, animationDelay: `${delay + i * AT.step}ms` }}>
           <span style={{ ...label, fontSize: 8.5, color: SOFT, whiteSpace: 'nowrap' }}>{name}</span>
-          {ls.map((l, j) => <span key={l} title={titleOf(x, l)} style={{ fontSize: 11, textAlign: 'right', color: x.tone(l), fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : units[j] || ''}</span>)}
+          {ls.map((l, j) => <span key={l} title={titleOf(x, l)} style={{ fontSize: 11, textAlign: 'right', color: x.ink(l), fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : units[j] || ''}</span>)}
         </div>
       ))}
     </div>
@@ -169,7 +170,7 @@ function Playtypes({ x }) {
           <span style={{ ...label, fontSize: 8.5, color: SOFT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</span>
           <Bar w={r.share} c={MID} mark={r.lg} delay={AT.rows + i * AT.step} />
           <span style={{ fontSize: 11, textAlign: 'right', color: DIM, fontVariantNumeric: 'tabular-nums' }}>{Math.round(r.share)}%</span>
-          <span style={{ fontSize: 11, textAlign: 'right', color: r.l ? x.tone(r.l) : FAINT, fontVariantNumeric: 'tabular-nums' }}>{r.l ? x.text(r.l) : ''}</span>
+          <span style={{ fontSize: 11, textAlign: 'right', color: r.l ? x.ink(r.l) : FAINT, fontVariantNumeric: 'tabular-nums' }}>{r.l ? x.text(r.l) : ''}</span>
         </div>
       ))}
     </div>

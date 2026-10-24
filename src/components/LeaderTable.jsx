@@ -269,9 +269,9 @@ export function FilterMark({ size = 9 }) {
 // its sides beside it; pointing back, it closes them.
 function Expand({ open, stat, toggle }) {
   return (
-    <button type="button" aria-expanded={open} aria-label={`${open ? 'Hide' : 'Show'} ${stat} with and without the star`} title={open ? 'Hide w/ and w/o Star' : 'Show w/ and w/o Star'} onClick={toggle}
-      style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, background: 'transparent', color: open ? INK : DIM, cursor: 'pointer' }}>
-      <svg width="5" height="8" viewBox="0 0 5 8" aria-hidden="true" style={{ transform: open ? 'scaleX(-1)' : 'none' }}>
+    <button type="button" className="lb-expand" aria-expanded={open} aria-label={`${open ? 'Hide' : 'Show'} ${stat} with and without the star`} title={open ? 'Hide w/ and w/o Star' : 'Show w/ and w/o Star'} onClick={toggle}
+      style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, background: 'transparent', color: open ? DIM : '#5f5a55', cursor: 'pointer' }}>
+      <svg width="4" height="6" viewBox="0 0 5 8" aria-hidden="true" style={{ transform: open ? 'scaleX(-1)' : 'none' }}>
         <path d="M0 0l5 4-5 4z" fill="currentColor" />
       </svg>
     </button>

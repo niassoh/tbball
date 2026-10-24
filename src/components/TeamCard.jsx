@@ -45,15 +45,17 @@ const reader = (doc, t) => {
 }
 const titleOf = (x, l) => [x.v(l) === null ? null : `${x.place(l)} of 30`, x.stat(l).desc].filter(Boolean).join(' · ') || undefined
 
-// The head, as a player's card's: the logo in the portrait's square; the abbreviation,
+// The head, as a player's card's: the logo on the banner's bokeh; the abbreviation,
 // record, win pace and season (and the close button) over the name; then ORTG, DRTG and net, each with its meter and place.
 const HEROES = ['ORTG', 'DRTG', 'Net']
+const RADIAL = 'radial-gradient(circle closest-side, #000 35%, transparent)'
 function Head({ t, x, season, intro, closeButton }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', columnGap: 14, padding: '12px 14px' }}>
-      <div style={{ position: 'relative', width: 72, height: 72, background: '#1f1d1c', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '30% 0%', opacity: 0.15 }} />
-        <img className="tc-logo" src={asset(`logos/color/${t.team}.png`)} alt="" width={52} height={52} style={{ position: 'relative' }} />
+      <div style={{ position: 'relative', width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* The banner's bokeh as a glow that fades out around the logo, edgeless. */}
+        <img src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: -14, width: 'calc(100% + 28px)', height: 'calc(100% + 28px)', objectFit: 'cover', objectPosition: '30% 0%', opacity: 0.75, WebkitMaskImage: RADIAL, maskImage: RADIAL }} />
+        <img className="tc-logo" src={asset(`logos/color/${t.team}.png`)} alt="" width={60} height={60} style={{ position: 'relative' }} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

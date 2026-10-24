@@ -160,7 +160,7 @@ const SPLITS = [
   ['v Bottom 10', 'ORTG v Bot10', 'DRTG v Bot10', 'Net v Bot10'],
   ['v Top 10', 'ORTG v Top10', 'DRTG v Top10', 'Net v Top10']
 ]
-const SPLIT_GRID = { display: 'grid', gridTemplateColumns: '92px 64px 64px 52px minmax(0, 1fr)', columnGap: 12, alignItems: 'center' }
+const SPLIT_GRID = { display: 'grid', gridTemplateColumns: '108px 70px 70px 62px minmax(0, 1fr)', columnGap: 12, alignItems: 'center' }
 // The splits' net bar runs to this many points either side of zero.
 const NET_REACH = 25
 function Ratings({ x, intro }) {
@@ -189,19 +189,19 @@ function Ratings({ x, intro }) {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ ...SPLIT_GRID, paddingBottom: 4 }}>
           <span style={{ ...label, fontSize: 10, fontWeight: 700, color: INK }}>Splits</span>
-          {['ORTG', 'DRTG'].map(h => <span key={h} style={{ ...label, fontSize: 8.5, color: '#c9c3bc', textAlign: 'right' }}>{h}</span>)}
-          <span style={{ ...label, fontSize: 8.5, color: '#c9c3bc', textAlign: 'right' }}>Net</span>
+          {['ORTG', 'DRTG'].map(h => <span key={h} style={{ ...label, fontSize: 9.5, color: '#c9c3bc', textAlign: 'right' }}>{h}</span>)}
+          <span style={{ ...label, fontSize: 9.5, color: '#c9c3bc', textAlign: 'right' }}>Net</span>
           <span />
         </div>
         {SPLITS.map(([name, o, d, n], i) => {
           const delay = AT.ratings + 3 * AT.row + i * AT.row
           const net = x.v(n)
           return (
-            <div key={name} className="tc-fade" style={{ ...SPLIT_GRID, animationDelay: `${delay}ms`, height: 22, borderTop: `1px dashed ${RULE}`, fontVariantNumeric: 'tabular-nums' }}>
-              <span style={{ ...label, fontSize: 9.5, fontWeight: 600, color: '#d6d1cb', whiteSpace: 'nowrap' }}>{name}</span>
-              {[o, d].map(l => <span key={l} title={x.v(l) === null ? undefined : `${x.place(l)} of 30`} style={{ fontSize: 12, fontWeight: 700, textAlign: 'right', color: x.v(l) === null ? FAINT : x.tone(l) }}>{x.text(l)}</span>)}
-              <span style={{ fontSize: 12, fontWeight: 700, textAlign: 'right', color: net === null ? FAINT : x.tone(n) }}>{x.text(n)}</span>
-              {net === null ? <span style={{ ...label, fontSize: 8.5, color: FAINT }}>No games yet</span> : <NetBar v={net} c={x.tone(n)} delay={delay} title={`${x.place(n)} of 30`} />}
+            <div key={name} className="tc-fade" style={{ ...SPLIT_GRID, animationDelay: `${delay}ms`, height: 30, borderTop: `1px dashed ${RULE}`, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ ...label, fontSize: 11, fontWeight: 600, color: INK, whiteSpace: 'nowrap' }}>{name}</span>
+              {[o, d].map(l => <span key={l} title={x.v(l) === null ? undefined : `${x.place(l)} of 30`} style={{ fontSize: 15, fontWeight: 700, textAlign: 'right', color: x.v(l) === null ? FAINT : x.tone(l) }}>{x.text(l)}</span>)}
+              <span style={{ fontSize: 15, fontWeight: 700, textAlign: 'right', color: net === null ? FAINT : x.tone(n) }}>{x.text(n)}</span>
+              {net === null ? <span style={{ ...label, fontSize: 9.5, color: FAINT }}>No games yet</span> : <NetBar v={net} c={x.tone(n)} delay={delay} title={`${x.place(n)} of 30`} />}
             </div>
           )
         })}
@@ -213,9 +213,9 @@ function Ratings({ x, intro }) {
 function NetBar({ v, c, delay, title }) {
   const w = (Math.min(NET_REACH, Math.abs(v)) / NET_REACH) * 50
   return (
-    <span title={title} style={{ position: 'relative', height: 14, display: 'flex', alignItems: 'center' }}>
-      <span style={{ position: 'absolute', left: 0, right: 0, height: 10, background: '#34312e' }} />
-      <span className="tc-grow-x" style={{ position: 'absolute', height: 10, width: `${w}%`, left: v >= 0 ? '50%' : `${50 - w}%`, background: c, transformOrigin: v >= 0 ? '0 50%' : '100% 50%', animationDelay: `${delay}ms` }} />
+    <span title={title} style={{ position: 'relative', height: 20, display: 'flex', alignItems: 'center' }}>
+      <span style={{ position: 'absolute', left: 0, right: 0, height: 16, background: '#34312e' }} />
+      <span className="tc-grow-x" style={{ position: 'absolute', height: 16, width: `${w}%`, left: v >= 0 ? '50%' : `${50 - w}%`, background: c, transformOrigin: v >= 0 ? '0 50%' : '100% 50%', animationDelay: `${delay}ms` }} />
       <span style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#837d76' }} />
     </span>
   )

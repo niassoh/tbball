@@ -307,6 +307,7 @@ export default function Leaderboard() {
   const [ages, setAges] = useState(null)
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
+  const [chart, setChart] = useState(true)
   const close = useCallback(() => setPicked(null), [])
   // A row opens its card, or closes it when it's the one open.
   const toggle = useCallback(k => setPicked(p => (p === k ? null : k)), [])
@@ -564,13 +565,18 @@ export default function Leaderboard() {
           </label>
           {doc ? <Teams teams={teams} team={team} set={setTeam} /> : <Skel w={TEAM_W} h={30} />}
           <ModeSwitch mode={mode} setMode={setMode} />
+          <button type="button" aria-pressed={!chart} onClick={() => setChart(c => !c)} title={chart ? 'Hide the chart for a wider table' : 'Show the chart beside the table'}
+            style={{ height: 30, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 8, border: `1px solid ${EDGE}`, background: chart ? 'transparent' : '#3a3734', color: INK, fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><rect x=".5" y=".5" width="13" height="9" fill="none" stroke="currentColor" /><rect x="8" y="1" width="5" height="8" fill={chart ? 'currentColor' : 'none'} opacity=".6" /></svg>
+            {chart ? 'Hide chart' : 'Show chart'}
+          </button>
         </span>
       </div>
 
       {doc === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
       {doc === null && <BoardSkeleton />}
       {doc && (
-        <div className={`lb-body lb-enter${loading ? ' lb-loading' : ''}`} aria-busy={loading || undefined}>
+        <div className={`lb-body lb-enter${loading ? ' lb-loading' : ''}${!chart && !player ? ' lb-wide' : ''}`} aria-busy={loading || undefined}>
           {/* Many seasons (a long span, or eras' every one) fill it as they come in. */}
           {loading && <Progress share={progress} />}
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
@@ -578,13 +584,13 @@ export default function Leaderboard() {
               picked={picked} onPick={toggle} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'No players match'}</div>}
           </div>
-          <div className={`lb-side${player ? ' lb-carded' : ''}`}>
+          {(chart || player) && <div className={`lb-side${player ? ' lb-carded' : ''}`}>
             {player
               ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} intro={!wasOpen.current} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? (player.era[0] === player.era[1] ? player.era[0].replace('-', '–') : spanYears(player.era[0], player.era[1])) : spanText} />
               : x && y
                 ? <LeaderScatter doc={chartDoc} shown={lit} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />
                 : <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'Nothing to chart'}</div>}
-          </div>
+          </div>}
         </div>
       )}
     </main>

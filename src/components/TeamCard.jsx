@@ -23,6 +23,8 @@ const MID = '#837d76'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM, textTransform: 'uppercase' }
 const small = { ...label, fontSize: 8.5, letterSpacing: '.14em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
 const RELATIVE = /^Net|^r|^Adj r| Net$/
+// A row's name in the card's tables, bright enough to read beside a strong bar.
+const rowName = { ...label, fontSize: 9.5, letterSpacing: '.08em', color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
 // The intro's beats, ms from opening: the head's numbers, the percentile bars, the splits
 // and play types, then the units.
 const AT = { heroes: 350, bars: 650, rows: 950, units: 1200, step: 45 }
@@ -99,7 +101,7 @@ function Percentiles({ x }) {
             const pc = x.p(l)
             return (
               <div key={l} title={titleOf(x, l)} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0, 1fr) 42px', gap: 6, alignItems: 'center' }}>
-                <span style={{ ...label, fontSize: 8.5, color: SOFT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+                <span style={rowName}>{name}</span>
                 <Bar w={pc === null ? null : Math.max(pc, 2)} c={x.tone(l)} mark={50} delay={AT.bars + (i * 2 + s) * AT.step} />
                 <span style={{ fontSize: 11, textAlign: 'right', color: x.v(l) === null ? FAINT : INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : unit}</span>
               </div>
@@ -142,7 +144,7 @@ function Rows({ x, heads, rows, delay, units = [] }) {
       </div>
       {rows.map(([name, ...ls], i) => (
         <div key={name} className="tc-fade" style={{ ...cols, animationDelay: `${delay + i * AT.step}ms` }}>
-          <span style={{ ...label, fontSize: 8.5, color: SOFT, whiteSpace: 'nowrap' }}>{name}</span>
+          <span style={rowName}>{name}</span>
           {ls.map((l, j) => <span key={l} title={titleOf(x, l)} style={{ fontSize: 11, textAlign: 'right', color: x.ink(l), fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : units[j] || ''}</span>)}
         </div>
       ))}
@@ -169,7 +171,7 @@ function Playtypes({ x }) {
       </div>
       {rows.map((r, i) => (
         <div key={r.name} title={r.title || titleOf(x, r.l)} style={TYPE_COLS}>
-          <span style={{ ...label, fontSize: 8.5, color: SOFT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</span>
+          <span style={rowName}>{r.name}</span>
           <Bar w={r.share} c={MID} mark={r.lg} delay={AT.rows + i * AT.step} />
           <span style={{ fontSize: 11, textAlign: 'right', color: DIM, fontVariantNumeric: 'tabular-nums' }}>{Math.round(r.share)}%</span>
           <span style={{ fontSize: 11, textAlign: 'right', color: r.l ? x.ink(r.l) : FAINT, fontVariantNumeric: 'tabular-nums' }}>{r.l ? x.text(r.l) : ''}</span>
@@ -179,11 +181,13 @@ function Playtypes({ x }) {
   )
 }
 
-// Its units of one size (`n`) that season, from thinking-bball's team units (lib/lineups.js
-// teamUnits): the most used and the best by net, each as a player's card shows one (faces
-// and surnames, then net, minutes and rank among the league's units of that size; none
-// under its minutes floor). Faces come from the players index.
-function Units({ team, season, n, intro }) {
+// Its unit of one size (`n`) that season, most used or best by net (`pick`), from
+// thinking-bball's team units (lib/lineups.js teamUnits): each player's face and surname,
+// then the unit's net, minutes and rank among the league's units of that size (none under
+// its minutes floor). Faces come from the players index. One height whether or not
+// there's a unit, so the card never jumps.
+const UNITS_H = 68
+function Units({ team, season, n, pick, intro }) {
   const [doc, setDoc] = useState(null)
   useEffect(() => {
     let live = true
@@ -193,40 +197,31 @@ function Units({ team, season, n, intro }) {
     }, () => live && setDoc(false))
     return () => { live = false }
   }, [season])
-  const units = doc && doc.teams[team] && doc.teams[team][n]
-  if (!units) return <span style={{ ...label, color: FAINT, lineHeight: '78px' }}>{doc === null ? '' : 'No lineups yet'}</span>
+  const u = doc && doc.teams[team] && doc.teams[team][n] && doc.teams[team][n][pick]
+  if (!u) {
+    const why = doc === null ? '' : !(doc && doc.teams[team]) ? 'No lineups yet' : pick === 'best' ? `No ${n}-man unit at ${doc.floors[n]}+ min yet` : '—'
+    return <div style={{ ...label, color: FAINT, height: UNITS_H, display: 'flex', alignItems: 'center' }}>{why}</div>
+  }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {[['mostUsed', 'Most used'], ['best', 'Best net']].map(([k, name], i) => (
-        <Unit key={`${n}${k}`} unit={units[k]} title={`${name} ${n}-man`} none={`No ${n}-man unit at ${doc.floors[n]}+ min yet`} floor={doc.floors[n]} bySlug={doc.bySlug} delay={AT.units + i * 5 * AT.step} intro={intro} />
-      ))}
-    </div>
-  )
-}
-function Unit({ unit: u, title, none, floor, bySlug, delay, intro }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-      <span style={{ ...label, fontSize: 8 }}>{title}</span>
-      {u
-        ? (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            <span style={{ display: 'flex', flex: 'none' }}>
-              {u.mates.map((m, j) => {
-                const p = m.slug && bySlug.get(m.slug)
-                return (
-                  <span key={m.slug || m.name || j} className="tc-pop" style={{ animationDelay: `${delay + j * AT.step}ms`, width: 24, height: 24, marginLeft: j ? -6 : 0, borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: `1px solid ${EDGE}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: DIM }}>
-                    {p && p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={24} height={24} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(m.name || '?')}
-                  </span>
-                )
-              })}
-            </span>
-            <span style={{ flex: 1, fontSize: 10.5, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.mates.map(m => (m.name || '?').split(' ').slice(1).join(' ') || m.name).join(' · ')}</span>
-            <span style={{ flex: 'none', fontSize: 10, color: DIM, whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: u.net === null ? FAINT : u.net >= 0 ? '#8fb0e6' : '#fa962a' }}><CountUp stat={NET_STAT} value={u.net} delay={delay} instant={!intro} /></span> net · {u.minutes.toLocaleString()} min · {u.rank ? `#${u.rank.rank}/${u.rank.of}` : `under ${floor}`}
-            </span>
-          </span>
-        )
-        : <span style={{ ...label, fontSize: 8, color: FAINT, lineHeight: '24px' }}>{none}</span>}
+    <div key={`${n}${pick}`} style={{ height: UNITS_H, display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: 8 }}>
+        {u.mates.map((m, j) => {
+          const p = m.slug && doc.bySlug.get(m.slug)
+          return (
+            <div key={m.slug || m.name || j} className="tc-pop" style={{ animationDelay: `${AT.units + j * AT.step}ms`, flex: '1 1 0', minWidth: 0, maxWidth: 110, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: `1px solid ${EDGE}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: DIM, flex: 'none' }}>
+                {p && p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={44} height={44} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(m.name || '?')}
+              </span>
+              <span title={m.name} style={{ ...rowName, maxWidth: '100%' }}>{(m.name || '?').split(' ').slice(1).join(' ') || m.name}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+        <span style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: u.net === null ? FAINT : u.net >= 0 ? '#8fb0e6' : '#fa962a', fontVariantNumeric: 'tabular-nums' }}><CountUp stat={NET_STAT} value={u.net} delay={AT.units} instant={!intro} /></span>
+        <span style={{ ...label, fontSize: 9, color: SOFT }}>Net · {u.minutes.toLocaleString()} min</span>
+        <span style={{ ...label, fontSize: 8.5 }}>{u.rank ? `#${u.rank.rank} of ${u.rank.of} ${n}-man units` : `Unranked under ${doc.floors[n]} min`}</span>
+      </div>
     </div>
   )
 }
@@ -237,12 +232,13 @@ function Pick({ options, value, set, label: name }) {
     <span role="group" aria-label={name} style={{ display: 'inline-flex', border: `1px solid ${EDGE}` }}>
       {options.map(([k, text], i) => (
         <button key={k} type="button" aria-pressed={value === k} onClick={() => set(k)}
-          style={{ height: 18, padding: '0 7px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: value === k ? '#3a3734' : 'transparent', color: value === k ? INK : DIM, fontFamily: MONO, fontSize: 8.5, fontWeight: value === k ? 700 : 500, letterSpacing: '.1em', cursor: 'pointer' }}>{text}</button>
+          style={{ height: 18, padding: '0 7px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: value === k ? '#3a3734' : 'transparent', color: value === k ? INK : DIM, fontFamily: MONO, fontSize: 8.5, fontWeight: value === k ? 700 : 500, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{text}</button>
       ))}
     </span>
   )
 }
 const SIZES = [[2, '2'], [3, '3'], [4, '4'], [5, '5']]
+const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
 
 // The intro (AT) plays as a team's card opens (TeamBoard keys the card by team); after it,
 // unit sizes and the like show at once. A card opened in place of another (a team picked
@@ -268,6 +264,7 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
   }, [onClose])
   const x = reader(doc, t)
   const [n, setN] = useState(5)
+  const [pick, setPick] = useState('mostUsed')
   return (
     <div className={`pc-card${!settling ? ' tc-still' : quick ? ' tc-quick' : ' pc-intro'}`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
       <Head t={t} x={x} season={season} intro={intro} closeButton={<button type="button" aria-label="Close the card" onClick={onClose} style={{ marginLeft: 'auto', flex: 'none', width: 22, height: 22, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>} />
@@ -284,7 +281,7 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
           <Section title="Defense by start" right="share · rating"><Rows x={x} heads={['Share', 'DRTG']} rows={startsOf('Def')} delay={AT.rows + 4 * AT.step} units={['%']} /></Section>
         </div>
       </div>
-      <Section title="Units" right={<Pick label="Unit size" options={SIZES} value={n} set={setN} />}><Units team={t.team} season={season} n={n} intro={intro} /></Section>
+      <Section title="Units" right={<span style={{ display: 'flex', gap: 8 }}><Pick label="Unit size" options={SIZES} value={n} set={setN} /><Pick label="Unit shown" options={PICKS} value={pick} set={setPick} /></span>}><Units team={t.team} season={season} n={n} pick={pick} intro={intro} /></Section>
     </div>
   )
 }

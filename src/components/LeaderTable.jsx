@@ -265,11 +265,16 @@ export function FilterMark({ size = 9 }) {
   )
 }
 
-// The box on a two-sided column's head: + opens its sides beside it, − closes them.
+// A disclosure triangle in a two-sided column's top right corner: pointing right, it opens
+// its sides beside it; pointing back, it closes them.
 function Expand({ open, stat, toggle }) {
   return (
     <button type="button" aria-expanded={open} aria-label={`${open ? 'Hide' : 'Show'} ${stat} with and without the star`} title={open ? 'Hide w/ and w/o Star' : 'Show w/ and w/o Star'} onClick={toggle}
-      style={{ position: 'absolute', top: 3, left: 7, width: 11, height: 11, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${open ? INK : FAINT}`, background: 'transparent', color: open ? INK : DIM, fontFamily: MONO, fontSize: 9, lineHeight: 1, cursor: 'pointer' }}>{open ? '−' : '+'}</button>
+      style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, background: 'transparent', color: open ? INK : DIM, cursor: 'pointer' }}>
+      <svg width="5" height="8" viewBox="0 0 5 8" aria-hidden="true" style={{ transform: open ? 'scaleX(-1)' : 'none' }}>
+        <path d="M0 0l5 4-5 4z" fill="currentColor" />
+      </svg>
+    </button>
   )
 }
 
@@ -393,7 +398,7 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
             const name = part ? SIDES[part] : l.replace(/ Δ$/, '\u00a0Δ')
             const yearsAt = j => (j >= 0 && j < shown.stats.length ? doc.stats[shown.stats[j]].years : null)
             return (
-              <th key={l} style={{ ...head, minWidth: part ? 46 : 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none', ...(turnsDef(doc, shown, i) ? { borderLeft: '1px solid #837d76' } : {}), ...sideRule(doc, shown.stats, i, '#837d76'), ...(part || opened(doc, shown.stats, i) ? { borderTop: '1px solid #837d76' } : {}) }} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
+              <th key={l} style={{ ...head, minWidth: part ? 46 : 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none', ...(turnsDef(doc, shown, i) ? { borderLeft: '1px solid #837d76' } : {}), ...sideRule(doc, shown.stats, i, '#837d76'), ...(part || opened(doc, shown.stats, i) ? { borderTop: '1px solid #837d76' } : {})}} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
                 {years && <Bracket years={years} start={yearsAt(i - 1) !== years} end={yearsAt(i + 1) !== years} />}
                 {doc.stats[l].sub && <Expand open={open.has(l)} stat={l} toggle={() => toggle(l)} />}
                 {sideStarts(doc, shown, i) && <span style={{ position: 'absolute', top: 4, left: 7, fontSize: 8, letterSpacing: '.14em', color: '#837d76', whiteSpace: 'nowrap' }}>{doc.stats[l].side === 'def' ? 'DEFENSE' : 'OFFENSE'}</span>}

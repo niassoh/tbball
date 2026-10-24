@@ -45,19 +45,22 @@ const reader = (doc, t) => {
 const titleOf = (x, l) => [x.v(l) === null ? null : `${x.place(l)} of 30`, x.stat(l).desc].filter(Boolean).join(' · ') || undefined
 
 // The head, as a player's card's: the logo in the portrait's square; the abbreviation,
-// record and win pace over the name; then ORTG, DRTG and net, each with its meter and place.
+// record, win pace and season (and the close button) over the name; then ORTG, DRTG and net, each with its meter and place.
 const HEROES = ['ORTG', 'DRTG', 'Net']
-function Head({ t, x, intro }) {
+function Head({ t, x, season, intro, closeButton }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '104px minmax(0, 1fr)', columnGap: 14, padding: '2px 14px 14px' }}>
-      <div style={{ position: 'relative', width: 104, height: 104, background: '#1f1d1c', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', columnGap: 14, padding: '12px 14px' }}>
+      <div style={{ position: 'relative', width: 72, height: 72, background: '#1f1d1c', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: '30% 0%', opacity: 0.15 }} />
-        <img className="tc-logo" src={asset(`logos/color/${t.team}.png`)} alt="" width={72} height={72} style={{ position: 'relative' }} />
+        <img className="tc-logo" src={asset(`logos/color/${t.team}.png`)} alt="" width={52} height={52} style={{ position: 'relative' }} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <span className="pc-type" style={{ ...small, lineHeight: '13px' }}>{[t.team, x.v('Wins') !== null && `${x.v('Wins')}–${x.v('Losses')}`, x.v('LA Bayes Win-pace') !== null && `${x.text('LA Bayes Win-pace')}-win pace`].filter(Boolean).join(' · ')}</span>
-        <span className="pc-name" style={{ marginTop: 3, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-        <div style={{ marginTop: 'auto', paddingTop: 12, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="pc-type" style={{ ...small, lineHeight: '13px' }}>{[t.team, x.v('Wins') !== null && `${x.v('Wins')}–${x.v('Losses')}`, x.v('LA Bayes Win-pace') !== null && `${x.text('LA Bayes Win-pace')}-win pace`, season.replace('-', '–')].filter(Boolean).join(' · ')}</span>
+          {closeButton}
+        </span>
+        <span className="pc-name" style={{ marginTop: 1, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+        <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
           {HEROES.map((l, k) => {
             const delay = AT.heroes + k * 90
             return (
@@ -264,11 +267,7 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
   const [n, setN] = useState(5)
   return (
     <div className={`pc-card${!settling ? ' tc-still' : quick ? ' tc-quick' : ' pc-intro'}`} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
-        <span style={label}>{season.replace('-', '–')} · Regular season</span>
-        <button type="button" aria-label="Close the card" onClick={onClose} style={{ marginLeft: 'auto', width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
-      </div>
-      <Head t={t} x={x} intro={intro} />
+      <Head t={t} x={x} season={season} intro={intro} closeButton={<button type="button" aria-label="Close the card" onClick={onClose} style={{ marginLeft: 'auto', flex: 'none', width: 22, height: 22, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>} />
       <Section title="Percentiles" right="among the 30"><Percentiles x={x} /></Section>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
         <Section title="Splits" right="per 100"><Rows x={x} heads={['ORTG', 'DRTG', 'Net']} rows={SPLITS} delay={AT.rows} /></Section>

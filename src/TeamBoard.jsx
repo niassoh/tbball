@@ -130,6 +130,8 @@ export default function TeamBoard() {
   const [hot, setHot] = useState(null)
   const [picked, setPicked] = useState(null)
   const close = useCallback(() => setPicked(null), [])
+  // A row opens its card, or closes it when it's the one open.
+  const toggle = useCallback(k => setPicked(p => (p === k ? null : k)), [])
   useEffect(() => {
     let live = true
     fetchTeamboard(SEASON).then(d => live && setDoc(d || false), () => live && setDoc(false))
@@ -163,7 +165,7 @@ export default function TeamBoard() {
               : <TeamScatter doc={doc} hot={hot} setHot={setHot} onPick={setPicked} />}
           </div>
           <div className="lb-table-wrap" style={{ scrollSnapType: 'none' }}>
-            <Table doc={doc} group={g} sort={sort} onSort={l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false }))} rankView={mode === 'rank'} hot={hot} setHot={setHot} picked={picked} onPick={setPicked} />
+            <Table doc={doc} group={g} sort={sort} onSort={l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false }))} rankView={mode === 'rank'} hot={hot} setHot={setHot} picked={picked} onPick={toggle} />
           </div>
         </div>
       )}

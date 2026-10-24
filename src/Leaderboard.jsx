@@ -308,6 +308,8 @@ export default function Leaderboard() {
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
   const close = useCallback(() => setPicked(null), [])
+  // A row opens its card, or closes it when it's the one open.
+  const toggle = useCallback(k => setPicked(p => (p === k ? null : k)), [])
   // Whether a card was already open, so the next one's intro plays only when the card opens.
   const wasOpen = useRef(false)
   const wrap = useRef(null)
@@ -573,7 +575,7 @@ export default function Leaderboard() {
           {loading && <Progress share={progress} />}
           <div ref={wrap} className="lb-table-wrap" onPointerMove={track} onPointerLeave={leave} onScroll={under}>
             <LeaderTable doc={doc} group={g} rows={drawn} pager={pager} rank={rank} sortLabel={sortLabel} reverse={sort.reverse} onSort={onSort} pct={mode === 'pctl'} filters={filters} setFilter={setFilter}
-              picked={picked} onPick={setPicked} scroller={wrap} />
+              picked={picked} onPick={toggle} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'No players match'}</div>}
           </div>
           <div className={`lb-side${player ? ' lb-carded' : ''}`}>

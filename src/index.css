@@ -408,8 +408,11 @@ a:hover > .lineup-tile > * { filter: none; }
 .lb-table th:hover .lb-filter, .lb-filter:focus-visible, .lb-filter[aria-expanded="true"], .lb-filter-on { opacity: 1; }
 .lb-filter:hover { color: #ece8e3 !important; }
 .lb-expand:hover { color: #ece8e3 !important; }
-/* The chart hidden (and no card open): the table takes the board's width. */
-.lb-body.lb-wide { grid-template-columns: minmax(0, 1fr); }
+/* The chart hidden (and no card open): the table takes the board's width, a rail beside it
+   to bring the chart back. */
+.lb-body.lb-wide { grid-template-columns: minmax(0, 1fr) 30px; }
+.lb-rail-show { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 0; border: 1px solid #3d3a37; background: #262422; color: #a09a93; cursor: pointer; }
+.lb-rail-show:hover { color: #ece8e3; border-color: #544f4b; }
 .lb-chip:hover { border-color: #a09a93 !important; color: #ece8e3 !important; }
 @media (max-width: 1000px), (max-height: 600px) {
   .lb { height: auto; }

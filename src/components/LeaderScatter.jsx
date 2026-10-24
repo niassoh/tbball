@@ -117,7 +117,7 @@ function Mini({ p, left, top, flip }) {
   )
 }
 
-export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, seasonLabel }) {
+export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, seasonLabel, onHide }) {
   const box = useRef(null)
   const [size, setSize] = useState({ w: 480, h: 420 })
   const [hover, setHover] = useState(null)
@@ -200,6 +200,13 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         <AxisPicker doc={doc} axis="X" value={x} set={v => setAxis('x', v)} />
         <AxisPicker doc={doc} axis="Y" value={y} set={v => setAxis('y', v)} />
         <span style={{ ...label, marginLeft: 'auto', fontSize: 8 }}>● = minutes · ┼ median</span>
+        {/* Folds the chart away to the right, so the table takes the board's width. */}
+        {onHide && (
+          <button type="button" onClick={onHide} aria-label="Hide the chart" title="Hide the chart"
+            style={{ width: 26, height: 26, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${EDGE}`, background: 'transparent', color: DIM, cursor: 'pointer' }}>
+            <svg width="12" height="10" viewBox="0 0 12 10" aria-hidden="true"><path d="M2 1l4 4-4 4M6 1l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.3" /></svg>
+          </button>
+        )}
       </div>
       {/* As tall as the panel allows, but never much taller than it's wide. */}
       <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 240, maxHeight: Math.round(w * 1.1) }}>

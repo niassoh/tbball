@@ -565,11 +565,6 @@ export default function Leaderboard() {
           </label>
           {doc ? <Teams teams={teams} team={team} set={setTeam} /> : <Skel w={TEAM_W} h={30} />}
           <ModeSwitch mode={mode} setMode={setMode} />
-          <button type="button" aria-pressed={!chart} onClick={() => setChart(c => !c)} title={chart ? 'Hide the chart for a wider table' : 'Show the chart beside the table'}
-            style={{ height: 30, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 8, border: `1px solid ${EDGE}`, background: chart ? 'transparent' : '#3a3734', color: INK, fontFamily: MONO, fontSize: 9, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
-            <svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><rect x=".5" y=".5" width="13" height="9" fill="none" stroke="currentColor" /><rect x="8" y="1" width="5" height="8" fill={chart ? 'currentColor' : 'none'} opacity=".6" /></svg>
-            {chart ? 'Hide chart' : 'Show chart'}
-          </button>
         </span>
       </div>
 
@@ -584,11 +579,18 @@ export default function Leaderboard() {
               picked={picked} onPick={toggle} scroller={wrap} />
             {!rows.length && <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'No players match'}</div>}
           </div>
+          {/* The chart folded away: a rail at the table's right edge brings it back. */}
+          {!chart && !player && (
+            <button type="button" className="lb-rail-show" onClick={() => setChart(true)} aria-label="Show the chart" title="Show the chart">
+              <svg width="12" height="10" viewBox="0 0 12 10" aria-hidden="true"><path d="M10 1L6 5l4 4M6 1L2 5l4 4" fill="none" stroke="currentColor" strokeWidth="1.3" /></svg>
+              <span style={{ ...label, writingMode: 'vertical-rl', color: 'inherit' }}>Chart</span>
+            </button>
+          )}
           {(chart || player) && <div className={`lb-side${player ? ' lb-carded' : ''}`}>
             {player
               ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} intro={!wasOpen.current} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? (player.era[0] === player.era[1] ? player.era[0].replace('-', '–') : spanYears(player.era[0], player.era[1])) : spanText} />
               : x && y
-                ? <LeaderScatter doc={chartDoc} shown={lit} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} />
+                ? <LeaderScatter doc={chartDoc} shown={lit} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} onHide={() => setChart(false)} />
                 : <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'Nothing to chart'}</div>}
           </div>}
         </div>

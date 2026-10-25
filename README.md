@@ -60,7 +60,7 @@ thinking-bball's nightly run dispatches it after committing new data (its
 
 - `src/lib/` — pure logic ported from the design (percentile colors, chart geometry, shot-zone map) and season-span averages (`span.js`: minutes-weighted, shooting % attempts-weighted; used by the stat tables' drag-to-average and career rows); unit tested.
 - `src/components/` — one component per design section.
-- Routes: `/` player search, `/player/:slug` profile, `/leaderboard` leaderboard, `/teams` team board (2026-27 from the team sheet: thinking-bball `lib/teamboard.js`, `api/teamboard/<season>.json`), `/careers` career trajectories (not linked from the site yet; reach it by URL).
+- Routes: `/` player search, `/player/:slug` profile, `/leaderboard` leaderboard, `/teams` team board (2026-27 from the team sheet: thinking-bball `lib/teamboard.js`, `api/teamboard/<season>.json`), `/careers` career trajectories (not linked from the site yet; reach it by URL). Every page's header row carries PLAYERS · LEADERBOARD · TEAMS (`components/SiteNav.jsx`, the page you're on in ink; a box that opens them on a phone, and in the profile's top bar under 1000px).
 - `/careers` builds every career from the 30 season boards (`lib/careers.js`, once a session per season type, about 2 MB gzipped). Its state lives in the URL: `?p=slug,slug,slug&x=age|season|career&y=<stat>&scale=pctl&smooth=3` (defaults left out: career year across, BPM, raw, 1Y), plus `?playoffs`.
 
 ## Differences from the design reference

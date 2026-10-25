@@ -140,7 +140,7 @@ function ProfilePage({ slug, playoffs }) {
 
   // The first load shows the player's page arriving (his portrait and name, if the link
   // that brought us handed them over); a swap between players keeps the page up instead.
-  if (state.status === 'loading') return <ProfileLoading slug={slug} preview={preview} homePath={homePath} />
+  if (state.status === 'loading') return <ProfileLoading slug={slug} preview={preview} />
   if (state.status !== 'ready') {
     const msg = { missing: 'Player not found.', error: `Couldn't load profile (${state.error}).` }[state.status]
     return (
@@ -170,7 +170,7 @@ function ProfilePage({ slug, playoffs }) {
   return (
     <div style={{ minHeight: '100vh', background: '#262422' }}>
       <main className={loaded ? 'page-main pf-in' : 'page-main'} style={{ maxWidth: 1440, margin: '0 auto', padding: '0 var(--page-pad) 64px' }}>
-        <TopBar profile={p} homePath={homePath} />
+        <TopBar profile={p} />
         <section style={{ padding: '4px 0 26px' }}>
           <Cards profile={p} loading={loading} onPickGroup={setTab} />
         </section>

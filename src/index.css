@@ -55,13 +55,18 @@ html { scroll-behavior: smooth; }
 /* A phone's bars have no width to spare (the profile's would wrap to two lines, the
    teams' too), so there it shows on the home page only. */
 @media (max-width: 560px) { .topbar .brand, .lb .brand { display: none; } }
+/* The site's pages (SiteNav): lit at once under the pointer; on a phone the row folds
+   into its box, and in the profile's top bar sooner, before the bar would wrap. */
+.site-nav a:hover { color: #ece8e3 !important; }
+.site-nav-menu { display: none; }
+@media (max-width: 560px) { .site-nav-row { display: none !important; } .site-nav-menu { display: inline-flex; } }
+@media (max-width: 1000px) { .topbar .site-nav-row { display: none !important; } .topbar .site-nav-menu { display: inline-flex; } }
 /* The profile top bar's search: a box, or on a phone a button that opens it full
-   screen (TopBar), so the bar is one line: the back link, the season switch and that
-   button (no sliding name), with less padding and a smaller back link so it fits at 360px. */
+   screen (TopBar), so the bar is one line: the pages' box, the season switch and that
+   button (no sliding name), with less padding so it fits at 360px. */
 .topbar-search-btn { display: none !important; }
 @media (max-width: 560px) {
   .topbar { flex-wrap: nowrap !important; padding-top: 10px !important; padding-bottom: 10px !important; }
-  .topbar-back { font-size: 10px !important; letter-spacing: .08em !important; }
   .topbar-name { display: none !important; }
   .topbar .player-search-wrap { display: none !important; }
   .topbar-search-btn { display: inline-flex !important; }

@@ -61,6 +61,8 @@ html { scroll-behavior: smooth; }
 .site-nav-menu { display: none; }
 @media (max-width: 560px) { .site-nav-row { display: none !important; } .site-nav-menu { display: inline-flex; } }
 @media (max-width: 1000px) { .topbar .site-nav-row { display: none !important; } .topbar .site-nav-menu { display: inline-flex; } }
+/* The Leaderboard's Δ toggle reads Δ alone on a phone, where its header has no width to spare. */
+@media (max-width: 560px) { .lb-vs { display: none; } }
 /* The profile top bar's search: a box, or on a phone a button that opens it full
    screen (TopBar), so the bar is one line: the pages' box, the season switch and that
    button (no sliding name), with less padding so it fits at 360px. */

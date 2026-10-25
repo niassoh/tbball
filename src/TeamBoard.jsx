@@ -145,7 +145,7 @@ export default function TeamBoard() {
   }
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 32px' }}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}` }}>
+      <header className="head-row" style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}` }}>
         <BrandMark />
         <SiteNav at="teams" />
         <span style={{ ...label, fontSize: 10, marginLeft: 'auto', color: INK }}>{SEASON.replace('-', '–')} <span style={{ color: DIM }}>· Regular season</span></span>

@@ -343,7 +343,7 @@ export default function Careers() {
 
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 32px' }}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap' }}>
+      <header className="head-row" style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap' }}>
         <BrandMark />
         <SiteNav at="careers" />
         <span style={{ marginLeft: 'auto' }}><SeasonToggle /></span>

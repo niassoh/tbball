@@ -56,6 +56,11 @@ html { scroll-behavior: smooth; scrollbar-gutter: stable; }
    on a phone), so the logo and the pages sit at the same spot on each. */
 :root { --head-h: 53px; }
 @media (max-width: 560px) { :root { --head-h: 51px; } }
+/* The header rows of the index, Leaderboard, Teams and Careers stay at the top while
+   scrolling, as the profile's top bar (TopBar), on the page's ground so nothing shows
+   through. The ground is carried over the pages' side padding by two shadows, which leave
+   the row's rule at the content's width and add no scroll width. */
+.head-row { position: sticky; top: 0; z-index: 6; background: #262422; box-shadow: -32px 0 #262422, 32px 0 #262422; }
 /* The site's pages (SiteNav): lit at once under the pointer. Where the profile's top bar
    would wrap the row folds into its box, on every page at the same width. */
 .site-nav a:hover { color: #ece8e3 !important; }

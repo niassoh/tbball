@@ -453,7 +453,7 @@ export default function PlayerIndex() {
 
   return (
     <main className="page-main" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 var(--page-pad) 64px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${EDGE}` }}>
+      <div className="head-row" style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${EDGE}` }}>
         <BrandMark />
         <SiteNav at="players" />
         <span aria-hidden="true" style={{ flex: 'none', width: 1, height: 20, margin: '0 8px 0 auto', background: RULE }} />

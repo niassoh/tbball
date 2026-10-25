@@ -1,18 +1,18 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
+import SiteNav from './SiteNav.jsx'
 
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 const CELLS = 12
 
-// A player's page while it loads, laid where the page will be: the top bar's back link,
+// A player's page while it loads, laid where the page will be: the top bar's pages,
 // then his card's place with his portrait and name (as the index handed them over, else
 // his name from the address) over a row of cells lighting in turn (index.css .ld-cells),
 // so the page arrives in place.
-export default function ProfileLoading({ slug, preview, homePath }) {
+export default function ProfileLoading({ slug, preview }) {
   const [failed, setFailed] = useState(false)
   const name = (preview && preview.name) || slug.split('-').join(' ')
   const [first, ...rest] = name.split(' ')
@@ -20,7 +20,7 @@ export default function ProfileLoading({ slug, preview, homePath }) {
   return (
     <main className="page-main" aria-busy="true" style={{ maxWidth: 1440, margin: '0 auto', padding: '0 var(--page-pad) 64px', fontFamily: MONO }}>
       <div style={{ display: 'flex', alignItems: 'center', minHeight: 50 }}>
-        <Link to={homePath} style={{ fontSize: 10, letterSpacing: '.08em', color: '#b3ada6' }}>← ALL PLAYERS</Link>
+        <SiteNav at="players" />
       </div>
       <div style={{ marginTop: 4, display: 'flex', alignItems: 'flex-end', gap: 22, padding: 20, border: '1px solid #3d3a37', background: '#2a2826' }}>
         <span className="ld-face" style={{ width: 150, height: 150, flex: 'none', overflow: 'hidden', background: PORTRAIT_BG }}>

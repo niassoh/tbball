@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { fetchTeamboard } from './api.js'
 import { MONO, fmt, heat, ord } from './lib/format.js'
 import { ranked } from './lib/leaderboard.js'
@@ -8,6 +7,7 @@ import { placeOf, tiedOf } from './lib/teamboard.js'
 import ModeSwitch from './components/ModeSwitch.jsx'
 import TeamScatter from './components/TeamScatter.jsx'
 import BrandMark from './components/BrandMark.jsx'
+import SiteNav from './components/SiteNav.jsx'
 import TeamCard from './components/TeamCard.jsx'
 
 // The Team board: the 30 teams' 2026-27 from the team sheet (thinking-bball
@@ -147,9 +147,7 @@ export default function TeamBoard() {
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}` }}>
         <BrandMark />
-        <Link to="/" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>← All players</Link>
-        <span style={{ ...label, fontSize: 10, color: INK, fontWeight: 700, border: `1px solid ${EDGE}`, padding: '5px 9px' }}>Teams</span>
-        <Link to="/leaderboard" style={{ ...label, fontSize: 10, color: '#b3ada6' }}>Leaderboard →</Link>
+        <SiteNav at="teams" />
         <span style={{ ...label, fontSize: 10, marginLeft: 'auto', color: INK }}>{SEASON.replace('-', '–')} <span style={{ color: DIM }}>· Regular season</span></span>
       </header>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>

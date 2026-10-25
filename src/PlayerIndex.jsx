@@ -2,7 +2,7 @@ import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState 
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardSeasons, fetchPlayers, fetchProfile, headshotUrl, loadTeams, prefetchProfile } from './api.js'
 import { MONO } from './lib/format.js'
-import { jerseyIn } from './lib/jersey.js'
+import { jerseyIn, reducedMotion } from './lib/jersey.js'
 import { TEAM_COLORS, teamColor } from './lib/teams.js'
 import { asset } from './lib/static.js'
 import TeamInitials from './components/TeamInitials.jsx'
@@ -233,7 +233,7 @@ function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of }) {
   if (!set) return tile
   // The key sits over the tile's head (a button can't go inside its link); pressed, it's lit.
   return (
-    <span style={{ position: 'relative', zIndex: open ? 1 : undefined, display: 'flex', flexDirection: 'column', minWidth: 0, opacity: dim ? 0.35 : undefined }}>
+    <span className="idx-set" style={{ position: 'relative', zIndex: open ? 1 : undefined, display: 'flex', flexDirection: 'column', minWidth: 0, opacity: dim ? 0.35 : undefined }}>
       {tile}
       <button type="button" className="idx-tile-head" aria-expanded={open} aria-label={`${p.name}: ${set.length} seasons`} onClick={onSet}
         style={{ position: 'absolute', top: 1, right: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 9px', background: open ? INK : 'transparent', border: 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, color: open ? '#262422' : DIM }}>
@@ -260,10 +260,15 @@ function Stack({ ink, back }) {
 // grid's columns), centred under the tile and kept inside the grid. Its ink outline meets
 // the open tile's, its top rule stopping at the tile's edges, so the set reads as coming
 // out of it; the tile (the element before it) and the grid's columns are measured as the
-// grid reflows.
-function SetRow({ set, of, playerPath }) {
+// grid reflows. Its seasons come out from under the tile, each from the tile's centre
+// (`from`, measured once they're laid out, before the first paint), staggered in season
+// order with the last under 120ms in, and clipped at the box's top so none crosses the
+// tiles beside it; `out`, it fades and then goes (`onGone`).
+function SetRow({ set, of, playerPath, out, onGone }) {
   const ref = useRef(null)
+  const box = useRef(null)
   const [at, setAt] = useState(null)
+  const [from, setFrom] = useState(null)
   useLayoutEffect(() => {
     const el = ref.current
     const fit = () => {
@@ -277,6 +282,15 @@ function SetRow({ set, of, playerPath }) {
     watch.observe(el)
     return () => watch.disconnect()
   }, [])
+  useLayoutEffect(() => {
+    if (!at || from) return
+    const t = ref.current.previousElementSibling.getBoundingClientRect()
+    setFrom([...box.current.children].slice(0, set.length).map(el => {
+      const r = el.getBoundingClientRect()
+      return [(t.left + t.right - r.left - r.right) / 2, (t.top + t.bottom - r.top - r.bottom) / 2]
+    }))
+  }, [at, from, set.length])
+  const step = Math.min(25, 120 / (set.length - 1))
   const per = at && Math.min(set.length, at.cols)
   const width = at && per * at.col
   const x = at && Math.max(0, Math.min(at.width - width, (at.left + at.right) / 2 - width / 2))
@@ -284,9 +298,16 @@ function SetRow({ set, of, playerPath }) {
   return (
     <div ref={ref} style={{ gridColumn: '1 / -1', padding: '0 0 14px' }}>
       {at && (
-        <div style={{ position: 'relative', width, marginLeft: x, display: 'grid', gridTemplateColumns: `repeat(${per}, ${at.col}px)`, padding: '14px 0' }}>
-          {set.map(s => <Tile key={s.bestSeason.season} player={s} to={playerPath(s.slug)} order={0} of={of} />)}
-          <span aria-hidden="true" style={{ position: 'absolute', inset: '0 -1px -1px 0', zIndex: 2, borderLeft: `1px solid ${INK}`, borderRight: `1px solid ${INK}`, borderBottom: `1px solid ${INK}`, pointerEvents: 'none' }}>
+        <div ref={box} className={out ? 'idx-set-out' : undefined} onAnimationEnd={e => e.animationName === 'idx-set-out' && onGone()}
+          style={{ position: 'relative', width, marginLeft: x, display: 'grid', gridTemplateColumns: `repeat(${per}, ${at.col}px)`, padding: '14px 0', clipPath: 'inset(0 -2px -2px -2px)' }}>
+          {set.map((s, k) => (
+            <span key={s.bestSeason.season} className={from ? 'idx-set-in' : undefined}
+              style={{ display: 'flex', flexDirection: 'column', minWidth: 0, ...(from && { '--dx': `${from[k][0]}px`, '--dy': `${from[k][1]}px`, animationDelay: `${k * step}ms` }) }}>
+              <Tile player={s} to={playerPath(s.slug)} order={0} of={of} />
+            </span>
+          ))}
+          <span aria-hidden="true" style={{ position: 'absolute', inset: '0 -1px -1px 0', zIndex: 2, pointerEvents: 'none' }}>
+            <span className="idx-frame-in" style={{ position: 'absolute', inset: 0, borderLeft: `1px solid ${INK}`, borderRight: `1px solid ${INK}`, borderBottom: `1px solid ${INK}` }} />
             <span style={{ ...line, left: -1, width: Math.max(0, at.left - x) }} />
             <span style={{ ...line, left: at.right - x - 1, right: -1 }} />
           </span>
@@ -353,11 +374,21 @@ export default function PlayerIndex() {
   // ALL-TIME without a team: each player as his best season, in its jersey where his own
   // jerseys tell which (jerseyIn), else his team's latest he has.
   const peaks = useMemo(() => (players || []).map(p => (p.bestSeason ? { ...p, pinned: true, jersey: jerseyIn(p.layers, p.bestSeason.team) } : p)), [players])
-  // The collection open, as team|slug.
+  // The collection open, as team|slug, and the one closing (fading out); another opened
+  // closes the last at once.
   const [open, setOpen] = useState(null)
+  const [closing, setClosing] = useState(null)
+  const flip = at => {
+    setClosing(open === at && !reducedMotion() ? at : null)
+    setOpen(open === at ? null : at)
+  }
   useEffect(() => {
     if (!open) return
-    const close = e => { if (e.key === 'Escape') setOpen(null) }
+    const close = e => {
+      if (e.key !== 'Escape') return
+      setClosing(reducedMotion() ? null : open)
+      setOpen(null)
+    }
     window.addEventListener('keydown', close)
     return () => window.removeEventListener('keydown', close)
   }, [open])
@@ -457,10 +488,10 @@ export default function PlayerIndex() {
           <div className="idx-grid" style={grid}>
             {(all ? portraits : portraits.slice(0, EAGER)).map((p, i) => {
               const at = `${pick}|${p.slug}`
-              const shut = open && open.startsWith(`${pick}|`) && open !== at
+              const back = open && open.startsWith(`${pick}|`) && open !== at
               return [
-                <Tile key={key(p)} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} set={p.set} open={open === at} dim={shut} onSet={() => setOpen(open === at ? null : at)} />,
-                open === at && p.set && <SetRow key={`${key(p)}+`} set={p.set} of={pick} playerPath={playerPath} />
+                <Tile key={key(p)} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} set={p.set} open={open === at} dim={back} onSet={() => flip(at)} />,
+                (open === at || closing === at) && p.set && <SetRow key={`${key(p)}+`} set={p.set} of={pick} playerPath={playerPath} out={closing === at} onGone={() => setClosing(null)} />
               ]
             })}
           </div>

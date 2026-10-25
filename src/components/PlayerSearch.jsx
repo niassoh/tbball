@@ -56,10 +56,8 @@ function Name({ text, query, whole = false }) {
 // always shown under it, `onPick` called when one is picked. `onChoose(slug)`: players only,
 // handed to it rather than opened (Careers' channels), the field reading `placeholder` and
 // focusable from outside through `inputRef`; `autoFocus` focuses it as it appears and
-// `onDone` hears when it's left (a pick, Escape, a click elsewhere). `bare`: the index's
-// search instead of the box (TopBar): a hairline, the magnifier and big borderless type,
-// its results hanging from the foot of the header row it's centred in.
-export default function PlayerSearch({ profile, bare = false, sheet = false, onPick, onChoose, placeholder = 'SEARCH PLAYERS/TEAMS', disabled = false, inputRef, autoFocus = false, onDone }) {
+// `onDone` hears when it's left (a pick, Escape, a click elsewhere).
+export default function PlayerSearch({ profile, sheet = false, onPick, onChoose, placeholder = 'SEARCH PLAYERS/TEAMS', disabled = false, inputRef, autoFocus = false, onDone }) {
   const [players, setPlayers] = useState(null)
   const [teams, setTeams] = useState(null)
   const [query, setQuery] = useState('')
@@ -113,50 +111,33 @@ export default function PlayerSearch({ profile, bare = false, sheet = false, onP
     else if (e.key === 'Escape') { setOpen(false); input.current?.blur() }
   }
 
-  const field = (
-    <input
-      ref={input}
-      value={query}
-      onChange={e => { setQuery(e.target.value); setActive(0); setOpen(true) }}
-      onFocus={() => { load(); setOpen(true) }}
-      onBlur={() => setTimeout(() => { setOpen(false); onDone?.() }, 120)}
-      onKeyDown={onKeyDown}
-      placeholder={placeholder}
-      disabled={disabled}
-      aria-label={onChoose ? 'Add a player' : 'Search players or teams'}
-      className={bare ? 'idx-input' : 'player-search'}
-      style={bare
-        ? { width: 'clamp(110px, 22vw, 300px)', minWidth: 0, padding: 0, background: 'transparent', border: 'none', color: INK, fontFamily: MONO, fontSize: 'clamp(16px, 2vw, 22px)', letterSpacing: '.02em', outline: 'none', caretColor: 'var(--accent)' }
-        : { flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#ece8e3', fontFamily: MONO, fontSize: 11, letterSpacing: '.08em', padding: '8px 8px' }}
-    />
-  )
-
   return (
-    <div className={sheet ? undefined : 'player-search-wrap'} style={sheet ? { flex: 1, minWidth: 0 } : bare ? { position: 'relative', display: 'flex', alignItems: 'center', gap: 14, flex: 'none', minWidth: 0 } : { position: 'relative', flex: '1 1 220px', maxWidth: 300, minWidth: 0 }}>
-      {bare ? (
-        <>
-          <span aria-hidden="true" style={{ flex: 'none', width: 1, height: 20, margin: '0 8px', background: '#3d3a37' }} />
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ flex: 'none', color: '#a09a93' }}>
-            <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
-          {field}
-        </>
-      ) : (
-        <div className="search-box" style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${showing ? INK : '#a09a93'}`, background: '#2c2a28', paddingLeft: 9 }}>
-          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={{ flex: 'none' }}>
-            <circle cx="5" cy="5" r="3.75" fill="none" stroke="#b8b2ab" strokeWidth="1.5" />
-            <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="#b8b2ab" strokeWidth="1.5" strokeLinecap="square" />
-          </svg>
-          {field}
-          {!sheet && <span title="Press / to search" style={{ fontFamily: MONO, fontSize: 10, color: '#b8b2ab', border: '1px solid #837d76', padding: '0 5px', marginRight: 7 }}>/</span>}
-        </div>
-      )}
+    <div className={sheet ? undefined : 'player-search-wrap'} style={sheet ? { flex: 1, minWidth: 0 } : { position: 'relative', flex: '1 1 220px', maxWidth: 300, minWidth: 0 }}>
+      <div className="search-box" style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${showing ? INK : '#a09a93'}`, background: '#2c2a28', paddingLeft: 9 }}>
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={{ flex: 'none' }}>
+          <circle cx="5" cy="5" r="3.75" fill="none" stroke="#b8b2ab" strokeWidth="1.5" />
+          <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="#b8b2ab" strokeWidth="1.5" strokeLinecap="square" />
+        </svg>
+        <input
+          ref={input}
+          value={query}
+          onChange={e => { setQuery(e.target.value); setActive(0); setOpen(true) }}
+          onFocus={() => { load(); setOpen(true) }}
+          onBlur={() => setTimeout(() => { setOpen(false); onDone?.() }, 120)}
+          onKeyDown={onKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          aria-label={onChoose ? 'Add a player' : 'Search players or teams'}
+          className="player-search"
+          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#ece8e3', fontFamily: MONO, fontSize: 11, letterSpacing: '.08em', padding: '8px 8px' }}
+        />
+        {!sheet && <span title="Press / to search" style={{ fontFamily: MONO, fontSize: 10, color: '#b8b2ab', border: '1px solid #837d76', padding: '0 5px', marginRight: 7 }}>/</span>}
+      </div>
       {showing && (
         // Hangs off the field as one white-framed block: names with the first name lighter
         // and the rest bold, the typed letters underlined in blue. Teams come first, ruled
         // off from the players.
-        <div role="listbox" style={sheet ? { marginTop: 10, background: PAPER, border: `1px solid ${INK}`, padding: '4px 0' } : { position: 'absolute', right: 0, top: bare ? 'calc(50% + var(--head-h) / 2 - .5px)' : '100%', marginTop: bare ? 0 : -1, width: '100%', minWidth: 260, zIndex: 20, background: PAPER, border: `1px solid ${INK}`, boxShadow: '0 14px 32px rgba(0,0,0,.55)', padding: '4px 0' }}>
+        <div role="listbox" style={sheet ? { marginTop: 10, background: PAPER, border: `1px solid ${INK}`, padding: '4px 0' } : { position: 'absolute', right: 0, top: '100%', marginTop: -1, width: '100%', minWidth: 260, zIndex: 20, background: PAPER, border: `1px solid ${INK}`, boxShadow: '0 14px 32px rgba(0,0,0,.55)', padding: '4px 0' }}>
           {results.map((r, i) => {
             const on = i === active
             const lastTeam = r.team && !(results[i + 1] && results[i + 1].team) && i < results.length - 1

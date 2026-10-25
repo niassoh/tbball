@@ -71,11 +71,13 @@ describe('lonestar', () => {
     }
     expect(tourExample(s, 'Jokić', 'Murray')).toEqual({
       key: 'ctov',
-      text: "Jokić's **bad:cTOV% +2.0** without Murray: #690 of 723."
+      title: 'cTOV%',
+      text: "Jokić's **bad:cTOV% +2.0** without Murray, #690 of 723."
     })
     expect(tourExample({ ...s, ranks: null }, 'Jokić', 'Murray')).toEqual({
       key: 'load',
-      text: "Jokić's **good:Load +5.7** without Murray: too few minutes to rank."
+      title: 'Load',
+      text: "Jokić's **good:Load +5.7** without Murray, too few minutes to rank."
     })
   })
 })

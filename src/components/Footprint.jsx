@@ -600,15 +600,17 @@ function Views({ p, doc, faces, touring, endTour }) {
     const last = lastName(p.name)
     const ex = tourExample(fp.effects, last)
     return [
-      { title: 'On minus off', target: '#sec-footprint button[aria-label^="Seasons"]', action: () => setLone(false),
-        text: `**On minus off**: his team with ${last} playing vs sitting.` },
-      { title: 'A tile a stat', target: '#sec-footprint .fp-row',
-        text: "One tile per stat. **MATES**: his teammates' own shooting." },
-      ...(ex ? [{ title: 'Reading a tile', target: `#sec-footprint [data-stat="${ex.key}"]`, text: ex.text }] : []),
-      { title: 'Lit or dim', target: '#sec-footprint [data-tour="fp-legend"]',
-        text: "**Lit**: clears the noise, beats most players. Dim: doesn't." },
+      { title: 'Team on / off', target: '#sec-footprint .fp-rows', action: () => setLone(false),
+        text: `Team stats with ${last} **on the floor minus off**.` },
+      { title: 'Tiles', target: '#sec-footprint .fp-row',
+        text: "One tile per stat. **MATES** is his teammates' own shooting." },
+      ...(ex ? [{ title: ex.title, target: `#sec-footprint [data-stat="${ex.key}"]`, text: ex.text }] : []),
+      { title: 'Lit / dim', target: '#sec-footprint [data-tour="fp-legend"]',
+        text: 'A **lit** tile clears the noise and beats most players.' },
+      { title: 'Seasons', target: '#sec-footprint button[aria-label^="Seasons"]',
+        text: '**Seasons** sets which years the tiles cover.' },
       ...(options.off.length || options.def.length ? [{ title: 'Remove best', target: '#sec-footprint [data-tour="fp-lone"]',
-        text: "**REMOVE BEST**: only the minutes his best teammates sit." }] : [])
+        text: '**REMOVE BEST** keeps only the minutes his best teammates sit.' }] : [])
     ]
   }
   // A row: TEAM and its word on the left, its tiles side by side, every row on the widest
@@ -666,7 +668,7 @@ function Views({ p, doc, faces, touring, endTour }) {
         </div>
       </div>
       {/* TEAM MATES, then TEAM OFFENSE, then TEAM DEFENSE, a row each. */}
-      <div style={{ borderBottom: `1px solid ${RULE}` }}>{sections.map(row)}</div>
+      <div className="fp-rows" style={{ borderBottom: `1px solid ${RULE}` }}>{sections.map(row)}</div>
       <div data-tour="fp-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', paddingTop: 4, fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.good }} />LIFT</span>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.bad }} />COST</span>

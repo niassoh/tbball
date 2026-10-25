@@ -508,22 +508,22 @@ function Frame({ p, ls, touring, endTour }) {
   // The tour, on the stretch on show, its example the stat his change stands out most in.
   const tourSteps = () => {
     const last = lastName(p.name)
-    if (!s) return [{ title: 'Who sits', target: ['#sec-lonestar .ls-without > :first-child', '#sec-lonestar .ls-without > :last-child'], text: `No star sat enough here. **Add seasons** to the span.` }]
+    if (!s) return [{ title: 'Without', target: ['#sec-lonestar .ls-without > :first-child', '#sec-lonestar .ls-without > :last-child'], text: 'No star sat enough to compare. **Add seasons** to the span.' }]
     const who = s.all ? (s.kind === 'two' ? 'his top two' : 'his top star') : starsText(s.stars)
     const sit = (s.all ? s.kind === 'two' : s.stars.length > 1) ? 'sit' : 'sits'
     const net = toneOf(NET, s.change.net)
     const ex = tourExample(s, last, who)
     return [
-      { title: 'Who sits', target: ['#sec-lonestar .ls-without > :first-child', '#sec-lonestar .ls-without > :last-child'], action: () => setMode('raw'),
-        text: `${last} when **${who} ${sit}**.` },
-      { title: 'Load against Net', target: '#sec-lonestar .ls-plot',
-        text: `Load across, Net up. Without ${who}: Load ${change(LOAD, s.change.load)}, **${net === 'neutral' ? '' : `${net}:`}Net ${change(NET, s.change.net)}**.` },
-      { title: 'A row a stat', target: `#sec-lonestar .ls-row[data-stat="${ex.key}"]`,
+      { title: 'Without', target: ['#sec-lonestar .ls-without > :first-child', '#sec-lonestar .ls-without > :last-child'], action: () => setMode('raw'),
+        text: `${last}'s stats when **${who} ${sit}**.` },
+      { title: 'Load / Net', target: '#sec-lonestar .ls-plot',
+        text: `Load is across, Net is up. Without ${who}, Load ${change(LOAD, s.change.load)} and **${net === 'neutral' ? '' : `${net}:`}Net ${change(NET, s.change.net)}**.` },
+      { title: ex.title, target: `#sec-lonestar .ls-row[data-stat="${ex.key}"]`,
         text: ex.text },
-      { title: 'Better or worse', target: '#sec-lonestar [data-tour="ls-legend"]',
-        text: '**good:Blue**: better or more without them. **bad:Orange**: worse or less.' },
-      { title: 'Raw or percentile', target: '#sec-lonestar [aria-label="Show values as"]',
-        text: '**PCTL**: each row as a league percentile.' }
+      { title: 'Colors', target: '#sec-lonestar [data-tour="ls-legend"]',
+        text: '**good:Blue** is better or more without them, **bad:orange** worse or less.' },
+      { title: 'Raw / pctl', target: '#sec-lonestar [aria-label="Show values as"]',
+        text: '**PCTL** shows each row as a league percentile.' }
     ]
   }
   return (

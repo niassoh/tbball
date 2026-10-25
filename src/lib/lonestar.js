@@ -100,5 +100,5 @@ export const tourExample = (s, last, who) => {
   // The caption's main point in **…**, its colour first where it has one (Tour.jsx).
   const tone = toneOf(stat, s.change[k])
   const head = `${last}'s **${tone === 'neutral' ? '' : `${tone}:`}${stat.label} ${change(stat, s.change[k])}** without ${who}`
-  return { key: k, text: r ? `${head}: #${r.rank} of ${r.of}.` : `${head}: too few minutes to rank.` }
+  return { key: k, title: stat.label, text: r ? `${head}, #${r.rank} of ${r.of}.` : `${head}, too few minutes to rank.` }
 }

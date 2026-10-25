@@ -22,7 +22,7 @@ export default function ProfileLoading({ slug, preview }) {
     <main className="page-main" aria-busy="true" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 var(--page-pad) 64px', fontFamily: MONO }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)' }}>
         <BrandMark />
-        <SiteNav at="players" up />
+        <SiteNav at="players" />
       </div>
       <div style={{ marginTop: 4, display: 'flex', alignItems: 'flex-end', gap: 22, padding: 20, border: '1px solid #3d3a37', background: '#2a2826' }}>
         <span className="ld-face" style={{ width: 150, height: 150, flex: 'none', overflow: 'hidden', background: PORTRAIT_BG }}>

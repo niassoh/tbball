@@ -381,7 +381,7 @@ function CareerShift({ profile: p, season: k, active = false }) {
   }, [p.slug])
   const dots = useMemo(() => (packed ? careerDots(packed, s.season) : []), [packed, s.season])
   const labels = { base: 'CAREER', window: yy(s.season), short: 'CAREER', windowFirst: true }
-  const reason = s.empty ? 'NO GAMES THIS SEASON' : 'NO OTHER SEASONS TO COMPARE'
+  const reason = s.empty ? emptyNote(s, 'regular') : 'NO OTHER SEASONS TO COMPARE'
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ padding: '12px 0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px 8px', borderBottom: '1px solid #544f4b', margin: '0 14px' }}>

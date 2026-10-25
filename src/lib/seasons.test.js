@@ -19,6 +19,18 @@ describe('seasons', () => {
     expect(emptyNote({ card: null }, 'regular')).toBe('UNDER THE 800-MIN FLOOR')
   })
 
+  test('an empty season never puts minutes at or over the floor under it', () => {
+    // Kobe's 1996-97: 1,101 minutes, and no row for him on the historical tab.
+    expect(emptyNote({ unsourced: true, card: { lineups: { on: { minutes: 1101 } } } }, 'regular')).toBe('NOT IN THE SOURCE DATA')
+    // Tim Thomas's 1998-99: 624 of his 812 minutes in New Jersey; still the tab's gap.
+    expect(emptyNote({ unsourced: true, card: { lineups: { on: { minutes: 624 } } } }, 'regular')).toBe('NOT IN THE SOURCE DATA')
+    // Aldrich's 2015-16: 799.6 minutes on the floor, rounded to 800; the sheet's floor kept him off.
+    expect(emptyNote({ card: { lineups: { on: { minutes: 800 } } } }, 'regular')).toBe('UNDER THE 800-MIN FLOOR')
+    expect(emptyNote({ card: { lineups: { on: { minutes: 792 } } } }, 'regular')).toBe('792 MIN · UNDER THE 800-MIN FLOOR')
+    // Over the floor without the flag (an export from before it): not under it either.
+    expect(emptyNote({ card: { lineups: { on: { minutes: 1101 } } } }, 'regular')).toBe('NOT IN THE SOURCE DATA')
+  })
+
   test('short seasons, every season between two, a span and its view', () => {
     expect(shortSeason('2013-14')).toBe('’14')
     expect(seasonsBetween('2018-19', '2021-22')).toEqual(['2018-19', '2019-20', '2020-21', '2021-22'])

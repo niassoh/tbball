@@ -601,14 +601,14 @@ function Views({ p, doc, faces, touring, endTour }) {
     const ex = tourExample(fp.effects, last)
     return [
       { title: 'On minus off', target: '#sec-footprint button[aria-label^="Seasons"]', action: () => setLone(false),
-        text: `Footprint is how ${last}'s team plays with him on the floor against with him off it, over every lineup it used in ${spanText(span.from, span.to)}. Pick a season here, or drag across years for a span.` },
+        text: `**On minus off**: his team with ${last} playing vs sitting.` },
       { title: 'A tile a stat', target: '#sec-footprint .fp-row',
-        text: `Each tile is one stat, his team's with him on minus with him off. MATES counts his teammates' shots alone, his own left out; OFFENSE and DEFENSE are the whole team's.` },
+        text: "One tile per stat. **MATES**: his teammates' own shooting." },
       ...(ex ? [{ title: 'Reading a tile', target: `#sec-footprint [data-stat="${ex.key}"]`, text: ex.text }] : []),
       { title: 'Lit or dim', target: '#sec-footprint [data-tour="fp-legend"]',
-        text: "A tile lights when its swing clears its noise and beats three quarters of players' swings in that stat; the bar under it is the swing's size among theirs. Hover or tap a tile for its numbers on and off." },
+        text: "**Lit**: clears the noise, beats most players. Dim: doesn't." },
       ...(options.off.length || options.def.length ? [{ title: 'Remove best', target: '#sec-footprint [data-tour="fp-lone"]',
-        text: `REMOVE BEST redoes the tiles over only the minutes ${last}'s best teammates sit, to check a swing is his own. A hatched top edge marks a tile whose swing was mostly theirs.` }] : [])
+        text: "**REMOVE BEST**: only the minutes his best teammates sit." }] : [])
     ]
   }
   // A row: TEAM and its word on the left, its tiles side by side, every row on the widest

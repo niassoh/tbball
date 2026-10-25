@@ -93,20 +93,19 @@ export const tourExample = (effects, last) => {
     || top(lit, x => (x.rank ? x.rank[0] : Infinity), x => Math.abs(x.z || 0))
     || top(shown, () => 0, size)
   if (!e) return null
-  // The stat's own name where the effect's doesn't already say it (Corner share of 3PA).
-  const name = e.label.toLowerCase().startsWith(e.effect.toLowerCase()) ? e.effect : `${e.effect} (${e.label})`
-  const reads = `${name}: ${valueText(e, e.on)} with ${last} on, ${valueText(e, e.off)} with him off, so the tile reads ${swingText(e.diff)} ${unitOf(e.key, e.unit)}.`
+  // The caption's main point in **…**, its colour first where it has one (Tour.jsx).
   const at = topPlaceOf(e)
-  const pctl = size(e)
   const tone = toneOf(e)
-  const why = e.status !== 'notable'
-    ? 'It stays dim: within its noise, or a swing many players have.'
+  const shines = e.status === 'notable'
+  const head = `**${shines && tone !== 'neutral' ? `${tone}:` : ''}${e.effect} ${swingText(e.diff)}** with ${last} on`
+  const tail = !shines
+    ? 'within the noise.'
     : tone === 'neutral'
-      ? 'Grey-white: a change of style, neither better nor worse.'
+      ? 'style, not better or worse.'
       : tone === 'bad'
-        ? `Orange: a cost to his team${at && at.worst ? `, and the red #${at.place} badge makes it the league's ${at.place === 1 ? 'worst' : worstText(at.place).toLowerCase()} of ${e.rank[1]} players` : ''}.`
+        ? (at && at.worst ? `league's **bad:${at.place === 1 ? 'worst' : worstText(at.place).toLowerCase()}**.` : 'a cost.')
         : at
-          ? `Blue: a lift for his team, and the #${at.place} badge makes it the league's ${at.place === 1 ? 'biggest' : `${ordinal(at.place).toLowerCase()} biggest`} of ${e.rank[1]} players.`
-          : `Blue: a lift for his team, in the ${ordinal(pctl).toLowerCase()} percentile of players' swings.`
-  return { key: e.key, text: `${reads} ${why}` }
+          ? `league **good:#${at.place}**.`
+          : `${ordinal(size(e)).toLowerCase()} percentile.`
+  return { key: e.key, text: `${head}: ${tail}` }
 }

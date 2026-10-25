@@ -97,11 +97,8 @@ export const tourExample = (s, last, who) => {
   const stat = ranked.reduce((a, x) => (edge(x) < edge(a) ? x : a), ranked[0]) || STATS[0]
   const k = stat.key
   const r = s.ranks && s.ranks[k]
-  const moves = `${value(stat, s.on[k])} with ${who}, ${value(stat, s.off[k])} without (${change(stat, s.change[k])})`
-  return {
-    key: k,
-    text: r
-      ? `${last}'s ${stat.label} stands out most: ${moves}, #${r.rank} of ${r.of} players' changes (#1 the biggest increase).`
-      : `${last}'s ${stat.label}: ${moves}. Too few minutes here to rank it against other players.`
-  }
+  // The caption's main point in **…**, its colour first where it has one (Tour.jsx).
+  const tone = toneOf(stat, s.change[k])
+  const head = `${last}'s **${tone === 'neutral' ? '' : `${tone}:`}${stat.label} ${change(stat, s.change[k])}** without ${who}`
+  return { key: k, text: r ? `${head}: #${r.rank} of ${r.of}.` : `${head}: too few minutes to rank.` }
 }

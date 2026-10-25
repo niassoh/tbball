@@ -508,20 +508,22 @@ function Frame({ p, ls, touring, endTour }) {
   // The tour, on the stretch on show, its example the stat his change stands out most in.
   const tourSteps = () => {
     const last = lastName(p.name)
-    if (!s) return [{ title: 'Who sits', target: '#sec-lonestar .ls-bar', text: `Lonestar is how ${last} plays when his team's stars sit. No star sat enough in these seasons to compare: add seasons to the span.` }]
+    if (!s) return [{ title: 'Who sits', target: ['#sec-lonestar .ls-without > :first-child', '#sec-lonestar .ls-without > :last-child'], text: `No star sat enough here. **Add seasons** to the span.` }]
     const who = s.all ? (s.kind === 'two' ? 'his top two' : 'his top star') : starsText(s.stars)
+    const sit = (s.all ? s.kind === 'two' : s.stars.length > 1) ? 'sit' : 'sits'
+    const net = toneOf(NET, s.change.net)
     const ex = tourExample(s, last, who)
     return [
-      { title: 'Who sits', target: '#sec-lonestar .ls-bar', action: () => setMode('raw'),
-        text: `Lonestar is how ${last} plays when his team's stars sit. Pick the seasons on the left; WITHOUT picks who sits, ${s.all ? `here each season's ${s.kind === 'two' ? 'top two' : 'top star'}` : `here ${who}`}.` },
+      { title: 'Who sits', target: ['#sec-lonestar .ls-without > :first-child', '#sec-lonestar .ls-without > :last-child'], action: () => setMode('raw'),
+        text: `${last} when **${who} ${sit}**.` },
       { title: 'Load against Net', target: '#sec-lonestar .ls-plot',
-        text: `Across is Load, the possessions he uses or creates per 100; up is Net, his team's margin per 100 while he plays. The square is ${last} with ${who} (${value(LOAD, s.on.load)} Load, ${change(NET, s.on.net)} Net), the arrow's tip without (${value(LOAD, s.off.load)}, ${change(NET, s.off.net)}).` },
+        text: `Load across, Net up. Without ${who}: Load ${change(LOAD, s.change.load)}, **${net === 'neutral' ? '' : `${net}:`}Net ${change(NET, s.change.net)}**.` },
       { title: 'A row a stat', target: `#sec-lonestar .ls-row[data-stat="${ex.key}"]`,
-        text: `Each row is one stat across the league's range, square to arrow as in the plot. ${ex.text}` },
+        text: ex.text },
       { title: 'Better or worse', target: '#sec-lonestar [data-tour="ls-legend"]',
-        text: 'A blue arrow is better without them and an orange one worse; a volume stat (Load, Pts / 75, Box Creation, 3PA / 75, FTA / 75) is blue for more.' },
+        text: '**good:Blue**: better or more without them. **bad:Orange**: worse or less.' },
       { title: 'Raw or percentile', target: '#sec-lonestar [aria-label="Show values as"]',
-        text: 'PCTL reads every row as a league percentile instead of its value.' }
+        text: '**PCTL**: each row as a league percentile.' }
     ]
   }
   return (

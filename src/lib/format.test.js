@@ -75,32 +75,38 @@ describe('chart', () => {
 
 describe('shot map', () => {
   const zones = Object.fromEntries(BANDS.map(({ id }) => [id, { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 5 } }]))
-  const league = Object.fromEntries(BANDS.map(({ id }) => [id, { fga: 100, fgm: 40 }]))
-  const band = (shift, mode, id) => shotModel({ zones: shift, league }, mode).find(z => z.id === id)
+  const poss = { rest: 100, recent: 100 }
+  const band = (shift, mode, id, p = poss) => shotModel({ zones: shift, poss: p }, mode).find(z => z.id === id)
   test('the map shows four distance bands', () => {
-    expect(shotModel({ zones, league }, 'freq').map(z => z.name)).toEqual(['RIM', 'SHORT MID', 'LONG MID', '3PT'])
+    expect(shotModel({ zones, poss }, 'freq').map(z => z.name)).toEqual(['RIM', 'SHORT MID', 'LONG MID', '3PT'])
   })
   test('no change is neutral in every mode', () => {
-    for (const mode of ['value', 'freq', 'fg']) expect(shotModel({ zones, league }, mode).every(z => z.small)).toBe(true)
+    for (const mode of ['value', 'freq', 'fg']) expect(shotModel({ zones, poss }, mode).every(z => z.small)).toBe(true)
   })
   test('a hotter rim is a positive FG% and value delta', () => {
     const hot = { ...zones, rim: { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 8 } } }
     expect(band(hot, 'fg', 'rim').label).toBe('+30.0')
     expect(band(hot, 'value', 'rim').delta).toBeGreaterThan(0)
   })
-  test('more 3s at below-league shooting is a negative value delta', () => {
+  test('more 3s at the same shooting in as many possessions is more value', () => {
+    // 3 * 9 / 100 * 75 = 20.25, before 3 * 3 / 100 * 75 = 6.75
     const shift = { ...zones, three: { rest: { fga: 10, fgm: 3 }, recent: { fga: 30, fgm: 9 } } }
     expect(band(shift, 'freq', 'three').delta).toBeGreaterThan(0)
     expect(band(shift, 'fg', 'three').small).toBe(true)
-    expect(band(shift, 'value', 'three').delta).toBeLessThan(0)
+    expect(band(shift, 'value', 'three').label).toBe('+13.5')
   })
-  test('value is points above league per 100 FGA', () => {
-    // 4 bands x 10 FGA; rim vs league 40% at 2 pts: 2 * (8 - 4) / 40 * 100 = 20, before 2 * (5 - 4) / 40 * 100 = 5
+  test('value is the zone\'s points per 75 of his possessions', () => {
+    // rim at 2 pts: 2 * 8 / 100 * 75 = 12, before 2 * 5 / 100 * 75 = 7.5
     const hot = { ...zones, rim: { rest: { fga: 10, fgm: 5 }, recent: { fga: 10, fgm: 8 } } }
-    expect(band(hot, 'value', 'rim').label).toBe('+15.0')
+    expect(band(hot, 'value', 'rim').label).toBe('+4.5')
+    // The same makes over twice the possessions: 2 * 8 / 200 * 75 = 6.
+    expect(band(hot, 'value', 'rim', { rest: 100, recent: 200 }).label).toBe('−1.5')
+    // No possessions for a window, no value.
+    expect(band(hot, 'value', 'rim', { rest: 100, recent: null }).label).toBe('—')
+    expect(shotModel({ zones: hot }, 'value').find(z => z.id === 'rim').delta).toBe(null)
   })
   test('small changes match the court background; the extremes are muted green and near-black', () => {
-    expect(zoneFill(0.3, 'value')).toBe('rgb(39,37,36)')
+    expect(zoneFill(0.05, 'value')).toBe('rgb(39,37,36)')
     expect(zoneFill(0.5, 'freq')).toBe('rgb(39,37,36)')
     expect(zoneFill(10, 'fg')).toBe('rgb(97,113,91)')
     expect(zoneFill(-10, 'fg')).toBe('rgb(19,18,17)')
@@ -108,7 +114,7 @@ describe('shot map', () => {
   test('the largest change on the map gets the deepest color', () => {
     const cold = { rest: { fga: 10, fgm: 6 }, recent: { fga: 10, fgm: 2 } }
     const cool = { rest: { fga: 10, fgm: 6 }, recent: { fga: 10, fgm: 4 } }
-    const m = shotModel({ zones: { ...zones, rim: cold, short_mid: cool }, league }, 'fg')
+    const m = shotModel({ zones: { ...zones, rim: cold, short_mid: cool }, poss }, 'fg')
     const brightness = id => m.find(z => z.id === id).fill.match(/\d+/g).map(Number).reduce((a, b) => a + b)
     expect(m.find(z => z.id === 'rim').fill).toBe('rgb(19,18,17)')
     expect(brightness('short_mid')).toBeGreaterThan(brightness('rim'))

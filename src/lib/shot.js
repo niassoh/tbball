@@ -1,14 +1,14 @@
 // Shot-profile shift map by distance band (rim, short mid, long mid, 3s). Band
 // shapes come from lib/court.js; values come from raw FGA/FGM counts per band
 // (thinking-bball scripts/shotshift.js) for the recent window vs the rest of the
-// season, plus the league's counts per band for the whole season.
+// season, plus his possessions on the floor in each (`poss`, from the lineup pulls).
 import { BANDS } from './court.js'
 
 export { BANDS }
 
 // Neutral thresholds and color scales per mode (README §2).
 export const MODES = {
-  value: { th: 0.4, scale: 4, label: 'VALUE' },
+  value: { th: 0.1, scale: 1.1, label: 'PTS / 75' },
   freq: { th: 0.5, scale: 4, label: 'FREQ' },
   fg: { th: 1, scale: 6, label: 'FG%' }
 }
@@ -17,13 +17,13 @@ export const MODES = {
 export const BETTER = [151, 193, 151]
 export const rgb = ([r, g, b]) => `rgb(${r},${g},${b})`
 
-// Value is points above what the league scores on the same shots, per 100 of
-// the player's FGA. Plain points per 100 FGA rose with volume alone, so more
-// shots from a spot read as "better" even at below-par shooting.
-const bandValue = (cell, total, points, league, mode) => {
+// Value is the points he scores from the zone per 75 of his possessions on the floor,
+// so it reflects both how often and how well he shoots there: more shots from a zone at
+// the same accuracy score more.
+const bandValue = (cell, total, points, poss, mode) => {
   if (mode === 'freq') return total ? (cell.fga / total) * 100 : null
   if (mode === 'fg') return cell.fga ? (cell.fgm / cell.fga) * 100 : null
-  return total ? ((points * (cell.fgm - cell.fga * (league.fgm / league.fga))) / total) * 100 : null
+  return poss ? ((points * cell.fgm) / poss) * 75 : null
 }
 
 // The map's scale reads by brightness: near zero a zone matches the card's court
@@ -46,15 +46,15 @@ export const zoneFill = (d, mode, span = MODES[mode].th + MODES[mode].scale, gol
   return rgb(mix(NEUTRAL, d > 0 ? (gold ? GOLDEST : GREENEST) : DARKEST, t))
 }
 
-export function shotModel({ zones, league }, mode, gold = false) {
+export function shotModel({ zones, poss = {} }, mode, gold = false) {
   const totals = { rest: 0, recent: 0 }
   for (const { id } of BANDS) {
     totals.rest += zones[id].rest.fga
     totals.recent += zones[id].recent.fga
   }
   const bands = BANDS.map(({ id, d, clip, name, lx, ly, points }) => {
-    const rest = bandValue(zones[id].rest, totals.rest, points, league[id], mode)
-    const recent = bandValue(zones[id].recent, totals.recent, points, league[id], mode)
+    const rest = bandValue(zones[id].rest, totals.rest, points, poss.rest, mode)
+    const recent = bandValue(zones[id].recent, totals.recent, points, poss.recent, mode)
     const delta = rest === null || recent === null ? null : recent - rest
     const small = delta === null || Math.abs(delta) < MODES[mode].th
     // The band's own shooting in each window, for the hover readout: makes, attempts,

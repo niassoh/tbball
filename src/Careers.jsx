@@ -342,8 +342,8 @@ export default function Careers() {
   const prog = progress[kind]
 
   return (
-    <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap' }}>
+    <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 32px' }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap' }}>
         <BrandMark />
         <SiteNav at="careers" />
         <span style={{ marginLeft: 'auto' }}><SeasonToggle /></span>

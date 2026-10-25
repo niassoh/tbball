@@ -45,7 +45,7 @@ export default function TopBar({ profile: p }) {
   }, [])
   const slide = { transition: 'opacity .25s, transform .25s cubic-bezier(.2,.8,.2,1)', opacity: scrolled ? 1 : 0, transform: scrolled ? 'none' : 'translateY(8px)' }
   return (
-    <div ref={bar} className="topbar" style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 calc(-1 * var(--page-pad))', padding: '14px var(--page-pad)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: stuck ? '#262422' : 'transparent', borderBottom: `1px solid ${stuck ? '#3d3a37' : 'transparent'}`, transition: 'background-color .2s, border-color .2s' }}>
+    <div ref={bar} className="topbar" style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 calc(-1 * var(--page-pad))', padding: '10px var(--page-pad)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: stuck ? '#262422' : 'transparent', borderBottom: `1px solid ${stuck ? '#3d3a37' : 'transparent'}`, transition: 'background-color .2s, border-color .2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
         <BrandMark />
         <SiteNav at="players" />

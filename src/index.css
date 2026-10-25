@@ -39,36 +39,36 @@ html { scroll-behavior: smooth; }
 @media (max-width: 560px) { .page-main { --page-pad: 14px; } }
 /* BrandMark: the logo at each page's top left, a quiet glyph in the bar's ink (lit on
    hover, as any link), set off from the bar by a hairline. Its negative margin keeps it
-   from adding height to any bar. The home page's search row has room for it bigger. */
+   from adding height to any bar. One size on every page, so the pages beside it never move. */
 .brand { position: relative; flex: none; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin: -8px 0; color: #b3ada6; }
 .brand svg { height: 30px; display: block; }
 .brand::after { content: ''; position: absolute; right: -7px; top: 7px; bottom: 7px; width: 1px; background: #3d3a37; }
-.brand-lg { width: 44px; height: 44px; }
-.brand-lg svg { height: 38px; }
-.brand-lg::after { top: 8px; bottom: 8px; }
 /* Its bulb lit under the pointer (or focus): the ball glowing in its flared halo, rays
    round it. */
 .brand svg { overflow: visible; }
 .bm-lit, .bm-halo, .bm-rays { opacity: 0; transition: opacity .15s ease-out; }
 .bm-halo { transform-box: view-box; transform-origin: 74.05px 52.6px; transform: scale(1.35); }
 .brand:hover :is(.bm-lit, .bm-halo, .bm-rays), .brand:focus-visible :is(.bm-lit, .bm-halo, .bm-rays) { opacity: 1; }
-/* A phone's bars have no width to spare (the profile's would wrap to two lines, the
-   teams' too), so there it shows on the home page only. */
-@media (max-width: 560px) { .topbar .brand, .lb .brand { display: none; } }
-/* The site's pages (SiteNav): lit at once under the pointer; on a phone the row folds
-   into its box, and in the profile's top bar sooner, before the bar would wrap. */
+/* A phone's bars have no width to spare (the profile's would wrap to two lines), so
+   there it's left out, on every page alike. */
+@media (max-width: 560px) { .brand { display: none; } }
+/* Every page's header row is one height, the profile's top bar's (52px and its rule; 50
+   on a phone), so the logo and the pages sit at the same spot on each. */
+:root { --head-h: 53px; }
+@media (max-width: 560px) { :root { --head-h: 51px; } }
+/* The site's pages (SiteNav): lit at once under the pointer. Where the profile's top bar
+   would wrap the row folds into its box, on every page at the same width. */
 .site-nav a:hover { color: #ece8e3 !important; }
 .site-nav-menu { display: none; }
-@media (max-width: 560px) { .site-nav-row { display: none !important; } .site-nav-menu { display: inline-flex; } }
-@media (max-width: 1000px) { .topbar .site-nav-row { display: none !important; } .topbar .site-nav-menu { display: inline-flex; } }
+@media (max-width: 1000px) { .site-nav-row { display: none !important; } .site-nav-menu { display: inline-flex; } }
 /* The Leaderboard's Δ toggle reads Δ alone on a phone, where its header has no width to spare. */
 @media (max-width: 560px) { .lb-vs { display: none; } }
 /* The profile top bar's search: a box, or on a phone a button that opens it full
    screen (TopBar), so the bar is one line: the pages' box, the season switch and that
-   button (no sliding name), with less padding so it fits at 360px. */
+   button (no sliding name), so it fits at 360px. */
 .topbar-search-btn { display: none !important; }
 @media (max-width: 560px) {
-  .topbar { flex-wrap: nowrap !important; padding-top: 10px !important; padding-bottom: 10px !important; }
+  .topbar { flex-wrap: nowrap !important; }
   .topbar-name { display: none !important; }
   .topbar .player-search-wrap { display: none !important; }
   .topbar-search-btn { display: inline-flex !important; }
@@ -253,6 +253,8 @@ html { scroll-behavior: smooth; }
 .idx-later { content-visibility: auto; contain-intrinsic-size: auto 290px; }
 .idx-later-row { content-visibility: auto; contain-intrinsic-size: auto 33px; }
 .idx-input::placeholder { color: #7a746e; }
+/* On a phone the search types at 16px, the least iOS doesn't zoom the page to on focus. */
+@media (max-width: 560px) { .idx-input { font-size: 16px !important; letter-spacing: .04em !important; } }
 .lineup-tile { transition: border-color .15s; }
 .lineup-tile > * { filter: saturate(.45) brightness(.88); transition: filter .2s; }
 a:hover > .lineup-tile { border-color: #ece8e3 !important; }

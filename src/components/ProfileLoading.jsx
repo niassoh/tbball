@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { MONO } from '../lib/format.js'
+import BrandMark from './BrandMark.jsx'
 import SiteNav from './SiteNav.jsx'
 
 const INK = '#ece8e3'
@@ -19,7 +20,8 @@ export default function ProfileLoading({ slug, preview }) {
   const portrait = preview && preview.headshot && !failed
   return (
     <main className="page-main" aria-busy="true" style={{ maxWidth: 1440, margin: '0 auto', padding: '0 var(--page-pad) 64px', fontFamily: MONO }}>
-      <div style={{ display: 'flex', alignItems: 'center', minHeight: 50 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)' }}>
+        <BrandMark />
         <SiteNav at="players" />
       </div>
       <div style={{ marginTop: 4, display: 'flex', alignItems: 'flex-end', gap: 22, padding: 20, border: '1px solid #3d3a37', background: '#2a2826' }}>

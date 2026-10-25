@@ -575,8 +575,8 @@ export default function Leaderboard() {
   }
 
   return (
-    <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}` }}>
+    <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 32px' }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}` }}>
         <BrandMark />
         <SiteNav at="leaderboard" />
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>

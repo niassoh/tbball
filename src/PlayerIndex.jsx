@@ -199,14 +199,11 @@ function useOpen(p, to) {
 // best season with the set's span and its key, which opens the set (`open`: pressed, its
 // outline running on into the open set). In an open set (`of`, the franchise) the season
 // is the headline, with no head: his team shows, in place of the BPM label, only where it
-// isn't the franchise's code (SEA for OKC). A depth-chart
-// player without a profile (`stub`) has no page to open.
+// isn't the franchise's code (SEA for OKC).
 function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of }) {
   const { opening, events } = useOpen(p, to)
-  const Root = p.stub ? 'span' : Link
-  const link = p.stub ? {} : { to, state: previewOf(p), ...events }
   const tile = (
-    <Root {...link} className={p.stub ? undefined : order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${open ? INK : RULE}`, borderBottomColor: open ? 'transparent' : RULE, margin: '0 -1px -1px 0', opacity: dim && !set ? 0.35 : undefined }}>
+    <Link to={to} state={previewOf(p)} {...events} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${open ? INK : RULE}`, borderBottomColor: open ? 'transparent' : RULE, margin: '0 -1px -1px 0', opacity: dim && !set ? 0.35 : undefined }}>
       {!of && <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
         <TeamChip team={teamOf(p)} />
         {!set && (pastBest(p)
@@ -229,7 +226,7 @@ function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of }) {
         </span>
       </span>
       {opening && <span aria-hidden="true" className="idx-opening" />}
-    </Root>
+    </Link>
   )
   if (!set) return tile
   // The key sits over the tile's head (a button can't go inside its link); pressed, it's lit.
@@ -442,9 +439,9 @@ export default function PlayerIndex() {
 
   const named = p => !q || typedTeam || fold(p.name).includes(q)
   const chart = mode === 'current' && pick && teams ? teams.find(t => t.team === pick) : null
-  // On the depth chart he's on its team, whichever the index last saw him with; one not in
-  // the index yet is his name alone.
-  const tiers = chart ? depthTiers(chart.depth).map(tier => tier.map(d => ({ ...(bySlug.get(d.slug) || { slug: d.slug, name: d.name, headshot: null, bestSeason: null, stub: true }), team: pick })).filter(named)) : null
+  // On the depth chart he's on its team, whichever the index last saw him with; one with
+  // no headshot yet is left off, as the chart is a wall of faces.
+  const tiers = chart ? depthTiers(chart.depth).map(tier => tier.map(d => bySlug.get(d.slug)).filter(p => p && p.headshot && named(p)).map(p => ({ ...p, team: pick }))) : null
   const pool = mode === 'current' ? (pick ? null : players?.filter(p => p.active)) : pick ? best[pick] : peaks
   const matches = (pool || []).filter(named).sort(byBest)
   const portraits = matches.filter(p => ILLUSTRATED.has(p.headshot))

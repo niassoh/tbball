@@ -452,7 +452,7 @@ export default function PlayerIndex() {
   const toggle = <span style={{ display: 'flex', margin: '-6px 0' }}><ModeSwitch name="Players" options={MODES} mode={mode} setMode={setMode} height={22} /></span>
 
   return (
-    <main className="page-main" style={{ maxWidth: 1440, margin: '0 auto', padding: '0 var(--page-pad) 64px' }}>
+    <main className="page-main" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 var(--page-pad) 64px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${EDGE}` }}>
         <BrandMark />
         <SiteNav at="players" />

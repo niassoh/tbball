@@ -19,7 +19,7 @@ export default function ProfileLoading({ slug, preview }) {
   const [first, ...rest] = name.split(' ')
   const portrait = preview && preview.headshot && !failed
   return (
-    <main className="page-main" aria-busy="true" style={{ maxWidth: 1440, margin: '0 auto', padding: '0 var(--page-pad) 64px', fontFamily: MONO }}>
+    <main className="page-main" aria-busy="true" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 var(--page-pad) 64px', fontFamily: MONO }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)' }}>
         <BrandMark />
         <SiteNav at="players" />

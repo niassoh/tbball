@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardRecent, fetchLeaderboardSeasons } from './api.js'
 import { agesText, liveAges } from './lib/age.js'
-import { bestEras, combined, combinedDelta, eachSeason, eras, qualified, singleYear, withPlayer } from './lib/board.js'
+import { bestEras, combined, combinedDelta, eachSeason, eras, qualified, seasonChange, seasonsBefore, singleYear, withPlayer } from './lib/board.js'
 import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
 import { seasonsBetween, spanYears } from './lib/seasons.js'
@@ -21,9 +21,10 @@ import BrandMark from './components/BrandMark.jsx'
 // lib/profile.js leaderboard), a stat group's stats as a table and any two stats as a
 // scatter beside it; a row or a dot opens the player's card in the scatter's place. One
 // screen on a laptop (index.css .lb): the table scrolls in its box. Filters (a team, a
-// name) narrow the table and fade the scatter's other dots. In the playoffs a small Δ
-// toggle turns it to each player's playoffs minus regular season, and in the regular season
-// a small calendar beside it switches to the latest season's last 30 days (its
+// name) narrow the table and fade the scatter's other dots. A small Δ toggle turns it to
+// each player's playoffs minus regular season, or in the regular season to his season minus
+// the one before; in the regular season a small calendar beside it switches to the latest
+// season's last 30 days (its
 // stats that can't be scoped to dates, and Footprint, greyed); RUNS (eras in the code)
 // turns the regular season's board into every player's runs of 3, 5 or 7 seasons over all
 // the years, each averaged; spans read by the years their seasons end ("2023–25"); RAW | PCTL, small in the table's top right corner, sets what the table's cells read in; the row under the pointer,
@@ -217,14 +218,16 @@ const TEAM_W = 104
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 const day = d => `${MONTHS[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8))}`
 
-// Playoffs minus regular season: a small switch beside the season toggle, so the toggle
-// stays the choice that matters; off (greyed, in its place) in the regular season.
-function DeltaToggle({ on, set, disabled }) {
+// Playoffs minus regular season, or a regular season minus the one before: a small switch
+// beside the season toggle, so the toggle stays the choice that matters; off (greyed, in its
+// place) where there's nothing to set against. VS REG is held to VS PREV's width, so a switch
+// of mode doesn't move the season toggle; on a phone it reads Δ alone (index.css .lb-vs).
+function DeltaToggle({ on, set, disabled, playoffs }) {
   return (
-    <button type="button" aria-pressed={on} disabled={disabled} onClick={() => set(!on)} title={disabled ? 'In the playoffs: each player’s playoffs minus his regular season' : "Each player's playoffs minus his regular season"}
+    <button type="button" aria-pressed={on} aria-label={playoffs ? 'Δ vs regular season' : 'Δ vs previous season'} disabled={disabled} onClick={() => set(!on)} title={playoffs ? "Each player's playoffs minus his regular season" : "Each player's season minus his season before"}
       style={{ height: 26, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 9px', border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 400, letterSpacing: '.08em', opacity: disabled ? 0.35 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
       <span aria-hidden="true" style={{ width: 6, height: 6, border: '1px solid currentColor', background: on ? 'currentColor' : 'transparent' }} />
-      Δ VS REG
+      Δ<span className="lb-vs" style={{ minWidth: '4.8em' }}>VS {playoffs ? 'REG' : 'PREV'}</span>
     </button>
   )
 }
@@ -366,7 +369,13 @@ export default function Leaderboard() {
   // top three-quarters for one playoff season, everyone for one regular season.
   const top = chosenTop ?? (eraOn || ageOn || many ? 0.5 : playoffs ? 0.75 : 1)
   const kinds = windowed ? ['recent'] : !playoffs ? ['regular'] : !delta || eraOn || ageOn ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
-  const wantedKey = windowed ? 'recent|window' : kinds.flatMap(kind => inSpan.map(x => `${kind}|${x}`)).join()
+  // The regular season's Δ sets the span against the seasons before it: the one before each
+  // of its seasons, or for a combined span as many as it has; none for runs, ages or the
+  // last 30 days.
+  const prior = playoffs || windowed || eraOn || ageOn || !inSpan.length ? [] : seasonsBefore(seasons, inSpan[0], many && !each ? inSpan.length : 1)
+  const before = delta ? prior.length : 0
+  const changeTop = before ? top : null
+  const wantedKey = windowed ? 'recent|window' : kinds.flatMap(kind => [...(before ? prior : []), ...inSpan].map(x => `${kind}|${x}`)).join()
   const missingKey = wantedKey ? wantedKey.split(',').filter(k => !(k in cache)).join() : ''
   useEffect(() => {
     if (!missingKey) return
@@ -392,6 +401,14 @@ export default function Leaderboard() {
       const board = combinedDelta(po, rs.map(singleYear))
       return board
     }
+    // Each season less the one before, or the span less the seasons before it, qualified in
+    // both at the board's minutes qualifier (`changeTop`), so it's made here rather than below.
+    if (before) {
+      const docs = wanted.map(k => cache[k])
+      if (docs.some(d => !d)) return false
+      const now = docs.slice(before)
+      return each || now.length === 1 ? eachSeason(now.map((d, i) => seasonChange(d, docs[before + i - 1], changeTop))) : seasonChange(combined(now.map(singleYear)), combined(docs.slice(0, before).map(singleYear)), changeTop)
+    }
     // Over many seasons the shooting stats are each season's own: their rolling windows
     // would overlap.
     const loaded = docsOf(wanted[0].split('|')[0])
@@ -404,7 +421,7 @@ export default function Leaderboard() {
     // span (`era`), beside his name as a run's is.
     const players = ageOn && board.combined ? board.players.map(p => ({ ...p, era: [p.seasons[0], p.seasons[p.seasons.length - 1]] })) : board.players
     return { ...board, players }
-  }, [cache, wantedKey, each, eraOn, ageOn])
+  }, [cache, wantedKey, each, eraOn, ageOn, before, changeTop])
   // While another board loads (a span, eras, the last 30 days, the playoffs) the last one
   // stays up, dimmed under a progress line, and the new one comes up in its place; before
   // the first, the board's shape shows (BoardSkeleton).
@@ -433,7 +450,7 @@ export default function Leaderboard() {
   // run where he had none to be without doesn't stand on his minutes alongside them.
   const ownMin = g && g.mins && g.mins[0]
   const doc = useMemo(() => {
-    if (!board) return board
+    if (!board || board.change) return board
     const rows = ownMin ? board.players.map(p => {
       const mp = valueOf(board, p, ownMin)
       return { ...p, mp: mp === null ? null : Math.round(mp) }
@@ -529,7 +546,7 @@ export default function Leaderboard() {
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <RecentButton on={recent && !playoffs} set={setRecent} disabled={playoffs} />
           <SeasonToggle regularLit={!recent} onRegular={() => setRecent(false)} />
-          <DeltaToggle on={delta && playoffs && !eraOn && !ageOn} set={setDelta} disabled={!playoffs || !!eraOn || !!ageOn} />
+          <DeltaToggle on={delta && (playoffs ? !eraOn && !ageOn : !!before)} set={setDelta} disabled={playoffs ? !!eraOn || !!ageOn : !prior.length} playoffs={playoffs} />
         </span>
       </header>
 

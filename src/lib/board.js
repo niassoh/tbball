@@ -231,6 +231,37 @@ export const combinedDelta = (playoffDocs, regularDocs) => {
   return { ...meta, type: 'delta', combined: true, stats, players: ranked(meta.labels, stats, players) }
 }
 
+// The `n` seasons on file (`seasons`, in order) before `first`: fewer at the start of the
+// years, and none before the first season, which a regular season's Δ has nothing to set against.
+export const seasonsBefore = (seasons, first, n) => {
+  const at = Math.max(0, seasons.indexOf(first))
+  return seasons.slice(Math.max(0, at - n), at)
+}
+
+// A regular season (or a combined span) against the one before it (`prev`): each player
+// qualified (`top`) in both, each stat his change, ranked among the changes; a rolling-window
+// stat sets season against season (singleYear), as consecutive windows overlap. His age and
+// height stay his own, being no change; games, minutes and team are the later season's, and
+// his Footprint marks and Lonestar stars, which a change doesn't carry, are left behind.
+// `against`: the seasons he's set against ([first, last], his own in a combined span).
+const KEPT = new Set(['Age', 'Height'])
+export const seasonChange = (doc, prev, top) => {
+  const now = singleYear(doc)
+  const was = singleYear(prev)
+  const at = positionsOf(was)
+  const before = new Map(qualified(was.players, top).map(p => [p.slug, p]))
+  const players = qualified(now.players, top).filter(p => before.has(p.slug)).map(p => {
+    const b = before.get(p.slug)
+    const v = now.labels.map((l, k) => {
+      const then = b.v[at.get(l)] ?? null
+      return KEPT.has(l) ? p.v[k] : p.v[k] === null || then === null ? null : p.v[k] - then
+    })
+    return { ...p, id: p.slug, against: b.seasons ? [b.seasons[0], b.seasons[b.seasons.length - 1]] : [was.season, was.season], lit: undefined, stars: undefined, v, p: [] }
+  })
+  const stats = Object.fromEntries(now.labels.map(l => [l, KEPT.has(l) ? now.stats[l] : { ...now.stats[l], relative: true }]))
+  return { ...now, type: 'delta', change: true, stats, players: ranked(now.labels, stats, players) }
+}
+
 // The rows at or above a share of the way up the minutes (`top`: 1 for all, 0.75, 0.5,
 // 0.25 for the top three-quarters, half, quarter).
 export const qualified = (rows, top) => {

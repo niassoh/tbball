@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { bestEras, combined, combinedDelta, eachSeason, eras, percentileOf, qualified, singleYear, withPlayer } from './board.js'
+import { bestEras, combined, combinedDelta, eachSeason, eras, percentileOf, qualified, seasonChange, seasonsBefore, singleYear, withPlayer } from './board.js'
 
 // Two seasons' documents: BPM, and C&S 3% weighted by C&S 3s/36.
 const labels = ['BPM', 'C&S 3%', 'C&S 3s/36']
@@ -117,6 +117,44 @@ describe('board', () => {
     // b's 2024-25 run, but he has no 2024-25 regular season: not compared.
     expect(d.players.find(p => p.slug === 'b')).toBe(undefined)
     expect(d.stats.BPM.relative).toBe(true)
+  })
+
+  test('season change: each stat less the season before, for those qualified in both, ranked among the changes', () => {
+    const at = (season, players) => ({ season, type: 'regular', labels: ['BPM', 'C&S 3%', '1yr C&S 3%', 'Age'], stats: { BPM: { dec: 1 }, 'C&S 3%': { dec: 1, years: 3 }, '1yr C&S 3%': { dec: 1 }, Age: { dec: 1, neutral: true } }, groups: [], players })
+    const before = at('2023-24', [P('a', 2000, [1, 30, 20, 24], { lit: [0] }), P('b', 2000, [5, 35, 35, 30]), P('c', 100, [0, 40, 40, 22]), P('e', 1500, [2, null, null, 27])])
+    const now = at('2024-25', [P('a', 2500, [4, 36, 40, 25], { lit: [0] }), P('b', 1800, [3, 37, 37, 31]), P('c', 2000, [9, 40, 40, 23]), P('d', 2000, [7, 30, 30, 21]), P('e', 1500, [6, 35, 35, 28])])
+    const d = seasonChange(now, before, 1)
+    // d had no season before: not listed.
+    expect(d.players.map(p => p.id)).toEqual(['a', 'b', 'c', 'e'])
+    const a = d.players[0]
+    // BPM 4 less 1; C&S 3% his 1yr 40 less 20 (the 3yr windows would overlap); age his own.
+    expect(a.v).toEqual([3, 20, 20, 25])
+    expect(a.against).toEqual(['2023-24', '2023-24'])
+    expect(a.mp).toBe(2500)
+    expect(a.lit).toBe(undefined)
+    expect(d.players[3].v[1]).toBe(null)
+    expect(d.players.map(p => p.p[0])).toEqual([25, 0, 75, 50])
+    expect(d.stats.BPM.relative).toBe(true)
+    expect(d.stats['C&S 3%'].years).toBe(null)
+    expect(d.stats.Age.relative).toBe(undefined)
+    expect(d.type).toBe('delta')
+    // At the top half by minutes, c (100 minutes before) qualifies only now and b only before.
+    expect(seasonChange(now, before, 0.5).players.map(p => p.id)).toEqual(['a'])
+  })
+
+  test('season change: a combined span against the seasons before it, set against his own there', () => {
+    const d = seasonChange(combined([s2]), combined([s1]), 1)
+    expect(d.players.map(p => p.id)).toEqual(['a'])
+    expect(d.players[0].v[0]).toBe(4)
+    expect(d.combined).toBe(true)
+  })
+
+  test('seasons before: n of them, fewer at the start, none before the first', () => {
+    const list = ['2021-22', '2022-23', '2023-24', '2024-25']
+    expect(seasonsBefore(list, '2024-25', 1)).toEqual(['2023-24'])
+    expect(seasonsBefore(list, '2023-24', 2)).toEqual(['2021-22', '2022-23'])
+    expect(seasonsBefore(list, '2022-23', 3)).toEqual(['2021-22'])
+    expect(seasonsBefore(list, '2021-22', 1)).toEqual([])
   })
 
   test('single year: a window stat takes its season-alone column, values and percentiles', () => {

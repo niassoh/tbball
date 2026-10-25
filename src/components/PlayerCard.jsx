@@ -359,10 +359,13 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
   // A combined row's span (its seasons on the board): its career chart shades it and charts
   // each season (a rolling average would blur the span's edges), its percentiles are the
   // span's among the board's, and Lonestar reads the span's stretch.
-  // The career chart follows the board's sort, where his profile has the stat.
+  // The career chart follows the board's sort, where his profile has the stat; a Δ's span
+  // draws no mean across it, a change being no level on his chart.
   const charted = profile && profile.stats[sortLabel] && profile.stats[sortLabel].available ? sortLabel : 'BPM'
-  const span = doc.combined && pl.seasons && pl.seasons.length > 1 ? { from: pl.seasons[0], to: pl.seasons[pl.seasons.length - 1], mean: doc.labels.includes(charted) ? valueOf(doc, pl, charted) : null } : null
+  const span = doc.combined && pl.seasons && pl.seasons.length > 1 ? { from: pl.seasons[0], to: pl.seasons[pl.seasons.length - 1], mean: doc.type !== 'delta' && doc.labels.includes(charted) ? valueOf(doc, pl, charted) : null } : null
   const spanYy = span && `’${span.from.slice(5)}–’${span.to.slice(5)}`
+  // A regular season's Δ: the season (or his seasons) it's set against.
+  const against = pl.against && (pl.against[0] === pl.against[1] ? pl.against[0].replace('-', '–') : `’${pl.against[0].slice(5)}–’${pl.against[1].slice(5)}`)
   const careerN = profile && (span ? 1 : careerWindow(profile, charted))
   const at = profile ? profile.seasons.findIndex(s => s.season === season) : -1
   const heroes = [...new Set([sortLabel, 'BPM', 'Load', 'rTS%'])].filter(l => doc.labels.includes(l)).slice(0, 3)
@@ -391,7 +394,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
             and INACTIVE otherwise (held to its width while it's read). */}
         <span aria-hidden="true" style={{ width: 7, height: 7, background: active ? 'var(--accent)' : '#5a5550', transition: 'background .2s' }} />
         <span style={{ ...label, minWidth: 62, color: active ? INK : DIM }}>{active === null ? '' : active ? 'Active' : 'Inactive'}</span>
-        <span style={{ ...label, color: DIM }}>{doc.type === 'recent' ? 'last 30 days' : doc.combined && spanText ? `${spanText} combined` : season.replace('-', '–')}{doc.type === 'delta' ? ' playoffs − reg' : playoffs ? ' playoffs' : ''}</span>
+        <span style={{ ...label, color: DIM }}>{doc.type === 'recent' ? 'last 30 days' : doc.combined && spanText ? `${spanText} combined` : season.replace('-', '–')}{doc.type === 'delta' ? (against ? ` − ${against}` : ' playoffs − reg') : playoffs ? ' playoffs' : ''}</span>
         <Link to={playerPath(pl.slug)} state={{ season }} style={{ ...label, marginLeft: 'auto', color: INK, border: `1px solid ${EDGE}`, padding: '5px 8px' }}>Full profile →</Link>
         <button type="button" aria-label="Close the card" onClick={onClose} style={{ width: 26, height: 26, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
@@ -445,7 +448,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
       </div>
 
 
-      <Section title={doc.type === 'delta' ? 'Δ percentiles' : 'Percentiles'} right={doc.type === 'delta' ? 'among playoff players' : doc.type === 'recent' ? 'last 30 days' : span ? `${spanText || spanYy} ${doc.eras ? `· among ${doc.eras}-yr runs` : 'combined'}` : season.replace('-', '–')}>
+      <Section title={doc.type === 'delta' ? 'Δ percentiles' : 'Percentiles'} right={doc.type === 'delta' ? (against ? 'among players in both' : 'among playoff players') : doc.type === 'recent' ? 'last 30 days' : span ? `${spanText || spanYy} ${doc.eras ? `· among ${doc.eras}-yr runs` : 'combined'}` : season.replace('-', '–')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 16, rowGap: 5 }}>
           {rows.map((l, i) => {
             const pc = pctlOf(doc, pl, l)

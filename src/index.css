@@ -55,6 +55,8 @@ html { scroll-behavior: smooth; }
 /* A phone's bars have no width to spare (the profile's would wrap to two lines, the
    teams' too), so there it shows on the home page only. */
 @media (max-width: 560px) { .topbar .brand, .lb .brand { display: none; } }
+/* The Leaderboard's Δ toggle reads Δ alone on a phone, where its header has no width to spare. */
+@media (max-width: 560px) { .lb-vs { display: none; } }
 /* The profile top bar's search: a box, or on a phone a button that opens it full
    screen (TopBar), so the bar is one line: the back link, the season switch and that
    button (no sliding name), with less padding and a smaller back link so it fits at 360px. */

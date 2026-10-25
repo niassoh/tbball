@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { UNITS, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from './footprint.js'
+import { UNITS, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, tourExample, unitOf, valueText, worstText } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -74,5 +74,24 @@ describe('footprint', () => {
     expect(worstText(1)).toBe('LEAGUE WORST')
     expect(worstText(2)).toBe('2ND WORST')
     expect(worstText(10)).toBe('10TH WORST')
+  })
+
+  test("the tour's tile: his best-placed lift, never a teammate effect, else any lit tile, else his biggest swing", () => {
+    const tile = (key, x) => ({ key, effect: key, label: key, unit: 'pts', good: 1, diff: 2, on: 110, off: 108, status: 'notable', mate: false, rank: null, pctl: 80, swingPctl: 80, ...x })
+    const ortg = tile('ortg', { diff: 16.1, on: 127.1, off: 111, rank: [3, 242, 'best'], effect: 'Offensive rating', label: 'Pts per 100 poss' })
+    const rim = tile('rimPts', { rank: [1, 242, 'best'], mate: true })
+    const pace = tile('pace', { good: 0, pctl: 100, swingPctl: null, z: 3 })
+    const drtg = tile('drtg', { good: -1, diff: 3, z: 2.6, rank: [2, 242, 'worst'], pctl: 2, swingPctl: 2 })
+    expect(tourExample([pace, rim, ortg, tile('tov', { pctl: 99, swingPctl: 99 })], 'Jokić')).toEqual({
+      key: 'ortg',
+      text: "Offensive rating (Pts per 100 poss): 127.1 with Jokić on, 111.0 with him off, so the tile reads +16.1 PTS/100. Blue: a lift for his team, and the #3 badge makes it the league's 3rd biggest of 242 players."
+    })
+    expect(tourExample([tile('a', { pctl: 70 }), tile('b', { pctl: 91, swingPctl: 93 })], 'X').text).toMatch(/^b: .* in the 93rd percentile of players' swings\.$/)
+    expect(tourExample([pace, drtg], 'X').key).toBe('drtg')
+    expect(tourExample([pace, drtg], 'X').text).toMatch(/the red #2 badge makes it the league's 2nd worst of 242 players\.$/)
+    expect(tourExample([pace, { ...drtg, rank: null }], 'X').text).toMatch(/^pace: .*Grey-white: a change of style/)
+    expect(tourExample([tile('a', { status: 'noise', pctl: 40, swingPctl: 40 }), tile('b', { status: 'noise', pctl: 60, swingPctl: 60 }), tile('c', { status: 'na', diff: null })], 'X').text).toMatch(/^b: .*It stays dim/)
+    expect(tourExample([], 'X')).toBe(null)
+    expect(tourExample([tile('cornerRate', { effect: 'Corner share', label: 'Corner share of 3PA' })], 'X').text).toMatch(/^Corner share: 110\.0 with X on/)
   })
 })

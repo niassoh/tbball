@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
 import { seasonAges } from '../lib/age.js'
 import { MONO } from '../lib/format.js'
-import { MEDAL_SHARES, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, unitOf, valueText, worstText } from '../lib/footprint.js'
+import { MEDAL_SHARES, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, tourExample, unitOf, valueText, worstText } from '../lib/footprint.js'
 import { namesText, posOf, seasonRanges, starsText } from '../lib/lonestar.js'
 import { openingSeasons, spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
@@ -10,6 +10,7 @@ import { Portrait, Slider } from './Lonestar.jsx'
 import Popover from './Popover.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
 import SectionHeader from './SectionHeader.jsx'
+import Tour, { TourButton } from './Tour.jsx'
 
 // The Footprint tab: how his team's play changes with him on the floor vs. off it, from
 // his teams' five-man lineup totals in a regular season or a span of them, picked as in
@@ -264,7 +265,7 @@ function FootprintTile({ e, anchors, right, delay = 0, scale }) {
     // a row's tallest tile let a long title make a whole row taller and wider than its
     // columns, so tiles changed size with the player or span); minWidth 0: a long unit line
     // would otherwise widen it over the next.
-    <div tabIndex={0} onBlur={() => setOpen(false)}
+    <div tabIndex={0} data-stat={e.key} onBlur={() => setOpen(false)}
       {...(HOVER ? { onMouseEnter: () => setOpen(true), onMouseLeave: () => setOpen(false), onFocus: () => setOpen(true) } : { onClick: () => setOpen(o => !o) })}
       style={{ position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', aspectRatio: '1 / 1', minHeight: TILE_MIN_H, alignSelf: 'start', minWidth: 0, background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
       {mate && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
@@ -339,6 +340,7 @@ function Method({ fp, from, to }) {
 export default function Footprint({ profile: p }) {
   const [doc, setDoc] = useState(null)
   const [faces, setFaces] = useState(() => new Map())
+  const [touring, setTouring] = useState(false)
   useEffect(() => {
     let live = true
     fetchFootprint(p.slug).then(d => live && setDoc(d), () => live && setDoc(false))
@@ -351,9 +353,9 @@ export default function Footprint({ profile: p }) {
   }, [])
   return (
     <section id="sec-footprint" style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
-      <SectionHeader title="Footprint" />
+      <SectionHeader title="Footprint">{doc && <TourButton height={26} onClick={() => setTouring(true)} />}</SectionHeader>
       {doc
-        ? <Views p={p} doc={doc} faces={faces} />
+        ? <Views p={p} doc={doc} faces={faces} touring={touring} endTour={() => setTouring(false)} />
         : <div style={{ border: `1px solid ${RULE}`, minHeight: 600, display: 'grid', placeItems: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }}>{doc === false ? 'Unavailable' : 'Loading'}</div>}
     </section>
   )
@@ -379,7 +381,7 @@ const loneTile = (e, o) => {
 const GLOW = '#e4dfd9'
 function LoneSwitch({ on, set, disabled }) {
   return (
-    <button type="button" aria-pressed={on} disabled={disabled} onClick={() => set(!on)}
+    <button type="button" data-tour="fp-lone" aria-pressed={on} disabled={disabled} onClick={() => set(!on)}
       title={disabled ? 'No teammate to set aside in these seasons' : on ? 'Back to all his minutes' : 'Only the minutes his best teammates sit'}
       style={{ height: 30, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 12px', border: `1px solid ${on ? GLOW : '#544f4b'}`, background: on ? '#3a3734' : 'transparent', boxShadow: on ? '0 0 10px rgba(228, 223, 217, .22), inset 0 0 6px rgba(228, 223, 217, .08)' : 'none', color: on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10.5, fontWeight: on ? 700 : 500, letterSpacing: '.16em', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, transition: 'box-shadow .2s, border-color .2s' }}>
       <span aria-hidden="true" style={{ width: 8, height: 8, border: `1px solid ${on ? GLOW : '#837d76'}`, background: on ? GLOW : 'transparent', boxShadow: on ? '0 0 6px rgba(228, 223, 217, .6)' : 'none', transition: 'background .15s, box-shadow .15s' }} />
@@ -532,7 +534,7 @@ function Options({ options, sections, at, pick, close, color, meta, faceOf, laye
 
 // The span on show and its tiles. At first: his opening seasons (lib/seasons.js), or his
 // only one.
-function Views({ p, doc, faces }) {
+function Views({ p, doc, faces, touring, endTour }) {
   const viewOf = (from, to) => doc.views.find(v => v.id === spanId(from, to))
   const [span, setSpan] = useState(() => {
     const open = openingSeasons(p, doc.seasons)
@@ -593,6 +595,22 @@ function Views({ p, doc, faces }) {
     </span>
   )
   const legendKey = { display: 'inline-flex', gap: 6, alignItems: 'center' }
+  // The tour, on all his minutes (REMOVE BEST off), its example his most telling tile.
+  const tourSteps = () => {
+    const last = lastName(p.name)
+    const ex = tourExample(fp.effects, last)
+    return [
+      { title: 'On minus off', target: '#sec-footprint button[aria-label^="Seasons"]', action: () => setLone(false),
+        text: `Footprint is how ${last}'s team plays with him on the floor against with him off it, over every lineup it used in ${spanText(span.from, span.to)}. Pick a season here, or drag across years for a span.` },
+      { title: 'A tile a stat', target: '#sec-footprint .fp-row',
+        text: `Each tile is one stat, his team's with him on minus with him off. MATES counts his teammates' shots alone, his own left out; OFFENSE and DEFENSE are the whole team's.` },
+      ...(ex ? [{ title: 'Reading a tile', target: `#sec-footprint [data-stat="${ex.key}"]`, text: ex.text }] : []),
+      { title: 'Lit or dim', target: '#sec-footprint [data-tour="fp-legend"]',
+        text: "A tile lights when its swing clears its noise and beats three quarters of players' swings in that stat; the bar under it is the swing's size among theirs. Hover or tap a tile for its numbers on and off." },
+      ...(options.off.length || options.def.length ? [{ title: 'Remove best', target: '#sec-footprint [data-tour="fp-lone"]',
+        text: `REMOVE BEST redoes the tiles over only the minutes ${last}'s best teammates sit, to check a swing is his own. A hatched top edge marks a tile whose swing was mostly theirs.` }] : [])
+    ]
+  }
   // A row: TEAM and its word on the left, its tiles side by side, every row on the widest
   // one's columns so the tiles are the same boxes throughout.
   const cols = Math.max(...sections.map(sec => sec.tiles.length))
@@ -649,7 +667,7 @@ function Views({ p, doc, faces }) {
       </div>
       {/* TEAM MATES, then TEAM OFFENSE, then TEAM DEFENSE, a row each. */}
       <div style={{ borderBottom: `1px solid ${RULE}` }}>{sections.map(row)}</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', paddingTop: 4, fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
+      <div data-tour="fp-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', paddingTop: 4, fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.good }} />LIFT</span>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.bad }} />COST</span>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.neutral }} />STYLE</span>
@@ -659,6 +677,7 @@ function Views({ p, doc, faces }) {
         <span style={legendKey}>HOVER A TILE FOR ITS DETAILS</span>
       </div>
       <Method fp={fp} from={span.from} to={span.to} />
+      {touring && <Tour steps={tourSteps()} onClose={endTour} />}
     </>
   )
 }

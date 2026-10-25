@@ -234,7 +234,7 @@ const SPAN_W = 184
 // in `list` dim), `from`, `to` and `pick` (the Leaderboard's every season at those ages,
 // "Ages 25–28"). `teamsOf`: a player's teams in a season, for the band of his stints under the strip.
 // `dimTitle`: a season he has nothing in, the hover that says why.
-export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, aside = null, readout = null, title = 'Seasons', disabled = false, width = SPAN_W, ages = null, teamsOf = null, dimTitle = null }) {
+export default function SeasonPicker({ seasons, from, to, n, pick, extra = null, aside = null, readout = null, title = 'Seasons', disabled = false, width = SPAN_W, ages = null, teamsOf = null, dimTitle = null, held = false }) {
   const byAge = !!(ages && ages.on)
   const years = seasonsBetween(seasons[0], seasons[seasons.length - 1])
   const strip = !byAge
@@ -248,7 +248,7 @@ export default function SeasonPicker({ seasons, from, to, n, pick, extra = null,
     ? ageSpan.replace(/^Ages? /, '') + (ages.of && n > 1 ? ` · ${n}` : '')
     : readout || (from === to ? from.replace('-', '–') : `${shortSeason(from)}–${shortSeason(to)} · ${n}`)
   return (
-    <Popover name={`${title}: ${byAge ? ageSpan : readout || spanText(from, to)}`} disabled={disabled || seasons.length < 2} width={width}
+    <Popover name={`${title}: ${byAge ? ageSpan : readout || spanText(from, to)}`} disabled={disabled || seasons.length < 2} width={width} held={held}
       trigger={<>
         <span style={{ ...label, fontWeight: 400 }}>{byAge ? ageSpan.split(' ')[0] : title}</span>
         {shown}

@@ -77,3 +77,36 @@ export const topPlaceOf = e => (e.rank && e.rank[0] <= TOP_PLACES ? { place: e.r
 // A place among the league's 10 worst, in words: "LEAGUE WORST", "2ND WORST".
 export const worstText = place => (place === 1 ? 'LEAGUE WORST' : `${ordinal(place)} WORST`)
 
+
+// The tile the tour walks through, and its caption: his most telling lift (the lit tile
+// ranked highest among players' swings: by a league place, then its percentile), else his
+// most telling lit tile of any kind (a place among the best or the worst, then the
+// strongest evidence), else his biggest swing among players'. A teammate effect is passed
+// over: its swing is mostly another player's minutes. `last`: his name as the caption
+// calls him.
+export const tourExample = (effects, last) => {
+  const size = e => e.swingPctl ?? e.pctl ?? -1
+  const top = (list, place, more) => list.reduce((a, e) => (!a || place(e) < place(a) || (place(e) === place(a) && more(e) > more(a)) ? e : a), null)
+  const shown = effects.filter(e => e.diff !== null && e.diff !== undefined)
+  const lit = shown.filter(e => e.status === 'notable' && !e.mate)
+  const e = top(lit.filter(x => toneOf(x) === 'good'), x => goodPlace(x) ?? Infinity, size)
+    || top(lit, x => (x.rank ? x.rank[0] : Infinity), x => Math.abs(x.z || 0))
+    || top(shown, () => 0, size)
+  if (!e) return null
+  // The stat's own name where the effect's doesn't already say it (Corner share of 3PA).
+  const name = e.label.toLowerCase().startsWith(e.effect.toLowerCase()) ? e.effect : `${e.effect} (${e.label})`
+  const reads = `${name}: ${valueText(e, e.on)} with ${last} on, ${valueText(e, e.off)} with him off, so the tile reads ${swingText(e.diff)} ${unitOf(e.key, e.unit)}.`
+  const at = topPlaceOf(e)
+  const pctl = size(e)
+  const tone = toneOf(e)
+  const why = e.status !== 'notable'
+    ? 'It stays dim: within its noise, or a swing many players have.'
+    : tone === 'neutral'
+      ? 'Grey-white: a change of style, neither better nor worse.'
+      : tone === 'bad'
+        ? `Orange: a cost to his team${at && at.worst ? `, and the red #${at.place} badge makes it the league's ${at.place === 1 ? 'worst' : worstText(at.place).toLowerCase()} of ${e.rank[1]} players` : ''}.`
+        : at
+          ? `Blue: a lift for his team, and the #${at.place} badge makes it the league's ${at.place === 1 ? 'biggest' : `${ordinal(at.place).toLowerCase()} biggest`} of ${e.rank[1]} players.`
+          : `Blue: a lift for his team, in the ${ordinal(pctl).toLowerCase()} percentile of players' swings.`
+  return { key: e.key, text: `${reads} ${why}` }
+}

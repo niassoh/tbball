@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchLeaderboard, fetchLeaderboardRecent, fetchLeaderboardSeasons } from './api.js'
 import { agesText, liveAges } from './lib/age.js'
 import { bestEras, combined, combinedDelta, eachSeason, eras, qualified, seasonChange, seasonsBefore, singleYear, withPlayer } from './lib/board.js'
-import { MONO } from './lib/format.js'
+import { MONO, fmt } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
 import { seasonsBetween, spanYears } from './lib/seasons.js'
 import { useSeasonType } from './useSeasonType.js'
@@ -16,6 +16,7 @@ import SeasonPicker from './components/SeasonPicker.jsx'
 import SeasonToggle from './components/SeasonToggle.jsx'
 import BrandMark from './components/BrandMark.jsx'
 import SiteNav from './components/SiteNav.jsx'
+import Tour, { TourButton } from './components/Tour.jsx'
 
 // The Leaderboard: one season's players (regular season or playoffs, thinking-bball
 // lib/profile.js leaderboard), a stat group's stats as a table and any two stats as a
@@ -90,7 +91,7 @@ function Groups({ groups, active, pick, filtered, views = [], view }) {
           setMenu(m => (m ? null : { left: r.left, top: r.bottom + 6 }))
         }
         return (
-          <button key={g.id} type="button" className="lb-group" aria-pressed={on} aria-disabled={g.na || undefined} aria-haspopup={menued ? 'menu' : undefined} aria-expanded={menued ? !!menu : undefined} data-views={menued || undefined} onClick={click} title={g.na ? (typeof g.na === 'string' ? g.na : NA) : undefined}
+          <button key={g.id} type="button" className="lb-group" data-group={g.id} aria-pressed={on} aria-disabled={g.na || undefined} aria-haspopup={menued ? 'menu' : undefined} aria-expanded={menued ? !!menu : undefined} data-views={menued || undefined} onClick={click} title={g.na ? (typeof g.na === 'string' ? g.na : NA) : undefined}
             style={{ flex: 'none', height: 28, padding: '0 11px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: g.na ? FAINT : on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: g.na ? 'not-allowed' : 'pointer' }}>
             {g.name}
             {menued && view !== g.id && <span style={{ color: DIM, fontWeight: 500 }}>· {views.find(([id]) => id === view)[2]}</span>}
@@ -163,7 +164,7 @@ function Eras({ era, set, playoffs }) {
       <span style={{ ...label, fontSize: 10, color: era ? 'var(--accent)' : INK }}>Runs <span style={{ color: '#d9d3cc' }}>· every player's 3, 5 or 7 {playoffs ? 'playoff runs' : 'seasons'} in a row, across all years</span></span>
       <div role="group" aria-label="Runs" style={{ display: 'flex', border: `1px solid ${era ? 'var(--accent)' : EDGE}` }}>
         {ERAS.map(n => (
-          <button key={n} type="button" aria-pressed={era === n} onClick={() => set(era === n ? null : n)} title={era === n ? 'Back to seasons' : `Every ${n}-season run of every player, averaged`}
+          <button key={n} type="button" data-era={n} aria-pressed={era === n} onClick={() => set(era === n ? null : n)} title={era === n ? 'Back to seasons' : `Every ${n}-season run of every player, averaged`}
             style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: n === ERAS[0] ? 0 : `1px solid ${EDGE}`, background: era === n ? '#3a3734' : 'transparent', color: era === n ? INK : '#e4dfd9', fontFamily: MONO, fontSize: 11, fontWeight: era === n ? 700 : 500, letterSpacing: '.1em', cursor: 'pointer' }}>{n} YR</button>
         ))}
       </div>
@@ -311,6 +312,9 @@ export default function Leaderboard() {
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
   const [chart, setChart] = useState(true)
+  const [touring, setTouring] = useState(false)
+  // The seasons panel held open by the tour.
+  const [panelHeld, holdPanel] = useState(false)
   const close = useCallback(() => setPicked(null), [])
   // A row opens its card, or closes it when it's the one open.
   const toggle = useCallback(k => setPicked(p => (p === k ? null : k)), [])
@@ -536,6 +540,40 @@ export default function Leaderboard() {
   const none = doc && !doc.players.length ? (ageOn ? `No players at ${agesText(ageOn.from, ageOn.to).toLowerCase()}` : 'No players') : null
   const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season runs` : ageOn ? agesText(ageOn.from, ageOn.to) : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : spanYears(span.from, span.to)
 
+  // The tour: the tabs, then the controls one by one to the best 5-season runs of ScoreVal,
+  // each step setting the board the way it says: the seasons panel opens on RUNS, 5 YR is
+  // picked in it and it closes. The last names the run on top once its board is in.
+  const tourSteps = () => {
+    const best = eraOn === 5 && sortLabel === 'ScoreVal' && !sort.reverse && !loading && drawn[0]
+    const seasonsBox = '.lb button[aria-label^="Seasons"]'
+    const panel = '.lb [role="dialog"][aria-label^="Seasons"]'
+    return [
+      { title: 'Stat groups', target: '.lb [aria-label="Stat group"]', action: () => holdPanel(false),
+        text: 'Each tab is a group of stats. The chart plots two of them.' },
+      { title: 'Seasons', target: seasonsBox, action: () => { setRecent(false); holdPanel(false) },
+        text: 'Seasons sets the rows: one season, a span, or runs.' },
+      { title: 'Runs', target: [seasonsBox, panel], mark: '.lb [data-era="5"]',
+        action: () => { setRecent(false); setAges(null); setEra(null); holdPanel(true) },
+        text: "Runs turn each player's consecutive seasons into one row." },
+      { title: '5 YR', target: [seasonsBox, panel], mark: '.lb [data-era="5"]',
+        action: () => {
+          setRecent(false); setAges(null); setEra(5); setTop(null); setTeam(null); setFind(''); setFilters({}); holdPanel(true)
+          // Picked in the open panel, which then closes on the board of runs.
+          const shut = setTimeout(() => holdPanel(false), 900)
+          return () => clearTimeout(shut)
+        },
+        text: 'Pick 5 YR: every five-season run, averaged.' },
+      { title: 'Offense', target: '.lb [data-group="offense"]', action: () => { holdPanel(false); choose('offense') },
+        text: 'ScoreVal lives under Offense: impact from scoring alone.' },
+      { title: 'Sort', target: '.lb th[data-stat="ScoreVal"]', action: () => setSort({ label: 'ScoreVal', reverse: false }),
+        text: 'Click a stat to sort. Again for worst first.' },
+      { title: 'The best run', target: '.lb-table-wrap tr[data-id]',
+        text: best
+          ? `${best.name}, ${spanYears(best.era[0], best.era[1])}: ${fmt(doc.stats.ScoreVal, valueOf(doc, best, 'ScoreVal'))} ScoreVal, the best five-year run since ${seasons[0].replace('-', '–')}.`
+          : 'Loading every five-year run…' }
+    ]
+  }
+
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}` }}>
@@ -553,7 +591,7 @@ export default function Leaderboard() {
             picker off; it's a placeholder of its size until the seasons are known. */}
         {seasons && span
           ? (
-            <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} width="auto"
+            <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={inSpan.length} width="auto" held={panelHeld}
               title={windowed ? '30 days' : 'Seasons'} disabled={windowed}
               pick={(from, to) => { setSpan({ from, to }); setEra(null); setEach(false); setTop(null) }}
               ages={{
@@ -580,6 +618,7 @@ export default function Leaderboard() {
           </label>
           {doc ? <Teams teams={teams} team={team} set={setTeam} /> : <Skel w={TEAM_W} h={30} />}
           <ModeSwitch mode={mode} setMode={setMode} />
+          {doc && <TourButton onClick={() => setTouring(true)} />}
         </span>
       </div>
 
@@ -610,6 +649,7 @@ export default function Leaderboard() {
           </div>}
         </div>
       )}
+      {touring && <Tour steps={tourSteps()} onClose={() => { setTouring(false); holdPanel(false) }} />}
     </main>
   )
 }

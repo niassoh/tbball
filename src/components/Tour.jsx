@@ -52,6 +52,13 @@ const shownBox = el => {
   }
   return { top, left, bottom, right }
 }
+// The padded box around what a selector, or several, picks out; null while none is shown.
+const boxOf = sels => {
+  const rs = [].concat(sels).map(sel => document.querySelector(sel)).filter(Boolean).map(shownBox).filter(r => r.right > r.left && r.bottom > r.top)
+  return rs.length
+    ? { top: Math.min(...rs.map(x => x.top)) - PAD, left: Math.min(...rs.map(x => x.left)) - PAD, bottom: Math.max(...rs.map(x => x.bottom)) + PAD, right: Math.max(...rs.map(x => x.right)) + PAD }
+    : null
+}
 
 // A guided tour of a feature (Footprint, Lonestar, the Leaderboard): the page dimmed but
 // for a cutout around one control or datapoint at a time, and a caption card attached to it
@@ -59,7 +66,8 @@ const shownBox = el => {
 // its edge aimed at it; the page scrolls so both are in view. Only a target too tall to
 // show with its card gets the card pinned to the screen's foot. The card has the step count
 // and BACK / NEXT, DONE on the last. Esc closes; the arrow keys step.
-// `steps`: { target: a selector, or several for one cutout around them all; mark: a
+// `steps`: { target: a selector, or several for one cutout around them all; small: a
+// smaller target for where the target and card don't both fit on screen; mark: a
 // selector for one control in the cutout to outline, which the card then speaks for; title;
 // text; action }. An action runs as its step comes up, so the page can show what the step
 // says (the Leaderboard's switching to 5-year runs), and may return a function that runs as
@@ -106,27 +114,26 @@ export default function Tour({ steps, onClose }) {
     let phase = 0
     const frame = () => {
       const st = live.current[i]
-      const els = [].concat(st.target).map(sel => document.querySelector(sel)).filter(Boolean)
       const markEl = st.mark && document.querySelector(st.mark)
-      if (els.length && phase === 0) {
-        phase = 1
-        els[0].scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'instant' })
-        next.current.focus({ preventScroll: true })
-      }
-      const rs = els.map(shownBox).filter(r => r.right > r.left && r.bottom > r.top)
       const vw = document.documentElement.clientWidth
       const vh = window.innerHeight
       const shelf = GUTTER + [...document.querySelectorAll('.topbar, #tabs')].reduce((n, el) => n + el.offsetHeight, 0)
       const ch = card.current ? card.current.offsetHeight : 0
       const w = Math.min(CARD_W, vw - 2 * GUTTER)
+      // The target, or its smaller stand-in where it and the card don't both fit on screen.
+      let target = st.target
+      let r = boxOf(target)
+      if (r && st.small && r.bottom - r.top + GAP + ch > vh - GUTTER - shelf) r = boxOf(target = st.small)
+      // Scrolled to once it's on the page, though not yet shown (a column scrolled out of its table).
+      const first = document.querySelector([].concat(target)[0])
+      if (first && phase === 0) {
+        phase = 1
+        first.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'instant' })
+        next.current.focus({ preventScroll: true })
+        r = boxOf(target)
+      }
       let g = { w, pinned: true }
-      if (rs.length) {
-        const r = {
-          top: Math.min(...rs.map(x => x.top)) - PAD,
-          left: Math.min(...rs.map(x => x.left)) - PAD,
-          bottom: Math.max(...rs.map(x => x.bottom)) + PAD,
-          right: Math.max(...rs.map(x => x.right)) + PAD
-        }
+      if (r) {
         const m = markEl && shownBox(markEl)
         const a = m && m.right > m.left ? { top: m.top - 3, left: m.left - 3, bottom: m.bottom + 3, right: m.right + 3 } : r
         // Target and card as one block, centred in the room the screen has, if it's out of it.

@@ -600,7 +600,7 @@ function Views({ p, doc, faces, touring, endTour }) {
     const last = lastName(p.name)
     const ex = tourExample(fp.effects, last)
     return [
-      { title: 'Team on / off', target: '#sec-footprint .fp-rows', action: () => setLone(false),
+      { title: 'Team on / off', target: '#sec-footprint .fp-rows', small: '#sec-footprint .fp-row', action: () => setLone(false),
         text: `Team stats with ${last} **on the floor minus off**.` },
       { title: 'Tiles', target: '#sec-footprint .fp-row',
         text: "One tile per stat. **MATES** is his teammates' own shooting." },

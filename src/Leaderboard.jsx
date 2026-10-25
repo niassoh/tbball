@@ -549,12 +549,12 @@ export default function Leaderboard() {
     const panel = '.lb [role="dialog"][aria-label^="Seasons"]'
     return [
       { title: 'Stat groups', target: '.lb [aria-label="Stat group"]', action: () => holdPanel(false),
-        text: 'Each tab is a group of stats. The chart plots two of them.' },
+        text: '**Tabs** group the stats. The chart plots two of them.' },
       { title: 'Seasons', target: seasonsBox, action: () => { setRecent(false); holdPanel(false) },
-        text: 'Seasons sets the rows: one season, a span, or runs.' },
+        text: '**Seasons**: one season, a span, or runs.' },
       { title: 'Runs', target: [seasonsBox, panel], mark: '.lb [data-era="5"]',
         action: () => { setRecent(false); setAges(null); setEra(null); holdPanel(true) },
-        text: "Runs turn each player's consecutive seasons into one row." },
+        text: "**Runs**: each player's straight seasons as one row." },
       { title: '5 YR', target: [seasonsBox, panel], mark: '.lb [data-era="5"]',
         action: () => {
           setRecent(false); setAges(null); setEra(5); setTop(null); setTeam(null); setFind(''); setFilters({}); holdPanel(true)
@@ -562,14 +562,14 @@ export default function Leaderboard() {
           const shut = setTimeout(() => holdPanel(false), 900)
           return () => clearTimeout(shut)
         },
-        text: 'Pick 5 YR: every five-season run, averaged.' },
+        text: 'Pick **5 YR**: every five-season run, averaged.' },
       { title: 'Offense', target: '.lb [data-group="offense"]', action: () => { holdPanel(false); choose('offense') },
-        text: 'ScoreVal lives under Offense: impact from scoring alone.' },
+        text: '**ScoreVal** is under Offense: impact from scoring alone.' },
       { title: 'Sort', target: '.lb th[data-stat="ScoreVal"]', action: () => setSort({ label: 'ScoreVal', reverse: false }),
-        text: 'Click a stat to sort. Again for worst first.' },
+        text: 'Click a stat to **sort**. Again for worst first.' },
       { title: 'The best run', target: '.lb-table-wrap tr[data-id]',
         text: best
-          ? `${best.name}, ${spanYears(best.era[0], best.era[1])}: ${fmt(doc.stats.ScoreVal, valueOf(doc, best, 'ScoreVal'))} ScoreVal, the best five-year run since ${seasons[0].replace('-', '–')}.`
+          ? `**good:${best.name} ${spanYears(best.era[0], best.era[1])}: ${fmt(doc.stats.ScoreVal, valueOf(doc, best, 'ScoreVal'))} ScoreVal**, the best five-year run.`
           : 'Loading every five-year run…' }
     ]
   }

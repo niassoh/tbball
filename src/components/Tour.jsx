@@ -42,10 +42,12 @@ const shownBox = el => {
 // for a cutout around one control or datapoint at a time, and a caption card under it (over
 // it where there's no room under; pinned to the screen's foot where there's room for neither),
 // with the step count and BACK / NEXT, DONE on the last. Esc closes; the arrow keys step.
-// `steps`: { target: a selector, or several for one cutout around them all; title; text;
-// action }. An action runs as its step comes up, so the page can show what the step says
-// (the Leaderboard's switching to 5-year runs); a target not on the page yet (a board still
-// loading) is waited for. Steps are read on every render, so a caption follows the data.
+// `steps`: { target: a selector, or several for one cutout around them all; mark: a
+// selector for one control in the cutout to outline; title; text; action }. An action runs
+// as its step comes up, so the page can show what the step says (the Leaderboard's
+// switching to 5-year runs), and may return a function that runs as the step goes; a
+// target not on the page yet (a board still loading, a panel opening) is waited for, and
+// the card takes the keys back from whatever it opened. Steps are read on every render, so a caption follows the data.
 // The cutout is placed in the page's coordinates, so it scrolls with the page and only
 // glides when the target itself moves (a new step, the page's layout changing under it).
 export default function Tour({ steps, onClose }) {
@@ -80,7 +82,7 @@ export default function Tour({ steps, onClose }) {
   // middle once it's there) and where the card goes.
   useEffect(() => {
     const s = live.current[i]
-    if (s.action) s.action()
+    const undo = s.action && s.action()
     let raf = 0
     let found = false
     const frame = () => {
@@ -88,7 +90,9 @@ export default function Tour({ steps, onClose }) {
       if (els.length && !found) {
         found = true
         els[0].scrollIntoView({ block: 'center', inline: 'center' })
+        next.current.focus({ preventScroll: true })
       }
+      const mark = live.current[i].mark && document.querySelector(live.current[i].mark)
       const rs = els.map(shownBox).filter(r => r.right > r.left && r.bottom > r.top)
       const vw = document.documentElement.clientWidth
       const vh = window.innerHeight
@@ -111,12 +115,19 @@ export default function Tour({ steps, onClose }) {
           pinned: !under && !over,
           card: { left: left + window.scrollX, top: (under ? r.bottom + GAP : r.top - GAP - ch) + window.scrollY }
         }
+        if (mark) {
+          const m = shownBox(mark)
+          g.mark = { top: m.top - 3 + window.scrollY, left: m.left - 3 + window.scrollX, width: m.right - m.left + 6, height: m.bottom - m.top + 6 }
+        }
       }
       setGeo(old => (JSON.stringify(old) === JSON.stringify(g) ? old : g))
       raf = requestAnimationFrame(frame)
     }
     frame()
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      if (typeof undo === 'function') undo()
+    }
   }, [i])
 
   const spot = geo && geo.spot
@@ -128,6 +139,7 @@ export default function Tour({ steps, onClose }) {
       {spot
         ? <div className="tour-spot" style={{ position: 'absolute', ...spot, boxShadow: `0 0 0 1px ${INK}, 0 0 0 200vmax rgba(20, 19, 18, .72)`, pointerEvents: 'none' }} />
         : <div style={{ position: 'fixed', inset: 0, background: 'rgba(20, 19, 18, .72)', pointerEvents: 'none' }} />}
+      {geo && geo.mark && <div style={{ position: 'absolute', ...geo.mark, boxShadow: '0 0 0 2px var(--accent)', pointerEvents: 'none' }} />}
       <div ref={card} role="dialog" aria-label={`Tour: ${step.title}`}
         style={{ position: !geo || geo.pinned ? 'fixed' : 'absolute', ...(!geo || geo.pinned ? { left: '50%', bottom: GUTTER, transform: 'translateX(-50%)' } : geo.card), width: geo ? geo.w : CARD_W, boxSizing: 'border-box', background: '#1f1d1c', border: '1px solid #837d76', boxShadow: '0 12px 32px rgba(0,0,0,.5)', fontFamily: MONO, visibility: geo ? 'visible' : 'hidden' }}>
         <div aria-hidden="true" style={{ display: 'flex', gap: 2 }}>

@@ -13,8 +13,10 @@ const GUTTER = 16
 // width, so what it says never resizes it (a disabled box keeps its caret's room too).
 // `accent`: a color for the box's edge; `shrink`: the box may narrow, its content cut short,
 // where its line runs out of room (Footprint's REMOVE BEST pickers, two to a line).
-export default function Popover({ name, trigger, children, disabled = false, align = 'left', minWidth = 240, width, accent, shrink = false }) {
-  const [open, setOpen] = useState(false)
+// `held`: open whatever is pressed (the Leaderboard's tour showing the seasons panel).
+export default function Popover({ name, trigger, children, disabled = false, align = 'left', minWidth = 240, width, accent, shrink = false, held = false }) {
+  const [pressed, setOpen] = useState(false)
+  const open = pressed || held
   const ref = useRef(null)
   const panel = useRef(null)
   const [nudge, setNudge] = useState(0)

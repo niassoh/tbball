@@ -5,6 +5,7 @@ import { histogram } from '../lib/dist.js'
 import { loadDistribution } from '../api.js'
 import { useSeasonType } from '../useSeasonType.js'
 import WindowTag from './WindowTag.jsx'
+import Gloss from './Gloss.jsx'
 import { rollingStat, spanMean, spanLabel, spanPctl, spanTeams } from '../lib/span.js'
 import { teamColor, teamStints } from '../lib/teams.js'
 import SectionHeader from './SectionHeader.jsx'
@@ -129,7 +130,7 @@ function SeasonChart({ stat, label, lineLabel = 'PLAYER', seasons, span, type })
   return (
     <div style={{ flex: '0 1 330px', minWidth: 260, display: 'flex', flexDirection: 'column', gap: 10, background: '#2c2a28', border: '1px solid #544f4b', padding: 16, alignSelf: 'stretch' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: '.03em' }}>{label}<WindowTag stat={stat} /></span>
+        <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: '.03em' }}><Gloss term={label}>{label}</Gloss><WindowTag stat={stat} /></span>
         <span style={{ display: 'flex', gap: 10, fontFamily: MONO, fontSize: 9, color: '#a09a93' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 2, background: '#ece8e3' }} />{lineLabel}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 12, height: 0, borderTop: '2px dashed #a09a93' }} />{m.legend}</span>
@@ -294,7 +295,7 @@ export default function StatSection({ profile: p, tab, sel, setSel, pctView = fa
                   const on = l === charted
                   return (
                     <span key={l} onClick={() => setCharted(l)} style={{ padding: '8px 10px', textAlign: 'right', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, color: on ? '#ece8e3' : '#a09a93', fontWeight: on ? 600 : 400, boxShadow: on ? 'inset 0 -3px 0 #fa962a' : 'none', background: on ? '#2f2c2a' : 'transparent' }}>
-                      <span style={{ textTransform: 'uppercase', lineHeight: 1.3 }}>{l}<WindowTag stat={p.stats[l]} /></span>
+                      <span style={{ textTransform: 'uppercase', lineHeight: 1.3 }}><Gloss term={l} style={{ cursor: 'pointer' }}>{l}</Gloss><WindowTag stat={p.stats[l]} /></span>
                     </span>
                   )
                 })}

@@ -4,6 +4,7 @@ import { MONO, fmt } from '../lib/format.js'
 import { BANDS, MODES, mix, rgb, shotModel, unpackDots } from '../lib/shot.js'
 import { BAND_EDGES, BASKET, COURT_H, INSIDE_THREE, KEY_HASHES, KEY_LINES, THREE_LINE } from '../lib/court.js'
 import { emptyNote } from '../lib/seasons.js'
+import Gloss from './Gloss.jsx'
 
 const subhead = { fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a09a93' }
 
@@ -228,7 +229,7 @@ function CoreStats({ profile: p, shift, po = false, labels = WINDOWS[po ? 'playo
           return (
             <div key={r.stat} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0,1fr) 54px', gap: 10, alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #3d3a37' }}>
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.stat}</span>
+                <Gloss term={r.stat} style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.stat}</Gloss>
                 <span style={{ fontFamily: MONO, fontSize: 9, color: '#a09a93', whiteSpace: 'nowrap' }}>{fmt(stat, r.season.value)} → {fmt(stat, r.recent.value)}</span>
               </div>
               <div style={{ position: 'relative', height: 18 }}>

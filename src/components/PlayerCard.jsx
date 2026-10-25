@@ -12,6 +12,7 @@ import { asset } from '../lib/static.js'
 import { initials } from '../lib/teams.js'
 import { useSeasonType } from '../useSeasonType.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
+import Gloss from './Gloss.jsx'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import SplitJersey from './SplitJersey.jsx'
 
@@ -429,7 +430,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
               return (
                 <div key={l} style={{ padding: k ? '0 0 0 12px' : '0 12px 0 0', borderLeft: k ? `1px solid ${RULE}` : 'none', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
                   <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-                    <span style={small}>{l}{doc.type === 'delta' ? ' Δ' : ''}</span>
+                    <Gloss term={l} style={small}>{l}{doc.type === 'delta' ? ' Δ' : ''}</Gloss>
                     {l === sortLabel && rank ? <span style={{ ...small, flex: 'none', color: INK, letterSpacing: '.06em' }}>#{rank}</span> : null}
                   </span>
                   <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: 8, alignItems: 'center' }}>
@@ -451,7 +452,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
             const pc = pctlOf(doc, pl, l)
             return (
               <div key={l} style={{ display: 'grid', gridTemplateColumns: '84px minmax(0, 1fr) 26px', gap: 6, alignItems: 'center' }}>
-                <span style={{ ...label, fontSize: 8, color: '#b8b2ab', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</span>
+                <Gloss term={l} style={{ ...label, fontSize: 8, color: '#b8b2ab', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</Gloss>
                 <span style={{ position: 'relative', height: 8, background: '#34312e' }}>
                   {pc !== null && <span className="lb-bar-in" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(pc, 2)}%`, background: col(pc), animationDelay: `${80 + i * 30}ms` }} />}
                   <span style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: '#837d76' }} />
@@ -465,7 +466,7 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
 
       <div style={{ display: 'grid', gridTemplateColumns: playoffs ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
         <div style={{ padding: '9px 14px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-          <span style={{ ...label, color: '#b8b2ab' }}>{charted} <span style={{ color: FAINT }}>· {careerN > 1 ? `${ROLL}-yr avg` : 'by season'} vs lg{span ? ` · ${spanYy} avg` : ''}</span></span>
+          <span style={{ ...label, color: '#b8b2ab' }}><Gloss term={charted}>{charted}</Gloss> <span style={{ color: FAINT }}>· {careerN > 1 ? `${ROLL}-yr avg` : 'by season'} vs lg{span ? ` · ${spanYy} avg` : ''}</span></span>
           {profile ? <Career profile={profile} l={charted} season={season} span={span} n={careerN} wide={playoffs} /> : <span style={{ ...label, color: FAINT, height: 168 }}>{profile === false ? 'Unavailable' : 'Loading'}</span>}
         </div>
         {!playoffs && (

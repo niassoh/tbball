@@ -16,11 +16,18 @@ export const seasonRows = docs => docs.flatMap(doc => {
   return doc.players.filter(p => p.mp >= MIN_FLOOR.regular && p.v[i] !== null).map(p => ({ slug: p.slug, season: doc.season, team: p.team, bpm: p.v[i] }))
 })
 
-// The top 5% (`share`) of a franchise's seasons by BPM, at least one; a player can have
-// several.
+// A franchise's best players, each by his best season there (by BPM), as many as 5%
+// (`share`) of its seasons, at least one. Each brings his `set`: his seasons among those
+// top 5% (his best always), by season; two or more make a collection.
 export const topSeasons = (rows, franchise, share = 0.05) => {
   const own = rows.filter(r => franchiseOf(r.team) === franchise).sort((a, b) => b.bpm - a.bpm)
-  return own.slice(0, Math.ceil(own.length * share))
+  const n = Math.ceil(own.length * share)
+  const top = own.slice(0, n)
+  const seen = new Set()
+  return own.filter(r => !seen.has(r.slug) && seen.add(r.slug)).slice(0, n).map(r => {
+    const set = top.filter(t => t.slug === r.slug)
+    return { ...r, set: (set.length ? set : [r]).sort((a, b) => (a.season < b.season ? -1 : 1)) }
+  })
 }
 
 // A team's depth chart (teams.json) as its two tiers, by slug: the starters (each

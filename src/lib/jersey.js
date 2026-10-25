@@ -36,3 +36,11 @@ export const jerseysOver = (seasons, from, to) => seasons
 export const splitIds = (layers, ids) => (layers && ids && ids.length > 1 && ids.every(id => id === layers.current || layers.ids.includes(id)) ? ids : null)
 
 export const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+// His jersey of a season's team ('SEA'): the one jersey of his (in the sprite or the base
+// portrait's) on that team, or null when he has none or more than one, since which era a
+// season fell in is thinking-bball's to say (data/jersey-palettes.json), not his layers'.
+export const jerseyIn = (layers, team) => {
+  const own = layers ? [...layers.ids, layers.current].filter(id => id.split('.')[0] === team) : []
+  return own.length === 1 ? own[0] : null
+}

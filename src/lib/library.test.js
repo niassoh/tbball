@@ -11,14 +11,16 @@ describe('library', () => {
     expect(topSeasons(rows, 'OKC').map(r => r.slug)).toEqual(['durant'])
   })
 
-  test("a franchise's top 5% of seasons, its old codes its own, a player there as often as he made it", () => {
+  test("a franchise's best players, once each by his best season there, as many as 5% of its seasons", () => {
     expect(franchiseOf('SEA')).toBe('OKC')
     expect(franchiseOf('CHH')).toBe('CHA')
     expect(franchiseOf('DEN')).toBe('DEN')
     const players = Array.from({ length: 38 }, (_, k) => [`p${k}`, 'OKC', 1000, k / 10])
     const rows = seasonRows([board('2007-08', [['durant', 'SEA', 2768, 9]]), board('2012-13', [['durant', 'OKC', 3119, 8], ...players]), board('2013-14', [['lebron', 'MIA', 3000, 10]])])
-    // 40 OKC seasons: the top 2.
-    expect(topSeasons(rows, 'OKC').map(r => `${r.slug} ${r.season}`)).toEqual(['durant 2007-08', 'durant 2012-13'])
+    // 40 OKC seasons: 2 tiles, Durant's best and the next player's, not his second season.
+    expect(topSeasons(rows, 'OKC').map(r => `${r.slug} ${r.season}`)).toEqual(['durant 2007-08', 'p37 2012-13'])
+    // Both of Durant's are in the top 2 seasons: his collection, by season; p37's isn't, so his is his best alone.
+    expect(topSeasons(rows, 'OKC').map(r => r.set.map(t => t.season))).toEqual([['2007-08', '2012-13'], ['2012-13']])
     expect(topSeasons(rows, 'MIA')).toHaveLength(1)
     expect(topSeasons(rows, 'BOS')).toEqual([])
   })

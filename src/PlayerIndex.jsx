@@ -255,35 +255,43 @@ function Stack({ ink, back }) {
   )
 }
 
-// A collection opened: its seasons in the grid's own columns, a full row under its tile's
-// row (the grid packs dense, so the tiles after it fill that row first). Its ink outline
-// meets the open tile's, its top rule stopping at the tile's edges, so the set reads as
-// coming out of it; the tile is the element before it, measured as the grid reflows.
+// A collection opened, a full row under its tile's row (the grid packs dense, so the tiles
+// after it fill that row first): a box just wide enough for its seasons (wrapping at the
+// grid's columns), centred under the tile and kept inside the grid. Its ink outline meets
+// the open tile's, its top rule stopping at the tile's edges, so the set reads as coming
+// out of it; the tile (the element before it) and the grid's columns are measured as the
+// grid reflows.
 function SetRow({ set, of, playerPath }) {
   const ref = useRef(null)
-  const [notch, setNotch] = useState(null)
+  const [at, setAt] = useState(null)
   useLayoutEffect(() => {
     const el = ref.current
     const fit = () => {
       const a = el.getBoundingClientRect()
       const t = el.previousElementSibling.getBoundingClientRect()
-      setNotch([t.left - a.left, t.right - a.left])
+      const cols = getComputedStyle(el.parentElement).gridTemplateColumns.split(' ')
+      setAt({ width: a.width, cols: cols.length, col: parseFloat(cols[0]), left: t.left - a.left, right: t.right - a.left })
     }
     fit()
     const watch = new ResizeObserver(fit)
     watch.observe(el)
     return () => watch.disconnect()
   }, [])
+  const per = at && Math.min(set.length, at.cols)
+  const width = at && per * at.col
+  const x = at && Math.max(0, Math.min(at.width - width, (at.left + at.right) / 2 - width / 2))
   const line = { position: 'absolute', top: 0, height: 1, background: INK }
   return (
-    <div ref={ref} style={{ position: 'relative', gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', padding: '14px 0', marginBottom: 14 }}>
-      {set.map(s => <Tile key={s.bestSeason.season} player={s} to={playerPath(s.slug)} order={0} of={of} />)}
-      <span aria-hidden="true" style={{ position: 'absolute', inset: '0 -1px -1px 0', zIndex: 2, borderLeft: `1px solid ${INK}`, borderRight: `1px solid ${INK}`, borderBottom: `1px solid ${INK}`, pointerEvents: 'none' }}>
-        {notch && <>
-          <span style={{ ...line, left: -1, width: Math.max(0, notch[0]) }} />
-          <span style={{ ...line, left: notch[1] - 1, right: -1 }} />
-        </>}
-      </span>
+    <div ref={ref} style={{ gridColumn: '1 / -1', padding: '0 0 14px' }}>
+      {at && (
+        <div style={{ position: 'relative', width, marginLeft: x, display: 'grid', gridTemplateColumns: `repeat(${per}, ${at.col}px)`, padding: '14px 0' }}>
+          {set.map(s => <Tile key={s.bestSeason.season} player={s} to={playerPath(s.slug)} order={0} of={of} />)}
+          <span aria-hidden="true" style={{ position: 'absolute', inset: '0 -1px -1px 0', zIndex: 2, borderLeft: `1px solid ${INK}`, borderRight: `1px solid ${INK}`, borderBottom: `1px solid ${INK}`, pointerEvents: 'none' }}>
+            <span style={{ ...line, left: -1, width: Math.max(0, at.left - x) }} />
+            <span style={{ ...line, left: at.right - x - 1, right: -1 }} />
+          </span>
+        </div>
+      )}
     </div>
   )
 }

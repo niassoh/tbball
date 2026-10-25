@@ -456,14 +456,13 @@ export default function PlayerIndex() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${EDGE}` }}>
         <BrandMark />
         <SiteNav at="players" />
-        <label className="search-box" style={{ marginLeft: 'auto', flex: '0 1 300px', minWidth: 0, height: 32, display: 'flex', alignItems: 'center', gap: 8, padding: '0 9px', border: '1px solid #a09a93', background: '#2c2a28' }}>
-          <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style={{ flex: 'none', color: '#ece8e3' }}>
-            <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
-          <input ref={search} className="idx-input" aria-label="Search players" value={query} onChange={e => setQuery(e.target.value)} placeholder="SEARCH PLAYERS" spellCheck={false}
-            style={{ flex: 1, minWidth: 0, padding: 0, background: 'transparent', border: 'none', color: INK, fontFamily: MONO, fontSize: 11, letterSpacing: '.1em', outline: 'none', caretColor: 'var(--accent)' }} />
-        </label>
+        <span aria-hidden="true" style={{ flex: 'none', width: 1, height: 20, margin: '0 8px', background: RULE }} />
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ flex: 'none', color: DIM }}>
+          <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+        <input ref={search} className="idx-input" aria-label="Search players" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search" spellCheck={false}
+          style={{ flex: 1, minWidth: 0, padding: '10px 0', background: 'transparent', border: 'none', color: INK, fontFamily: MONO, fontSize: 'clamp(16px, 2vw, 22px)', letterSpacing: '.02em', outline: 'none', caretColor: 'var(--accent)' }} />
       </div>
       <div className="idx-logos-wrap" style={{ padding: '12px 0 4px' }}>
         <div role="group" aria-label="Filter by team" className="idx-logos">

@@ -253,8 +253,6 @@ html { scroll-behavior: smooth; }
 .idx-later { content-visibility: auto; contain-intrinsic-size: auto 290px; }
 .idx-later-row { content-visibility: auto; contain-intrinsic-size: auto 33px; }
 .idx-input::placeholder { color: #7a746e; }
-/* On a phone the search types at 16px, the least iOS doesn't zoom the page to on focus. */
-@media (max-width: 560px) { .idx-input { font-size: 16px !important; letter-spacing: .04em !important; } }
 .lineup-tile { transition: border-color .15s; }
 .lineup-tile > * { filter: saturate(.45) brightness(.88); transition: filter .2s; }
 a:hover > .lineup-tile { border-color: #ece8e3 !important; }

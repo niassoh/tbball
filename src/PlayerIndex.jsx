@@ -49,7 +49,7 @@ const swatch = team => {
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 // '2015–16' -> '’16'
 const yy = s => `’${s.slice(-2)}`
-const span = p => (p.seasons[0] === p.seasons[1] ? yy(p.seasons[0]) : `${yy(p.seasons[0])}—${yy(p.seasons[1])}`)
+const span = p => (!p.seasons ? '' : p.seasons[0] === p.seasons[1] ? yy(p.seasons[0]) : `${yy(p.seasons[0])}—${yy(p.seasons[1])}`)
 const signed = v => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1).replace('-', '−')}`)
 const firstName = name => name.split(' ')[0]
 const lastName = name => name.split(' ').slice(1).join(' ') || name
@@ -192,15 +192,21 @@ function useOpen(p, to) {
 }
 
 // A portrait in the catalogue: team and seasons over the portrait, then the name and his
-// best season's BPM on the meter. A current player's tile has his span and the LED (lit
-// for players in the latest season); a season's, its year (the year a live LED would
-// misread). A collection's tile (`set`, his seasons) is his best season with the set's
-// span and its key, which opens the set.
-function Tile({ player: p, to, order, onShown, set, open, onSet }) {
+// best season's BPM on the meter (none without a qualified season). A current player's
+// tile has his span and the LED (lit for players in the latest season); a season's, its
+// year (the year a live LED would misread). A collection's tile (`set`, his seasons) is his
+// best season with the set's span and its key, which opens the set (`open`: pressed, its
+// outline running on into the open set). In an open set (`of`, the franchise) the season
+// is the headline, with no head: his team shows, in place of the BPM label, only where it
+// isn't the franchise's code (SEA for OKC). A depth-chart
+// player without a profile (`stub`) has no page to open.
+function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of }) {
   const { opening, events } = useOpen(p, to)
+  const Root = p.stub ? 'span' : Link
+  const link = p.stub ? {} : { to, state: previewOf(p), ...events }
   const tile = (
-    <Link to={to} state={previewOf(p)} {...events} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
-      <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
+    <Root {...link} className={p.stub ? undefined : order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${open ? INK : RULE}`, borderBottomColor: open ? 'transparent' : RULE, margin: '0 -1px -1px 0', opacity: dim && !set ? 0.35 : undefined }}>
+      {!of && <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
         <TeamChip team={teamOf(p)} />
         {!set && (pastBest(p)
           ? <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{bestYear(p)}</span>
@@ -208,58 +214,76 @@ function Tile({ player: p, to, order, onShown, set, open, onSet }) {
               <span className="idx-tile-span">{span(p)}</span>
               <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}`, boxShadow: p.active ? GLOW : 'none' }} />
             </span>)}
-      </span>
+      </span>}
       <Face player={p} square order={order} onShown={onShown} carry={opening} />
       <span className="idx-tile-foot" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 10px 12px', borderTop: `1px solid ${RULE}` }}>
-        <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>
-        <FitName text={lastName(p.name)} />
+        {!of && <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>}
+        <FitName text={of ? p.bestSeason.season.replace('-', '–') : lastName(p.name)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-          <span style={label}>{pastBest(p) && !set ? 'BPM' : `BPM ${bestYear(p)}`}</span>
-          <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={best(p)} /></span>
+          {of && teamOf(p) !== of
+            ? <TeamChip team={teamOf(p)} />
+            : <span style={label}>{best(p) === null || (pastBest(p) && !set) ? 'BPM' : `BPM ${bestYear(p)}`}</span>}
+          {best(p) !== null && <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={best(p)} /></span>}
           <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: 600, color: low(best(p)) ? '#fa962a' : INK }}>{signed(best(p))}</span>
         </span>
       </span>
       {opening && <span aria-hidden="true" className="idx-opening" />}
-    </Link>
+    </Root>
   )
   if (!set) return tile
-  // The key sits over the tile's head (a button can't go inside its link).
+  // The key sits over the tile's head (a button can't go inside its link); pressed, it's lit.
   return (
-    <span style={{ position: 'relative', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    <span style={{ position: 'relative', zIndex: open ? 1 : undefined, display: 'flex', flexDirection: 'column', minWidth: 0, opacity: dim ? 0.35 : undefined }}>
       {tile}
       <button type="button" className="idx-tile-head" aria-expanded={open} aria-label={`${p.name}: ${set.length} seasons`} onClick={onSet}
-        style={{ position: 'absolute', top: 0, right: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, color: open ? 'var(--accent)' : DIM }}>
+        style={{ position: 'absolute', top: 1, right: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 9px', background: open ? INK : 'transparent', border: 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, color: open ? '#262422' : DIM }}>
         <span className="idx-tile-span">{yy(set[0].bestSeason.season)}—{yy(set[set.length - 1].bestSeason.season)}</span>
-        <Stack on={open} />
-        <span style={{ fontWeight: 600, color: open ? 'var(--accent)' : INK }}>{String(set.length).padStart(2, '0')}</span>
+        <Stack ink={open ? '#262422' : INK} back={open ? '#262422' : FAINT} />
+        <span style={{ fontWeight: 600, color: open ? '#262422' : INK }}>{String(set.length).padStart(2, '0')}</span>
       </button>
     </span>
   )
 }
 
 // A collection's key: three cards, hairline, the back two peeking up and right.
-function Stack({ on }) {
+function Stack({ ink, back }) {
   return (
     <span aria-hidden="true" style={{ position: 'relative', width: 13, height: 10, flex: 'none' }}>
-      {[4, 2].map(d => <span key={d} style={{ position: 'absolute', left: d, top: 4 - d, width: 9, height: 6, borderTop: `1px solid ${FAINT}`, borderRight: `1px solid ${FAINT}` }} />)}
-      <span style={{ position: 'absolute', left: 0, top: 4, width: 9, height: 6, border: `1px solid ${on ? 'var(--accent)' : INK}` }} />
+      {[4, 2].map(d => <span key={d} style={{ position: 'absolute', left: d, top: 4 - d, width: 9, height: 6, borderTop: `1px solid ${back}`, borderRight: `1px solid ${back}` }} />)}
+      <span style={{ position: 'absolute', left: 0, top: 4, width: 9, height: 6, border: `1px solid ${ink}` }} />
     </span>
   )
 }
 
 // A collection opened: its seasons in the grid's own columns, a full row under its tile's
-// row (the grid packs dense, so the tiles after it fill that row first), under a hairline
-// and his name.
-function SetRow({ set, playerPath }) {
-  const p = set[0]
+// row (the grid packs dense, so the tiles after it fill that row first). Its ink outline
+// meets the open tile's, its top rule stopping at the tile's edges, so the set reads as
+// coming out of it; the tile is the element before it, measured as the grid reflows.
+function SetRow({ set, of, playerPath }) {
+  const ref = useRef(null)
+  const [notch, setNotch] = useState(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    const fit = () => {
+      const a = el.getBoundingClientRect()
+      const t = el.previousElementSibling.getBoundingClientRect()
+      setNotch([t.left - a.left, t.right - a.left])
+    }
+    fit()
+    const watch = new ResizeObserver(fit)
+    watch.observe(el)
+    return () => watch.disconnect()
+  }, [])
+  const line = { position: 'absolute', top: 0, height: 1, background: INK }
   return (
-    <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', paddingBottom: 24 }}>
-      <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 12, padding: '20px 0 12px' }}>
-        <span style={{ ...label, color: INK, fontWeight: 600 }}>{p.name}</span>
-        <span style={{ flex: 1, height: 1, background: RULE }} />
-        <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{String(set.length).padStart(2, '0')}</span>
-      </div>
-      {set.map(s => <Tile key={s.bestSeason.season} player={s} to={playerPath(s.slug)} order={0} />)}
+    <div ref={ref} style={{ position: 'relative', gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', padding: '14px 0', marginBottom: 14 }}>
+      {set.map(s => <Tile key={s.bestSeason.season} player={s} to={playerPath(s.slug)} order={0} of={of} />)}
+      <span aria-hidden="true" style={{ position: 'absolute', inset: '0 -1px -1px 0', zIndex: 2, borderLeft: `1px solid ${INK}`, borderRight: `1px solid ${INK}`, borderBottom: `1px solid ${INK}`, pointerEvents: 'none' }}>
+        {notch && <>
+          <span style={{ ...line, left: -1, width: Math.max(0, notch[0]) }} />
+          <span style={{ ...line, left: notch[1] - 1, right: -1 }} />
+        </>}
+      </span>
     </div>
   )
 }
@@ -378,8 +402,9 @@ export default function PlayerIndex() {
 
   const named = p => !q || typedTeam || fold(p.name).includes(q)
   const chart = mode === 'current' && pick && teams ? teams.find(t => t.team === pick) : null
-  // On the depth chart he's on its team, whichever the index last saw him with.
-  const tiers = chart ? depthTiers(chart.depth).map(tier => tier.filter(s => bySlug.has(s)).map(s => ({ ...bySlug.get(s), team: pick })).filter(named)) : null
+  // On the depth chart he's on its team, whichever the index last saw him with; one not in
+  // the index yet is his name alone.
+  const tiers = chart ? depthTiers(chart.depth).map(tier => tier.map(d => ({ ...(bySlug.get(d.slug) || { slug: d.slug, name: d.name, headshot: null, bestSeason: null, stub: true }), team: pick })).filter(named)) : null
   const pool = mode === 'current' ? (pick ? null : players?.filter(p => p.active)) : pick ? best[pick] : peaks
   const matches = (pool || []).filter(named).sort(byBest)
   const portraits = matches.filter(p => ILLUSTRATED.has(p.headshot))
@@ -424,9 +449,10 @@ export default function PlayerIndex() {
           <div className="idx-grid" style={grid}>
             {(all ? portraits : portraits.slice(0, EAGER)).map((p, i) => {
               const at = `${pick}|${p.slug}`
+              const shut = open && open.startsWith(`${pick}|`) && open !== at
               return [
-                <Tile key={key(p)} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} set={p.set} open={open === at} onSet={() => setOpen(open === at ? null : at)} />,
-                open === at && p.set && <SetRow key={`${key(p)}+`} set={p.set} playerPath={playerPath} />
+                <Tile key={key(p)} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} set={p.set} open={open === at} dim={shut} onSet={() => setOpen(open === at ? null : at)} />,
+                open === at && p.set && <SetRow key={`${key(p)}+`} set={p.set} of={pick} playerPath={playerPath} />
               ]
             })}
           </div>

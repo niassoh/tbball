@@ -30,13 +30,13 @@ export const topSeasons = (rows, franchise, share = 0.05) => {
   })
 }
 
-// A team's depth chart (teams.json) as its two tiers, by slug: the starters (each
+// A team's depth chart (teams.json) as its two tiers of its players: the starters (each
 // position's first, PG to C), then the bench in depth order (every position's second, then
 // third...). A player listed at two positions sits where he's higher.
 export const depthTiers = depth => {
   const rows = depth ? depth.rows : []
   const seen = new Set()
-  const at = k => rows.map(r => r.players[k]).filter(p => p && !seen.has(p.slug) && seen.add(p.slug)).map(p => p.slug)
+  const at = k => rows.map(r => r.players[k]).filter(p => p && !seen.has(p.slug) && seen.add(p.slug))
   const starters = at(0)
   const bench = []
   for (let k = 1; k < Math.max(1, ...rows.map(r => r.players.length)); k++) bench.push(...at(k))

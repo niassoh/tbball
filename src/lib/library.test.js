@@ -31,7 +31,7 @@ describe('library', () => {
       { pos: 'SG', players: [{ slug: 'b' }, { slug: 'g' }] },
       { pos: 'SF', players: [{ slug: 'c' }, { slug: 'b' }, { slug: 'h' }] }
     ] }
-    expect(depthTiers(depth)).toEqual([['a', 'b', 'c'], ['f', 'g', 'h']])
+    expect(depthTiers(depth).map(tier => tier.map(p => p.slug))).toEqual([['a', 'b', 'c'], ['f', 'g', 'h']])
     expect(depthTiers(null)).toEqual([[], []])
   })
 })

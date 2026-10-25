@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { headshotUrl } from '../api.js'
 import { rowAge } from '../lib/age.js'
 import { MONO, fmt, heat } from '../lib/format.js'
+import { define } from '../lib/glossary.js'
 import { initials } from '../lib/teams.js'
 
 // The Leaderboard's table, compact: rank (in the sorted stat, among the whole season),
@@ -406,7 +407,7 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
                   {!na && setFilter && <ColumnFilter stat={l} share={filters[l]} set={setFilter} />}
                   <button type="button" className="lb-head-cell" disabled={na} onClick={() => onSort(l)} title={na ? 'Unavailable for the last 30 days' : on ? 'Sorted best first; click for worst first' : 'Sort by this stat, best first'}
                     style={{ ...label, display: 'flex', width: '100%', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 3, padding: 0, border: 0, background: 'transparent', cursor: na ? 'not-allowed' : 'pointer', textAlign: 'right', lineHeight: 1.25, color: na ? '#6a645e' : on ? INK : DIM, textDecoration: na ? 'line-through' : 'none' }}>
-                    <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={na ? undefined : doc.stats[l].desc ? `${l}: ${doc.stats[l].desc}` : l}>{name}</span>
+                    <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={na ? undefined : define(l) || doc.stats[l].desc ? `${l}: ${define(l) || doc.stats[l].desc}` : l}>{name}</span>
                     <span aria-hidden="true" style={{ width: 7, flex: 'none', textAlign: 'left', color: on ? INK : 'transparent' }}>{reverse ? '↑' : '↓'}</span>
                   </button>
                 </div>

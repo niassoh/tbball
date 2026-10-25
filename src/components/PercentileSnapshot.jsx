@@ -1,5 +1,6 @@
 import { MONO, col, fmt } from '../lib/format.js'
 import WindowTag from './WindowTag.jsx'
+import Gloss from './Gloss.jsx'
 import { emptyNote } from '../lib/seasons.js'
 
 // [group name, tab it links to, stat labels] as in the design's SNAPG.
@@ -46,7 +47,7 @@ export default function PercentileSnapshot({ profile: p, season: kp, onPickGroup
                 return (
                   <div key={label} style={{ ...rowGrid, alignItems: 'center', height: 23, borderBottom: '1px dashed #3d3a37' }}>
                     <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minWidth: 0 }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: has ? '#d6d1cb' : '#837d76', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+                      <Gloss term={label} style={{ fontSize: 11, fontWeight: 500, color: has ? '#d6d1cb' : '#837d76', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</Gloss>
                       <WindowTag stat={s} />
                     </span>
                     <div style={{ position: 'relative', height: 18, display: 'flex', alignItems: 'center' }}>

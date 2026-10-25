@@ -124,7 +124,7 @@ function TeamLogo({ team, on, faded, onClick }) {
   const img = { position: 'absolute', inset: 0, margin: 'auto', width: 26, height: 26, objectFit: 'contain' }
   return (
     <button type="button" className="idx-logo" aria-pressed={on} aria-label={team} title={team} onClick={onClick}
-      style={{ position: 'relative', height: 44, padding: 0, background: on ? '#2f2c2a' : 'transparent', border: `1px solid ${on ? INK : 'transparent'}`, cursor: 'pointer', opacity: faded ? 0.3 : 1 }}>
+      style={{ position: 'relative', height: 44, padding: 0, background: on ? '#2f2c2a' : 'transparent', border: `1px solid ${on ? INK : 'transparent'}`, cursor: 'pointer', opacity: faded ? 0.6 : 1 }}>
       <img className="idx-logo-mono" src={asset(`logos/sm/${team}.webp`)} alt="" style={img} />
       <img className="idx-logo-color" src={asset(`logos/color/sm/${team}.webp`)} alt="" style={img} />
     </button>

@@ -456,7 +456,8 @@ export default function PlayerIndex() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${EDGE}` }}>
         <BrandMark />
         <SiteNav at="players" />
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ flex: 'none', marginLeft: 'auto', color: DIM }}>
+        <span aria-hidden="true" style={{ flex: 'none', width: 1, height: 20, margin: '0 8px 0 auto', background: RULE }} />
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style={{ flex: 'none', color: DIM }}>
           <circle cx="6.5" cy="6.5" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
           <path d="M10.3 10.3 15 15" stroke="currentColor" strokeWidth="1.5" />
         </svg>

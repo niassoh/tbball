@@ -526,3 +526,9 @@ a:hover > .lineup-tile > * { filter: none; }
 @media (prefers-reduced-motion: reduce) {
   .tc-logo, .tc-fade, .tc-pop { animation: none; }
 }
+/* The tour (Tour.jsx): the cutout glides to each step's target, and the card's words fade
+   up in place. */
+.tour-spot { transition: top .32s cubic-bezier(.2, .8, .2, 1), left .32s cubic-bezier(.2, .8, .2, 1), width .32s cubic-bezier(.2, .8, .2, 1), height .32s cubic-bezier(.2, .8, .2, 1); }
+.tour-in { animation: tour-in .2s ease-out both; }
+@keyframes tour-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } .tour-in { animation: none; } }

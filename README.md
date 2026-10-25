@@ -61,6 +61,7 @@ thinking-bball's nightly run dispatches it after committing new data (its
 - `src/lib/` — pure logic ported from the design (percentile colors, chart geometry, shot-zone map) and season-span averages (`span.js`: minutes-weighted, shooting % attempts-weighted; used by the stat tables' drag-to-average and career rows); unit tested.
 - `src/components/` — one component per design section.
 - Routes: `/` player search, `/player/:slug` profile, `/leaderboard` leaderboard, `/teams` team board (2026-27 from the team sheet: thinking-bball `lib/teamboard.js`, `api/teamboard/<season>.json`), `/careers` career trajectories (not linked from the site yet; reach it by URL).
+- Tours (`src/components/Tour.jsx`): a TOUR button in the Footprint and Lonestar section headers and the Leaderboard's controls row walks through the feature, a cutout on one control or datapoint at a time. Steps are data (target selector, caption, optional action); the profile tours' example tile or row is the player's own (`tourExample` in `lib/footprint.js` and `lib/lonestar.js`), and the Leaderboard's sets the board step by step to the best 5-season runs of ScoreVal.
 - `/careers` builds every career from the 30 season boards (`lib/careers.js`, once a session per season type, about 2 MB gzipped). Its state lives in the URL: `?p=slug,slug,slug&x=age|season|career&y=<stat>&scale=pctl&smooth=3` (defaults left out: career year across, BPM, raw, 1Y), plus `?playoffs`.
 
 ## Differences from the design reference

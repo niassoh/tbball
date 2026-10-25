@@ -87,3 +87,21 @@ export const unpackLonestar = doc => {
   }
   return { ...doc, views: doc.views.map(v => ({ ...v, scenarios: v.scenarios.map(scenario) })) }
 }
+
+// The row the tour walks through, and its caption: the stat his change stands out most in
+// among players' (its rank nearest either end), else Load where none is ranked (too few
+// minutes). `last`: his name as the caption calls him; `who`: the stars who sit.
+export const tourExample = (s, last, who) => {
+  const ranked = STATS.filter(x => s.ranks && s.ranks[x.key] && s.change[x.key] !== null)
+  const edge = x => Math.min(s.ranks[x.key].rank, s.ranks[x.key].of + 1 - s.ranks[x.key].rank) / s.ranks[x.key].of
+  const stat = ranked.reduce((a, x) => (edge(x) < edge(a) ? x : a), ranked[0]) || STATS[0]
+  const k = stat.key
+  const r = s.ranks && s.ranks[k]
+  const moves = `${value(stat, s.on[k])} with ${who}, ${value(stat, s.off[k])} without (${change(stat, s.change[k])})`
+  return {
+    key: k,
+    text: r
+      ? `${last}'s ${stat.label} stands out most: ${moves}, #${r.rank} of ${r.of} players' changes (#1 the biggest increase).`
+      : `${last}'s ${stat.label}: ${moves}. Too few minutes here to rank it against other players.`
+  }
+}

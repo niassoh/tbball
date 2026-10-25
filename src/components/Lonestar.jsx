@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchLonestar, headshotUrl } from '../api.js'
 import { seasonAges } from '../lib/age.js'
 import { MONO } from '../lib/format.js'
-import { STATS, change, lastName, namesText, posOf, seasonRanges, starsText, toneOf, value } from '../lib/lonestar.js'
+import { STATS, change, lastName, namesText, posOf, seasonRanges, starsText, toneOf, tourExample, value } from '../lib/lonestar.js'
 import { openingSeasons, seasonsBetween, spanId, spanText } from '../lib/seasons.js'
 import JerseyOverlay from './JerseyOverlay.jsx'
 import ModeSwitch from './ModeSwitch.jsx'
@@ -10,6 +10,7 @@ import Popover from './Popover.jsx'
 import SeasonPicker from './SeasonPicker.jsx'
 import SectionHeader from './SectionHeader.jsx'
 import TeamInitials from './TeamInitials.jsx'
+import Tour, { TourButton } from './Tour.jsx'
 
 // The Lonestar tab: how he plays when his team's stars sit (thinking-bball
 // lib/lonestar.js). Keys pick the stars: his top star teammate, or his top two. On the
@@ -308,7 +309,7 @@ function Row({ stat, s, scale, mode, skey, index }) {
   const pctl = mode === 'pctl'
   const rank = r ? `; his change ranks #${r.rank} of ${r.of} players' (#1 the biggest increase)` : '; too few minutes to rank'
   return (
-    <div className="ls-row" title={`${stat.label}: ${value(stat, s.on[k])} with his stars (${pctlText(pOn)} pctl), ${value(stat, s.off[k])} without (${pctlText(pOff)} pctl)${rank}`}>
+    <div className="ls-row" data-stat={k} title={`${stat.label}: ${value(stat, s.on[k])} with his stars (${pctlText(pOn)} pctl), ${value(stat, s.off[k])} without (${pctlText(pOff)} pctl)${rank}`}>
       <span style={{ gridArea: 'stat', ...label, color: '#c9c3bc' }}>{stat.label}</span>
       <span className="ls-with" style={{ gridArea: 'with', textAlign: 'right', color: DIM }}>{pctl ? pctlText(pOn) : value(stat, s.on[k])}</span>
       <Slider key={skey} on={s.on[k]} off={s.off[k]} scale={scale} color={tone === 'neutral' ? MID : TONES[tone]} index={index} />
@@ -433,6 +434,7 @@ function Stretches({ scenarios, sections, order, at, pick, close, names, meta, l
 // his seasons, for the header.
 export default function Lonestar({ profile: p }) {
   const [doc, setDoc] = useState(null)
+  const [touring, setTouring] = useState(false)
   useEffect(() => {
     let live = true
     fetchLonestar(p.slug).then(d => live && setDoc(d), () => live && setDoc(false))
@@ -443,15 +445,16 @@ export default function Lonestar({ profile: p }) {
     <section id="sec-lonestar" style={{ scrollMarginTop: 'calc(var(--topbar-h, 0px) + 48px)', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 24 }}>
       <SectionHeader title="Lonestar">
         <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, letterSpacing: '.08em', textTransform: 'uppercase' }}>{p.name} · {spanText(seasons[0], seasons[seasons.length - 1])} REG</span>
+        {doc && <TourButton height={26} onClick={() => setTouring(true)} />}
       </SectionHeader>
       {doc
-        ? <Frame p={p} ls={doc} />
+        ? <Frame p={p} ls={doc} touring={touring} endTour={() => setTouring(false)} />
         : <div className="ls-frame" style={{ border: `1px solid ${RULE}`, minHeight: 680, display: 'grid', placeItems: 'center', fontFamily: MONO }}><span style={label}>{doc === false ? 'Unavailable' : 'Loading'}</span></div>}
     </section>
   )
 }
 
-function Frame({ p, ls }) {
+function Frame({ p, ls, touring, endTour }) {
   // The span first (his opening seasons, lib/seasons.js, or the first with something to offer), then the
   // scenario within it. A season or span with nothing to offer has no view: the module says
   // so in place of its body.
@@ -502,6 +505,25 @@ function Frame({ p, ls }) {
     const parts = combined(x)
     return parts.length > 3 ? `${parts.slice(0, 2).join(' + ')} + ${parts.length - 2} more` : parts.join(' + ')
   }
+  // The tour, on the stretch on show, its example the stat his change stands out most in.
+  const tourSteps = () => {
+    const last = lastName(p.name)
+    if (!s) return [{ title: 'Who sits', target: '#sec-lonestar .ls-bar', text: `Lonestar is how ${last} plays when his team's stars sit. No star sat enough in these seasons to compare: add seasons to the span.` }]
+    const who = s.all ? (s.kind === 'two' ? 'his top two' : 'his top star') : starsText(s.stars)
+    const ex = tourExample(s, last, who)
+    return [
+      { title: 'Who sits', target: '#sec-lonestar .ls-bar', action: () => setMode('raw'),
+        text: `Lonestar is how ${last} plays when his team's stars sit. Pick the seasons on the left; WITHOUT picks who sits, ${s.all ? `here each season's ${s.kind === 'two' ? 'top two' : 'top star'}` : `here ${who}`}.` },
+      { title: 'Load against Net', target: '#sec-lonestar .ls-plot',
+        text: `Across is Load, the possessions he uses or creates per 100; up is Net, his team's margin per 100 while he plays. The square is ${last} with ${who} (${value(LOAD, s.on.load)} Load, ${change(NET, s.on.net)} Net), the arrow's tip without (${value(LOAD, s.off.load)}, ${change(NET, s.off.net)}).` },
+      { title: 'A row a stat', target: `#sec-lonestar .ls-row[data-stat="${ex.key}"]`,
+        text: `Each row is one stat across the league's range, square to arrow as in the plot. ${ex.text}` },
+      { title: 'Better or worse', target: '#sec-lonestar [data-tour="ls-legend"]',
+        text: 'A blue arrow is better without them and an orange one worse; a volume stat (Load, Pts / 75, Box Creation, 3PA / 75, FTA / 75) is blue for more.' },
+      { title: 'Raw or percentile', target: '#sec-lonestar [aria-label="Show values as"]',
+        text: 'PCTL reads every row as a league percentile instead of its value.' }
+    ]
+  }
   return (
     <div className="ls-frame" style={{ border: `1px solid ${RULE}`, fontFamily: MONO }}>
       {/* One row of fixed height, so the module's never changes: the span (its strip in a
@@ -543,7 +565,7 @@ function Frame({ p, ls }) {
               <span style={{ gridArea: 'change', textAlign: 'right', ...label }}>Change</span>
             </div>
             {STATS.map((stat, i) => <Row key={stat.key} stat={stat} s={s} scale={ls.scale && ls.scale[stat.key]} mode={mode} skey={skey} index={i} />)}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: `12px ${PAD}px`, fontSize: 9, letterSpacing: '.1em', color: DIM }}>
+            <div data-tour="ls-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: `12px ${PAD}px`, fontSize: 9, letterSpacing: '.1em', color: DIM }}>
               <span style={legendItem}><span style={{ width: SQUARE, height: SQUARE, flex: 'none', boxSizing: 'border-box', border: `1.5px solid ${MID}` }} />WITH</span>
               <span style={legendItem}><span style={head(1, MID)} />WITHOUT</span>
               <span style={legendItem}>{legendArrow(TONES.good, 1)}BETTER W/O</span>
@@ -552,6 +574,7 @@ function Frame({ p, ls }) {
           </div>
         </div>
       )}
+      {touring && <Tour steps={tourSteps()} onClose={endTour} />}
     </div>
   )
 }

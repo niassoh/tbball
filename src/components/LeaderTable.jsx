@@ -398,7 +398,7 @@ function LeaderTable({ doc, group, rows, pager, rank, sortLabel, reverse, onSort
             const name = part ? SIDES[part] : l.replace(/ Δ$/, '\u00a0Δ')
             const yearsAt = j => (j >= 0 && j < shown.stats.length ? doc.stats[shown.stats[j]].years : null)
             return (
-              <th key={l} style={{ ...head, minWidth: part ? 46 : 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none', ...(turnsDef(doc, shown, i) ? { borderLeft: '1px solid #837d76' } : {}), ...sideRule(doc, shown.stats, i, '#837d76'), ...(part || opened(doc, shown.stats, i) ? { borderTop: '1px solid #837d76' } : {})}} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
+              <th key={l} data-stat={l} style={{ ...head, minWidth: part ? 46 : 58, scrollSnapAlign: 'start', scrollMarginLeft: held, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none', ...(turnsDef(doc, shown, i) ? { borderLeft: '1px solid #837d76' } : {}), ...sideRule(doc, shown.stats, i, '#837d76'), ...(part || opened(doc, shown.stats, i) ? { borderTop: '1px solid #837d76' } : {})}} aria-sort={on ? (reverse ? 'ascending' : 'descending') : 'none'}>
                 {years && <Bracket years={years} start={yearsAt(i - 1) !== years} end={yearsAt(i + 1) !== years} />}
                 {doc.stats[l].sub && <Expand open={open.has(l)} stat={l} toggle={() => toggle(l)} />}
                 {sideStarts(doc, shown, i) && <span style={{ position: 'absolute', top: 4, left: 7, fontSize: 8, letterSpacing: '.14em', color: '#837d76', whiteSpace: 'nowrap' }}>{doc.stats[l].side === 'def' ? 'DEFENSE' : 'OFFENSE'}</span>}

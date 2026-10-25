@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardRecent, fetchLeaderboardSeasons } from './api.js'
 import { agesText, liveAges } from './lib/age.js'
 import { bestEras, combined, combinedDelta, eachSeason, eras, qualified, singleYear, withPlayer } from './lib/board.js'
-import { MONO } from './lib/format.js'
+import { MONO, fmt } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
 import { seasonsBetween, spanYears } from './lib/seasons.js'
 import { useSeasonType } from './useSeasonType.js'
@@ -16,6 +16,7 @@ import Popover from './components/Popover.jsx'
 import SeasonPicker from './components/SeasonPicker.jsx'
 import SeasonToggle from './components/SeasonToggle.jsx'
 import BrandMark from './components/BrandMark.jsx'
+import Tour, { TourButton } from './components/Tour.jsx'
 
 // The Leaderboard: one season's players (regular season or playoffs, thinking-bball
 // lib/profile.js leaderboard), a stat group's stats as a table and any two stats as a
@@ -89,7 +90,7 @@ function Groups({ groups, active, pick, filtered, views = [], view }) {
           setMenu(m => (m ? null : { left: r.left, top: r.bottom + 6 }))
         }
         return (
-          <button key={g.id} type="button" className="lb-group" aria-pressed={on} aria-disabled={g.na || undefined} aria-haspopup={menued ? 'menu' : undefined} aria-expanded={menued ? !!menu : undefined} data-views={menued || undefined} onClick={click} title={g.na ? (typeof g.na === 'string' ? g.na : NA) : undefined}
+          <button key={g.id} type="button" className="lb-group" data-group={g.id} aria-pressed={on} aria-disabled={g.na || undefined} aria-haspopup={menued ? 'menu' : undefined} aria-expanded={menued ? !!menu : undefined} data-views={menued || undefined} onClick={click} title={g.na ? (typeof g.na === 'string' ? g.na : NA) : undefined}
             style={{ flex: 'none', height: 28, padding: '0 11px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: g.na ? FAINT : on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: g.na ? 'not-allowed' : 'pointer' }}>
             {g.name}
             {menued && view !== g.id && <span style={{ color: DIM, fontWeight: 500 }}>· {views.find(([id]) => id === view)[2]}</span>}
@@ -308,6 +309,7 @@ export default function Leaderboard() {
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
   const [chart, setChart] = useState(true)
+  const [touring, setTouring] = useState(false)
   const close = useCallback(() => setPicked(null), [])
   // A row opens its card, or closes it when it's the one open.
   const toggle = useCallback(k => setPicked(p => (p === k ? null : k)), [])
@@ -519,6 +521,30 @@ export default function Leaderboard() {
   const none = doc && !doc.players.length ? (ageOn ? `No players at ${agesText(ageOn.from, ageOn.to).toLowerCase()}` : 'No players') : null
   const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season runs` : ageOn ? agesText(ageOn.from, ageOn.to) : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : spanYears(span.from, span.to)
 
+  // The tour: the tabs, then the controls one by one to the best 5-season runs of ScoreVal,
+  // each step setting the board the way it says. The last names the run on top once its
+  // board is in.
+  const tourSteps = () => {
+    const best = eraOn === 5 && sortLabel === 'ScoreVal' && !sort.reverse && !loading && drawn[0]
+    return [
+      { title: 'Stat groups', target: '.lb [aria-label="Stat group"]',
+        text: "Each tab is a group of stats, from Impact to Lonestar. The table lists the group's stats; the chart plots two of them, a dot a player." },
+      { title: 'Seasons', target: '.lb button[aria-label^="Seasons"]', action: () => setRecent(false),
+        text: "Seasons sets the rows: one season, a span (drag across the years), or every player's runs of 3, 5 or 7 seasons in a row. Let's find the best five-year runs of ScoreVal." },
+      { title: 'Five-year runs', target: ['.lb button[aria-label^="Seasons"]', '.lb button[aria-label^="Minutes"]'],
+        action: () => { setRecent(false); setAges(null); setEra(5); setTop(null); setTeam(null); setFind(''); setFilters({}) },
+        text: "In its panel, RUNS · 5 YR turns every player's five straight seasons into one row, averaged, across all the years. MIN 50% keeps the top half of them by minutes." },
+      { title: 'Offense', target: '.lb [data-group="offense"]', action: () => choose('offense'),
+        text: "ScoreVal is under Offense: an estimate of a player's impact, in points per 100, from his scoring alone." },
+      { title: 'Sort', target: '.lb th[data-stat="ScoreVal"]', action: () => setSort({ label: 'ScoreVal', reverse: false }),
+        text: "Click a stat's head to sort by it, best first; click again for worst first." },
+      { title: 'The best run', target: '.lb-table-wrap tr[data-id]',
+        text: best
+          ? `${best.name}, ${spanYears(best.era[0], best.era[1])}: ${fmt(doc.stats.ScoreVal, valueOf(doc, best, 'ScoreVal'))} ScoreVal over five seasons, the best run since ${seasons[0].replace('-', '–')}. Click a row for his card.`
+          : 'Loading every five-year run…' }
+    ]
+  }
+
   return (
     <main className="lb" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: `1px solid ${RULE}` }}>
@@ -565,6 +591,7 @@ export default function Leaderboard() {
           </label>
           {doc ? <Teams teams={teams} team={team} set={setTeam} /> : <Skel w={TEAM_W} h={30} />}
           <ModeSwitch mode={mode} setMode={setMode} />
+          {doc && <TourButton onClick={() => setTouring(true)} />}
         </span>
       </div>
 
@@ -595,6 +622,7 @@ export default function Leaderboard() {
           </div>}
         </div>
       )}
+      {touring && <Tour steps={tourSteps()} onClose={() => setTouring(false)} />}
     </main>
   )
 }

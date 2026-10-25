@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { STATS, change, namesText, posOf, seasonRanges, seasonTag, starsText, toneOf, unpackLonestar, value } from './lonestar.js'
+import { STATS, change, namesText, posOf, seasonRanges, seasonTag, starsText, toneOf, tourExample, unpackLonestar, value } from './lonestar.js'
 
 const stat = key => STATS.find(s => s.key === key)
 
@@ -60,5 +60,22 @@ describe('lonestar', () => {
     expect(s.pctl.off).toEqual({ minutes: 20, load: 70, pct3: 55 })
     expect(s.ranks).toEqual({ minutes: { rank: 12, of: 395 }, load: { rank: 3, of: 395 } })
     expect(s.kind).toBe('one')
+  })
+
+  test("the tour's row: the stat his change ranks nearest either end in, else Load", () => {
+    const s = {
+      on: { load: 53.9, pts75: 27.4, ctov: 0.0767 },
+      off: { load: 59.6, pts75: 30.8, ctov: 0.0969 },
+      change: { load: 5.7, pts75: 3.4, ctov: 0.0202 },
+      ranks: { load: { rank: 274, of: 723 }, pts75: { rank: 216, of: 723 }, ctov: { rank: 690, of: 723 } }
+    }
+    expect(tourExample(s, 'Jokić', 'Murray')).toEqual({
+      key: 'ctov',
+      text: "Jokić's cTOV% stands out most: 7.7 with Murray, 9.7 without (+2.0), #690 of 723 players' changes (#1 the biggest increase)."
+    })
+    expect(tourExample({ ...s, ranks: null }, 'Jokić', 'Murray')).toEqual({
+      key: 'load',
+      text: "Jokić's Load: 53.9 with Murray, 59.6 without (+5.7). Too few minutes here to rank it against other players."
+    })
   })
 })

@@ -1,26 +1,27 @@
 import { MONO } from '../lib/format.js'
 import { useSeasonType } from '../useSeasonType.js'
 
-// The playoffs switch: two square segments, the chosen one lit on a quiet fill (ink on
-// dark grey for the regular season, gold on a faint gold wash for the playoffs). The
-// playoffs segment carries a small square that fills gold when it's on. `onRegular`: also
-// called when REG SEASON is clicked, and `regularLit` false shows it unlit (the
-// Leaderboard's last 30 days, which REG SEASON switches back from).
+// The lit LED's soft glow, in the accent: green in the regular season, gold in the
+// playoffs (index.css), as the index's active dots.
+const GLOW = '0 0 5px 1px color-mix(in srgb, var(--accent) 55%, transparent)'
+
+// The playoffs switch: two bare mono labels, each behind an LED. The mode you're in is lit,
+// its LED glowing in the accent and its label in ink; the other is muted, its LED an empty
+// ring. `onRegular`: also called when REG SEASON is clicked, and `regularLit` false shows
+// it unlit (the Leaderboard's last 30 days, which REG SEASON switches back from).
 export default function SeasonToggle({ onRegular, regularLit = true }) {
   const { playoffs, setPlayoffs } = useSeasonType()
   const regular = !playoffs && regularLit
-  const seg = (on, fill, ink) => ({
-    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: 'none', cursor: on ? 'default' : 'pointer',
-    background: on ? fill : 'transparent', color: on ? ink : '#a09a93',
-    fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', fontWeight: on ? 700 : 400, whiteSpace: 'nowrap', transition: 'background .2s, color .2s'
+  const seg = on => ({
+    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 0', border: 'none', cursor: on ? 'default' : 'pointer',
+    background: 'transparent', color: on ? '#ece8e3' : '#a09a93',
+    fontFamily: MONO, fontSize: 10, letterSpacing: '.08em', fontWeight: on ? 700 : 400, whiteSpace: 'nowrap'
   })
+  const led = on => <span aria-hidden="true" style={{ width: 6, height: 6, flex: 'none', borderRadius: '50%', background: on ? 'var(--accent)' : 'transparent', border: `1px solid ${on ? 'var(--accent)' : '#7a746e'}`, boxShadow: on ? GLOW : 'none' }} />
   return (
-    <div role="group" aria-label="Season type" style={{ display: 'inline-flex', border: '1px solid #544f4b', flexShrink: 0 }}>
-      <button type="button" aria-pressed={regular} onClick={() => { if (playoffs) setPlayoffs(false); onRegular?.() }} style={seg(regular, '#3d3a37', '#ece8e3')}>REG SEASON</button>
-      <button type="button" aria-pressed={playoffs} onClick={() => !playoffs && setPlayoffs(true)} style={{ ...seg(playoffs, 'var(--accent-soft)', 'var(--accent)'), borderLeft: '1px solid #544f4b' }}>
-        <span aria-hidden="true" style={{ width: 8, height: 8, border: `1px solid ${playoffs ? 'var(--accent)' : '#837d76'}`, background: playoffs ? 'var(--accent)' : 'transparent' }} />
-        PLAYOFFS
-      </button>
+    <div role="group" aria-label="Season type" style={{ display: 'inline-flex', gap: 14, flexShrink: 0 }}>
+      <button type="button" aria-pressed={regular} onClick={() => { if (playoffs) setPlayoffs(false); onRegular?.() }} style={seg(regular)}>{led(regular)}REG SEASON</button>
+      <button type="button" aria-pressed={playoffs} onClick={() => !playoffs && setPlayoffs(true)} style={seg(playoffs)}>{led(playoffs)}PLAYOFFS</button>
     </div>
   )
 }

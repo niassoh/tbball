@@ -17,13 +17,18 @@ export const openingSeasons = (p, seasons) => {
   return seasons.slice(latest && latest.mp >= 500 ? -2 : -3)
 }
 
-// Why a profile's season has none of its type's values (`empty`): he played under the
-// sheet's minutes floor (his lineups that season have him on the floor), or not at all. A
-// regular season is only empty beside a playoff run, so he played it.
+// Why a profile's season has none of its type's values (`empty`): the sheet's historical
+// tab (about 175 players a season, not everyone over the floor) has no row for him
+// (`unsourced`), whatever his minutes; he played under the sheet's minutes floor (his
+// lineups that season have him on the floor), or not at all. A regular season is only
+// empty beside a playoff run, so he played it. His lineup minutes are rounded, so a count
+// at the floor is still under it by the sheet's (Aldrich's 2015-16: 799.6, shown 800) and
+// goes unsaid; one over it is not under it, whatever the reason the sheet has no row.
 export const MIN_FLOOR = { regular: 800, playoffs: 50 }
 export const emptyNote = (s, type) => {
   const on = s.card && s.card.lineups && s.card.lineups.on
+  if (s.unsourced || (on && on.minutes > MIN_FLOOR[type])) return 'NOT IN THE SOURCE DATA'
   const under = `UNDER THE ${MIN_FLOOR[type]}-MIN FLOOR`
-  if (on && on.minutes) return `${on.minutes} MIN · ${under}`
+  if (on && on.minutes) return on.minutes < MIN_FLOOR[type] ? `${on.minutes} MIN · ${under}` : under
   return type === 'playoffs' ? 'NO PLAYOFF GAMES' : under
 }

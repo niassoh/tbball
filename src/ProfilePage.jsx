@@ -78,7 +78,7 @@ function Cards({ profile: p, loading, onPickGroup }) {
   return (
     <div className="profile-cards-wrap">
       <div className={L > 0 ? 'profile-cards with-rail' : 'profile-cards'}>
-        {L > 0 && <div className="season-rail-cell"><SeasonRail seasons={p.seasons} index={k} onPick={choose} playing={playing} onTogglePlay={togglePlay} /></div>}
+        {L > 0 && <div className="season-rail-cell"><SeasonRail seasons={p.seasons} type={p.seasonType} index={k} onPick={choose} playing={playing} onTogglePlay={togglePlay} /></div>}
         <BioCard profile={p} season={k} loading={loading} playing={playing} />
         <PercentileSnapshot profile={p} season={k} onPickGroup={onPickGroup} />
         <RecentShift profile={p} season={k} />

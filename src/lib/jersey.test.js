@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { frameOf, frameStyle, jerseysOver, splitIds } from './jersey.js'
+import { frameOf, frameStyle, jerseyIn, jerseysOver, splitIds } from './jersey.js'
 
 const layers = { v: 'abc', top: 0.58, ids: ['OKC', 'GSW', 'BKN'], current: 'HOU' }
 
@@ -36,5 +36,14 @@ describe('jersey', () => {
     expect(splitIds(layers, ['BKN'])).toBe(null)
     expect(splitIds(layers, ['OKC', 'MIA'])).toBe(null)
     expect(splitIds(null, ['OKC', 'BKN'])).toBe(null)
+  })
+
+  test("a season's team names his jersey only when he has just the one of it", () => {
+    const eras = { v: 'abc', top: 0.58, ids: ['SEA.2001', 'DEN.2013', 'OKC'], current: 'DEN' }
+    expect(jerseyIn(eras, 'SEA')).toBe('SEA.2001')
+    expect(jerseyIn(eras, 'OKC')).toBe('OKC')
+    expect(jerseyIn(eras, 'DEN')).toBe(null)
+    expect(jerseyIn(eras, 'MIA')).toBe(null)
+    expect(jerseyIn(null, 'SEA')).toBe(null)
   })
 })

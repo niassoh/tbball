@@ -1,7 +1,8 @@
-import { startTransition, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { fetchPlayers, fetchProfile, headshotUrl, prefetchProfile } from './api.js'
+import { fetchLeaderboard, fetchLeaderboardSeasons, fetchPlayers, fetchProfile, headshotUrl, loadTeams, prefetchProfile } from './api.js'
 import { MONO } from './lib/format.js'
+import { jerseyIn } from './lib/jersey.js'
 import { TEAM_COLORS, teamColor } from './lib/teams.js'
 import { asset } from './lib/static.js'
 import TeamInitials from './components/TeamInitials.jsx'
@@ -10,13 +11,18 @@ import Wink from './components/Wink.jsx'
 import { useSeasonType } from './useSeasonType.js'
 import BrandMark from './components/BrandMark.jsx'
 import SiteNav from './components/SiteNav.jsx'
+import ModeSwitch from './components/ModeSwitch.jsx'
+import { depthTiers, seasonRows, topSeasons } from './lib/library.js'
 
 // The player index: a search line (and the way to the Leaderboard) and the 30 teams'
 // logos to filter by, then the
-// illustrated portraits (the generated art) as a catalogue, by his best season's BPM (his
-// regular season with the highest among those with 800+ minutes): a link opens on that
-// season, or on his latest if he's active. Everyone else, a parts list, shows only for a
-// search or a team. The accent lights what's on. It has no playoffs switch (lib/mode.js modeless); its links open
+// illustrated portraits (the generated art) as a catalogue, each as his best season (his
+// regular season with the highest BPM among those with 800+ minutes): its team, year,
+// jersey and BPM, and a link opening on it. Everyone else, a parts list, shows only for a
+// search or a team. A team shows its franchise's best players instead, each as his best
+// season there, and a player with several of its best seasons as a collection that opens
+// into them (lib/library.js). CURRENT is the players active now, as they are now; a team's,
+// its depth chart, starters a row of their own. The accent lights what's on. It has no playoffs switch (lib/mode.js modeless); its links open
 // player pages in the reader's last mode.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
@@ -44,7 +50,7 @@ const swatch = team => {
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 // '2015–16' -> '’16'
 const yy = s => `’${s.slice(-2)}`
-const span = p => (p.seasons[0] === p.seasons[1] ? yy(p.seasons[0]) : `${yy(p.seasons[0])}—${yy(p.seasons[1])}`)
+const span = p => (!p.seasons ? '' : p.seasons[0] === p.seasons[1] ? yy(p.seasons[0]) : `${yy(p.seasons[0])}—${yy(p.seasons[1])}`)
 const signed = v => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1).replace('-', '−')}`)
 const firstName = name => name.split(' ')[0]
 const lastName = name => name.split(' ').slice(1).join(' ') || name
@@ -82,8 +88,9 @@ const low = v => v !== null && v < 0
 const best = p => (p.bestSeason ? p.bestSeason.bpm : null)
 const bestYear = p => (p.bestSeason ? yy(p.bestSeason.season) : '—')
 const byBest = (a, b) => (best(b) ?? -99) - (best(a) ?? -99)
-// A past player is shown as his best season: its team and year.
-const pastBest = p => (!p.active && p.bestSeason) || null
+// A tile pinned to one season (ALL-TIME's; `bestSeason` is that season) shows it: its team
+// and year.
+const pastBest = p => (p.pinned && p.bestSeason) || null
 const teamOf = p => (pastBest(p) ? pastBest(p).team : p.team)
 
 // Best-season BPM as a 10-segment meter from −4 to +10.
@@ -150,8 +157,8 @@ function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
             <img src={url(100)} alt="" loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" onLoad={() => { setSmall(true); onShown?.() }} onError={() => setFailed(true)}
               className={small ? 'idx-in' : 'idx-wait'} style={{ ...cover, transitionDelay: small && eager && square ? `${order * 8}ms, 0ms` : '0ms' }} />
             {square && small && <img src={url(400)} alt="" decoding="async" onLoad={() => setLarge(true)} className={large ? 'idx-in' : 'idx-wait'} style={cover} />}
-            {/* Jersey art is drawn in one jersey; his team on the tile is laid over it. */}
-            {small && player.layers && <JerseyOverlay slug={player.slug} size={square ? 400 : 100} layers={player.layers} id={teamOf(player)} />}
+            {/* Jersey art is drawn in one jersey; his team on the tile (a pinned season's jersey) is laid over it. */}
+            {small && player.layers && <JerseyOverlay slug={player.slug} size={square ? 400 : 100} layers={player.layers} id={player.jersey || teamOf(player)} />}
             {square && small && <Wink slug={player.slug} />}
           </>
         : <TeamInitials name={player.name} team={player.team} fontSize={square ? 40 : 9} />}
@@ -161,7 +168,7 @@ function Face({ player, size, square, order = EAGER, onShown, carry = false }) {
 
 // What a link hands the player's page: what to show while it loads (ProfileLoading), and
 // the season to open on: his best, or none (his latest) if he's active.
-const previewOf = p => ({ preview: { name: p.name, headshot: p.headshot, headshotVersion: p.headshotVersion }, season: p.active || !p.bestSeason ? undefined : p.bestSeason.season })
+const previewOf = p => ({ preview: { name: p.name, headshot: p.headshot, headshotVersion: p.headshotVersion }, season: pastBest(p) ? p.bestSeason.season : undefined })
 
 // Opening a player, app-like: his profile is fetched from the hover (or touch) on; the
 // click waits for it (OPEN_WAIT_MS at most), the tile running a line of progress, and the
@@ -185,31 +192,100 @@ function useOpen(p, to) {
   return { opening, events: { onPointerEnter: warm, onTouchStart: warm, onFocus: warm, onClick: open } }
 }
 
-// A portrait in the catalogue: team and seasons over the portrait (a past player's best
-// season, its team and year), then the name and his best season's BPM on the meter. The LED is lit for players in the latest season.
-function Tile({ player: p, to, order, onShown }) {
+// A portrait in the catalogue: team and seasons over the portrait, then the name and his
+// best season's BPM on the meter (none without a qualified season). A current player's
+// tile has his span and the LED (lit for players in the latest season); a season's, its
+// year (the year a live LED would misread). A collection's tile (`set`, his seasons) is his
+// best season with the set's span and its key, which opens the set (`open`: pressed, its
+// outline running on into the open set). In an open set (`of`, the franchise) the season
+// is the headline, with no head: his team shows, in place of the BPM label, only where it
+// isn't the franchise's code (SEA for OKC). A depth-chart
+// player without a profile (`stub`) has no page to open.
+function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of }) {
   const { opening, events } = useOpen(p, to)
-  return (
-    <Link to={to} state={previewOf(p)} {...events} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
-      <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
+  const Root = p.stub ? 'span' : Link
+  const link = p.stub ? {} : { to, state: previewOf(p), ...events }
+  const tile = (
+    <Root {...link} className={p.stub ? undefined : order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${open ? INK : RULE}`, borderBottomColor: open ? 'transparent' : RULE, margin: '0 -1px -1px 0', opacity: dim && !set ? 0.35 : undefined }}>
+      {!of && <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
         <TeamChip team={teamOf(p)} />
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
-          <span className="idx-tile-span">{pastBest(p) ? bestYear(p) : span(p)}</span>
-          <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}`, boxShadow: p.active ? GLOW : 'none' }} />
-        </span>
-      </span>
+        {!set && (pastBest(p)
+          ? <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{bestYear(p)}</span>
+          : <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
+              <span className="idx-tile-span">{span(p)}</span>
+              <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}`, boxShadow: p.active ? GLOW : 'none' }} />
+            </span>)}
+      </span>}
       <Face player={p} square order={order} onShown={onShown} carry={opening} />
       <span className="idx-tile-foot" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 10px 12px', borderTop: `1px solid ${RULE}` }}>
-        <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>
-        <FitName text={lastName(p.name)} />
+        {!of && <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>}
+        <FitName text={of ? p.bestSeason.season.replace('-', '–') : lastName(p.name)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-          <span style={label}>{pastBest(p) ? 'BPM' : `BPM ${bestYear(p)}`}</span>
-          <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={best(p)} /></span>
+          {of && teamOf(p) !== of
+            ? <TeamChip team={teamOf(p)} />
+            : <span style={label}>{best(p) === null || (pastBest(p) && !set) ? 'BPM' : `BPM ${bestYear(p)}`}</span>}
+          {best(p) !== null && <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={best(p)} /></span>}
           <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: 600, color: low(best(p)) ? '#fa962a' : INK }}>{signed(best(p))}</span>
         </span>
       </span>
       {opening && <span aria-hidden="true" className="idx-opening" />}
-    </Link>
+    </Root>
+  )
+  if (!set) return tile
+  // The key sits over the tile's head (a button can't go inside its link); pressed, it's lit.
+  return (
+    <span style={{ position: 'relative', zIndex: open ? 1 : undefined, display: 'flex', flexDirection: 'column', minWidth: 0, opacity: dim ? 0.35 : undefined }}>
+      {tile}
+      <button type="button" className="idx-tile-head" aria-expanded={open} aria-label={`${p.name}: ${set.length} seasons`} onClick={onSet}
+        style={{ position: 'absolute', top: 1, right: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 9px', background: open ? INK : 'transparent', border: 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, color: open ? '#262422' : DIM }}>
+        <span className="idx-tile-span">{yy(set[0].bestSeason.season)}—{yy(set[set.length - 1].bestSeason.season)}</span>
+        <Stack ink={open ? '#262422' : INK} back={open ? '#262422' : FAINT} />
+        <span style={{ fontWeight: 600, color: open ? '#262422' : INK }}>{String(set.length).padStart(2, '0')}</span>
+      </button>
+    </span>
+  )
+}
+
+// A collection's key: three cards, hairline, the back two peeking up and right.
+function Stack({ ink, back }) {
+  return (
+    <span aria-hidden="true" style={{ position: 'relative', width: 13, height: 10, flex: 'none' }}>
+      {[4, 2].map(d => <span key={d} style={{ position: 'absolute', left: d, top: 4 - d, width: 9, height: 6, borderTop: `1px solid ${back}`, borderRight: `1px solid ${back}` }} />)}
+      <span style={{ position: 'absolute', left: 0, top: 4, width: 9, height: 6, border: `1px solid ${ink}` }} />
+    </span>
+  )
+}
+
+// A collection opened: its seasons in the grid's own columns, a full row under its tile's
+// row (the grid packs dense, so the tiles after it fill that row first). Its ink outline
+// meets the open tile's, its top rule stopping at the tile's edges, so the set reads as
+// coming out of it; the tile is the element before it, measured as the grid reflows.
+function SetRow({ set, of, playerPath }) {
+  const ref = useRef(null)
+  const [notch, setNotch] = useState(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    const fit = () => {
+      const a = el.getBoundingClientRect()
+      const t = el.previousElementSibling.getBoundingClientRect()
+      setNotch([t.left - a.left, t.right - a.left])
+    }
+    fit()
+    const watch = new ResizeObserver(fit)
+    watch.observe(el)
+    return () => watch.disconnect()
+  }, [])
+  const line = { position: 'absolute', top: 0, height: 1, background: INK }
+  return (
+    <div ref={ref} style={{ position: 'relative', gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', padding: '14px 0', marginBottom: 14 }}>
+      {set.map(s => <Tile key={s.bestSeason.season} player={s} to={playerPath(s.slug)} order={0} of={of} />)}
+      <span aria-hidden="true" style={{ position: 'absolute', inset: '0 -1px -1px 0', zIndex: 2, borderLeft: `1px solid ${INK}`, borderRight: `1px solid ${INK}`, borderBottom: `1px solid ${INK}`, pointerEvents: 'none' }}>
+        {notch && <>
+          <span style={{ ...line, left: -1, width: Math.max(0, notch[0]) }} />
+          <span style={{ ...line, left: notch[1] - 1, right: -1 }} />
+        </>}
+      </span>
+    </div>
   )
 }
 
@@ -228,25 +304,56 @@ function Row({ player: p, to }) {
   )
 }
 
-function Section({ title, count, children }) {
+function Section({ title, count, controls, children }) {
   return (
     <section style={{ marginTop: 36 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <span style={{ ...label, color: INK, fontWeight: 600 }}>{title}</span>
         <span style={{ flex: 1, height: 1, background: RULE }} />
         <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{count.toLocaleString()}</span>
+        {controls}
       </div>
       {children}
     </section>
   )
 }
 
+// Every season board's qualified seasons (lib/library.js), fetched once a session on a
+// team's first pick: some 4MB gzipped, the 31 boards being the only export with every
+// player's season by team.
+let seasonsRequest = null
+const loadSeasons = () => {
+  seasonsRequest = seasonsRequest || fetchLeaderboardSeasons()
+    .then(d => Promise.all(d.seasons.map(s => fetchLeaderboard(s).catch(() => null))))
+    .then(docs => seasonRows(docs.filter(Boolean)))
+    .catch(err => { seasonsRequest = null; throw err })
+  return seasonsRequest
+}
+const MODES = [['all', 'All-time'], ['current', 'Current']]
+const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gridAutoFlow: 'dense', paddingRight: 1, paddingBottom: 1 }
+
 export default function PlayerIndex() {
   const { playerPath } = useSeasonType()
   const [players, setPlayers] = useState(null)
   const [query, setQuery] = useState('')
   const [team, setTeam] = useState(null)
+  const [mode, setMode] = useState('all')
+  // Each team's best seasons once built, and the depth charts.
+  const [best, setBest] = useState({})
+  const [teams, setTeams] = useState(null)
   useEffect(() => { fetchPlayers().then(list => setPlayers(list || [])) }, [])
+  const bySlug = useMemo(() => new Map((players || []).map(p => [p.slug, p])), [players])
+  // ALL-TIME without a team: each player as his best season, in its jersey where his own
+  // jerseys tell which (jerseyIn), else his team's latest he has.
+  const peaks = useMemo(() => (players || []).map(p => (p.bestSeason ? { ...p, pinned: true, jersey: jerseyIn(p.layers, p.bestSeason.team) } : p)), [players])
+  // The collection open, as team|slug.
+  const [open, setOpen] = useState(null)
+  useEffect(() => {
+    if (!open) return
+    const close = e => { if (e.key === 'Escape') setOpen(null) }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [open])
   // The first screen of tiles renders as soon as the list arrives; the rest of the tiles
   // wait for its faces to show (2.5s at the most), since the first faces otherwise wait on
   // rendering the rest, transition or not. A search or a team renders them at once.
@@ -272,11 +379,41 @@ export default function PlayerIndex() {
   // A team code typed into the search works like its logo.
   const q = fold(query.trim())
   const typedTeam = TEAMS.find(t => fold(t) === q)
-  // A team matches the team a tile shows: a past player's best season's.
-  const matches = (players || []).filter(p => (!team || teamOf(p) === team) && (!q || fold(p.name).includes(q) || (typedTeam && teamOf(p) === typedTeam))).sort(byBest)
+  const pick = team || typedTeam
+
+  // A team's best seasons arrive whole: each player in that season's jersey, which only his
+  // profile knows (the era a season fell in), so the dressed players' profiles come first
+  // (warming their links too).
+  useEffect(() => {
+    if (mode !== 'all' || !pick || !players || best[pick]) return
+    loadSeasons().then(rows => {
+      const top = topSeasons(rows, pick).filter(r => bySlug.has(r.slug))
+      const dressed = [...new Set(top.filter(r => bySlug.get(r.slug).layers).map(r => r.slug))]
+      return Promise.all(dressed.map(s => fetchProfile(s).catch(() => null))).then(profiles => {
+        const jerseys = new Map(dressed.map((s, k) => [s, profiles[k]]))
+        const jerseyOf = r => jerseys.get(r.slug)?.seasons.find(s => s.season === r.season)?.jersey
+        const pinned = r => ({ ...bySlug.get(r.slug), bestSeason: { season: r.season, bpm: r.bpm, team: r.team }, pinned: true, jersey: jerseyOf(r) })
+        setBest(b => ({ ...b, [pick]: top.map(r => ({ ...pinned(r), set: r.set.length > 1 ? r.set.map(pinned) : null })) }))
+      })
+    }).catch(() => setBest(b => ({ ...b, [pick]: [] })))
+  }, [mode, pick, players, bySlug, best])
+  useEffect(() => {
+    if (mode === 'current' && pick && !teams) loadTeams().then(setTeams, () => setTeams([]))
+  }, [mode, pick, teams])
+
+  const named = p => !q || typedTeam || fold(p.name).includes(q)
+  const chart = mode === 'current' && pick && teams ? teams.find(t => t.team === pick) : null
+  // On the depth chart he's on its team, whichever the index last saw him with; one not in
+  // the index yet is his name alone.
+  const tiers = chart ? depthTiers(chart.depth).map(tier => tier.map(d => ({ ...(bySlug.get(d.slug) || { slug: d.slug, name: d.name, headshot: null, bestSeason: null, stub: true }), team: pick })).filter(named)) : null
+  const pool = mode === 'current' ? (pick ? null : players?.filter(p => p.active)) : pick ? best[pick] : peaks
+  const matches = (pool || []).filter(named).sort(byBest)
   const portraits = matches.filter(p => ILLUSTRATED.has(p.headshot))
   const rest = matches.filter(p => !ILLUSTRATED.has(p.headshot))
   const all = full || !!q || !!team
+  const key = p => (p.pinned ? `${p.slug}|${p.bestSeason.season}` : p.slug)
+  // No caption: All-time or Current, in the first section's line, standing no taller than it.
+  const toggle = <span style={{ display: 'flex', margin: '-6px 0' }}><ModeSwitch name="Players" options={MODES} mode={mode} setMode={setMode} height={22} /></span>
 
   return (
     <main className="page-main" style={{ maxWidth: 1440, margin: '0 auto', padding: '20px var(--page-pad) 64px' }}>
@@ -296,30 +433,48 @@ export default function PlayerIndex() {
         </div>
       </div>
 
-      {portraits.length > 0 && (
-        <Section title="Illustrated" count={portraits.length}>
+      {tiers && (
+        <Section title={chart.name} count={tiers[0].length + tiers[1].length} controls={toggle}>
+          {/* The bench starts a row of its own, under the starters. */}
+          {tiers.map((tier, k) => (
+            <div key={k} className="idx-grid" style={{ ...grid, marginTop: k ? 12 : 0 }}>
+              {tier.map((p, i) => <Tile key={p.slug} player={p} to={playerPath(p.slug)} order={i} />)}
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {!tiers && players && (portraits.length > 0 || !rest.length) && (
+        <Section title="Illustrated" count={portraits.length} controls={toggle}>
           {/* Tiles share their 1px edges (each overlaps the next by 1px), so a short last row leaves empty cells blank. */}
-          <div className="idx-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', paddingRight: 1, paddingBottom: 1 }}>
-            {(all ? portraits : portraits.slice(0, EAGER)).map((p, i) => <Tile key={p.slug} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} />)}
+          <div className="idx-grid" style={grid}>
+            {(all ? portraits : portraits.slice(0, EAGER)).map((p, i) => {
+              const at = `${pick}|${p.slug}`
+              const shut = open && open.startsWith(`${pick}|`) && open !== at
+              return [
+                <Tile key={key(p)} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} set={p.set} open={open === at} dim={shut} onSet={() => setOpen(open === at ? null : at)} />,
+                open === at && p.set && <SetRow key={`${key(p)}+`} set={p.set} of={pick} playerPath={playerPath} />
+              ]
+            })}
           </div>
         </Section>
       )}
 
-      {(q || team) && rest.length > 0 && (
-        <Section title={portraits.length ? 'Everyone else' : 'Players'} count={rest.length}>
+      {!tiers && (q || pick) && rest.length > 0 && (
+        <Section title={portraits.length ? 'Everyone else' : 'Players'} count={rest.length} controls={portraits.length ? null : toggle}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', columnGap: 28 }}>
-            {rest.map(p => <Row key={p.slug} player={p} to={playerPath(p.slug)} />)}
+            {rest.map(p => <Row key={key(p)} player={p} to={playerPath(p.slug)} />)}
           </div>
         </Section>
       )}
 
-      {players && matches.length === 0 && (
+      {pool && !tiers && matches.length === 0 && (
         <div style={{ marginTop: 36, padding: '28px 0', border: `1px dashed ${EDGE}`, textAlign: 'center', fontFamily: MONO, fontSize: 12, letterSpacing: '.08em', color: DIM }}>NO PLAYERS MATCH</div>
       )}
 
       <footer style={{ marginTop: 48, paddingTop: 14, borderTop: `1px solid ${EDGE}`, display: 'flex', gap: 22, flexWrap: 'wrap', ...label, fontSize: 9 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', boxShadow: GLOW }} />Active (in the latest season)</span>
-        <span>BPM = best season (800+ min), the one a past player opens on · meter {METER[0]} to +{METER[1]}</span>
+        <span>BPM = the season shown (800+ min) · meter {METER[0]} to +{METER[1]}</span>
         <span>thinkingbasketball.net</span>
       </footer>
     </main>

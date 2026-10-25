@@ -101,11 +101,11 @@ export const tourExample = (effects, last) => {
   const tail = !shines
     ? 'within the noise.'
     : tone === 'neutral'
-      ? 'style, not better or worse.'
+      ? 'a style stat, not better or worse.'
       : tone === 'bad'
-        ? (at && at.worst ? `league's **bad:${at.place === 1 ? 'worst' : worstText(at.place).toLowerCase()}**.` : 'a cost.')
+        ? (at && at.worst ? `**bad:${at.place === 1 ? 'worst' : worstText(at.place).toLowerCase()}** in the league.` : 'a cost.')
         : at
-          ? `league **good:#${at.place}**.`
+          ? `**good:#${at.place}** in the league.`
           : `${ordinal(size(e)).toLowerCase()} percentile.`
-  return { key: e.key, text: `${head}: ${tail}` }
+  return { key: e.key, title: e.effect, text: `${head}, ${tail}` }
 }

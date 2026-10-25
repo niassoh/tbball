@@ -48,7 +48,7 @@ export default function TopBar({ profile: p }) {
     <div ref={bar} className="topbar" style={{ position: 'sticky', top: 0, zIndex: 6, margin: '0 calc(-1 * var(--page-pad))', padding: '10px var(--page-pad)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: stuck ? '#262422' : 'transparent', borderBottom: `1px solid ${stuck ? '#3d3a37' : 'transparent'}`, transition: 'background-color .2s, border-color .2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
         <BrandMark />
-        <SiteNav at="players" />
+        <SiteNav at="players" up />
         <span className="topbar-name" aria-hidden={!scrolled} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, pointerEvents: scrolled ? 'auto' : 'none', ...slide }}>
           <span style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', overflow: 'hidden', background: '#34312e', border: '1px solid #544f4b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: '#b3ada6' }}>
             {p.headshot

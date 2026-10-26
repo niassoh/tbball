@@ -23,18 +23,18 @@ export const franchisePlayers = (rows, franchise, except = new Set()) => {
   return rows.filter(r => franchiseOf(r.team) === franchise).sort((a, b) => b.bpm - a.bpm).filter(r => !seen.has(r.slug) && seen.add(r.slug))
 }
 
-// A franchise's best players, each by his best season there (by BPM), as many as 5%
-// (`share`) of its seasons, at least one. Each brings his `set`: his seasons among those
-// top 5% (his best always), by season; two or more make a collection.
+// A franchise's players with a season among the league's best: the top 5% (`share`) of
+// every qualified season, all teams and years, by BPM. Each comes once, by his best season
+// there, best first, bringing his `set`: his seasons there over that bar, by season; two
+// or more make a collection. A franchise can have none.
 export const topSeasons = (rows, franchise, share = 0.05) => {
-  const own = rows.filter(r => franchiseOf(r.team) === franchise).sort((a, b) => b.bpm - a.bpm)
-  const n = Math.ceil(own.length * share)
-  const top = own.slice(0, n)
+  const all = rows.map(r => r.bpm).sort((a, b) => b - a)
+  const bar = all[Math.max(0, Math.ceil(all.length * share) - 1)]
+  const top = rows.filter(r => franchiseOf(r.team) === franchise && r.bpm >= bar).sort((a, b) => b.bpm - a.bpm)
   const seen = new Set()
-  return own.filter(r => !seen.has(r.slug) && seen.add(r.slug)).slice(0, n).map(r => {
-    const set = top.filter(t => t.slug === r.slug)
-    return { ...r, set: (set.length ? set : [r]).sort((a, b) => (a.season < b.season ? -1 : 1)) }
-  })
+  return top.filter(r => !seen.has(r.slug) && seen.add(r.slug)).map(r => ({
+    ...r, set: top.filter(t => t.slug === r.slug).sort((a, b) => (a.season < b.season ? -1 : 1))
+  }))
 }
 
 // A team's depth chart (teams.json) as its two tiers of its players: the starters (each

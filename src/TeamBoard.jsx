@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { fetchTeamboard } from './api.js'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { fetchTeamboard, fetchTeamboardSeasons } from './api.js'
 import { MONO, fmt, heat, ord } from './lib/format.js'
 import { ranked } from './lib/leaderboard.js'
 import { asset } from './lib/static.js'
@@ -10,15 +10,15 @@ import BrandMark from './components/BrandMark.jsx'
 import SiteNav from './components/SiteNav.jsx'
 import TeamCard from './components/TeamCard.jsx'
 
-// The Team board: the 30 teams' 2026-27 from the team sheet (thinking-bball
-// lib/teamboard.js), one screen like the Leaderboard (index.css .lb): ORTG against DRTG on
+// The Team board: the 30 teams' season from the team sheet (thinking-bball
+// lib/teamboard.js), 2015-16 on, the latest to begin with and a year strip in the head for
+// the rest; one screen like the Leaderboard (index.css .lb): ORTG against DRTG on
 // the left, each team its logo, and a table on the right of the picked group's stats (the
 // sheet's own categories: Overview, Playtype, Offense, Defense, Home-Away, v Good/Bad, O
 // after D, D after O), a head sorting by its stat, best first, again for worst, each cell
 // shaded by its percentile among the 30 (blue above the middle, orange below, a style stat
 // in grey), RAW its value or RANK its place among the 30, the league's average along the foot. The team under the pointer in either is lit
 // in the other. A row or a logo opens the team's card in the chart's place (TeamCard).
-const SEASON = '2026-27'
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -29,6 +29,27 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 const plain = p => `rgba(201,195,188,${((Math.abs(p - 50) / 50) * 0.32).toFixed(2)})`
 // A relative stat (net, rORTG and the like) reads with its sign.
 const RELATIVE = /^Net|^r|^Adj r| Net$/
+
+// The seasons as a strip of years ('16 … '27), the one on show lit, each a click away.
+// On a phone the strip scrolls; it opens on the season on show, not '16.
+function Years({ seasons, season, pick }) {
+  const box = useRef(null)
+  useEffect(() => {
+    const on = box.current.querySelector('[aria-pressed="true"]')
+    box.current.scrollLeft = Math.max(0, on.offsetLeft + on.offsetWidth - box.current.clientWidth)
+  }, [season])
+  return (
+    <div ref={box} role="group" aria-label="Season" style={{ position: 'relative', display: 'flex', border: `1px solid ${EDGE}`, overflowX: 'auto', minWidth: 0, scrollbarWidth: 'none' }}>
+      {seasons.map((s, i) => {
+        const on = s === season
+        return (
+          <button key={s} type="button" aria-pressed={on} title={s.replace('-', '–')} onClick={() => pick(s)}
+            style={{ flex: 'none', height: 24, padding: '0 7px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: on ? INK : DIM, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.04em', cursor: 'pointer' }}>’{s.slice(5)}</button>
+        )
+      })}
+    </div>
+  )
+}
 
 function Groups({ groups, active, pick }) {
   return (
@@ -132,11 +153,20 @@ export default function TeamBoard() {
   const close = useCallback(() => setPicked(null), [])
   // A row opens its card, or closes it when it's the one open.
   const toggle = useCallback(k => setPicked(p => (p === k ? null : k)), [])
+  const [seasons, setSeasons] = useState(null)
+  const [season, setSeason] = useState(null)
   useEffect(() => {
-    let live = true
-    fetchTeamboard(SEASON).then(d => live && setDoc(d || false), () => live && setDoc(false))
-    return () => { live = false }
+    fetchTeamboardSeasons().then(d => {
+      setSeasons(d.seasons)
+      setSeason(d.seasons[d.seasons.length - 1])
+    }, () => setDoc(false))
   }, [])
+  useEffect(() => {
+    if (!season) return
+    let live = true
+    fetchTeamboard(season).then(d => live && setDoc(d || false), () => live && setDoc(false))
+    return () => { live = false }
+  }, [season])
   const g = doc ? doc.groups.find(x => x.id === group) || doc.groups[0] : null
   const choose = id => {
     const next = doc.groups.find(x => x.id === id)
@@ -148,7 +178,7 @@ export default function TeamBoard() {
       <header className="head-row" style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}` }}>
         <BrandMark />
         <SiteNav at="teams" />
-        <span style={{ ...label, fontSize: 10, marginLeft: 'auto', color: INK }}>{SEASON.replace('-', '–')} <span style={{ color: DIM }}>· Regular season</span></span>
+        {seasons && <span style={{ marginLeft: 'auto', minWidth: 0, display: 'flex' }}><Years seasons={seasons} season={season} pick={setSeason} /></span>}
       </header>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>
         {doc ? <Groups groups={doc.groups} active={g.id} pick={choose} /> : <span className="lb-skel" style={{ width: 560, height: 30 }} />}
@@ -159,7 +189,7 @@ export default function TeamBoard() {
         <div className="lb-body tb-body lb-enter">
           <div className={`lb-side${picked ? ' lb-carded' : ''}`}>
             {picked
-              ? <TeamCard key={picked} doc={doc} team={doc.teams.find(t => t.team === picked)} season={SEASON} onClose={close} />
+              ? <TeamCard key={picked} doc={doc} team={doc.teams.find(t => t.team === picked)} season={doc.season} onClose={close} />
               : <TeamScatter doc={doc} hot={hot} setHot={setHot} onPick={setPicked} />}
           </div>
           <div className="lb-table-wrap" style={{ scrollSnapType: 'none' }}>

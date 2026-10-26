@@ -54,7 +54,9 @@ export const fetchLeaderboard = (season, playoffs = false, delta = false) => {
 }
 // The last 30 days of the latest regular season, in a season's shape.
 export const fetchLeaderboardRecent = () => getJson(api('leaderboard/recent', 'leaderboard/recent.json'))
-// The Team board: every team's season from the team sheet (thinking-bball lib/teamboard.js).
+// The Team board: its seasons, and every team's season from the team sheet (thinking-bball
+// lib/teamboard.js).
+export const fetchTeamboardSeasons = () => getJson(api('teamboard', 'teamboard/index.json'))
 export const fetchTeamboard = season => getJson(api(`teamboard/${season}`, `teamboard/${season}.json`))
 // Each team's most-played and best units of each size in a season (the team card).
 export const fetchTeamUnits = season => getJson(api(`teamunits/${season}`, `teamunits/${season}.json`))

@@ -252,26 +252,51 @@ function Row({ player: p, to, m = BPM }) {
 }
 
 // A team's everyone else (ALL-TIME): every player with a qualified season there, as his
-// best one, in a column per decade of that season, best first, each row keeping his rank
-// in the whole list (`rank`, a search or not): a dense index of rows, each with his face.
-// On a phone the decades sit two abreast.
+// best one, best first, each row keeping his rank in the whole list (`rank`, a search or
+// not): a dense index of rows, each with his face. Split, a column per decade of that
+// season (on a phone two abreast); collapsed, one list down four columns (two on a phone).
+// The switch is the heading's dim type, the view on in ink.
+const VIEWS = [['split', 'Decades'], ['all', 'All-time']]
 function Roster({ list, playerPath, m }) {
+  const [view, setView] = useState('split')
   const decades = [...new Set(list.map(decadeOf))].sort()
+  const head = (title, count) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 4px 8px', borderTop: `1px solid ${INK}`, borderBottom: `1px solid ${EDGE}` }}>
+      <span style={{ fontSize: 'clamp(20px, 1.7vw, 24px)', fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1, color: INK }}>{title}</span>
+      <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{count}</span>
+    </div>
+  )
   return (
-    <div className="idx-roster idx-decades" style={{ display: 'grid', gridTemplateColumns: `repeat(${decades.length}, minmax(0, 1fr))`, columnGap: 24, alignItems: 'start' }}>
-      {decades.map(d => {
-        const own = list.filter(p => decadeOf(p) === d)
-        return (
-          <div key={d} style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 4px 8px', borderTop: `1px solid ${INK}`, borderBottom: `1px solid ${EDGE}` }}>
-              <span style={{ fontSize: 'clamp(20px, 1.7vw, 24px)', fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1, color: INK }}>’{d.slice(2)}s</span>
-              <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{own.length}</span>
+    <>
+      <div role="group" aria-label="Roster view" style={{ display: 'flex', justifyContent: 'flex-end', gap: 14, marginBottom: 8 }}>
+        {VIEWS.map(([v, name]) => (
+          <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}
+            style={{ ...label, padding: 0, border: 0, background: 'transparent', color: view === v ? INK : DIM, fontWeight: view === v ? 600 : 400, cursor: 'pointer' }}>{name}</button>
+        ))}
+      </div>
+      {view === 'all'
+        ? (
+          <div className="idx-roster">
+            {head('All-time', list.length)}
+            <div className="idx-alltime" style={{ columns: 4, columnGap: 24 }}>
+              {list.map(p => <ListRow key={p.slug} player={p} to={playerPath(p.slug)} m={m} />)}
             </div>
-            {own.map(p => <ListRow key={p.slug} player={p} to={playerPath(p.slug)} m={m} />)}
           </div>
         )
-      })}
-    </div>
+        : (
+          <div className="idx-roster idx-decades" style={{ display: 'grid', gridTemplateColumns: `repeat(${decades.length}, minmax(0, 1fr))`, columnGap: 24, alignItems: 'start' }}>
+            {decades.map(d => {
+              const own = list.filter(p => decadeOf(p) === d)
+              return (
+                <div key={d} style={{ minWidth: 0 }}>
+                  {head(`’${d.slice(2)}s`, own.length)}
+                  {own.map(p => <ListRow key={p.slug} player={p} to={playerPath(p.slug)} m={m} />)}
+                </div>
+              )
+            })}
+          </div>
+        )}
+    </>
   )
 }
 const decadeOf = p => `${p.bestSeason.season.slice(0, 3)}0`

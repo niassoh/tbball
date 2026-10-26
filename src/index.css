@@ -243,9 +243,11 @@ html { scroll-behavior: smooth; scrollbar-gutter: stable; }
 .idx-tile .idx-face img { transition: opacity .25s ease, transform .35s cubic-bezier(.2,.8,.2,1); }
 .idx-tile:hover .idx-face img { transform: scale(1.04); }
 .idx-row:hover { background: #2c2a28; }
+.idx-alltime > * { break-inside: avoid; }
 /* A team's roster (PlayerIndex Roster) on a phone: two decades abreast, no year or meter. */
 @media (max-width: 560px) {
   .idx-decades { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; row-gap: 20px; }
+  .idx-alltime { columns: 2 !important; }
   .idx-list-row { grid-template-columns: 16px 28px minmax(0, 1fr) 30px !important; gap: 6px !important; }
   .idx-list-year { display: none; }
 }

@@ -106,9 +106,10 @@ export const MEANS = {
 
 // The row the tour walks through, and its caption (Tour.jsx's markup): the stat his change
 // stands out most in among players' (its rank nearest either end), else Load where none is
-// ranked (too few minutes). `text` says what the stat counts and which way is better;
-// `math` works out his change; `example` reads it. `who`: the stars who sit.
-export const tourExample = (s, who) => {
+// ranked (too few minutes). `text` says what the stat counts, which way is better (none
+// for a volume stat) and how its row's vector reads; `math` works out his change; `example`
+// reads it. `who`: the stars who sit; `name`: his surname.
+export const tourExample = (s, who, name) => {
   const ranked = STATS.filter(x => s.ranks && s.ranks[x.key] && s.change[x.key] !== null)
   const edge = x => Math.min(s.ranks[x.key].rank, s.ranks[x.key].of + 1 - s.ranks[x.key].rank) / s.ranks[x.key].of
   const stat = ranked.reduce((a, x) => (edge(x) < edge(a) ? x : a), ranked[0]) || STATS[0]
@@ -119,7 +120,7 @@ export const tourExample = (s, who) => {
   return {
     key: k,
     title: stat.label,
-    text: `${stat.label} is **${MEANS[k]}**. ${stat.dir > 0 ? 'Higher is better.' : stat.dir < 0 ? 'Lower is better.' : 'It is volume, so neither way is better.'}`,
+    text: `${stat.label} is **${MEANS[k]}**. ${stat.dir > 0 ? 'Higher is better. ' : stat.dir < 0 ? 'Lower is better. ' : ''}The vectors start with the values **with** ${name}'s best teammates (the square) and point to ${name}'s stats **without** his best teammates.`,
     math: [['W/O', value(stat, s.off[k])], '−', ['WITH', value(stat, s.on[k])], '=', `**${tone === 'neutral' ? '' : `${tone}:`}${change(stat, v)}**`],
     example: `Without ${who}, ${moves}${stat.dir ? `, which is ${stat.dir * v > 0 ? 'better' : 'worse'}` : ''}.`
   }

@@ -69,14 +69,16 @@ describe('lonestar', () => {
       change: { load: 5.7, pts75: 3.4, ctov: 0.0202 },
       ranks: { load: { rank: 274, of: 723 }, pts75: { rank: 216, of: 723 }, ctov: { rank: 690, of: 723 } }
     }
-    expect(tourExample(s, 'Murray')).toEqual({
+    expect(tourExample(s, 'Murray', 'Jokić')).toEqual({
       key: 'ctov',
       title: 'cTOV%',
-      text: 'cTOV% is **how often his chances to score or pass end in a turnover**. Lower is better.',
+      text: "cTOV% is **how often his chances to score or pass end in a turnover**. Lower is better. The vectors start with the values **with** Jokić's best teammates (the square) and point to Jokić's stats **without** his best teammates.",
       math: [['W/O', '9.7'], '−', ['WITH', '7.7'], '=', '**bad:+2.0**'],
       example: 'Without Murray, his cTOV% rises by 2.0 points, which is worse.'
     })
-    const load = tourExample({ ...s, ranks: null }, 'Murray')
+    const load = tourExample({ ...s, ranks: null }, 'Murray', 'Jokić')
     expect([load.key, load.example]).toEqual(['load', 'Without Murray, his Load rises by 5.7.'])
+    // A volume stat says no way is better, only how its vector reads.
+    expect(load.text).toBe("Load is **how much of the offense runs through him, in possessions used or created per 100**. The vectors start with the values **with** Jokić's best teammates (the square) and point to Jokić's stats **without** his best teammates.")
   })
 })

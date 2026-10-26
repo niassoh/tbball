@@ -512,15 +512,15 @@ function Frame({ p, ls, touring, endTour }) {
     const last = lastName(p.name)
     if (!s) return [{ title: 'Without', target: ['#sec-lonestar .ls-without > :first-child', '#sec-lonestar .ls-without > :last-child'], text: 'No star sat enough to compare. **Add seasons** to the span.' }]
     const who = s.all ? (s.kind === 'two' ? 'his top two' : 'his top star') : starsText(s.stars)
-    const ex = tourExample(s, who)
+    const ex = tourExample(s, who, last)
     const net = toneOf(NET, s.change.net)
     const arrow = (stat, k) => `${value(stat, s.on[k])} → ${value(stat, s.off[k])}`
     return [
       { title: 'Without', target: ['#sec-lonestar .ls-without > :first-child', '#sec-lonestar .ls-without > :last-child'], action: () => setMode('raw'),
-        text: 'Lonestar asks **what happens to a player when his best teammate sits**. It sets his minutes without the star against his minutes with him.',
+        text: 'Lonestar asks **what happens to a player when his best teammate sits**. It compares his minutes without the star (or stars) against his minutes with him.',
         example: `${last} has ${Math.round(s.on.minutes).toLocaleString()} minutes with ${who} and ${Math.round(s.off.minutes).toLocaleString()} without.` },
       { title: 'Load / Net', target: '#sec-lonestar .ls-plot', action: () => redraw(d => ({ ...d, plot: d.plot + 1 })),
-        text: "**Load** (across) is how much of the offense runs through him. **Net** (up) is his team's margin per 100 possessions while he plays.",
+        text: "**Load** (left-to-right on graph) is how much of the offense runs through him. **Net** (bottom-to-top) is his team's point margin per 100 possessions while he plays.",
         example: `The arrow runs from with ${who} to without. Load ${arrow(LOAD, 'load')}, Net ${arrow(NET, 'net')}. **${net === 'neutral' ? '' : `${net}:`}${s.change.load >= 0 ? 'More' : 'Less'} on him, a ${s.change.net >= 0 ? 'bigger' : 'smaller'} margin.**` },
       { title: ex.title, target: `#sec-lonestar .ls-row[data-stat="${ex.key}"]`, action: () => redraw(d => ({ ...d, row: ex.key, n: d.n + 1 })),
         text: ex.text, math: ex.math, example: ex.example }

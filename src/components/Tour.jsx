@@ -69,7 +69,9 @@ const boxOf = sels => {
 // `steps`: { target: a selector, or several for one cutout around them all; small: a
 // smaller target for where the target and card don't both fit on screen; mark: a
 // selector for one control in the cutout to outline, which the card then speaks for; title;
-// text; action }. An action runs as its step comes up, so the page can show what the step
+// text: what the thing is, in general; math: a worked sum for the example, its terms
+// ([label, value]) and signs shown a term at a time; example: the player's own case;
+// action }. An action runs as its step comes up, so the page can show what the step
 // says (the Leaderboard's switching to 5-year runs), and may return a function that runs as
 // the step goes; a target not on the page yet (a board still loading, a panel opening) is
 // waited for, and the card takes the keys back from whatever it opened.
@@ -196,7 +198,24 @@ export default function Tour({ steps, onClose }) {
         <div key={i} className="tour-in" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px 0' }}>
           <span style={{ fontSize: 9, letterSpacing: '.14em', color: DIM }}>{i + 1} / {steps.length}</span>
           <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: INK }}>{step.title}</span>
-          <p aria-live="polite" style={{ margin: 0, fontSize: 11.5, lineHeight: 1.7, color: MUTED, textWrap: 'pretty' }}>{rich(step.text)}</p>
+          <div aria-live="polite" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.7, color: MUTED, textWrap: 'pretty' }}>{rich(step.text)}</p>
+            {(step.math || step.example) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderLeft: `2px solid ${EDGE}`, paddingLeft: 10 }}>
+                {/* The sum, a term at a time. */}
+                {step.math && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 8, fontSize: 13, color: INK }}>
+                    {step.math.map((m, k) => (
+                      <span key={k} className="tour-term" style={{ animationDelay: `${k * 60}ms`, color: typeof m === 'string' && !m.startsWith('**') ? DIM : INK }}>
+                        {Array.isArray(m) ? <><span style={{ fontSize: 9, letterSpacing: '.12em', color: DIM, marginRight: 5 }}>{m[0]}</span>{m[1]}</> : rich(m)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {step.example && <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.7, color: MUTED, textWrap: 'pretty' }}>{rich(step.example)}</p>}
+              </div>
+            )}
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px 14px' }}>
           <button type="button" onClick={onClose} style={{ ...button(false), border: 0, padding: 0, color: DIM }}>Close</button>

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
 import { seasonAges } from '../lib/age.js'
 import { MONO } from '../lib/format.js'
-import { MEDAL_SHARES, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, tourExample, unitOf, valueText, worstText } from '../lib/footprint.js'
+import { MEDAL_SHARES, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, tourExample, UNIT_WORDS, unitOf, valueText, worstText } from '../lib/footprint.js'
 import { namesText, posOf, seasonRanges, starsText } from '../lib/lonestar.js'
 import { openingSeasons, spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
@@ -595,22 +595,34 @@ function Views({ p, doc, faces, touring, endTour }) {
     </span>
   )
   const legendKey = { display: 'inline-flex', gap: 6, alignItems: 'center' }
-  // The tour, on all his minutes (REMOVE BEST off), its example his most telling tile.
+  // The tour: each step what a part is, then his own case. On all his minutes (REMOVE BEST
+  // off) until its step turns it on; its example tile his most telling of the team's own,
+  // other than offensive rating, which the first step works through.
   const tourSteps = () => {
     const last = lastName(p.name)
-    const ex = tourExample(fp.effects, last)
+    const ortgTile = fp.effects.find(e => e.key === 'ortg' && e.diff !== null && e.diff !== undefined)
+    const mate = fp.effects.find(e => e.mates && e.diff !== null && e.diff !== undefined)
+    const ex = tourExample(fp.effects.filter(e => e.key !== 'ortg' && !e.mates), last)
+    const side = picked.off ? 'off' : 'def'
+    const pick = picked[side]
+    const lonely = pick && pick.tiles[side === 'off' ? 'ortg' : 'drtg']
+    const whole = fp.effects.find(e => e.key === (side === 'off' ? 'ortg' : 'drtg'))
+    const who = pick && (pick.all ? (pick.kind === 'two' ? 'his top two' : 'his top star') : starsText(pick.stars))
     return [
       { title: 'Team on / off', target: '#sec-footprint .fp-rows', small: '#sec-footprint .fp-row', action: () => setLone(false),
-        text: `Team stats with ${last} **on the floor minus off**.` },
+        text: 'Footprint measures a player through **his team**. Each tile is a team stat with him on the floor, minus the same stat with him off.',
+        ...(ortgTile && {
+          math: [['ON', valueText(ortgTile, ortgTile.on)], '−', ['OFF', valueText(ortgTile, ortgTile.off)], '=', `**${swingText(ortgTile.diff)}**`],
+          example: `His team scores ${Math.abs(ortgTile.diff).toFixed(1)} ${ortgTile.diff >= 0 ? 'more' : 'fewer'} points per 100 possessions with ${last} on.`
+        }) },
       { title: 'Tiles', target: '#sec-footprint .fp-row',
-        text: "One tile per stat. **MATES** is his teammates' own shooting." },
-      ...(ex ? [{ title: ex.title, target: `#sec-footprint [data-stat="${ex.key}"]`, text: ex.text }] : []),
-      { title: 'Lit / dim', target: '#sec-footprint [data-tour="fp-legend"]',
-        text: 'A **lit** tile clears the noise and beats most players.' },
-      { title: 'Seasons', target: '#sec-footprint button[aria-label^="Seasons"]',
-        text: '**Seasons** sets which years the tiles cover.' },
-      ...(options.off.length || options.def.length ? [{ title: 'Remove best', target: '#sec-footprint [data-tour="fp-lone"]',
-        text: '**REMOVE BEST** keeps only the minutes his best teammates sit.' }] : [])
+        text: "OFFENSE and DEFENSE hold his team's own stats. **MATES** holds his teammates' shooting, which shows what he does for them.",
+        ...(mate && { example: `With ${last} on, his teammates' ${mate.effect.toLowerCase()} ${mate.diff >= 0 ? 'rises' : 'falls'} by **${Math.abs(mate.diff).toFixed(1)} ${UNIT_WORDS[mate.unit]}**.` }) },
+      ...(ex ? [{ title: ex.title, target: `#sec-footprint [data-stat="${ex.key}"]`, text: ex.text, math: ex.math, example: ex.example }] : []),
+      ...(pick && lonely && whole ? [{ title: 'Remove best', target: '#sec-footprint [data-tour="fp-lone"]',
+        action: () => { setLone(true); return () => setLone(false) },
+        text: '**REMOVE BEST** keeps only the minutes his best teammates sit, so the tiles show him without their help.',
+        example: `Over only the minutes ${who} ${(pick.all ? pick.kind === 'two' : pick.stars.length > 1) ? 'sit' : 'sits'}, his team's ${side === 'off' ? 'offensive' : 'defensive'} rating on minus off is **${swingText(lonely.diff)}**, against ${swingText(whole.diff)} over all his minutes.` }] : [])
     ]
   }
   // A row: TEAM and its word on the left, its tiles side by side, every row on the widest
@@ -669,7 +681,7 @@ function Views({ p, doc, faces, touring, endTour }) {
       </div>
       {/* TEAM MATES, then TEAM OFFENSE, then TEAM DEFENSE, a row each. */}
       <div className="fp-rows" style={{ borderBottom: `1px solid ${RULE}` }}>{sections.map(row)}</div>
-      <div data-tour="fp-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', paddingTop: 4, fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px', paddingTop: 4, fontFamily: MONO, fontSize: 10, letterSpacing: '.1em', color: DIM }}>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.good }} />LIFT</span>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.bad }} />COST</span>
         <span style={legendKey}><span style={{ width: 14, height: 3, background: TONES.neutral }} />STYLE</span>

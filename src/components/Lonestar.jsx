@@ -468,6 +468,8 @@ function Frame({ p, ls, touring, endTour }) {
   })
   const [pick, setPick] = useState(0)
   const [mode, setMode] = useState('raw')
+  // The tour replays the plot's arrow, and a row's (`row`), by remounting them.
+  const [drawn, redraw] = useState({ plot: 0, row: null, n: 0 })
   // The picker by age (his age in each season) or by year.
   const [byAge, setByAge] = useState(false)
   const ageOf = seasonAges(p)
@@ -510,20 +512,18 @@ function Frame({ p, ls, touring, endTour }) {
     const last = lastName(p.name)
     if (!s) return [{ title: 'Without', target: ['#sec-lonestar .ls-without > :first-child', '#sec-lonestar .ls-without > :last-child'], text: 'No star sat enough to compare. **Add seasons** to the span.' }]
     const who = s.all ? (s.kind === 'two' ? 'his top two' : 'his top star') : starsText(s.stars)
-    const sit = (s.all ? s.kind === 'two' : s.stars.length > 1) ? 'sit' : 'sits'
+    const ex = tourExample(s, who)
     const net = toneOf(NET, s.change.net)
-    const ex = tourExample(s, last, who)
+    const arrow = (stat, k) => `${value(stat, s.on[k])} → ${value(stat, s.off[k])}`
     return [
       { title: 'Without', target: ['#sec-lonestar .ls-without > :first-child', '#sec-lonestar .ls-without > :last-child'], action: () => setMode('raw'),
-        text: `${last}'s stats when **${who} ${sit}**.` },
-      { title: 'Load / Net', target: '#sec-lonestar .ls-plot',
-        text: `Load is across, Net is up. Without ${who}, Load ${change(LOAD, s.change.load)} and **${net === 'neutral' ? '' : `${net}:`}Net ${change(NET, s.change.net)}**.` },
-      { title: ex.title, target: `#sec-lonestar .ls-row[data-stat="${ex.key}"]`,
-        text: ex.text },
-      { title: 'Colors', target: '#sec-lonestar [data-tour="ls-legend"]',
-        text: '**good:Blue** is better or more without them, **bad:orange** worse or less.' },
-      { title: 'Raw / pctl', target: '#sec-lonestar [aria-label="Show values as"]',
-        text: '**PCTL** shows each row as a league percentile.' }
+        text: 'Lonestar asks **what happens to a player when his best teammate sits**. It sets his minutes without the star against his minutes with him.',
+        example: `${last} has ${Math.round(s.on.minutes).toLocaleString()} minutes with ${who} and ${Math.round(s.off.minutes).toLocaleString()} without.` },
+      { title: 'Load / Net', target: '#sec-lonestar .ls-plot', action: () => redraw(d => ({ ...d, plot: d.plot + 1 })),
+        text: "**Load** (across) is how much of the offense runs through him. **Net** (up) is his team's margin per 100 possessions while he plays.",
+        example: `The arrow runs from with ${who} to without. Load ${arrow(LOAD, 'load')}, Net ${arrow(NET, 'net')}. **${net === 'neutral' ? '' : `${net}:`}${s.change.load >= 0 ? 'More' : 'Less'} on him, a ${s.change.net >= 0 ? 'bigger' : 'smaller'} margin.**` },
+      { title: ex.title, target: `#sec-lonestar .ls-row[data-stat="${ex.key}"]`, action: () => redraw(d => ({ ...d, row: ex.key, n: d.n + 1 })),
+        text: ex.text, math: ex.math, example: ex.example }
     ]
   }
   return (
@@ -553,7 +553,7 @@ function Frame({ p, ls, touring, endTour }) {
       ) : (
       <div className="ls-body">
           <div className="ls-side" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="ls-plot" style={{ padding: `20px ${PAD}px 12px` }}><div ref={plotRef}><Plot s={s} width={plotWidth} skey={skey} /></div></div>
+            <div className="ls-plot" style={{ padding: `20px ${PAD}px 12px` }}><div ref={plotRef}><Plot s={s} width={plotWidth} skey={`${skey}-${drawn.plot}`} /></div></div>
             <Cast key={skey} p={p} s={s} />
             <Numbers key={`n-${skey}`} s={s} minRank={ls.minRank} />
           </div>
@@ -566,8 +566,8 @@ function Frame({ p, ls, touring, endTour }) {
               <span style={{ gridArea: 'wo', textAlign: 'right', ...label }}>W/O</span>
               <span style={{ gridArea: 'change', textAlign: 'right', ...label }}>Change</span>
             </div>
-            {STATS.map((stat, i) => <Row key={stat.key} stat={stat} s={s} scale={ls.scale && ls.scale[stat.key]} mode={mode} skey={skey} index={i} />)}
-            <div data-tour="ls-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: `12px ${PAD}px`, fontSize: 9, letterSpacing: '.1em', color: DIM }}>
+            {STATS.map((stat, i) => <Row key={stat.key} stat={stat} s={s} scale={ls.scale && ls.scale[stat.key]} mode={mode} skey={stat.key === drawn.row ? `${skey}-${drawn.n}` : skey} index={i} />)}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', padding: `12px ${PAD}px`, fontSize: 9, letterSpacing: '.1em', color: DIM }}>
               <span style={legendItem}><span style={{ width: SQUARE, height: SQUARE, flex: 'none', boxSizing: 'border-box', border: `1.5px solid ${MID}` }} />WITH</span>
               <span style={legendItem}><span style={head(1, MID)} />WITHOUT</span>
               <span style={legendItem}>{legendArrow(TONES.good, 1)}BETTER W/O</span>

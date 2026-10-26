@@ -78,12 +78,36 @@ export const topPlaceOf = e => (e.rank && e.rank[0] <= TOP_PLACES ? { place: e.r
 export const worstText = place => (place === 1 ? 'LEAGUE WORST' : `${ordinal(place)} WORST`)
 
 
-// The tile the tour walks through, and its caption: his most telling lift (the lit tile
-// ranked highest among players' swings: by a league place, then its percentile), else his
-// most telling lit tile of any kind (a place among the best or the worst, then the
-// strongest evidence), else his biggest swing among players'. A teammate effect is passed
-// over: its swing is mostly another player's minutes. `last`: his name as the caption
-// calls him.
+// What each stat counts, in the tour's words.
+export const MEANS = {
+  ortg: 'the points his team scores per 100 possessions',
+  cornerRate: "how many of his team's threes come from the corners",
+  tovPct: 'the share of possessions his team turns over',
+  orebPct: 'the share of its own misses his team rebounds',
+  pace: 'how many possessions his team plays per 48 minutes',
+  tmTs: "his teammates' true shooting: points per shot, free throws included",
+  rimPts: "his teammates' points at the rim per 100 shots",
+  tm3Rate: "how many of his teammates' shots are threes",
+  tm3Pct: "his teammates' three-point percentage",
+  drtg: 'the points opponents score per 100 possessions',
+  oppRimPts: "opponents' points at the rim per 100 possessions",
+  oppPaintPts: "opponents' points inside 14 feet per 100 possessions",
+  oppFloaterPts: "opponents' points from 5 to 14 feet per 100 possessions",
+  oppCorner3: "how many of opponents' shots are corner threes",
+  forcedTov: "the share of opponents' possessions his team forces into turnovers",
+  drebPct: "the share of opponents' misses his team rebounds",
+  oppFtRate: 'the free throws opponents get per shot'
+}
+// A swing's unit in words.
+export const UNIT_WORDS = { pct: 'percentage points', pts: 'points per 100 possessions', pace: 'possessions per 48', shots: 'points per 100 shots' }
+
+// The tile the tour walks through, and its caption (Tour.jsx's markup): his most telling
+// lift (the lit tile ranked highest among players' swings: by a league place, then its
+// percentile), else his most telling lit tile of any kind (a place among the best or the
+// worst, then the strongest evidence), else his biggest swing among players'. A teammate
+// effect is passed over: its swing is mostly another player's minutes. `text` says what the
+// stat counts and which way is better; `math` works out his on minus off; `example` reads
+// it. `last`: his name as the caption calls him.
 export const tourExample = (effects, last) => {
   const size = e => e.swingPctl ?? e.pctl ?? -1
   const top = (list, place, more) => list.reduce((a, e) => (!a || place(e) < place(a) || (place(e) === place(a) && more(e) > more(a)) ? e : a), null)
@@ -93,19 +117,15 @@ export const tourExample = (effects, last) => {
     || top(lit, x => (x.rank ? x.rank[0] : Infinity), x => Math.abs(x.z || 0))
     || top(shown, () => 0, size)
   if (!e) return null
-  // The caption's main point in **…**, its colour first where it has one (Tour.jsx).
-  const at = topPlaceOf(e)
   const tone = toneOf(e)
-  const shines = e.status === 'notable'
-  const head = `**${shines && tone !== 'neutral' ? `${tone}:` : ''}${e.effect} ${swingText(e.diff)}** with ${last} on`
-  const tail = !shines
-    ? 'within the noise.'
-    : tone === 'neutral'
-      ? 'a style stat, not better or worse.'
-      : tone === 'bad'
-        ? (at && at.worst ? `**bad:${at.place === 1 ? 'worst' : worstText(at.place).toLowerCase()}** in the league.` : 'a cost.')
-        : at
-          ? `**good:#${at.place}** in the league.`
-          : `${ordinal(size(e)).toLowerCase()} percentile.`
-  return { key: e.key, title: e.effect, text: `${head}, ${tail}` }
+  const by = `${Math.abs(e.diff).toFixed(1)} ${UNIT_WORDS[e.unit]}`
+  return {
+    key: e.key,
+    title: e.effect,
+    text: `${e.effect} is **${MEANS[e.key] || e.label}**. ${e.good > 0 ? 'Higher is better.' : e.good < 0 ? 'Lower is better.' : 'It is style, so neither way is better.'}`,
+    math: [['ON', valueText(e, e.on)], '−', ['OFF', valueText(e, e.off)], '=', `**${tone === 'neutral' ? '' : `${tone}:`}${swingText(e.diff)}**`],
+    example: tone === 'neutral'
+      ? `With ${last} on, it runs ${by} ${e.diff > 0 ? 'higher' : 'lower'}.`
+      : `With ${last} on, his team is ${tone === 'good' ? 'better' : 'worse'} by ${by}.`
+  }
 }

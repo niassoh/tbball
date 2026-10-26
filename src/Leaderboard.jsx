@@ -540,36 +540,40 @@ export default function Leaderboard() {
   const none = doc && !doc.players.length ? (ageOn ? `No players at ${agesText(ageOn.from, ageOn.to).toLowerCase()}` : 'No players') : null
   const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season runs` : ageOn ? agesText(ageOn.from, ageOn.to) : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : spanYears(span.from, span.to)
 
-  // The tour: the tabs, then the controls one by one to the best 5-season runs of ScoreVal,
-  // each step setting the board the way it says: the seasons panel opens on RUNS, 5 YR is
-  // picked in it and it closes. The last names the run on top once its board is in.
+  // The tour: what each control does, worked through one question (the best five-year
+  // ScoreVal run), each step setting the board the way it says: the seasons panel opens on
+  // RUNS and 5 YR is picked in it, the panel closing as the tour moves on. The last names
+  // the run on top once its board is in.
   const tourSteps = () => {
     const best = eraOn === 5 && sortLabel === 'ScoreVal' && !sort.reverse && !loading && drawn[0]
     const seasonsBox = '.lb button[aria-label^="Seasons"]'
     const panel = '.lb [role="dialog"][aria-label^="Seasons"]'
     return [
       { title: 'Tabs', target: '.lb [aria-label="Stat group"]', action: () => holdPanel(false),
-        text: 'Each tab is a **stat group**. The chart plots two of its stats.' },
+        text: "Each tab is a **stat group**. The table and chart show that group's stats.",
+        example: 'This tour finds who had the best five-year ScoreVal run.' },
       { title: 'Seasons', target: seasonsBox, action: () => { setRecent(false); holdPanel(false) },
-        text: '**Seasons** picks one season, a span, or runs.' },
+        text: '**Seasons** sets what a row is: one season, a span of seasons, or a run.',
+        example: 'A five-year question needs runs.' },
       { title: 'Runs', target: [seasonsBox, panel], mark: '.lb [data-era="5"]',
-        action: () => { setRecent(false); setAges(null); setEra(null); holdPanel(true) },
-        text: "**Runs** average a player's straight seasons into one row." },
-      { title: '5 YR', target: [seasonsBox, panel], mark: '.lb [data-era="5"]',
         action: () => {
-          setRecent(false); setAges(null); setEra(5); setTop(null); setTeam(null); setFind(''); setFilters({}); holdPanel(true)
-          // Picked in the open panel, which then closes on the board of runs.
-          const shut = setTimeout(() => holdPanel(false), 900)
-          return () => clearTimeout(shut)
+          setRecent(false); setAges(null); setEra(null); holdPanel(true)
+          // 5 YR is picked a beat after the panel opens, so the pick is seen.
+          const pick = setTimeout(() => { setEra(5); setTop(null); setTeam(null); setFind(''); setFilters({}) }, 350)
+          return () => clearTimeout(pick)
         },
-        text: '**5 YR** shows every five-season run.' },
+        text: "A **run** averages a player's consecutive seasons into one row, so every 3-, 5- or 7-year stretch is ranked.",
+        example: 'Picking 5 YR puts every five-season stretch on the board.' },
       { title: 'ScoreVal', target: '.lb [data-group="offense"]', action: () => { holdPanel(false); choose('offense') },
-        text: '**ScoreVal** is under Offense. It measures impact from scoring alone.' },
+        text: "**ScoreVal** estimates the impact of a player's scoring alone. It is under the Offense tab.",
+        example: 'Offense is open, so ScoreVal is a column.' },
       { title: 'Sort', target: '.lb th[data-stat="ScoreVal"]', action: () => setSort({ label: 'ScoreVal', reverse: false }),
-        text: 'Click a stat to **sort**. Click again for worst first.' },
+        text: 'Click a column to **rank the board by it**. Click again for worst first.',
+        example: 'Ranked by ScoreVal, the best five-year run is on top.' },
       { title: '#1', target: '.lb-table-wrap tr[data-id]',
-        text: best
-          ? `The best five-year run is **good:${best.name} ${spanYears(best.era[0], best.era[1])}, ${fmt(doc.stats.ScoreVal, valueOf(doc, best, 'ScoreVal'))} ScoreVal**.`
+        text: 'The top row answers the question.',
+        example: best
+          ? `The best five-year ScoreVal run: **good:${best.name} ${spanYears(best.era[0], best.era[1])}, ${fmt(doc.stats.ScoreVal, valueOf(doc, best, 'ScoreVal'))}**.`
           : 'Loading every five-year run…' }
     ]
   }

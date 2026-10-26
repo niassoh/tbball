@@ -88,17 +88,39 @@ export const unpackLonestar = doc => {
   return { ...doc, views: doc.views.map(v => ({ ...v, scenarios: v.scenarios.map(scenario) })) }
 }
 
-// The row the tour walks through, and its caption: the stat his change stands out most in
-// among players' (its rank nearest either end), else Load where none is ranked (too few
-// minutes). `last`: his name as the caption calls him; `who`: the stars who sit.
-export const tourExample = (s, last, who) => {
+// What each stat counts, in the tour's words.
+export const MEANS = {
+  load: 'how much of the offense runs through him, in possessions used or created per 100',
+  pts75: 'his points per 75 possessions',
+  boxCreation: 'the open shots he creates for teammates per 100 possessions',
+  passerRating: 'how well he passes, on a 1–10 scale',
+  pa3_75: 'his three-point attempts per 75 possessions',
+  fta75: 'his free-throw attempts per 75 possessions',
+  rts: 'his true shooting above or below the league average',
+  pct3: 'his three-point percentage',
+  ctov: 'how often his chances to score or pass end in a turnover',
+  ortg: 'the points he produces per 100 possessions he uses',
+  rortg: 'his offensive rating above or below the league average',
+  net: "his team's margin per 100 possessions while he plays"
+}
+
+// The row the tour walks through, and its caption (Tour.jsx's markup): the stat his change
+// stands out most in among players' (its rank nearest either end), else Load where none is
+// ranked (too few minutes). `text` says what the stat counts and which way is better;
+// `math` works out his change; `example` reads it. `who`: the stars who sit.
+export const tourExample = (s, who) => {
   const ranked = STATS.filter(x => s.ranks && s.ranks[x.key] && s.change[x.key] !== null)
   const edge = x => Math.min(s.ranks[x.key].rank, s.ranks[x.key].of + 1 - s.ranks[x.key].rank) / s.ranks[x.key].of
   const stat = ranked.reduce((a, x) => (edge(x) < edge(a) ? x : a), ranked[0]) || STATS[0]
   const k = stat.key
-  const r = s.ranks && s.ranks[k]
-  // The caption's main point in **…**, its colour first where it has one (Tour.jsx).
-  const tone = toneOf(stat, s.change[k])
-  const head = `${last}'s **${tone === 'neutral' ? '' : `${tone}:`}${stat.label} ${change(stat, s.change[k])}** without ${who}`
-  return { key: k, title: stat.label, text: r ? `${head}, #${r.rank} of ${r.of}.` : `${head}, too few minutes to rank.` }
+  const v = s.change[k]
+  const tone = toneOf(stat, v)
+  const moves = `his ${stat.label} ${v > 0 ? 'rises' : 'falls'} by ${change(stat, Math.abs(v)).replace('+', '')}${stat.pct ? ' points' : ''}`
+  return {
+    key: k,
+    title: stat.label,
+    text: `${stat.label} is **${MEANS[k]}**. ${stat.dir > 0 ? 'Higher is better.' : stat.dir < 0 ? 'Lower is better.' : 'It is volume, so neither way is better.'}`,
+    math: [['W/O', value(stat, s.off[k])], '−', ['WITH', value(stat, s.on[k])], '=', `**${tone === 'neutral' ? '' : `${tone}:`}${change(stat, v)}**`],
+    example: `Without ${who}, ${moves}${stat.dir ? `, which is ${stat.dir * v > 0 ? 'better' : 'worse'}` : ''}.`
+  }
 }

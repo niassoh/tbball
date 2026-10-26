@@ -69,15 +69,14 @@ describe('lonestar', () => {
       change: { load: 5.7, pts75: 3.4, ctov: 0.0202 },
       ranks: { load: { rank: 274, of: 723 }, pts75: { rank: 216, of: 723 }, ctov: { rank: 690, of: 723 } }
     }
-    expect(tourExample(s, 'Jokić', 'Murray')).toEqual({
+    expect(tourExample(s, 'Murray')).toEqual({
       key: 'ctov',
       title: 'cTOV%',
-      text: "Jokić's **bad:cTOV% +2.0** without Murray, #690 of 723."
+      text: 'cTOV% is **how often his chances to score or pass end in a turnover**. Lower is better.',
+      math: [['W/O', '9.7'], '−', ['WITH', '7.7'], '=', '**bad:+2.0**'],
+      example: 'Without Murray, his cTOV% rises by 2.0 points, which is worse.'
     })
-    expect(tourExample({ ...s, ranks: null }, 'Jokić', 'Murray')).toEqual({
-      key: 'load',
-      title: 'Load',
-      text: "Jokić's **good:Load +5.7** without Murray, too few minutes to rank."
-    })
+    const load = tourExample({ ...s, ranks: null }, 'Murray')
+    expect([load.key, load.example]).toEqual(['load', 'Without Murray, his Load rises by 5.7.'])
   })
 })

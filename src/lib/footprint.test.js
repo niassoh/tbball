@@ -78,15 +78,23 @@ describe('footprint', () => {
 
   test("the tour's tile: his best-placed lift, never a teammate effect, else any lit tile, else his biggest swing", () => {
     const tile = (key, x) => ({ key, effect: key, label: key, unit: 'pts', good: 1, diff: 2, on: 110, off: 108, status: 'notable', mate: false, rank: null, pctl: 80, swingPctl: 80, ...x })
-    const ortg = tile('ortg', { diff: 16.1, rank: [1, 242, 'best'], effect: 'Offensive rating' })
+    const ortg = tile('ortg', { diff: 16.1, on: 127.1, off: 111, rank: [1, 242, 'best'], effect: 'Offensive rating' })
     const rim = tile('rimPts', { rank: [1, 242, 'best'], mate: true, pctl: 99 })
     const pace = tile('pace', { good: 0, pctl: 100, swingPctl: null, z: 3 })
     const drtg = tile('drtg', { good: -1, diff: 3, z: 2.6, rank: [2, 242, 'worst'], pctl: 2, swingPctl: 2 })
-    expect(tourExample([pace, rim, tile('tov', { rank: [4, 242, 'best'] }), ortg], 'Jokić')).toEqual({ key: 'ortg', title: 'Offensive rating', text: '**good:Offensive rating +16.1** with Jokić on, **good:#1** in the league.' })
-    expect(tourExample([tile('a', { pctl: 70 }), tile('b', { pctl: 91, swingPctl: 93 })], 'X').text).toBe('**good:b +2.0** with X on, 93rd percentile.')
-    expect(tourExample([pace, drtg], 'X').text).toBe('**bad:drtg +3.0** with X on, **bad:2nd worst** in the league.')
-    expect(tourExample([pace, { ...drtg, rank: null }], 'X').text).toBe('**pace +2.0** with X on, a style stat, not better or worse.')
-    expect(tourExample([tile('a', { status: 'noise', pctl: 40, swingPctl: 40 }), tile('b', { status: 'noise', pctl: 60, swingPctl: 60 }), tile('c', { status: 'na', diff: null })], 'X').text).toBe('**b +2.0** with X on, within the noise.')
+    expect(tourExample([pace, rim, tile('tov', { rank: [4, 242, 'best'] }), ortg], 'Jokić')).toEqual({
+      key: 'ortg',
+      title: 'Offensive rating',
+      text: 'Offensive rating is **the points his team scores per 100 possessions**. Higher is better.',
+      math: [['ON', '127.1'], '−', ['OFF', '111.0'], '=', '**good:+16.1**'],
+      example: 'With Jokić on, his team is better by 16.1 points per 100 possessions.'
+    })
+    expect(tourExample([tile('a', { pctl: 70 }), tile('b', { pctl: 91, swingPctl: 93 })], 'X').key).toBe('b')
+    expect(tourExample([pace, drtg], 'X').example).toBe('With X on, his team is worse by 3.0 points per 100 possessions.')
+    expect(tourExample([pace, drtg], 'X').text).toMatch(/Lower is better\.$/)
+    const style = tourExample([pace, { ...drtg, rank: null }], 'X')
+    expect([style.key, style.example]).toEqual(['pace', 'With X on, it runs 2.0 points per 100 possessions higher.'])
+    expect(tourExample([tile('a', { status: 'noise', pctl: 40, swingPctl: 40 }), tile('b', { status: 'noise', pctl: 60, swingPctl: 60 }), tile('c', { status: 'na', diff: null })], 'X').key).toBe('b')
     expect(tourExample([], 'X')).toBe(null)
   })
 })

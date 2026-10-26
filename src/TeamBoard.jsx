@@ -11,7 +11,7 @@ import SiteNav from './components/SiteNav.jsx'
 import TeamCard from './components/TeamCard.jsx'
 
 // The Team board: the 30 teams' season from the team sheet (thinking-bball
-// lib/teamboard.js), 2015-16 on, the latest to begin with and a year strip in the head for
+// lib/teamboard.js), 2013-14 on, the latest to begin with and a year strip in the head for
 // the rest; one screen like the Leaderboard (index.css .lb): ORTG against DRTG on
 // the left, each team its logo, and a table on the right of the picked group's stats (the
 // sheet's own categories: Overview, Playtype, Offense, Defense, Home-Away, v Good/Bad, O
@@ -30,8 +30,8 @@ const plain = p => `rgba(201,195,188,${((Math.abs(p - 50) / 50) * 0.32).toFixed(
 // A relative stat (net, rORTG and the like) reads with its sign.
 const RELATIVE = /^Net|^r|^Adj r| Net$/
 
-// The seasons as a strip of years ('16 … '27), the one on show lit, each a click away.
-// On a phone the strip scrolls; it opens on the season on show, not '16.
+// The seasons as a strip of years ('14 … '27), the one on show lit, each a click away.
+// On a phone the strip scrolls; it opens on the season on show, not '14.
 function Years({ seasons, season, pick }) {
   const box = useRef(null)
   useEffect(() => {

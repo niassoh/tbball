@@ -346,7 +346,7 @@ const loadSeasons = () => {
 }
 const MODES = [['all', 'All-time'], ['current', 'Current']]
 
-// ALL-TIME | CURRENT: the side on a block of soft ink, its type dark and its mark lit
+// ALL-TIME | CURRENT: the side on a block of warm grey, its type ink and its mark lit
 // (CURRENT the index's active LED, glowing; ALL-TIME a square, filled), the other dim
 // with its mark hollow, so which list this is reads at a glance. It stands no taller
 // than the line.
@@ -357,10 +357,10 @@ function ModeToggle({ mode, setMode }) {
         const on = mode === m
         const mark = m === 'current'
           ? { borderRadius: '50%', background: on ? 'var(--accent)' : 'transparent', border: `1px solid ${on ? 'var(--accent)' : FAINT}`, boxShadow: on ? GLOW : 'none' }
-          : { background: on ? '#1f1d1c' : 'transparent', border: `1px solid ${on ? '#1f1d1c' : FAINT}` }
+          : { background: on ? INK : 'transparent', border: `1px solid ${on ? INK : FAINT}` }
         return (
           <button key={m} type="button" aria-pressed={on} onClick={() => setMode(m)}
-            style={{ height: 22, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#d8d3cc' : 'transparent', color: on ? '#1f1d1c' : DIM, fontFamily: MONO, fontSize: 9, fontWeight: on ? 700 : 400, letterSpacing: '.12em', textTransform: 'uppercase', cursor: on ? 'default' : 'pointer' }}>
+            style={{ height: 22, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#5e5954' : 'transparent', color: on ? INK : DIM, fontFamily: MONO, fontSize: 9, fontWeight: on ? 700 : 400, letterSpacing: '.12em', textTransform: 'uppercase', cursor: on ? 'default' : 'pointer' }}>
             <span aria-hidden="true" style={{ width: 6, height: 6, boxSizing: 'border-box', flex: 'none', ...mark }} />
             {name}
           </button>

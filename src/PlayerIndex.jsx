@@ -328,22 +328,17 @@ const loadSeasons = () => {
 const MODES = [['all', 'All-time'], ['current', 'Current']]
 
 // The stat ALL-TIME ranks peaks by, beside the first section's title and in its type, dim
-// and unboxed (only its caret says it opens): its groups as columns, the one picked lit; a
-// pick closes it. It stands no taller than the line.
+// and unboxed (only its caret says it opens): a short list, the one picked lit; a pick
+// closes it. It stands no taller than the line.
 function StatPicker({ stat, setStat }) {
   return (
     <span style={{ display: 'flex', margin: '-4px 0 -4px -12px' }}>
       <Popover name={`Peaks by ${stat}`} minWidth={0} accent="transparent" trigger={<span style={{ ...label, fontWeight: 400 }}>{stat}</span>}>
         {close => (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '14px 12px', width: 'min(684px, calc(100vw - 56px))' }}>
-            {PEAKS.map(([group, stats]) => (
-              <div key={group} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ ...label, marginBottom: 4 }}>{group}</span>
-                {stats.map(l => (
-                  <button key={l} type="button" className="idx-row" aria-pressed={l === stat} onClick={() => { setStat(l); close() }}
-                    style={{ padding: '5px 8px', border: 0, background: l === stat ? INK : 'transparent', color: l === stat ? '#262422' : INK, fontFamily: MONO, fontSize: 11, fontWeight: l === stat ? 700 : 400, textAlign: 'left', whiteSpace: 'nowrap', cursor: 'pointer' }}>{l}</button>
-                ))}
-              </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 120 }}>
+            {PEAKS.map(l => (
+              <button key={l} type="button" className="idx-row" aria-pressed={l === stat} onClick={() => { setStat(l); close() }}
+                style={{ padding: '5px 8px', border: 0, background: l === stat ? INK : 'transparent', color: l === stat ? '#262422' : INK, fontFamily: MONO, fontSize: 11, fontWeight: l === stat ? 700 : 400, textAlign: 'left', whiteSpace: 'nowrap', cursor: 'pointer' }}>{l}</button>
             ))}
           </div>
         )}

@@ -7,18 +7,9 @@ import { MIN_FLOOR } from './seasons.js'
 const FRANCHISE = { SEA: 'OKC', NJN: 'BKN', CHH: 'CHA', NOH: 'NOP', NOK: 'NOP', VAN: 'MEM' }
 export const franchiseOf = team => FRANCHISE[team] || team
 
-// The stats ALL-TIME can rank peaks by, in the Leaderboard's groups: those on every board
-// with a value for every qualified season (but Danny Schayes's 1997-98, a row the play-by-
-// play stats never had). Team ratings (the same for every teammate) are left out, as are
-// the stats a season or an era lacks (AuPM, OBPM, ScoreVal, tracking, lineups).
-export const PEAKS = [
-  ['Impact', ['BPM', 'Net On', 'Net On/Off']],
-  ['Creation', ['Load', 'Box Creation', 'Passer Rating', 'cTOV%']],
-  ['Offense', ['Pts / 75', 'rTS%', 'ORTG On']],
-  ['Rim', ['Rim FGA', 'Rim FG%', 'Rim+FT TSA%', 'FTA']],
-  ['Shooting', ['Midrange FGA', 'Midrange FG%', 'FT%']],
-  ['Defense', ['DRTG On']]
-]
+// The stats ALL-TIME can rank peaks by: each has a value for every qualified season on
+// every board (but Danny Schayes's 1997-98, a row the play-by-play stats never had).
+export const PEAKS = ['BPM', 'Load', 'Pts / 75']
 
 // Every qualified season on the boards with a value of `stat` (`v`), by its team that
 // season; `s` ranks it, higher better (`v`, or −`v` where lower is better: cTOV%, DRTG On).

@@ -12,7 +12,7 @@ import { useSeasonType } from './useSeasonType.js'
 import BrandMark from './components/BrandMark.jsx'
 import SiteNav from './components/SiteNav.jsx'
 import ModeSwitch from './components/ModeSwitch.jsx'
-import { depthTiers, seasonRows, topSeasons } from './lib/library.js'
+import { depthTiers, franchisePlayers, seasonRows, topSeasons } from './lib/library.js'
 
 // The player index: a search line (and the way to the Leaderboard) and the 30 teams'
 // logos to filter by, then the
@@ -21,7 +21,8 @@ import { depthTiers, seasonRows, topSeasons } from './lib/library.js'
 // jersey and BPM, and a link opening on it. Everyone else, a parts list, shows only for a
 // search or a team. A team shows its franchise's best players instead, each as his best
 // season there, and a player with several of its best seasons as a collection that opens
-// into them (lib/library.js). CURRENT is the players active now, as they are now; a team's,
+// into them (lib/library.js), and under them everyone else who had a qualified season
+// there, by decade. CURRENT is the players active now, as they are now; a team's,
 // its depth chart, starters a row of their own. The accent lights what's on. It has no playoffs switch (lib/mode.js modeless); its links open
 // player pages in the reader's last mode.
 const INK = '#ece8e3'
@@ -106,12 +107,13 @@ function TeamChip({ team }) {
   )
 }
 
-function Meter({ value }) {
+// `small`: the roster's, at half the width.
+function Meter({ value, small = false }) {
   const n = lit(value)
   return (
-    <span aria-hidden="true" style={{ display: 'flex', gap: 2 }}>
+    <span aria-hidden="true" style={{ display: 'flex', gap: small ? 1 : 2 }}>
       {Array.from({ length: 10 }, (_, i) => (
-        <span key={i} style={{ width: 4, height: 9, background: i < n ? (low(value) ? '#fa962a' : INK) : RULE }} />
+        <span key={i} style={{ width: small ? 2 : 4, height: small ? 8 : 9, background: i < n ? (low(value) ? '#fa962a' : INK) : RULE }} />
       ))}
     </span>
   )
@@ -200,7 +202,7 @@ function useOpen(p, to) {
 // outline running on into the open set). In an open set (`of`, the franchise) the season
 // is the headline, with no head: his team shows, in place of the BPM label, only where it
 // isn't the franchise's code (SEA for OKC).
-function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of }) {
+function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of, carry }) {
   const { opening, events } = useOpen(p, to)
   const tile = (
     <Link to={to} state={previewOf(p)} {...events} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${open ? INK : RULE}`, borderBottomColor: open ? 'transparent' : RULE, margin: '0 -1px -1px 0', opacity: dim && !set ? 0.35 : undefined }}>
@@ -213,7 +215,7 @@ function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of }) {
               <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}`, boxShadow: p.active ? GLOW : 'none' }} />
             </span>)}
       </span>}
-      <Face player={p} square order={order} onShown={onShown} carry={opening} />
+      <Face player={p} square order={order} onShown={onShown} carry={opening || carry} />
       <span className="idx-tile-foot" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 10px 12px', borderTop: `1px solid ${RULE}` }}>
         {!of && <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>}
         <FitName text={of ? p.bestSeason.season.replace('-', '–') : lastName(p.name)} />
@@ -330,6 +332,62 @@ function Row({ player: p, to }) {
   )
 }
 
+// A team's everyone else (ALL-TIME): every player with a qualified season there, as his
+// best one, in a column per decade of that season, best first, each row keeping his rank
+// in the whole list (`rank`, a search or not): a dense index of mono rows (no faces), the one under the pointer or
+// focus shown whole beside it as a tile, the way a device's screen shows what's selected.
+// A click there or on the row opens him, the tile's portrait carried into his page. On a
+// phone the rows alone, the decades two abreast.
+function Roster({ list, playerPath }) {
+  const [peek, setPeek] = useState(null)
+  const shown = (peek && list.includes(peek.p) && peek) || { p: list[0], carry: false }
+  const onPeek = (p, carry = false) => setPeek({ p, carry })
+  const decades = [...new Set(list.map(decadeOf))].sort()
+  return (
+    <div className="idx-roster" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 200px', gap: 28, alignItems: 'start' }}>
+      <div className="idx-decades" style={{ display: 'grid', gridTemplateColumns: `repeat(${decades.length}, minmax(0, 1fr))`, columnGap: 24 }}>
+        {decades.map(d => {
+          const own = list.filter(p => decadeOf(p) === d)
+          return (
+            <div key={d} style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', ...label, padding: '0 4px 6px', borderBottom: `1px solid ${EDGE}` }}><span style={{ color: INK }}>{d}s</span><span>{own.length}</span></div>
+              {own.map(p => <ListRow key={p.slug} player={p} to={playerPath(p.slug)} on={p === shown.p} onPeek={onPeek} />)}
+            </div>
+          )
+        })}
+      </div>
+      {shown.p && (
+        <div className="idx-peek" style={{ position: 'sticky', top: 'calc(var(--head-h) + 16px)', display: 'flex', flexDirection: 'column' }}>
+          <Tile key={shown.p.slug} player={shown.p} to={playerPath(shown.p.slug)} order={EAGER} carry={shown.carry} />
+        </div>
+      )}
+    </div>
+  )
+}
+const decadeOf = p => `${p.bestSeason.season.slice(0, 3)}0`
+
+// A line in a team's roster: his rank, initial and surname, best season and its BPM.
+// Hovering or focusing it shows him beside the list (`onPeek`, at once).
+function ListRow({ player: p, to, on, onPeek }) {
+  const { opening, events } = useOpen(p, to)
+  const Root = p.stub ? 'span' : Link
+  const link = p.stub ? {} : { to, state: previewOf(p), ...events, onClick: e => { events.onClick(e); if (e.defaultPrevented) onPeek(p, true) } }
+  return (
+    <Root {...link} className="idx-row idx-list-row" onPointerEnter={() => { events.onPointerEnter(); onPeek(p) }} onFocus={() => { events.onFocus(); onPeek(p) }}
+      style={{ position: 'relative', display: 'grid', gridTemplateColumns: '20px minmax(0, 1fr) 24px 29px 30px', gap: 8, alignItems: 'center', height: 24, padding: '0 4px', borderBottom: `1px solid ${RULE}`, breakInside: 'avoid', background: on ? '#2c2a28' : undefined, color: p.stub ? DIM : INK }}>
+      <span style={{ fontFamily: MONO, fontSize: 9, color: FAINT }}>{String(p.rank).padStart(2, '0')}</span>
+      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{firstName(p.name)[0]}. </span>
+        <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.01em' }}>{lastName(p.name)}</span>
+      </span>
+      <span className="idx-list-year" style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{bestYear(p)}</span>
+      <span className="idx-tile-meter" style={{ display: 'flex' }}><Meter value={best(p)} small /></span>
+      <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 600, textAlign: 'right', color: low(best(p)) ? '#fa962a' : INK }}>{signed(best(p))}</span>
+      {opening && <span aria-hidden="true" className="idx-opening" />}
+    </Root>
+  )
+}
+
 function Section({ title, count, controls, children }) {
   return (
     <section style={{ marginTop: 36 }}>
@@ -366,6 +424,7 @@ export default function PlayerIndex() {
   const [mode, setMode] = useState('all')
   // Each team's best seasons once built, and the depth charts.
   const [best, setBest] = useState({})
+  const [roster, setRoster] = useState({})
   const [teams, setTeams] = useState(null)
   useEffect(() => { fetchPlayers().then(list => setPlayers(list || [])) }, [])
   const bySlug = useMemo(() => new Map((players || []).map(p => [p.slug, p])), [players])
@@ -423,6 +482,7 @@ export default function PlayerIndex() {
   useEffect(() => {
     if (mode !== 'all' || !pick || !players || best[pick]) return
     loadSeasons().then(rows => {
+      setRoster(r => ({ ...r, [pick]: franchisePlayers(rows, pick) }))
       const top = topSeasons(rows, pick).filter(r => bySlug.has(r.slug))
       const dressed = [...new Set(top.filter(r => bySlug.get(r.slug).layers).map(r => r.slug))]
       return Promise.all(dressed.map(s => fetchProfile(s).catch(() => null))).then(profiles => {
@@ -448,6 +508,11 @@ export default function PlayerIndex() {
   const rest = matches.filter(p => !ILLUSTRATED.has(p.headshot))
   const all = full || !!q || !!team
   const key = p => (p.pinned ? `${p.slug}|${p.bestSeason.season}` : p.slug)
+  // A team's everyone else: the franchise's whole roster but the tiles' players.
+  const tiled = new Set(portraits.map(p => p.slug))
+  const listed = mode === 'all' && pick && best[pick] && roster[pick]
+    ? roster[pick].filter(r => !tiled.has(r.slug)).map((r, i) => ({ ...(bySlug.get(r.slug) || { slug: r.slug, name: r.name, headshot: null, stub: true }), bestSeason: { season: r.season, bpm: r.bpm, team: r.team }, pinned: true, jersey: jerseyIn(bySlug.get(r.slug)?.layers, r.team), rank: i + 1 })).filter(named)
+    : null
   // No caption: All-time or Current, in the first section's line, standing no taller than it.
   const toggle = <span style={{ display: 'flex', margin: '-6px 0' }}><ModeSwitch name="Players" options={MODES} mode={mode} setMode={setMode} height={22} /></span>
 
@@ -497,7 +562,13 @@ export default function PlayerIndex() {
         </Section>
       )}
 
-      {!tiers && (q || pick) && rest.length > 0 && (
+      {listed && listed.length > 0 && (
+        <Section title="Everyone else" count={listed.length}>
+          <Roster list={listed} playerPath={playerPath} />
+        </Section>
+      )}
+
+      {!tiers && !listed && (q || pick) && rest.length > 0 && (
         <Section title={portraits.length ? 'Everyone else' : 'Players'} count={rest.length} controls={portraits.length ? null : toggle}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', columnGap: 28 }}>
             {rest.map(p => <Row key={key(p)} player={p} to={playerPath(p.slug)} />)}

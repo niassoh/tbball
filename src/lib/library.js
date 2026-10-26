@@ -13,8 +13,15 @@ export const franchiseOf = team => FRANCHISE[team] || team
 // ('2 TM'), so it's no one franchise's.
 export const seasonRows = docs => docs.flatMap(doc => {
   const i = doc.labels.indexOf('BPM')
-  return doc.players.filter(p => p.mp >= MIN_FLOOR.regular && p.v[i] !== null).map(p => ({ slug: p.slug, season: doc.season, team: p.team, bpm: p.v[i] }))
+  return doc.players.filter(p => p.mp >= MIN_FLOOR.regular && p.v[i] !== null).map(p => ({ slug: p.slug, name: p.name, season: doc.season, team: p.team, bpm: p.v[i] }))
 })
+
+// Everyone who had a qualified season with a franchise, once, by his best season there
+// (by BPM), best first; but those in `except` (slugs: the ones its tiles already show).
+export const franchisePlayers = (rows, franchise, except = new Set()) => {
+  const seen = new Set(except)
+  return rows.filter(r => franchiseOf(r.team) === franchise).sort((a, b) => b.bpm - a.bpm).filter(r => !seen.has(r.slug) && seen.add(r.slug))
+}
 
 // A franchise's best players, each by his best season there (by BPM), as many as 5%
 // (`share`) of its seasons, at least one. Each brings his `set`: his seasons among those

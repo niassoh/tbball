@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { depthTiers, franchiseOf, seasonRows, topSeasons } from './library.js'
+import { depthTiers, franchiseOf, franchisePlayers, seasonRows, topSeasons } from './library.js'
 
 const board = (season, players) => ({ season, labels: ['Load', 'BPM'], players: players.map(([slug, team, mp, bpm]) => ({ slug, team, mp, v: [1, bpm] })) })
 
@@ -23,6 +23,15 @@ describe('library', () => {
     expect(topSeasons(rows, 'OKC').map(r => r.set.map(t => t.season))).toEqual([['2007-08', '2012-13'], ['2012-13']])
     expect(topSeasons(rows, 'MIA')).toHaveLength(1)
     expect(topSeasons(rows, 'BOS')).toEqual([])
+  })
+
+  test("everyone with a franchise's qualified season, once by his best there, but the tiles' players", () => {
+    const rows = seasonRows([
+      board('2007-08', [['durant', 'SEA', 2768, 9], ['collison', 'SEA', 1800, 1.5], ['bench', 'SEA', 700, 6], ['traded', '2 TM', 2000, 5]]),
+      board('2012-13', [['durant', 'OKC', 3119, 8], ['collison', 'OKC', 1500, 2], ['ibaka', 'OKC', 2500, 3], ['lebron', 'MIA', 3000, 10]])
+    ])
+    expect(franchisePlayers(rows, 'OKC').map(r => `${r.slug} ${r.season}`)).toEqual(['durant 2007-08', 'ibaka 2012-13', 'collison 2012-13'])
+    expect(franchisePlayers(rows, 'OKC', new Set(['durant'])).map(r => r.slug)).toEqual(['ibaka', 'collison'])
   })
 
   test('a depth chart reads starters first, then the bench in depth order, each player once', () => {

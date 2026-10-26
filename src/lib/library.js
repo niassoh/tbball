@@ -8,8 +8,10 @@ const FRANCHISE = { SEA: 'OKC', NJN: 'BKN', CHH: 'CHA', NOH: 'NOP', NOK: 'NOP', 
 export const franchiseOf = team => FRANCHISE[team] || team
 
 // The stats ALL-TIME can rank peaks by: each has a value for every qualified season on
-// every board (but Danny Schayes's 1997-98, a row the play-by-play stats never had).
-export const PEAKS = ['BPM', 'Load', 'Pts / 75']
+// every board (but Danny Schayes's 1997-98, a row the play-by-play stats never had), but
+// OBPM, which lacks some 30-100 role players a season in 1996-97 to 1999-00 (none better
+// than +3.8 BPM), so it misses no one's peak.
+export const PEAKS = ['BPM', 'OBPM', 'Load', 'Pts / 75']
 
 // Every qualified season on the boards with a value of `stat` (`v`), by its team that
 // season; `s` ranks it, higher better (`v`, or −`v` where lower is better: cTOV%, DRTG On).

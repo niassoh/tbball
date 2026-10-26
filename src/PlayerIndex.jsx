@@ -334,51 +334,40 @@ function Row({ player: p, to }) {
 
 // A team's everyone else (ALL-TIME): every player with a qualified season there, as his
 // best one, in a column per decade of that season, best first, each row keeping his rank
-// in the whole list (`rank`, a search or not): a dense index of mono rows (no faces), the one under the pointer or
-// focus shown whole beside it as a tile, the way a device's screen shows what's selected.
-// A click there or on the row opens him, the tile's portrait carried into his page. On a
-// phone the rows alone, the decades two abreast.
+// in the whole list (`rank`, a search or not): a dense index of rows, each with his face.
+// On a phone the decades sit two abreast.
 function Roster({ list, playerPath }) {
-  const [peek, setPeek] = useState(null)
-  const shown = (peek && list.includes(peek.p) && peek) || { p: list[0], carry: false }
-  const onPeek = (p, carry = false) => setPeek({ p, carry })
   const decades = [...new Set(list.map(decadeOf))].sort()
   return (
-    <div className="idx-roster" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 200px', gap: 28, alignItems: 'start' }}>
-      <div className="idx-decades" style={{ display: 'grid', gridTemplateColumns: `repeat(${decades.length}, minmax(0, 1fr))`, columnGap: 24 }}>
-        {decades.map(d => {
-          const own = list.filter(p => decadeOf(p) === d)
-          return (
-            <div key={d} style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 4px 8px', borderTop: `1px solid ${INK}`, borderBottom: `1px solid ${EDGE}` }}>
-                <span style={{ fontSize: 'clamp(20px, 1.7vw, 24px)', fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1, color: INK }}>’{d.slice(2)}s</span>
-                <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{own.length}</span>
-              </div>
-              {own.map(p => <ListRow key={p.slug} player={p} to={playerPath(p.slug)} on={p === shown.p} onPeek={onPeek} />)}
+    <div className="idx-roster idx-decades" style={{ display: 'grid', gridTemplateColumns: `repeat(${decades.length}, minmax(0, 1fr))`, columnGap: 24, alignItems: 'start' }}>
+      {decades.map(d => {
+        const own = list.filter(p => decadeOf(p) === d)
+        return (
+          <div key={d} style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 4px 8px', borderTop: `1px solid ${INK}`, borderBottom: `1px solid ${EDGE}` }}>
+              <span style={{ fontSize: 'clamp(20px, 1.7vw, 24px)', fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1, color: INK }}>’{d.slice(2)}s</span>
+              <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{own.length}</span>
             </div>
-          )
-        })}
-      </div>
-      {shown.p && (
-        <div className="idx-peek" style={{ position: 'sticky', top: 'calc(var(--head-h) + 16px)', display: 'flex', flexDirection: 'column' }}>
-          <Tile key={shown.p.slug} player={shown.p} to={playerPath(shown.p.slug)} order={EAGER} carry={shown.carry} />
-        </div>
-      )}
+            {own.map(p => <ListRow key={p.slug} player={p} to={playerPath(p.slug)} />)}
+          </div>
+        )
+      })}
     </div>
   )
 }
 const decadeOf = p => `${p.bestSeason.season.slice(0, 3)}0`
 
-// A line in a team's roster: his rank, initial and surname, best season and its BPM.
-// Hovering or focusing it shows him beside the list (`onPeek`, at once).
-function ListRow({ player: p, to, on, onPeek }) {
+// A line in a team's roster: his rank, face, initial and surname, best season and its
+// BPM. The face is the one carried into his page when it opens.
+function ListRow({ player: p, to }) {
   const { opening, events } = useOpen(p, to)
   const Root = p.stub ? 'span' : Link
-  const link = p.stub ? {} : { to, state: previewOf(p), ...events, onClick: e => { events.onClick(e); if (e.defaultPrevented) onPeek(p, true) } }
+  const link = p.stub ? {} : { to, state: previewOf(p), ...events }
   return (
-    <Root {...link} className="idx-row idx-list-row" onPointerEnter={() => { events.onPointerEnter(); onPeek(p) }} onFocus={() => { events.onFocus(); onPeek(p) }}
-      style={{ position: 'relative', display: 'grid', gridTemplateColumns: '20px minmax(0, 1fr) 24px 29px 30px', gap: 8, alignItems: 'center', height: 24, padding: '0 4px', borderBottom: `1px solid ${RULE}`, breakInside: 'avoid', background: on ? '#2c2a28' : undefined, color: p.stub ? DIM : INK }}>
+    <Root {...link} className="idx-row idx-list-row"
+      style={{ position: 'relative', display: 'grid', gridTemplateColumns: '18px 28px minmax(0, 1fr) 24px 29px 30px', gap: 8, alignItems: 'center', height: 34, padding: '0 4px', borderBottom: `1px solid ${RULE}`, color: p.stub ? DIM : INK }}>
       <span style={{ fontFamily: MONO, fontSize: 9, color: FAINT }}>{String(p.rank).padStart(2, '0')}</span>
+      <Face player={p} size={28} carry={opening} />
       <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{firstName(p.name)[0]}. </span>
         <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.01em' }}>{lastName(p.name)}</span>

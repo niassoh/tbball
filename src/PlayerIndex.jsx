@@ -51,6 +51,9 @@ const swatch = team => {
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 // '2015–16' -> '’16'
 const yy = s => `’${s.slice(-2)}`
+// A collection's span runs from its first season's start to its last's end ('2016–17' -> '’16'),
+// so ten straight seasons read '16–'26, not '17–'26.
+const yyFrom = s => `’${s.slice(2, 4)}`
 const span = p => (!p.seasons ? '' : p.seasons[0] === p.seasons[1] ? yy(p.seasons[0]) : `${yy(p.seasons[0])}—${yy(p.seasons[1])}`)
 const signed = v => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1).replace('-', '−')}`)
 const firstName = name => name.split(' ')[0]
@@ -237,7 +240,7 @@ function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of, carry 
       {tile}
       <button type="button" className="idx-tile-head" aria-expanded={open} aria-label={`${p.name}: ${set.length} seasons`} onClick={onSet}
         style={{ position: 'absolute', top: 1, right: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 9px', background: open ? INK : 'transparent', border: 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, color: open ? '#262422' : DIM }}>
-        <span className="idx-tile-span">{yy(set[0].bestSeason.season)}—{yy(set[set.length - 1].bestSeason.season)}</span>
+        <span className="idx-tile-span">{yyFrom(set[0].bestSeason.season)}—{yy(set[set.length - 1].bestSeason.season)}</span>
         <Stack ink={open ? '#262422' : INK} back={open ? '#262422' : FAINT} />
         <span style={{ fontWeight: 600, color: open ? '#262422' : INK }}>{String(set.length).padStart(2, '0')}</span>
       </button>
@@ -555,9 +558,9 @@ export default function PlayerIndex() {
       )}
 
       {listed && listed.length > 0 && (
-        <Section title="Everyone else" count={listed.length}>
+        <section aria-label="Everyone else" style={{ marginTop: 36 }}>
           <Roster list={listed} playerPath={playerPath} />
-        </Section>
+        </section>
       )}
 
       {!tiers && !listed && (q || pick) && rest.length > 0 && (

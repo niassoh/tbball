@@ -382,6 +382,20 @@ export default function PlayerIndex() {
   const [roster, setRoster] = useState({})
   const [teams, setTeams] = useState(null)
   useEffect(() => { fetchPlayers().then(list => setPlayers(list || [])) }, [])
+  // CURRENT ranks by this season's BPM (the latest board's, fetched up front so the switch
+  // is instant) and shows it on the meter under its year; a player yet to play goes last,
+  // with none.
+  const [now, setNow] = useState(null)
+  useEffect(() => {
+    fetchLeaderboardSeasons().then(({ seasons }) => {
+      const season = seasons[seasons.length - 1]
+      return fetchLeaderboard(season).then(d => {
+        const k = d.labels.indexOf('BPM')
+        setNow(new Map(d.players.map(p => [p.slug, { season, bpm: p.v[k], team: p.team }])))
+      })
+    }).catch(() => setNow(new Map()))
+  }, [])
+  const current = useMemo(() => (players && now ? players.filter(p => p.active).map(p => ({ ...p, bestSeason: now.get(p.slug) ?? null })) : null), [players, now])
   const bySlug = useMemo(() => new Map((players || []).map(p => [p.slug, p])), [players])
   // ALL-TIME without a team: each player as his best season, in its jersey where his own
   // jerseys tell which (jerseyIn), else his team's latest he has.
@@ -439,7 +453,7 @@ export default function PlayerIndex() {
   // On the depth chart he's on its team, whichever the index last saw him with; one with
   // no headshot yet is left off, as the chart is a wall of faces.
   const tiers = chart ? depthTiers(chart.depth).map(tier => tier.map(d => bySlug.get(d.slug)).filter(p => p && p.headshot && named(p)).map(p => ({ ...p, team: pick }))) : null
-  const pool = mode === 'current' ? (pick ? null : players?.filter(p => p.active)) : pick ? best[pick] : peaks
+  const pool = mode === 'current' ? (pick ? null : current) : pick ? best[pick] : peaks
   const matches = (pool || []).filter(named).sort(byBest)
   const portraits = matches.filter(p => ILLUSTRATED.has(p.headshot))
   const rest = matches.filter(p => !ILLUSTRATED.has(p.headshot))

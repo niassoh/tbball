@@ -229,16 +229,6 @@ html { scroll-behavior: smooth; scrollbar-gutter: stable; }
   .fp-row-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 .idx-tile { transition: background .15s, opacity .15s; }
-/* An open collection (PlayerIndex SetRow): the rest of the grid steps back as its seasons
-   come out from under its tile (each one's offset from the tile's centre, --dx/--dy, and
-   its delay set there), its outline drawn down from the tile; closing fades it. */
-.idx-set { transition: opacity .15s; }
-.idx-set-in { animation: idx-set-in .18s cubic-bezier(.2,.8,.2,1) both; }
-@keyframes idx-set-in { from { transform: translate(var(--dx), var(--dy)) scale(.92); opacity: 0; } }
-.idx-frame-in { transform-origin: top; animation: idx-frame-in .12s cubic-bezier(.2,.8,.2,1) both; }
-@keyframes idx-frame-in { from { transform: scaleY(0); } }
-.idx-set-out { animation: idx-set-out .1s ease-out both; }
-@keyframes idx-set-out { to { opacity: 0; } }
 /* On a phone, three portraits a row: the tiles close up and leave out the season range and
    the BPM meter (the number stays). */
 @media (max-width: 560px) {
@@ -361,8 +351,7 @@ a:hover > .lineup-tile > * { filter: none; }
   .hero.loading .hero-bar, .swap-in, .fade-in, .picker-in { animation: none; }
   .jersey-in, .jersey-out { animation: none; }
   .idx-tile .idx-face img, .idx-face .idx-in { transition: none; }
-  .idx-tile, .idx-set { transition: none; }
-  .idx-set-in, .idx-frame-in { animation: none; }
+  .idx-tile { transition: none; }
   .dist-bar, .dist-mark { transition: none; }
   .team-cell .team-cell-logo { transition: none; }
 }

@@ -11,15 +11,14 @@ describe('library', () => {
     expect(franchisePlayers(rows, 'OKC').map(r => r.slug)).toEqual(['durant'])
   })
 
-  test("a franchise's players with a season in the league's top 7%, once each by his best there", () => {
+  test("a franchise's seasons in the league's top 5%, every one, best first", () => {
     expect(franchiseOf('SEA')).toBe('OKC')
     expect(franchiseOf('CHH')).toBe('CHA')
     expect(franchiseOf('DEN')).toBe('DEN')
     const players = Array.from({ length: 38 }, (_, k) => [`p${k}`, 'OKC', 1000, k / 10])
     const rows = seasonRows([board('2007-08', [['durant', 'SEA', 2768, 9]]), board('2012-13', [['durant', 'OKC', 3119, 8], ...players, ['jokic', 'DEN', 2500, 7.9]]), board('2013-14', [['lebron', 'MIA', 3000, 10]])])
-    // 42 seasons league-wide: the top 7% is 3 (LeBron's and both of Durant's), so the bar is 8.
-    expect(topSeasons(rows, 'OKC').map(r => `${r.slug} ${r.season}`)).toEqual(['durant 2007-08'])
-    expect(topSeasons(rows, 'OKC').map(r => r.set.map(t => t.season))).toEqual([['2007-08', '2012-13']])
+    // 42 seasons league-wide: the top 5% is 3 (LeBron's and both of Durant's), so the bar is 8.
+    expect(topSeasons(rows, 'OKC').map(r => `${r.slug} ${r.season}`)).toEqual(['durant 2007-08', 'durant 2012-13'])
     expect(topSeasons(rows, 'MIA')).toHaveLength(1)
     // Denver's best is under the league's bar, however good it is for Denver.
     expect(topSeasons(rows, 'DEN')).toEqual([])

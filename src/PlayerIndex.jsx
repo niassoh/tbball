@@ -2,7 +2,7 @@ import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState 
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardSeasons, fetchPlayers, fetchProfile, headshotUrl, loadTeams, prefetchProfile } from './api.js'
 import { MONO } from './lib/format.js'
-import { jerseyIn, reducedMotion } from './lib/jersey.js'
+import { jerseyIn } from './lib/jersey.js'
 import { TEAM_COLORS, teamColor } from './lib/teams.js'
 import { asset } from './lib/static.js'
 import TeamInitials from './components/TeamInitials.jsx'
@@ -51,9 +51,6 @@ const swatch = team => {
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 // '2015–16' -> '’16'
 const yy = s => `’${s.slice(-2)}`
-// A collection's span runs from its first season's start to its last's end ('2016–17' -> '’16'),
-// so ten straight seasons read '16–'26, not '17–'26.
-const yyFrom = s => `’${s.slice(2, 4)}`
 const span = p => (!p.seasons ? '' : p.seasons[0] === p.seasons[1] ? yy(p.seasons[0]) : `${yy(p.seasons[0])}—${yy(p.seasons[1])}`)
 const signed = v => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1).replace('-', '−')}`)
 const firstName = name => name.split(' ')[0]
@@ -200,123 +197,35 @@ function useOpen(p, to) {
 // A portrait in the catalogue: team and seasons over the portrait, then the name and his
 // best season's BPM on the meter (none without a qualified season). A current player's
 // tile has his span and the LED (lit for players in the latest season); a season's, its
-// year (the year a live LED would misread). A collection's tile (`set`, his seasons) is his
-// best season with the set's span and its key, which opens the set (`open`: pressed, its
-// outline running on into the open set). In an open set (`of`, the franchise) the season
-// is the headline, with no head: his team shows, in place of the BPM label, only where it
-// isn't the franchise's code (SEA for OKC).
-function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of, carry }) {
+// year (the year a live LED would misread), and a team's seasons (`season`) carry it as a
+// headline, a player's several tiles told apart by it.
+function Tile({ player: p, to, order, onShown, season, carry }) {
   const { opening, events } = useOpen(p, to)
-  const tile = (
-    <Link to={to} state={previewOf(p)} {...events} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${open ? INK : RULE}`, borderBottomColor: open ? 'transparent' : RULE, margin: '0 -1px -1px 0', opacity: dim && !set ? 0.35 : undefined }}>
-      {!of && <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
+  return (
+    <Link to={to} state={previewOf(p)} {...events} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
+      <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
         <TeamChip team={teamOf(p)} />
-        {!set && (pastBest(p)
-          ? <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{bestYear(p)}</span>
-          : <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
-              <span className="idx-tile-span">{span(p)}</span>
-              <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}`, boxShadow: p.active ? GLOW : 'none' }} />
-            </span>)}
-      </span>}
+        {season
+          ? <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1, color: INK }}>{bestYear(p)}</span>
+          : pastBest(p)
+            ? <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{bestYear(p)}</span>
+            : <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 10, color: DIM }}>
+                <span className="idx-tile-span">{span(p)}</span>
+                <span title={p.active ? 'Active' : 'Not active'} style={{ width: 6, height: 6, borderRadius: '50%', background: p.active ? 'var(--accent)' : 'transparent', border: `1px solid ${p.active ? 'var(--accent)' : FAINT}`, boxShadow: p.active ? GLOW : 'none' }} />
+              </span>}
+      </span>
       <Face player={p} square order={order} onShown={onShown} carry={opening || carry} />
       <span className="idx-tile-foot" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 10px 12px', borderTop: `1px solid ${RULE}` }}>
-        {!of && <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>}
-        <FitName text={of ? p.bestSeason.season.replace('-', '–') : lastName(p.name)} />
+        <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>
+        <FitName text={lastName(p.name)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-          {of && teamOf(p) !== of
-            ? <TeamChip team={teamOf(p)} />
-            : <span style={label}>{best(p) === null || (pastBest(p) && !set) ? 'BPM' : `BPM ${bestYear(p)}`}</span>}
+          <span style={label}>{best(p) === null || pastBest(p) ? 'BPM' : `BPM ${bestYear(p)}`}</span>
           {best(p) !== null && <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={best(p)} /></span>}
           <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: 600, color: low(best(p)) ? '#fa962a' : INK }}>{signed(best(p))}</span>
         </span>
       </span>
       {opening && <span aria-hidden="true" className="idx-opening" />}
     </Link>
-  )
-  if (!set) return tile
-  // The key sits over the tile's head (a button can't go inside its link); pressed, it's lit.
-  return (
-    <span className="idx-set" style={{ position: 'relative', zIndex: open ? 1 : undefined, display: 'flex', flexDirection: 'column', minWidth: 0, opacity: dim ? 0.35 : undefined }}>
-      {tile}
-      <button type="button" className="idx-tile-head" aria-expanded={open} aria-label={`${p.name}: ${set.length} seasons`} onClick={onSet}
-        style={{ position: 'absolute', top: 1, right: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 9px', background: open ? INK : 'transparent', border: 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, color: open ? '#262422' : DIM }}>
-        <span className="idx-tile-span">{yyFrom(set[0].bestSeason.season)}—{yy(set[set.length - 1].bestSeason.season)}</span>
-        <Stack ink={open ? '#262422' : INK} back={open ? '#262422' : FAINT} />
-        <span style={{ fontWeight: 600, color: open ? '#262422' : INK }}>{String(set.length).padStart(2, '0')}</span>
-      </button>
-    </span>
-  )
-}
-
-// A collection's key: three cards, hairline, the back two peeking up and right.
-function Stack({ ink, back }) {
-  return (
-    <span aria-hidden="true" style={{ position: 'relative', width: 13, height: 10, flex: 'none' }}>
-      {[4, 2].map(d => <span key={d} style={{ position: 'absolute', left: d, top: 4 - d, width: 9, height: 6, borderTop: `1px solid ${back}`, borderRight: `1px solid ${back}` }} />)}
-      <span style={{ position: 'absolute', left: 0, top: 4, width: 9, height: 6, border: `1px solid ${ink}` }} />
-    </span>
-  )
-}
-
-// A collection opened, a full row under its tile's row (the grid packs dense, so the tiles
-// after it fill that row first): a box just wide enough for its seasons (wrapping at the
-// grid's columns), centred under the tile and kept inside the grid. Its ink outline meets
-// the open tile's, its top rule stopping at the tile's edges, so the set reads as coming
-// out of it; the tile (the element before it) and the grid's columns are measured as the
-// grid reflows. Its seasons come out from under the tile, each from the tile's centre
-// (`from`, measured once they're laid out, before the first paint), staggered in season
-// order with the last under 120ms in, and clipped at the box's top so none crosses the
-// tiles beside it; `out`, it fades and then goes (`onGone`).
-function SetRow({ set, of, playerPath, out, onGone }) {
-  const ref = useRef(null)
-  const box = useRef(null)
-  const [at, setAt] = useState(null)
-  const [from, setFrom] = useState(null)
-  useLayoutEffect(() => {
-    const el = ref.current
-    const fit = () => {
-      const a = el.getBoundingClientRect()
-      const t = el.previousElementSibling.getBoundingClientRect()
-      const cols = getComputedStyle(el.parentElement).gridTemplateColumns.split(' ')
-      setAt({ width: a.width, cols: cols.length, col: parseFloat(cols[0]), left: t.left - a.left, right: t.right - a.left })
-    }
-    fit()
-    const watch = new ResizeObserver(fit)
-    watch.observe(el)
-    return () => watch.disconnect()
-  }, [])
-  useLayoutEffect(() => {
-    if (!at || from) return
-    const t = ref.current.previousElementSibling.getBoundingClientRect()
-    setFrom([...box.current.children].slice(0, set.length).map(el => {
-      const r = el.getBoundingClientRect()
-      return [(t.left + t.right - r.left - r.right) / 2, (t.top + t.bottom - r.top - r.bottom) / 2]
-    }))
-  }, [at, from, set.length])
-  const step = Math.min(25, 120 / (set.length - 1))
-  const per = at && Math.min(set.length, at.cols)
-  const width = at && per * at.col
-  const x = at && Math.max(0, Math.min(at.width - width, (at.left + at.right) / 2 - width / 2))
-  const line = { position: 'absolute', top: 0, height: 1, background: INK }
-  return (
-    <div ref={ref} style={{ gridColumn: '1 / -1', padding: '0 0 14px' }}>
-      {at && (
-        <div ref={box} className={out ? 'idx-set-out' : undefined} onAnimationEnd={e => e.animationName === 'idx-set-out' && onGone()}
-          style={{ position: 'relative', width, marginLeft: x, display: 'grid', gridTemplateColumns: `repeat(${per}, ${at.col}px)`, padding: '14px 0', clipPath: 'inset(0 -2px -2px -2px)' }}>
-          {set.map((s, k) => (
-            <span key={s.bestSeason.season} className={from ? 'idx-set-in' : undefined}
-              style={{ display: 'flex', flexDirection: 'column', minWidth: 0, ...(from && { '--dx': `${from[k][0]}px`, '--dy': `${from[k][1]}px`, animationDelay: `${k * step}ms` }) }}>
-              <Tile player={s} to={playerPath(s.slug)} order={0} of={of} />
-            </span>
-          ))}
-          <span aria-hidden="true" style={{ position: 'absolute', inset: '0 -1px -1px 0', zIndex: 2, pointerEvents: 'none' }}>
-            <span className="idx-frame-in" style={{ position: 'absolute', inset: 0, borderLeft: `1px solid ${INK}`, borderRight: `1px solid ${INK}`, borderBottom: `1px solid ${INK}` }} />
-            <span style={{ ...line, left: -1, width: Math.max(0, at.left - x) }} />
-            <span style={{ ...line, left: at.right - x - 1, right: -1 }} />
-          </span>
-        </div>
-      )}
-    </div>
   )
 }
 
@@ -426,24 +335,6 @@ export default function PlayerIndex() {
   // ALL-TIME without a team: each player as his best season, in its jersey where his own
   // jerseys tell which (jerseyIn), else his team's latest he has.
   const peaks = useMemo(() => (players || []).map(p => (p.bestSeason ? { ...p, pinned: true, jersey: jerseyIn(p.layers, p.bestSeason.team) } : p)), [players])
-  // The collection open, as team|slug, and the one closing (fading out); another opened
-  // closes the last at once.
-  const [open, setOpen] = useState(null)
-  const [closing, setClosing] = useState(null)
-  const flip = at => {
-    setClosing(open === at && !reducedMotion() ? at : null)
-    setOpen(open === at ? null : at)
-  }
-  useEffect(() => {
-    if (!open) return
-    const close = e => {
-      if (e.key !== 'Escape') return
-      setClosing(reducedMotion() ? null : open)
-      setOpen(null)
-    }
-    window.addEventListener('keydown', close)
-    return () => window.removeEventListener('keydown', close)
-  }, [open])
   // The first screen of tiles renders as soon as the list arrives; the rest of the tiles
   // wait for its faces to show (2.5s at the most), since the first faces otherwise wait on
   // rendering the rest, transition or not. A search or a team renders them at once.
@@ -484,7 +375,7 @@ export default function PlayerIndex() {
         const jerseys = new Map(dressed.map((s, k) => [s, profiles[k]]))
         const jerseyOf = r => jerseys.get(r.slug)?.seasons.find(s => s.season === r.season)?.jersey
         const pinned = r => ({ ...bySlug.get(r.slug), bestSeason: { season: r.season, bpm: r.bpm, team: r.team }, pinned: true, jersey: jerseyOf(r) })
-        setBest(b => ({ ...b, [pick]: top.map(r => ({ ...pinned(r), set: r.set.length > 1 ? r.set.map(pinned) : null })) }))
+        setBest(b => ({ ...b, [pick]: top.map(pinned) }))
       })
     }).catch(() => setBest(b => ({ ...b, [pick]: [] })))
   }, [mode, pick, players, bySlug, best])
@@ -545,14 +436,7 @@ export default function PlayerIndex() {
         <Section title="Illustrated" count={portraits.length} controls={toggle}>
           {/* Tiles share their 1px edges (each overlaps the next by 1px), so a short last row leaves empty cells blank. */}
           <div className="idx-grid" style={grid}>
-            {(all ? portraits : portraits.slice(0, EAGER)).map((p, i) => {
-              const at = `${pick}|${p.slug}`
-              const back = open && open.startsWith(`${pick}|`) && open !== at
-              return [
-                <Tile key={key(p)} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} set={p.set} open={open === at} dim={back} onSet={() => flip(at)} />,
-                (open === at || closing === at) && p.set && <SetRow key={`${key(p)}+`} set={p.set} of={pick} playerPath={playerPath} out={closing === at} onGone={() => setClosing(null)} />
-              ]
-            })}
+            {(all ? portraits : portraits.slice(0, EAGER)).map((p, i) => <Tile key={key(p)} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} season={!!pick} />)}
           </div>
         </Section>
       )}

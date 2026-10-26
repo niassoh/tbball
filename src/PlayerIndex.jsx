@@ -11,7 +11,6 @@ import Wink from './components/Wink.jsx'
 import { useSeasonType } from './useSeasonType.js'
 import BrandMark from './components/BrandMark.jsx'
 import SiteNav from './components/SiteNav.jsx'
-import ModeSwitch from './components/ModeSwitch.jsx'
 import { depthTiers, franchisePlayers, seasonRows, topSeasons } from './lib/library.js'
 
 // The player index: a search line (and the way to the Leaderboard) and the 30 teams'
@@ -343,6 +342,30 @@ const loadSeasons = () => {
   return seasonsRequest
 }
 const MODES = [['all', 'All-time'], ['current', 'Current']]
+
+// ALL-TIME | CURRENT: the side on a block of soft ink, its type dark and its mark lit
+// (CURRENT the index's active LED, glowing; ALL-TIME a square, filled), the other dim
+// with its mark hollow, so which list this is reads at a glance. It stands no taller
+// than the line.
+function ModeToggle({ mode, setMode }) {
+  return (
+    <div role="group" aria-label="Players" style={{ display: 'flex', margin: '-6px 0', border: `1px solid ${EDGE}`, flex: 'none' }}>
+      {MODES.map(([m, name], i) => {
+        const on = mode === m
+        const mark = m === 'current'
+          ? { borderRadius: '50%', background: on ? 'var(--accent)' : 'transparent', border: `1px solid ${on ? 'var(--accent)' : FAINT}`, boxShadow: on ? GLOW : 'none' }
+          : { background: on ? '#1f1d1c' : 'transparent', border: `1px solid ${on ? '#1f1d1c' : FAINT}` }
+        return (
+          <button key={m} type="button" aria-pressed={on} onClick={() => setMode(m)}
+            style={{ height: 22, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 10px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#d8d3cc' : 'transparent', color: on ? '#1f1d1c' : DIM, fontFamily: MONO, fontSize: 9, fontWeight: on ? 700 : 400, letterSpacing: '.12em', textTransform: 'uppercase', cursor: on ? 'default' : 'pointer' }}>
+            <span aria-hidden="true" style={{ width: 6, height: 6, boxSizing: 'border-box', flex: 'none', ...mark }} />
+            {name}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gridAutoFlow: 'dense', paddingRight: 1, paddingBottom: 1 }
 
 export default function PlayerIndex() {
@@ -425,7 +448,7 @@ export default function PlayerIndex() {
     ? roster[pick].filter(r => !tiled.has(r.slug)).map((r, i) => ({ ...(bySlug.get(r.slug) || { slug: r.slug, name: r.name, headshot: null, stub: true }), bestSeason: { season: r.season, bpm: r.bpm, team: r.team }, pinned: true, jersey: jerseyIn(bySlug.get(r.slug)?.layers, r.team), rank: i + 1 })).filter(named)
     : null
   // No caption: All-time or Current, in the first section's line, standing no taller than it.
-  const toggle = <span style={{ display: 'flex', margin: '-6px 0' }}><ModeSwitch name="Players" options={MODES} mode={mode} setMode={setMode} height={22} /></span>
+  const toggle = <ModeToggle mode={mode} setMode={setMode} />
 
   return (
     <main className="page-main" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 var(--page-pad) 64px' }}>

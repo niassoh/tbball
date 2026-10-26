@@ -1,7 +1,7 @@
 import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardSeasons, fetchPlayers, fetchProfile, headshotUrl, loadTeams, prefetchProfile } from './api.js'
-import { MONO } from './lib/format.js'
+import { fmt, MONO } from './lib/format.js'
 import { jerseyIn } from './lib/jersey.js'
 import { TEAM_COLORS, teamColor } from './lib/teams.js'
 import { asset } from './lib/static.js'
@@ -12,7 +12,8 @@ import { useSeasonType } from './useSeasonType.js'
 import BrandMark from './components/BrandMark.jsx'
 import SiteNav from './components/SiteNav.jsx'
 import ModeSwitch from './components/ModeSwitch.jsx'
-import { depthTiers, franchisePlayers, seasonRows, topSeasons } from './lib/library.js'
+import { depthTiers, franchisePlayers, PEAKS, peakSeasons, seasonRows, topSeasons } from './lib/library.js'
+import Popover from './components/Popover.jsx'
 
 // The player index: a search line (and the way to the Leaderboard) and the 30 teams'
 // logos to filter by, then the
@@ -52,7 +53,6 @@ const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 // '2015–16' -> '’16'
 const yy = s => `’${s.slice(-2)}`
 const span = p => (!p.seasons ? '' : p.seasons[0] === p.seasons[1] ? yy(p.seasons[0]) : `${yy(p.seasons[0])}—${yy(p.seasons[1])}`)
-const signed = v => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1).replace('-', '−')}`)
 const firstName = name => name.split(' ')[0]
 const lastName = name => name.split(' ').slice(1).join(' ') || name
 // A surname at the tile's size, shrunk (to 10px at the least) to fit the tile: its width
@@ -85,18 +85,24 @@ function FitName({ text }) {
   }, [text])
   return <span ref={ref} style={{ fontSize: NAME_PX, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: '20px', height: 20, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</span>
 }
-const low = v => v !== null && v < 0
-const best = p => (p.bestSeason ? p.bestSeason.bpm : null)
+// The value shown: a board season's stat (`v`), else his profile's best-season BPM.
+const best = p => (p.bestSeason ? (p.bestSeason.v ?? p.bestSeason.bpm) : null)
 const bestYear = p => (p.bestSeason ? yy(p.bestSeason.season) : '—')
-const byBest = (a, b) => (best(b) ?? -99) - (best(a) ?? -99)
 // A tile pinned to one season (ALL-TIME's; `bestSeason` is that season) shows it: its team
 // and year.
 const pastBest = p => (p.pinned && p.bestSeason) || null
 const teamOf = p => (pastBest(p) ? pastBest(p).team : p.team)
 
-// Best-season BPM as a 10-segment meter from −4 to +10.
-const METER = [-4, 10]
-const lit = v => (v === null ? 0 : Math.max(0, Math.min(10, Math.round(((v - METER[0]) / (METER[1] - METER[0])) * 10))))
+// What the tiles measure (`m`): BPM, or the stat ALL-TIME ranks peaks by. Its 10-segment
+// meter runs over `scale`, in rank terms (higher better: −v where lower is better), BPM's
+// from −4 to +10, another stat's from the 2nd percentile of qualified seasons to the best.
+// A relative stat below average shows orange.
+const BPM = { label: 'BPM', meta: { dec: 1, relative: true }, down: false, scale: [-4, 10] }
+const rank = (v, m) => (v === null ? -1e9 : m.down ? -v : v)
+const lit = (v, m) => (v === null ? 0 : Math.max(0, Math.min(10, Math.round(((rank(v, m) - m.scale[0]) / (m.scale[1] - m.scale[0])) * 10))))
+const low = (v, m) => m.meta.relative && v !== null && v < 0
+const shown = (v, m) => fmt(m.meta, v)
+const byValue = m => (a, b) => rank(best(b), m) - rank(best(a), m)
 
 function TeamChip({ team }) {
   return (
@@ -108,12 +114,12 @@ function TeamChip({ team }) {
 }
 
 // `small`: the roster's, at half the width.
-function Meter({ value, small = false }) {
-  const n = lit(value)
+function Meter({ value, m, small = false }) {
+  const n = lit(value, m)
   return (
     <span aria-hidden="true" style={{ display: 'flex', gap: small ? 1 : 2 }}>
       {Array.from({ length: 10 }, (_, i) => (
-        <span key={i} style={{ width: small ? 2 : 4, height: small ? 8 : 9, background: i < n ? (low(value) ? '#fa962a' : INK) : RULE }} />
+        <span key={i} style={{ width: small ? 2 : 4, height: small ? 8 : 9, background: i < n ? (low(value, m) ? '#fa962a' : INK) : RULE }} />
       ))}
     </span>
   )
@@ -195,11 +201,12 @@ function useOpen(p, to) {
 }
 
 // A portrait in the catalogue: team and seasons over the portrait, then the name and his
-// best season's BPM on the meter (none without a qualified season). A current player's
+// best season's BPM on the meter (none without a qualified season), or the stat ALL-TIME
+// ranks by (`m`), named only by the picker above. A current player's
 // tile has his span and the LED (lit for players in the latest season); a season's, its
 // year (the year a live LED would misread), and a team's seasons (`season`) carry it as a
 // headline, a player's several tiles told apart by it.
-function Tile({ player: p, to, order, onShown, season, carry }) {
+function Tile({ player: p, to, order, onShown, season, carry, m = BPM }) {
   const { opening, events } = useOpen(p, to)
   return (
     <Link to={to} state={previewOf(p)} {...events} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${RULE}`, margin: '0 -1px -1px 0' }}>
@@ -219,9 +226,9 @@ function Tile({ player: p, to, order, onShown, season, carry }) {
         <span style={{ ...label, letterSpacing: '.08em' }}>{firstName(p.name)}</span>
         <FitName text={lastName(p.name)} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-          <span style={label}>{best(p) === null || pastBest(p) ? 'BPM' : `BPM ${bestYear(p)}`}</span>
-          {best(p) !== null && <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={best(p)} /></span>}
-          <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: 600, color: low(best(p)) ? '#fa962a' : INK }}>{signed(best(p))}</span>
+          {m === BPM && <span style={label}>{best(p) === null || pastBest(p) ? 'BPM' : `BPM ${bestYear(p)}`}</span>}
+          {best(p) !== null && <span className="idx-tile-meter" style={{ display: 'contents' }}><Meter value={best(p)} m={m} /></span>}
+          <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: 600, color: low(best(p), m) ? '#fa962a' : INK }}>{shown(best(p), m)}</span>
         </span>
       </span>
       {opening && <span aria-hidden="true" className="idx-opening" />}
@@ -230,7 +237,7 @@ function Tile({ player: p, to, order, onShown, season, carry }) {
 }
 
 // A line in the parts list.
-function Row({ player: p, to }) {
+function Row({ player: p, to, m = BPM }) {
   const { opening, events } = useOpen(p, to)
   return (
     <Link to={to} state={previewOf(p)} {...events} className="idx-row idx-later-row" style={{ position: 'relative', display: 'grid', gridTemplateColumns: '22px minmax(0,1fr) 48px 30px 44px', gap: 10, alignItems: 'center', height: 32, padding: '0 4px', borderBottom: `1px solid ${RULE}`, color: INK }}>
@@ -238,7 +245,7 @@ function Row({ player: p, to }) {
       <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
       <TeamChip team={teamOf(p)} />
       <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{bestYear(p)}</span>
-      <span style={{ fontFamily: MONO, fontSize: 10, textAlign: 'right', color: low(best(p)) ? '#fa962a' : '#b8b2ab' }}>{signed(best(p))}</span>
+      <span style={{ fontFamily: MONO, fontSize: 10, textAlign: 'right', color: low(best(p), m) ? '#fa962a' : '#b8b2ab' }}>{shown(best(p), m)}</span>
       {opening && <span aria-hidden="true" className="idx-opening" />}
     </Link>
   )
@@ -248,7 +255,7 @@ function Row({ player: p, to }) {
 // best one, in a column per decade of that season, best first, each row keeping his rank
 // in the whole list (`rank`, a search or not): a dense index of rows, each with his face.
 // On a phone the decades sit two abreast.
-function Roster({ list, playerPath }) {
+function Roster({ list, playerPath, m }) {
   const decades = [...new Set(list.map(decadeOf))].sort()
   return (
     <div className="idx-roster idx-decades" style={{ display: 'grid', gridTemplateColumns: `repeat(${decades.length}, minmax(0, 1fr))`, columnGap: 24, alignItems: 'start' }}>
@@ -260,7 +267,7 @@ function Roster({ list, playerPath }) {
               <span style={{ fontSize: 'clamp(20px, 1.7vw, 24px)', fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1, color: INK }}>’{d.slice(2)}s</span>
               <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{own.length}</span>
             </div>
-            {own.map(p => <ListRow key={p.slug} player={p} to={playerPath(p.slug)} />)}
+            {own.map(p => <ListRow key={p.slug} player={p} to={playerPath(p.slug)} m={m} />)}
           </div>
         )
       })}
@@ -270,8 +277,8 @@ function Roster({ list, playerPath }) {
 const decadeOf = p => `${p.bestSeason.season.slice(0, 3)}0`
 
 // A line in a team's roster: his rank, face, initial and surname, best season and its
-// BPM. The face is the one carried into his page when it opens.
-function ListRow({ player: p, to }) {
+// value (`m`). The face is the one carried into his page when it opens.
+function ListRow({ player: p, to, m }) {
   const { opening, events } = useOpen(p, to)
   const Root = p.stub ? 'span' : Link
   const link = p.stub ? {} : { to, state: previewOf(p), ...events }
@@ -285,18 +292,19 @@ function ListRow({ player: p, to }) {
         <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.01em' }}>{lastName(p.name)}</span>
       </span>
       <span className="idx-list-year" style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{bestYear(p)}</span>
-      <span className="idx-tile-meter" style={{ display: 'flex' }}><Meter value={best(p)} small /></span>
-      <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 600, textAlign: 'right', color: low(best(p)) ? '#fa962a' : INK }}>{signed(best(p))}</span>
+      <span className="idx-tile-meter" style={{ display: 'flex' }}><Meter value={best(p)} m={m} small /></span>
+      <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 600, textAlign: 'right', color: low(best(p), m) ? '#fa962a' : INK }}>{shown(best(p), m)}</span>
       {opening && <span aria-hidden="true" className="idx-opening" />}
     </Root>
   )
 }
 
-function Section({ title, count, controls, children }) {
+function Section({ title, lead, count, controls, children }) {
   return (
     <section style={{ marginTop: 36 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <span style={{ ...label, color: INK, fontWeight: 600 }}>{title}</span>
+        {lead}
         <span style={{ flex: 1, height: 1, background: RULE }} />
         <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{count.toLocaleString()}</span>
         {controls}
@@ -306,18 +314,43 @@ function Section({ title, count, controls, children }) {
   )
 }
 
-// Every season board's qualified seasons (lib/library.js), fetched once a session on a
-// team's first pick: some 4MB gzipped, the 31 boards being the only export with every
-// player's season by team.
+// Every season board (lib/library.js), fetched once a session on the first team or stat
+// picked: some 4MB gzipped, the 31 boards being the only export with every player's season
+// by team.
 let seasonsRequest = null
 const loadSeasons = () => {
   seasonsRequest = seasonsRequest || fetchLeaderboardSeasons()
     .then(d => Promise.all(d.seasons.map(s => fetchLeaderboard(s).catch(() => null))))
-    .then(docs => seasonRows(docs.filter(Boolean)))
+    .then(docs => docs.filter(Boolean))
     .catch(err => { seasonsRequest = null; throw err })
   return seasonsRequest
 }
 const MODES = [['all', 'All-time'], ['current', 'Current']]
+
+// The stat ALL-TIME ranks peaks by, beside the first section's title and in its type, dim
+// and unboxed (only its caret says it opens): its groups as columns, the one picked lit; a
+// pick closes it. It stands no taller than the line.
+function StatPicker({ stat, setStat }) {
+  return (
+    <span style={{ display: 'flex', margin: '-4px 0 -4px -12px' }}>
+      <Popover name={`Peaks by ${stat}`} minWidth={0} accent="transparent" trigger={<span style={{ ...label, fontWeight: 400 }}>{stat}</span>}>
+        {close => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '14px 12px', width: 'min(684px, calc(100vw - 56px))' }}>
+            {PEAKS.map(([group, stats]) => (
+              <div key={group} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ ...label, marginBottom: 4 }}>{group}</span>
+                {stats.map(l => (
+                  <button key={l} type="button" className="idx-row" aria-pressed={l === stat} onClick={() => { setStat(l); close() }}
+                    style={{ padding: '5px 8px', border: 0, background: l === stat ? INK : 'transparent', color: l === stat ? '#262422' : INK, fontFamily: MONO, fontSize: 11, fontWeight: l === stat ? 700 : 400, textAlign: 'left', whiteSpace: 'nowrap', cursor: 'pointer' }}>{l}</button>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </Popover>
+    </span>
+  )
+}
 const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gridAutoFlow: 'dense', paddingRight: 1, paddingBottom: 1 }
 
 export default function PlayerIndex() {
@@ -326,9 +359,11 @@ export default function PlayerIndex() {
   const [query, setQuery] = useState('')
   const [team, setTeam] = useState(null)
   const [mode, setMode] = useState('all')
-  // Each team's best seasons once built, and the depth charts.
+  const [stat, setStat] = useState('BPM')
+  // The season boards, each team's best seasons by a stat once built ('LAL|BPM'), and the
+  // depth charts.
+  const [docs, setDocs] = useState(null)
   const [best, setBest] = useState({})
-  const [roster, setRoster] = useState({})
   const [teams, setTeams] = useState(null)
   useEffect(() => { fetchPlayers().then(list => setPlayers(list || [])) }, [])
   const bySlug = useMemo(() => new Map((players || []).map(p => [p.slug, p])), [players])
@@ -362,23 +397,41 @@ export default function PlayerIndex() {
   const typedTeam = TEAMS.find(t => fold(t) === q)
   const pick = team || typedTeam
 
+  // ALL-TIME's peaks by a stat other than BPM, and a team's, come from the boards; BPM's
+  // without a team from the profiles.
+  const boards = mode === 'all' && (!!pick || stat !== 'BPM')
+  useEffect(() => {
+    if (boards && !docs) loadSeasons().then(setDocs, () => setDocs([]))
+  }, [boards, docs])
+  const rows = useMemo(() => docs && seasonRows(docs, stat), [docs, stat])
+  const measure = useMemo(() => {
+    if (stat === 'BPM' || !rows?.length) return BPM
+    const meta = docs[docs.length - 1].stats[stat]
+    const ranks = rows.map(r => r.s).sort((a, b) => a - b)
+    return { label: stat, meta, down: !!meta.lowerBetter, scale: [ranks[Math.floor(ranks.length * 0.02)], ranks[ranks.length - 1]] }
+  }, [stat, rows, docs])
+  const m = mode === 'all' ? measure : BPM
+  const at = `${pick}|${stat}`
   // A team's best seasons arrive whole: each player in that season's jersey, which only his
   // profile knows (the era a season fell in), so the dressed players' profiles come first
   // (warming their links too).
   useEffect(() => {
-    if (mode !== 'all' || !pick || !players || best[pick]) return
-    loadSeasons().then(rows => {
-      setRoster(r => ({ ...r, [pick]: franchisePlayers(rows, pick) }))
-      const top = topSeasons(rows, pick).filter(r => bySlug.has(r.slug))
-      const dressed = [...new Set(top.filter(r => bySlug.get(r.slug).layers).map(r => r.slug))]
-      return Promise.all(dressed.map(s => fetchProfile(s).catch(() => null))).then(profiles => {
-        const jerseys = new Map(dressed.map((s, k) => [s, profiles[k]]))
-        const jerseyOf = r => jerseys.get(r.slug)?.seasons.find(s => s.season === r.season)?.jersey
-        const pinned = r => ({ ...bySlug.get(r.slug), bestSeason: { season: r.season, bpm: r.bpm, team: r.team }, pinned: true, jersey: jerseyOf(r) })
-        setBest(b => ({ ...b, [pick]: top.map(pinned) }))
-      })
-    }).catch(() => setBest(b => ({ ...b, [pick]: [] })))
-  }, [mode, pick, players, bySlug, best])
+    if (mode !== 'all' || !pick || !rows || !players || best[at]) return
+    const top = topSeasons(rows, pick).filter(r => bySlug.has(r.slug))
+    const dressed = [...new Set(top.filter(r => bySlug.get(r.slug).layers).map(r => r.slug))]
+    Promise.all(dressed.map(s => fetchProfile(s).catch(() => null))).then(profiles => {
+      const jerseys = new Map(dressed.map((s, k) => [s, profiles[k]]))
+      const jerseyOf = r => jerseys.get(r.slug)?.seasons.find(s => s.season === r.season)?.jersey
+      const pinned = r => ({ ...bySlug.get(r.slug), bestSeason: { season: r.season, v: r.v, team: r.team }, pinned: true, jersey: jerseyOf(r) })
+      setBest(b => ({ ...b, [at]: top.map(pinned) }))
+    })
+  }, [mode, pick, rows, players, bySlug, best, at])
+  const roster = useMemo(() => (pick && rows ? franchisePlayers(rows, pick) : null), [pick, rows])
+  // Without a team, each player at his peak by the stat, in its jersey as `peaks`.
+  const statPeaks = useMemo(() => (stat === 'BPM' || !rows ? null : peakSeasons(rows).filter(r => bySlug.has(r.slug)).map(r => {
+    const p = bySlug.get(r.slug)
+    return { ...p, bestSeason: { season: r.season, v: r.v, team: r.team }, pinned: true, jersey: jerseyIn(p.layers, r.team) }
+  })), [stat, rows, bySlug])
   useEffect(() => {
     if (mode === 'current' && pick && !teams) loadTeams().then(setTeams, () => setTeams([]))
   }, [mode, pick, teams])
@@ -388,19 +441,21 @@ export default function PlayerIndex() {
   // On the depth chart he's on its team, whichever the index last saw him with; one with
   // no headshot yet is left off, as the chart is a wall of faces.
   const tiers = chart ? depthTiers(chart.depth).map(tier => tier.map(d => bySlug.get(d.slug)).filter(p => p && p.headshot && named(p)).map(p => ({ ...p, team: pick }))) : null
-  const pool = mode === 'current' ? (pick ? null : players?.filter(p => p.active)) : pick ? best[pick] : peaks
-  const matches = (pool || []).filter(named).sort(byBest)
+  const pool = mode === 'current' ? (pick ? null : players?.filter(p => p.active)) : pick ? best[at] : stat === 'BPM' ? peaks : statPeaks
+  const matches = (pool || []).filter(named).sort(byValue(m))
   const portraits = matches.filter(p => ILLUSTRATED.has(p.headshot))
   const rest = matches.filter(p => !ILLUSTRATED.has(p.headshot))
   const all = full || !!q || !!team
   const key = p => (p.pinned ? `${p.slug}|${p.bestSeason.season}` : p.slug)
   // A team's everyone else: the franchise's whole roster but the tiles' players.
   const tiled = new Set(portraits.map(p => p.slug))
-  const listed = mode === 'all' && pick && best[pick] && roster[pick]
-    ? roster[pick].filter(r => !tiled.has(r.slug)).map((r, i) => ({ ...(bySlug.get(r.slug) || { slug: r.slug, name: r.name, headshot: null, stub: true }), bestSeason: { season: r.season, bpm: r.bpm, team: r.team }, pinned: true, jersey: jerseyIn(bySlug.get(r.slug)?.layers, r.team), rank: i + 1 })).filter(named)
+  const listed = mode === 'all' && pick && best[at] && roster
+    ? roster.filter(r => !tiled.has(r.slug)).map((r, i) => ({ ...(bySlug.get(r.slug) || { slug: r.slug, name: r.name, headshot: null, stub: true }), bestSeason: { season: r.season, v: r.v, team: r.team }, pinned: true, jersey: jerseyIn(bySlug.get(r.slug)?.layers, r.team), rank: i + 1 })).filter(named)
     : null
   // No caption: All-time or Current, in the first section's line, standing no taller than it.
   const toggle = <span style={{ display: 'flex', margin: '-6px 0' }}><ModeSwitch name="Players" options={MODES} mode={mode} setMode={setMode} height={22} /></span>
+  const picker = mode === 'all' && <StatPicker stat={stat} setStat={setStat} />
+  const edge = k => fmt({ ...m.meta, dec: 0 }, m.down ? -m.scale[k] : m.scale[k])
 
   return (
     <main className="page-main" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 var(--page-pad) 64px' }}>
@@ -432,25 +487,25 @@ export default function PlayerIndex() {
         </Section>
       )}
 
-      {!tiers && players && (portraits.length > 0 || !rest.length) && (
-        <Section title="Illustrated" count={portraits.length} controls={toggle}>
+      {!tiers && players && (portraits.length > 0 || !rest.length || (mode === 'all' && pick)) && (
+        <Section title="Illustrated" lead={picker} count={portraits.length} controls={toggle}>
           {/* Tiles share their 1px edges (each overlaps the next by 1px), so a short last row leaves empty cells blank. */}
           <div className="idx-grid" style={grid}>
-            {(all ? portraits : portraits.slice(0, EAGER)).map((p, i) => <Tile key={key(p)} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} season={!!pick} />)}
+            {(all ? portraits : portraits.slice(0, EAGER)).map((p, i) => <Tile key={key(p)} player={p} to={playerPath(p.slug)} order={i} onShown={onShown} season={!!pick} m={m} />)}
           </div>
         </Section>
       )}
 
       {listed && listed.length > 0 && (
         <section aria-label="Everyone else" style={{ marginTop: 36 }}>
-          <Roster list={listed} playerPath={playerPath} />
+          <Roster list={listed} playerPath={playerPath} m={m} />
         </section>
       )}
 
       {!tiers && !listed && (q || pick) && rest.length > 0 && (
-        <Section title={portraits.length ? 'Everyone else' : 'Players'} count={rest.length} controls={portraits.length ? null : toggle}>
+        <Section title={portraits.length ? 'Everyone else' : 'Players'} lead={portraits.length ? null : picker} count={rest.length} controls={portraits.length ? null : toggle}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', columnGap: 28 }}>
-            {rest.map(p => <Row key={key(p)} player={p} to={playerPath(p.slug)} />)}
+            {rest.map(p => <Row key={key(p)} player={p} to={playerPath(p.slug)} m={m} />)}
           </div>
         </Section>
       )}
@@ -461,7 +516,7 @@ export default function PlayerIndex() {
 
       <footer style={{ marginTop: 48, paddingTop: 14, borderTop: `1px solid ${EDGE}`, display: 'flex', gap: 22, flexWrap: 'wrap', ...label, fontSize: 9 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', boxShadow: GLOW }} />Active (in the latest season)</span>
-        <span>BPM = the season shown (800+ min) · meter {METER[0]} to +{METER[1]}</span>
+        <span>{m.label} = the season shown (800+ min) · meter {edge(0)} to {edge(1)}</span>
         <span>thinkingbasketball.net</span>
       </footer>
     </main>

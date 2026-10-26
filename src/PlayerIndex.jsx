@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { fetchLeaderboard, fetchLeaderboardSeasons, fetchPlayers, fetchProfile, headshotUrl, loadTeams, prefetchProfile } from './api.js'
 import { MONO } from './lib/format.js'
 import { jerseyIn } from './lib/jersey.js'
-import { TEAM_COLORS, teamColor } from './lib/teams.js'
+import { TEAM_COLORS, TEAM_NAMES, teamColor } from './lib/teams.js'
 import { asset } from './lib/static.js'
 import TeamInitials from './components/TeamInitials.jsx'
 import JerseyOverlay from './components/JerseyOverlay.jsx'
@@ -119,15 +119,18 @@ function Meter({ value, small = false }) {
 }
 
 // A team's logo as its filter: the white logo at rest, the colour one on hover or when
-// picked (pick it again to clear); while one is picked the rest fade back. The row uses
+// picked (pick it again to clear); while one is picked the rest fade back. Hovered or
+// focused, its name shows under it at once, over the space below (index.css
+// .idx-logo-name), so the row never moves. The row uses
 // the logos' 56px copies (logos/sm/): the full ones would come to 900KB, ahead of the faces.
 function TeamLogo({ team, on, faded, onClick }) {
   const img = { position: 'absolute', inset: 0, margin: 'auto', width: 26, height: 26, objectFit: 'contain' }
   return (
-    <button type="button" className="idx-logo" aria-pressed={on} aria-label={team} title={team} onClick={onClick}
+    <button type="button" className="idx-logo" aria-pressed={on} aria-label={TEAM_NAMES[team]} onClick={onClick}
       style={{ position: 'relative', height: 44, padding: 0, background: on ? '#2f2c2a' : 'transparent', border: `1px solid ${on ? INK : 'transparent'}`, cursor: 'pointer', opacity: faded ? 0.6 : 1 }}>
       <img className="idx-logo-mono" src={asset(`logos/sm/${team}.webp`)} alt="" style={img} />
       <img className="idx-logo-color" src={asset(`logos/color/sm/${team}.webp`)} alt="" style={img} />
+      <span className="idx-logo-name" aria-hidden="true">{TEAM_NAMES[team]}</span>
     </button>
   )
 }

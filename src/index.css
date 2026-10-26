@@ -221,6 +221,10 @@ html { scroll-behavior: smooth; scrollbar-gutter: stable; }
 .idx-logo:hover .idx-logo-color, .idx-logo[aria-pressed="true"] .idx-logo-color { opacity: 1; }
 .idx-logo:hover { opacity: 1 !important; }
 .idx-logo:focus-visible { outline: 1px solid #ece8e3; outline-offset: -1px; }
+.idx-logo-name { display: none; position: absolute; top: calc(100% + 2px); left: 50%; transform: translateX(-50%); z-index: 2; pointer-events: none; padding: 3px 6px; background: #1f1d1c; border: 1px solid #544f4b; color: #ece8e3; font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+.idx-logo:hover .idx-logo-name, .idx-logo:focus-visible .idx-logo-name { display: block; }
+.idx-logo:first-child .idx-logo-name { left: 0; transform: none; }
+.idx-logo:last-child .idx-logo-name { left: auto; right: 0; transform: none; }
 /* The Footprint's rows: one line of tiles each on a wide screen; on a narrower one three
    a line, then two with the row's name above its tiles. */
 @media (max-width: 1100px) { .fp-row-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }

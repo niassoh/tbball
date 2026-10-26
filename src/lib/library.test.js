@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { depthTiers, franchiseOf, franchisePlayers, peakSeasons, seasonRows, topSeasons } from './library.js'
+import { depthTiers, franchiseOf, franchisePlayers, seasonRows, topSeasons } from './library.js'
 
 const board = (season, players) => ({ season, labels: ['Load', 'BPM'], players: players.map(([slug, team, mp, bpm]) => ({ slug, team, mp, v: [1, bpm] })) })
 
@@ -7,7 +7,7 @@ describe('library', () => {
   test("a qualified season is 800+ minutes with a BPM, and a traded one no franchise's", () => {
     const rows = seasonRows([board('2007-08', [['durant', 'SEA', 2768, -1.6], ['bench', 'SEA', 799, 4], ['traded', '2 TM', 2000, 3], ['none', 'SEA', 900, null]])])
     expect(rows.map(r => r.slug)).toEqual(['durant', 'traded'])
-    expect(rows[0]).toEqual({ slug: 'durant', season: '2007-08', team: 'SEA', v: -1.6, s: -1.6 })
+    expect(rows[0]).toEqual({ slug: 'durant', season: '2007-08', team: 'SEA', bpm: -1.6 })
     expect(franchisePlayers(rows, 'OKC').map(r => r.slug)).toEqual(['durant'])
   })
 
@@ -32,15 +32,6 @@ describe('library', () => {
     ])
     expect(franchisePlayers(rows, 'OKC').map(r => `${r.slug} ${r.season}`)).toEqual(['durant 2007-08', 'ibaka 2012-13', 'collison 2012-13'])
     expect(franchisePlayers(rows, 'OKC', new Set(['durant'])).map(r => r.slug)).toEqual(['ibaka', 'collison'])
-  })
-
-  test('a stat where lower is better ranks its lowest first: peaks, and the top 5%', () => {
-    const doc = (season, players) => ({ ...board(season, players), labels: ['Load', 'cTOV%'], stats: { 'cTOV%': { lowerBetter: true } } })
-    const docs = [doc('2015-16', [['paul', 'LAC', 2500, 7], ['harden', 'HOU', 3000, 15]]), doc('2016-17', [['paul', 'LAC', 2000, 8], ['harden', 'HOU', 2900, 14]])]
-    const rows = seasonRows(docs, 'cTOV%')
-    expect(peakSeasons(rows).map(r => `${r.slug} ${r.season} ${r.v}`)).toEqual(['paul 2015-16 7', 'harden 2016-17 14'])
-    expect(topSeasons(rows, 'LAC').map(r => r.v)).toEqual([7])
-    expect(seasonRows(docs, 'Load').map(r => r.v)).toEqual([1, 1, 1, 1])
   })
 
   test('a depth chart reads starters first, then the bench in depth order, each player once', () => {

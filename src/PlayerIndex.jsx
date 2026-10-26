@@ -350,8 +350,8 @@ function Roster({ list, playerPath }) {
           const own = list.filter(p => decadeOf(p) === d)
           return (
             <div key={d} style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 4px 6px', borderTop: `1px solid ${INK}`, borderBottom: `1px solid ${EDGE}` }}>
-                <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-.01em', lineHeight: 1, color: INK }}>’{d.slice(2)}s</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '8px 4px 8px', borderTop: `1px solid ${INK}`, borderBottom: `1px solid ${EDGE}` }}>
+                <span style={{ fontSize: 'clamp(20px, 1.7vw, 24px)', fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1, color: INK }}>’{d.slice(2)}s</span>
                 <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{own.length}</span>
               </div>
               {own.map(p => <ListRow key={p.slug} player={p} to={playerPath(p.slug)} on={p === shown.p} onPeek={onPeek} />)}

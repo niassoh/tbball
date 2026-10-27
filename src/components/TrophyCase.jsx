@@ -253,7 +253,7 @@ export function CareerCase({ awards, seasons, name, focus, season, from, top = 0
           <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 24, fontWeight: 800, lineHeight: 0.9, textTransform: 'uppercase', color: INK }}>{won.length} Accolade{won.length === 1 ? '' : 's'}</span>
           <span style={{ ...label, letterSpacing: '.12em' }}>{shortSeason(seasons[0])}–{shortSeason(seasons[seasons.length - 1])}</span>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close his accolades" style={{ ...label, fontSize: 10, fontWeight: 700, color: INK, background: 'none', border: `1px solid ${INK}`, padding: '6px 10px', cursor: 'pointer' }}>Esc ✕</button>
+        <button type="button" onClick={onClose} aria-label="Close his accolades" style={{ ...label, fontSize: 9, fontWeight: 600, color: '#d9d3cc', background: 'none', border: '1px solid #6b655f', padding: '4px 8px', cursor: 'pointer' }}>Esc ✕</button>
       </div>
       {/* The case: a hairline frame, its shelves sharing its height. */}
       <div ref={box} onMouseLeave={() => setHover(null)} style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', border: '1px solid #544f4b', background: '#1a1918' }}>

@@ -185,11 +185,11 @@ const SHELVES = [
   [['allstar'], 0.72]
 ]
 const PLAQUE = { allnba1: 'All-NBA 1st', allnba2: 'All-NBA 2nd', allnba3: 'All-NBA 3rd', alldef1: 'All-D 1st', alldef2: 'All-D 2nd' }
-const LIP = 16
+const LIP = 20
 const PAD = 14
 const plateText = (key, count) => `${PLAQUE[key] || EMBLEMS[key].label} ${String(count).padStart(2, '0')}`
-// A label's width: its swatch and its monospace letters (8px, .08em apart).
-const plateW = text => text.length * 5.5 + 12
+// A label's width: its swatch and its monospace letters (9.5px, .06em apart).
+const plateW = text => text.length * 6.3 + 14
 // A shelf's scale and how far each copy steps from the last: copies 0.6 of a trophy apart,
 // closer (to 0.16) when the shelf is full, the whole shelf smaller past that (to 0.6 of its
 // size), and wrapped past that. Each award takes the wider of its copies and its plate.
@@ -279,8 +279,8 @@ export function CareerCase({ awards, seasons, name, focus, season, from, top = 0
                       ))}
                     </div>
                     <span className="ac-plaque" title={list.map(x => x.replace('-', '–')).join(', ')}
-                      style={{ '--d': `${starts[s] + 100 + Math.min(n, 12) * 25}ms`, height: LIP, display: 'flex', alignItems: 'center', gap: 5, fontFamily: MONO, fontSize: 8, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1, color: key === focus ? INK : '#a09a93' }}>
-                      <span style={{ width: 6, height: 6, background: metal, flex: 'none' }} />
+                      style={{ '--d': `${starts[s] + 100 + Math.min(n, 12) * 25}ms`, height: LIP, display: 'flex', alignItems: 'center', gap: 6, fontFamily: MONO, fontSize: 9.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1, color: key === focus ? INK : '#cfc9c2' }}>
+                      <span style={{ width: 7, height: 7, background: metal, flex: 'none' }} />
                       {PLAQUE[key] || EMBLEMS[key].label}
                       <span style={{ fontWeight: 700, color: INK }}>{String(list.length).padStart(2, '0')}</span>
                     </span>

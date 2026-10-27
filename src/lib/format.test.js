@@ -51,9 +51,12 @@ describe('chart', () => {
     expect(m.Y(m.axisMin)).toBeCloseTo(134, 6)
     expect(chartModel(stat([1, 2], [0, 0], { relative: true }), seasons(2)).axisLabel).toBe('−0.6')
   })
-  test('value labels thin out beyond 6 seasons', () => {
-    const m = chartModel(stat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], Array(10).fill(5)), seasons(10))
-    expect(m.pts.filter(p => p.showValue).map(p => p.i)).toEqual([0, 5, 9])
+  test('beyond 6 seasons only the first, the last and his best are labelled', () => {
+    const labelled = m => m.pts.filter(p => p.showValue).map(p => p.i)
+    const vals = [0.3, 3.5, 3.9, 3.4, 3.6, 2.7, 3.4, 4.8, 3.8, 4.2, 2.2, 2.9, 3.9, 1.0, 2.8, 3.0]
+    expect(labelled(chartModel(stat(vals, Array(16).fill(0)), seasons(16)))).toEqual([0, 7, 15])
+    expect(labelled(chartModel(stat(vals, Array(16).fill(0), { lowerBetter: true }), seasons(16)))).toEqual([0, 15])
+    expect(labelled(chartModel(stat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], Array(10).fill(5)), seasons(10)))).toEqual([0, 9])
   })
   test("season ticks switch to 'YY style past 9 seasons and hide alternates past 13", () => {
     expect(seasonTick('2015–16', 9)).toBe('15–16')

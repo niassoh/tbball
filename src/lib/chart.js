@@ -20,6 +20,8 @@ export function chartModel(stat, seasons) {
   hi += pad
   const X = i => (L ? 24 + (i / L) * 282 : 165)
   const Y = v => 124 - ((v - lo) / (hi - lo)) * 100
+  // His best season, labelled with the first and the last.
+  const peak = stat.vals.reduce((b, v, i) => (v && (b < 0 || (lb ? v.n < stat.vals[b].n : v.n > stat.vals[b].n)) ? i : b), -1)
 
   const pts = seasons.map((s, i) => {
     const v = stat.vals[i]
@@ -39,7 +41,7 @@ export function chartModel(stat, seasons) {
       color: v ? col(v.p) : null,
       // Tooltip line under the value: the percentile, unless the stat brings its own.
       detail: v ? v.detail || `${ord(v.p)} PCT` : null,
-      showValue: !!v && (L <= 6 || i === 0 || i === k || i === Math.round(L / 2)),
+      showValue: !!v && (L <= 6 || i === 0 || i === k || i === peak),
       value: v ? fmt(stat, v.n) : '',
       valueY: y === null ? null : above ? y - 11 : y + 12,
       showLg: !stat.relative && ly !== null,

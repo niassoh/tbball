@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchTeamboard, fetchTeamboardSeasons } from './api.js'
 import { MONO, fmt, heat, ord } from './lib/format.js'
 import { ranked } from './lib/leaderboard.js'
@@ -51,22 +51,57 @@ function Groups({ groups, active, pick }) {
   )
 }
 
+const td = { height: 30, padding: '0 8px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', whiteSpace: 'nowrap' }
+
 // Wins and losses read together, in the W–L column.
 const RECORD = ['Wins', 'Losses']
 // A head's name where the sheet's is cryptic.
 const NAMES = { 'LA Bayes Win-pace': 'Luck Adjusted\nBayes Win-pace' }
 // RAW | RANK: a cell's value, or its place among the 30 ("1st", "4th", a shared one "T-6th").
 const MODES = [['raw', 'Raw'], ['rank', 'Rank']]
-function Table({ doc, group, sort, onSort, rankView, hot, setHot, picked, onPick }) {
-  const shown = group.stats.filter(l => !RECORD.includes(l))
-  const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
-  const rows = useMemo(() => ranked(doc, doc.teams, sort.label, sort.reverse), [doc, sort])
-  const rank = useMemo(() => new Map(ranked(doc, doc.teams, sort.label).map((t, i) => [t.id, i + 1])), [doc, sort.label])
+// A row of the table; memoized, so a hover redraws only the rows it lights and unlights
+// (hundreds over a span or runs).
+const Row = memo(function Row({ t, doc, shown, sortLabel, rankView, on, rank, setHot, onPick }) {
   const at = l => doc.labels.indexOf(l)
   const wins = at('Wins')
   const losses = at('Losses')
+  const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
+  return (
+    <tr key={t.id} className="lb-row" aria-selected={on} onMouseEnter={() => setHot(t.id)} onMouseLeave={() => setHot(null)} onClick={() => onPick(t.id)} style={{ cursor: 'pointer' }}>
+      <td style={{ ...td, textAlign: 'center', padding: 0, color: DIM, fontSize: 11 }}>{rank}</td>
+      <td style={{ ...td, textAlign: 'left', borderRight: `1px solid ${RULE}` }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <img src={asset(`logos/color/sm/${t.team}.webp`)} alt="" width={20} height={20} style={{ flex: 'none' }} />
+          {/* Over many seasons the row's years sit under its name in the code's place (the
+              logo says the team), so the wider records still leave the table its width. */}
+          {!doc.dated && <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, width: 28 }}>{t.team}</span>}
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: INK, lineHeight: doc.dated ? '13px' : undefined }}>{t.name}</span>
+            {doc.dated && <span style={{ ...label, fontSize: 8.5, letterSpacing: '.08em', lineHeight: '10px' }}>{t.span}</span>}
+          </span>
+        </span>
+      </td>
+      <td style={{ ...td, color: '#d9d3cc' }}>{wins >= 0 && t.v[wins] !== null ? `${t.v[wins]}–${t.v[losses]}` : '—'}</td>
+      {shown.map(l => {
+        const v = t.v[at(l)]
+        const p = t.p[at(l)]
+        const shade = v === null || p === null ? undefined : doc.stats[l].neutral ? plain(p) : heat(p)
+        return (
+          <td key={l} style={{ ...td, background: shade, color: v === null ? FAINT : INK, fontWeight: sortLabel === l ? 600 : 400 }}>
+            {v === null ? '—' : rankView ? `${tiedOf(doc, t, l) ? 'T-' : ''}${ord(placeOf(doc, t, l))}` : fmt(stat(l), v)}
+          </td>
+        )
+      })}
+    </tr>
+  )
+})
+
+function Table({ doc, group, sort, onSort, rankView, hot, setHot, picked, onPick }) {
+  const shown = useMemo(() => group.stats.filter(l => !RECORD.includes(l)), [group])
+  const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
+  const rows = useMemo(() => ranked(doc, doc.teams, sort.label, sort.reverse), [doc, sort])
+  const rank = useMemo(() => new Map(ranked(doc, doc.teams, sort.label).map((t, i) => [t.id, i + 1])), [doc, sort.label])
   const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 8px 6px', borderBottom: `1px solid ${RULE}`, background: '#262422', textAlign: 'right', verticalAlign: 'bottom' }
-  const td = { height: 30, padding: '0 8px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', whiteSpace: 'nowrap' }
   return (
     <table className="lb-table" style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
       <thead>
@@ -89,32 +124,7 @@ function Table({ doc, group, sort, onSort, rankView, hot, setHot, picked, onPick
       </thead>
       <tbody>
         {rows.map(t => (
-          <tr key={t.id} className="lb-row" aria-selected={t.id === hot || t.id === picked} onMouseEnter={() => setHot(t.id)} onMouseLeave={() => setHot(null)} onClick={() => onPick(t.id)} style={{ cursor: 'pointer' }}>
-            <td style={{ ...td, textAlign: 'center', padding: 0, color: DIM, fontSize: 11 }}>{rank.get(t.id)}</td>
-            <td style={{ ...td, textAlign: 'left', borderRight: `1px solid ${RULE}` }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <img src={asset(`logos/color/sm/${t.team}.webp`)} alt="" width={20} height={20} style={{ flex: 'none' }} />
-                {/* Over many seasons the row's years sit under its name in the code's place (the
-                    logo says the team), so the wider records still leave the table its width. */}
-                {!doc.dated && <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, width: 28 }}>{t.team}</span>}
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: INK, lineHeight: doc.dated ? '13px' : undefined }}>{t.name}</span>
-                  {doc.dated && <span style={{ ...label, fontSize: 8.5, letterSpacing: '.08em', lineHeight: '10px' }}>{t.span}</span>}
-                </span>
-              </span>
-            </td>
-            <td style={{ ...td, color: '#d9d3cc' }}>{wins >= 0 && t.v[wins] !== null ? `${t.v[wins]}–${t.v[losses]}` : '—'}</td>
-            {shown.map(l => {
-              const v = t.v[at(l)]
-              const p = t.p[at(l)]
-              const shade = v === null || p === null ? undefined : doc.stats[l].neutral ? plain(p) : heat(p)
-              return (
-                <td key={l} style={{ ...td, background: shade, color: v === null ? FAINT : INK, fontWeight: sort.label === l ? 600 : 400 }}>
-                  {v === null ? '—' : rankView ? `${tiedOf(doc, t, l) ? 'T-' : ''}${ord(placeOf(doc, t, l))}` : fmt(stat(l), v)}
-                </td>
-              )
-            })}
-          </tr>
+          <Row key={t.id} t={t} doc={doc} shown={shown} sortLabel={sort.label} rankView={rankView} on={t.id === hot || t.id === picked} rank={rank.get(t.id)} setHot={setHot} onPick={onPick} />
         ))}
       </tbody>
       <tfoot>

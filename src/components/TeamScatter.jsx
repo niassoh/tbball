@@ -9,7 +9,8 @@ import { frameOf, netLines, placeOf, tiedOf } from '../lib/teamboard.js'
 // good-defense corner is washed blue, the bad-bad one orange (the site's better and worse).
 // Each logo is in its colours with a dark halo; the team under the pointer, here or in
 // the table (`hot`), lifts as the rest step back, and a hover brings its card: record, the
-// two ratings and net, each with its place among the 30; a click opens its card.
+// two ratings and net, each with its place among the 30; a click opens its card. Over many
+// seasons (a span or runs) it plots rORTG and rDRTG, each against its season's league.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -24,6 +25,13 @@ const M = { l: 36, r: 16, t: 22, b: 38 }
 const LOGO = 30
 const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rgba(0,0,0,.6))'
 const CARD_W = 210
+// Over many seasons: each row a square MARK wide; the best ELITE franchises (each by its
+// best row) keep their logos.
+const MARK = 7
+const ELITE = 6
+// A team-season of fewer games than this (a season just begun) stays off the field: three
+// games' ratings would stretch its frame to ±35 and take the best franchises' places.
+const FIELD_GAMES = 15
 
 export default function TeamScatter({ doc, hot, setHot, onPick }) {
   const box = useRef(null)
@@ -35,11 +43,19 @@ export default function TeamScatter({ doc, hot, setHot, onPick }) {
     return () => ro.disconnect()
   }, [])
   const { w, h } = size
-  const kx = doc.labels.indexOf('ORTG')
-  const ky = doc.labels.indexOf('DRTG')
-  const league = doc.league.ORTG ?? 116
-  const lgD = doc.league.DRTG ?? league
-  const teams = doc.teams.filter(t => t.v[kx] !== null && t.v[ky] !== null)
+  // Over many seasons each team against its own season's league (rORTG, rDRTG), so a span
+  // across eras of scoring (the league's 105 in 2014, 115 in 2024) sits on one centre, 0.
+  const rel = !!doc.many
+  const kx = doc.labels.indexOf(rel ? 'rORTG' : 'ORTG')
+  const ky = doc.labels.indexOf(rel ? 'rDRTG' : 'DRTG')
+  const lgO = doc.league.ORTG ?? 116
+  const lgDRTG = doc.league.DRTG ?? lgO
+  const league = rel ? 0 : lgO
+  const lgD = rel ? 0 : lgDRTG
+  const end = v => (rel && v > 0 ? `+${v.toFixed(0)}` : v.toFixed(0).replace('-', '−'))
+  const field = !!doc.dated
+  const games = t => (t.v[doc.labels.indexOf('Wins')] ?? 0) + (t.v[doc.labels.indexOf('Losses')] ?? 0)
+  const teams = doc.teams.filter(t => t.v[kx] !== null && t.v[ky] !== null && (!field || games(t) >= FIELD_GAMES))
   // One scale both ways: the frame's span fills the plot's shorter side, the longer side
   // shows more rating around the centre.
   const { x0, x1, y0, y1, lines } = useMemo(() => {
@@ -55,17 +71,50 @@ export default function TeamScatter({ doc, hot, setHot, onPick }) {
   const py = v => M.t + ((v - y0) / (y1 - y0)) * (h - M.t - M.b)
   const cx = px(league)
   const cy = py(lgD)
-  const lit = hover || hot
-  const t = lit && teams.find(x => x.id === lit)
   const net = tm => tm.v[kx] - tm.v[ky]
+  // A row per team-season or per run (`dated`): hundreds of rows, so each is a plain square
+  // and only the era's best franchises keep a logo, their years beside it; pointing at any
+  // row draws its franchise's arc (below).
+  const logo = (tm, s = LOGO) => (
+    <g key={tm.id} data-id={tm.id} className="tb-logo" style={{ transform: `translate(${px(tm.v[kx])}px, ${py(tm.v[ky])}px)`, cursor: 'pointer' }}>
+      <image href={asset(`logos/color/${tm.team}.png`)} x={-s / 2} y={-s / 2} width={s} height={s} style={{ filter: HALO }} />
+    </g>
+  )
+  const marks = useMemo(() => {
+    if (!field) return teams.map(tm => logo(tm))
+    const bestOf = new Map()
+    for (const tm of teams) if (!bestOf.has(tm.team) || net(tm) > net(bestOf.get(tm.team))) bestOf.set(tm.team, tm)
+    const elite = [...bestOf.values()].sort((a, b) => net(b) - net(a)).slice(0, ELITE)
+    const top = new Set(elite.map(tm => tm.id))
+    return (
+      <>
+        {teams.filter(tm => !top.has(tm.id)).map(tm => (
+          <rect key={tm.id} data-id={tm.id} x={px(tm.v[kx]) - MARK / 2} y={py(tm.v[ky]) - MARK / 2} width={MARK} height={MARK} fill={DIM} fillOpacity={0.6} style={{ cursor: 'pointer' }} />
+        ))}
+        {elite.map(tm => (
+          <g key={tm.id}>
+            {logo(tm, LOGO * 0.8)}
+            <text x={px(tm.v[kx]) + LOGO * 0.45} y={py(tm.v[ky]) + 3} style={{ ...label, fontSize: 8, fill: INK, paintOrder: 'stroke', stroke: '#262422', strokeWidth: 3, pointerEvents: 'none' }}>{tm.span}</text>
+          </g>
+        ))}
+      </>
+    )
+  }, [doc, w, h]) // eslint-disable-line react-hooks/exhaustive-deps -- teams, px, py, kx, ky, logo and net are doc's, w's and h's
+  const lit = hover || hot
+  // The lit row (`t` while it's on the chart) and its franchise's rows on the field, in
+  // season order: its arc, drawn even for a row off the field (a season just begun).
+  const litRow = lit && doc.teams.find(x => x.id === lit)
+  const t = litRow && teams.includes(litRow) ? litRow : null
+  const arc = litRow && field ? teams.filter(x => x.team === litRow.team).sort((a, b) => (a.id < b.id ? -1 : 1)) : null
+  const shown = !!(t || (arc && arc.length))
   const best = teams.reduce((a, b) => (net(b) > net(a) ? b : a), teams[0])
   const cell = { padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, borderLeft: `1px solid ${RULE}` }
   const big = { fontFamily: MONO, fontSize: 18, fontWeight: 600, color: INK, lineHeight: 1 }
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '10px 12px', borderBottom: `1px solid ${RULE}` }}>
-        <span style={{ ...label, color: INK, fontWeight: 700 }}>ORTG × DRTG</span>
-        <span style={{ ...label, fontSize: 8 }}>Per 100 possessions · better ↗</span>
+        <span style={{ ...label, color: INK, fontWeight: 700 }}>{rel ? 'rORTG × rDRTG' : 'ORTG × DRTG'}</span>
+        <span style={{ ...label, fontSize: 8 }}>{rel ? "Per 100 vs each season's league · better ↗" : 'Per 100 possessions · better ↗'}</span>
         <span style={{ ...label, fontSize: 8, marginLeft: 'auto' }}>╱ Net rating every 5 · ┼ league</span>
       </div>
       <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 320 }} onMouseLeave={() => { setHover(null); setHot(null) }}>
@@ -90,7 +139,7 @@ export default function TeamScatter({ doc, hot, setHot, onPick }) {
             const bottom = k < 0 && b[1] >= y1 - 1e-9
             if (!top && !bottom) return null
             const X = px(top ? a[0] : b[0])
-            if (bottom && [M.l, cx, w - M.r].some(t => Math.abs(t - X) < 26)) return null
+            if (bottom && [M.l, cx, w - M.r].some(t => Math.abs(t - X) < (rel && t === cx ? 38 : 28))) return null
             return <text key={k} x={X} y={top ? M.t - 6 : h - M.b + 14} textAnchor="middle" style={{ ...label, fontSize: 8, fill: k === 0 ? DIM : FAINT }}>{k > 0 ? `+${k}` : k === 0 ? 'NET 0' : `−${-k}`}</text>
           })}
           <text x={w - M.r - 8} y={M.t + 14} textAnchor="end" style={{ ...label, fontSize: 8.5, fill: BLUE }}>GOOD O · GOOD D</text>
@@ -98,29 +147,53 @@ export default function TeamScatter({ doc, hot, setHot, onPick }) {
           <text x={M.l + 8} y={M.t + 14} style={{ ...label, fontSize: 8, fill: FAINT }}>BAD O · GOOD D</text>
           <text x={w - M.r - 8} y={h - M.b - 8} textAnchor="end" style={{ ...label, fontSize: 8, fill: FAINT }}>GOOD O · BAD D</text>
           {/* The axes: their ends and the league's average, in rating points. */}
-          <text x={M.l} y={h - M.b + 14} style={{ ...label, fill: FAINT }}>{x0.toFixed(0)}</text>
-          <text x={cx} y={h - M.b + 14} textAnchor="middle" style={{ ...label, fill: DIM }}>{league.toFixed(1)}</text>
-          <text x={w - M.r} y={h - M.b + 14} textAnchor="end" style={{ ...label, fill: FAINT }}>{x1.toFixed(0)}</text>
-          <text x={(M.l + cx) / 2} y={h - M.b + 30} textAnchor="middle" style={{ ...label, fontSize: 8, fill: DIM }}>ORTG · points scored →</text>
-          <text x={M.l - 6} y={M.t + 4} textAnchor="end" style={{ ...label, fill: FAINT }} transform={`rotate(-90 ${M.l - 6} ${M.t + 4})`}>{y0.toFixed(0)}</text>
-          <text x={M.l - 6} y={cy} textAnchor="middle" style={{ ...label, fill: DIM }} transform={`rotate(-90 ${M.l - 6} ${cy})`}>{lgD.toFixed(1)}</text>
-          <text x={M.l - 6} y={(M.t + cy) / 2} textAnchor="middle" style={{ ...label, fontSize: 8, fill: DIM }} transform={`rotate(-90 ${M.l - 6} ${(M.t + cy) / 2})`}>DRTG · fewer allowed →</text>
-          {/* The lit team last, so it sits over its neighbours. */}
-          {[...teams].sort((a, b) => (a.id === lit) - (b.id === lit)).map(tm => {
-            const on = tm.id === lit
-            const s = on ? LOGO * 1.3 : LOGO
-            return (
-              <g key={tm.id} className="tb-logo" style={{ transform: `translate(${px(tm.v[kx])}px, ${py(tm.v[ky])}px)`, opacity: lit && !on ? 0.25 : 1, cursor: 'pointer' }}
-                onMouseEnter={() => { setHover(tm.id); setHot(tm.id) }} onClick={() => onPick(tm.id)}>
-                <image href={asset(`logos/color/${tm.team}.png`)} x={-s / 2} y={-s / 2} width={s} height={s} style={{ filter: HALO }} />
-              </g>
-            )
-          })}
+          <text x={M.l} y={h - M.b + 14} style={{ ...label, fill: FAINT }}>{end(x0)}</text>
+          <text x={cx} y={h - M.b + 14} textAnchor="middle" style={{ ...label, fill: DIM }}>{rel ? 'League' : league.toFixed(1)}</text>
+          <text x={w - M.r} y={h - M.b + 14} textAnchor="end" style={{ ...label, fill: FAINT }}>{end(x1)}</text>
+          <text x={(M.l + cx) / 2} y={h - M.b + 30} textAnchor="middle" style={{ ...label, fontSize: 8, fill: DIM }}>{rel ? 'rORTG' : 'ORTG'} · points scored →</text>
+          <text x={M.l - 6} y={M.t + 4} textAnchor="end" style={{ ...label, fill: FAINT }} transform={`rotate(-90 ${M.l - 6} ${M.t + 4})`}>{end(y0)}</text>
+          <text x={M.l - 6} y={cy} textAnchor="middle" style={{ ...label, fill: DIM }} transform={`rotate(-90 ${M.l - 6} ${cy})`}>{rel ? 'League' : lgD.toFixed(1)}</text>
+          <text x={M.l - 6} y={(M.t + cy) / 2} textAnchor="middle" style={{ ...label, fontSize: 8, fill: DIM }} transform={`rotate(-90 ${M.l - 6} ${(M.t + cy) / 2})`}>{rel ? 'rDRTG' : 'DRTG'} · fewer allowed →</text>
         </svg>
+        {/* The marks, drawn once a board and size, on a layer of their own that a hover only
+            dims (index.css .tb-logos); the lit one again, larger, with its franchise's arc, on
+            the layer over it. One listener for them all. */}
+        <svg width={w} height={h} className="tb-logos" style={{ position: 'absolute', inset: 0, display: 'block', opacity: shown ? 0.25 : 1 }}
+          onMouseOver={e => { const id = e.target.closest('[data-id]')?.dataset.id; if (id) { setHover(id); setHot(id) } }}
+          onClick={e => { const id = e.target.closest('[data-id]')?.dataset.id; if (id) onPick(id) }}>
+          {marks}
+        </svg>
+        {shown && (
+          <svg width={w} height={h} style={{ position: 'absolute', inset: 0, display: 'block', pointerEvents: 'none' }}>
+            {arc && (
+              <>
+                <polyline points={arc.map(x => `${px(x.v[kx])},${py(x.v[ky])}`).join(' ')} fill="none" stroke={INK} strokeWidth={1.5} strokeLinejoin="miter" />
+                {arc.map(x => <rect key={x.id} x={px(x.v[kx]) - MARK / 2} y={py(x.v[ky]) - MARK / 2} width={MARK} height={MARK} fill={INK} />)}
+                {/* Each point its year (a run's by the year it ends), so the path reads in order. */}
+                {arc.filter(x => x !== t).map(x => (
+                  <text key={x.id} x={px(x.v[kx]) + 6} y={py(x.v[ky]) - 5} style={{ ...label, fontSize: 8.5, fill: INK, paintOrder: 'stroke', stroke: '#262422', strokeWidth: 3 }}>’{x.season.slice(5)}</text>
+                ))}
+              </>
+            )}
+            {t && (
+              <g className="tb-logo" style={{ transform: `translate(${px(t.v[kx])}px, ${py(t.v[ky])}px)` }}>
+                <image href={asset(`logos/color/${t.team}.png`)} x={-LOGO * 0.65} y={-LOGO * 0.65} width={LOGO * 1.3} height={LOGO * 1.3} style={{ filter: HALO }} />
+              </g>
+            )}
+          </svg>
+        )}
         {t && (() => {
           const X = px(t.v[kx])
           const Y = py(t.v[ky])
-          const left = X + 26 + CARD_W < w ? X + 26 : X - 26 - CARD_W
+          // Beside its mark; with an arc, in the plot's corner farthest from it, off the path.
+          const CARD_H = 140
+          const far = arc && (() => {
+            const ax = arc.reduce((n, x) => n + px(x.v[kx]), 0) / arc.length
+            const ay = arc.reduce((n, x) => n + py(x.v[ky]), 0) / arc.length
+            const corners = [[M.l + 8, M.t + 8], [w - M.r - 8 - CARD_W, M.t + 8], [M.l + 8, h - M.b - 8 - CARD_H], [w - M.r - 8 - CARD_W, h - M.b - 8 - CARD_H]]
+            return corners.reduce((a, b) => (Math.hypot(b[0] + CARD_W / 2 - ax, b[1] + CARD_H / 2 - ay) > Math.hypot(a[0] + CARD_W / 2 - ax, a[1] + CARD_H / 2 - ay) ? b : a))
+          })()
+          const left = far ? far[0] : X + 26 + CARD_W < w ? X + 26 : X - 26 - CARD_W
           const row = (name, v, l) => {
             const place = placeOf(doc, t, l)
             return (
@@ -134,7 +207,7 @@ export default function TeamScatter({ doc, hot, setHot, onPick }) {
           const wins = t.v[doc.labels.indexOf('Wins')]
           const losses = t.v[doc.labels.indexOf('Losses')]
           return (
-            <div style={{ position: 'absolute', left, top: Math.max(6, Math.min(h - 150, Y - 70)), width: CARD_W, pointerEvents: 'none', zIndex: 5, background: '#1f1d1c', border: '1px solid #837d76', borderTop: `2px solid ${ORANGE}`, boxShadow: '5px 5px 0 rgba(0,0,0,.55)', padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <div style={{ position: 'absolute', left, top: far ? far[1] : Math.max(6, Math.min(h - 150, Y - 70)), width: CARD_W, pointerEvents: 'none', zIndex: 5, background: '#1f1d1c', border: '1px solid #837d76', borderTop: `2px solid ${ORANGE}`, boxShadow: '5px 5px 0 rgba(0,0,0,.55)', padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <img src={asset(`logos/color/${t.team}.png`)} alt="" width={26} height={26} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -143,16 +216,16 @@ export default function TeamScatter({ doc, hot, setHot, onPick }) {
                 </span>
               </span>
               <span style={{ height: 1, background: RULE }} />
-              {row('ORTG', fmt(doc.stats.ORTG, t.v[kx]), 'ORTG')}
-              {row('DRTG', fmt(doc.stats.DRTG, t.v[ky]), 'DRTG')}
+              {row('ORTG', fmt(doc.stats.ORTG, t.v[doc.labels.indexOf('ORTG')]), 'ORTG')}
+              {row('DRTG', fmt(doc.stats.DRTG, t.v[doc.labels.indexOf('DRTG')]), 'DRTG')}
               {doc.labels.includes('Net') && row('NET', fmt({ ...doc.stats.Net, relative: true }, t.v[doc.labels.indexOf('Net')]), 'Net')}
             </div>
           )
         })()}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
-        <div style={{ ...cell, borderLeft: 0 }}><span style={label}>League ORTG</span><span style={big}>{league.toFixed(1)}</span></div>
-        <div style={cell}><span style={label}>League DRTG</span><span style={big}>{lgD.toFixed(1)}</span></div>
+        <div style={{ ...cell, borderLeft: 0 }}><span style={label}>League ORTG</span><span style={big}>{lgO.toFixed(1)}</span></div>
+        <div style={cell}><span style={label}>League DRTG</span><span style={big}>{lgDRTG.toFixed(1)}</span></div>
         <div style={cell}><span style={label}>Best net</span><span style={{ ...big, display: 'flex', alignItems: 'center', gap: 6 }}><img src={asset(`logos/${best.team}.png`)} alt={best.name} width={18} height={18} />{net(best) > 0 ? '+' : '−'}{Math.abs(net(best)).toFixed(1)}</span></div>
         <div style={cell}><span style={label}>Net above 0</span><span style={{ ...big, color: BLUE }}>{teams.filter(x => net(x) > 0).length}<span style={{ ...label, fontSize: 9, marginLeft: 4 }}>/ {teams.length}</span></span></div>
       </div>

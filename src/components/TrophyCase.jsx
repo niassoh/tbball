@@ -9,9 +9,9 @@
 // medallion with a sprout, Sixth Man a jersey numbered 6, Most Improved an arrow climbing,
 // Clutch a stopwatch, All-Star a star. Drawn on 32 × 34 (the plinth
 // under it in type), shown at SIZE × `scale`. A player's own award (WON: MVP, Finals MVP,
-// DPOY, ROY, Sixth Man, MIP, Clutch; not a title or a team selection) shines: a hard white
-// bar steps across its metal, a spark flashes as it leaves, and its plinth's edge is lit
-// in its metal (index.css .tr-*).
+// DPOY, ROY, Sixth Man, MIP, Clutch; not a title or a team selection) shines: a faint white
+// bar steps across its metal now and then, and its plinth's edge is lit in its metal
+// (index.css .tr-*).
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { MONO } from '../lib/format.js'
 import { shortSeason } from '../lib/seasons.js'
@@ -122,7 +122,6 @@ function Trophy({ award, scale: k = 1, delay = 0, bare = false }) {
         {won && <>
           <mask id={mask} maskUnits="userSpaceOnUse" x={0} y={0} width={32} height={34}>{e.draw}<Stand light={light} dark={dark} /></mask>
           <g mask={`url(#${mask})`}><polygon className="tr-glint" points="-4,0 0,0 -8,34 -12,34" fill="#fff" /></g>
-          <path className="tr-spark" d="M27 0 V6 M24 3 H30" stroke="#fff" strokeWidth={1.2} />
         </>}
       </svg>
       {!bare && <span style={{ width: TROPHY_W * k, height: 4 * scale, background: '#141312', borderTop: `1px solid ${won ? light : '#4a4642'}` }} />}

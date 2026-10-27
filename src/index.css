@@ -527,20 +527,20 @@ a:hover > .lineup-tile > * { filter: none; }
 @keyframes tr-spark { 0%, 13% { opacity: 0; } 14%, 19% { opacity: 1; } 20%, 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .tr-glint, .tr-spark { animation: none; opacity: 0; } }
 
-/* His accolades (TrophyCase.jsx CareerCase) wipe down over the bio card; each shelf's plank
+/* His accolades (TrophyCase.jsx CareerCase) wipe down under the banner; each shelf's rule
    wipes in left to right, its trophies drop onto it one at a time in three hard frames,
-   then their plaques stamp in. */
-.cc { animation: cc-open .34s cubic-bezier(.2, .8, .2, 1) both; }
+   then their labels cut on. */
+.cc { animation: cc-open .2s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes cc-open { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
-.ac-plank { animation: ac-plank .28s steps(8, end) both var(--d, 0ms); }
+.ac-plank { animation: ac-plank .14s steps(6, end) both var(--d, 0ms); }
 @keyframes ac-plank { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
-.ac-drop { animation: ac-drop .21s both var(--d, 0ms); }
+.ac-drop { animation: ac-drop .12s both var(--d, 0ms); }
 @keyframes ac-drop {
   0%, 32% { opacity: 0; transform: translateY(-18px); }
   33%, 65% { opacity: 1; transform: translateY(-7px); }
   66%, 100% { opacity: 1; transform: none; }
 }
-.ac-plaque { animation: cc-step .16s linear both var(--d, 0ms); }
+.ac-plaque { animation: cc-step .1s linear both var(--d, 0ms); }
 /* A hard switch in the keyframes rather than steps(): steps() can stop a hair short of its
    last step and leave it at half. */
 @keyframes cc-step { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }

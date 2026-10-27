@@ -149,7 +149,7 @@ export default function TrophyCase({ awards, season, room, right, onOpen }) {
       {shown.map(([key, long], i) => {
         const tip = `${long} · ${season.replace('-', '–')}`
         return (
-          <span key={key} className="tc-item" tabIndex={0} role="button" aria-label={`${tip}: open his career trophy case`} onClick={() => onOpen(key)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(key) } }}
+          <span key={key} className="tc-item" tabIndex={0} role="button" aria-label={`${tip}: open his accolades`} onClick={() => onOpen(key)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(key) } }}
             style={{ '--d': `${delayOf(i)}ms`, position: 'relative', display: 'flex', cursor: 'pointer', outline: 'none' }}>
             <Trophy award={key} scale={scale} delay={700 + i * 450} />
             {/* Every other name a line higher, so neighbours never touch. */}
@@ -183,13 +183,13 @@ export function CareerCase({ awards, seasons, name, focus, onClose }) {
   const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.16em', textTransform: 'uppercase', color: '#a09a93' }
   const cols = '40px minmax(96px, 150px) minmax(0, 1fr) 26px'
   return (
-    <div className="cc" role="dialog" aria-label={`${name}: career trophy case`} style={{ position: 'absolute', inset: 0, zIndex: 6, background: '#1f1d1c', display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px 16px', overflow: 'auto' }}>
+    <div className="cc" role="dialog" aria-label={`${name}: accolades`} style={{ position: 'absolute', inset: 0, zIndex: 6, background: '#1f1d1c', display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px 16px', overflow: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #544f4b', paddingBottom: 9 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-          <span style={{ ...label, color: INK, fontWeight: 700 }}>Career trophy case</span>
+          <span style={{ ...label, color: INK, fontWeight: 700 }}>Accolades</span>
           <span style={{ ...label, letterSpacing: '.1em' }}>{name} · {won.length} honour{won.length === 1 ? '' : 's'} · {shortSeason(span[0])}–{shortSeason(span[span.length - 1])}</span>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close the trophy case" style={{ ...label, color: INK, background: 'none', border: '1px solid #544f4b', padding: '4px 8px', cursor: 'pointer' }}>Esc ✕</button>
+        <button type="button" onClick={onClose} aria-label="Close his accolades" style={{ ...label, color: INK, background: 'none', border: '1px solid #544f4b', padding: '4px 8px', cursor: 'pointer' }}>Esc ✕</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {rows.map(([key, long], r) => {

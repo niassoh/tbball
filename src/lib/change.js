@@ -13,6 +13,7 @@ const changeStat = (st, seasons, raw) => ({
   ...st,
   relative: true,
   dec: raw ? st.dec : 0,
+  pct: raw && st.pct,
   lowerBetter: raw ? st.lowerBetter : false,
   // Span and career averages of a change weight by minutes only, never by attempts.
   minutesOnly: true,

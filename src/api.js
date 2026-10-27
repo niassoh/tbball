@@ -1,5 +1,6 @@
 import { unpackFootprint } from './lib/footprint.js'
 import { unpackLonestar } from './lib/lonestar.js'
+import { markPercents } from './lib/format.js'
 import { statKey } from './lib/static.js'
 
 // Profile data comes from the thinking-bball API (GET /api/profile/:slug) in dev. A
@@ -18,7 +19,7 @@ const getJson = async url => {
   const res = await fetch(url)
   if (res.status === 404) return null
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  return markPercents(await res.json())
 }
 
 // Playoffs mode reads the same documents built from the playoffs, under playoffs/.

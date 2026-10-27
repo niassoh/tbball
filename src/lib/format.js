@@ -41,7 +41,19 @@ export const ord = p => {
   return p + (s[(v - 20) % 10] || s[v] || s[0])
 }
 
-// Fixed decimals, "+" for positive relative stats, typographic minus.
+// A stat that's a share of 100, by its label: the players' with a %, Corner 3 Share, and
+// the team sheet's (its header's Off-Ball Share%, 3p%, which the pull drops). Not the
+// Footprint's swings (`swing`), which carry their own units.
+const PERCENT = /%|Share$|share$|^(Opp )?3p$|^LayupAst$|^Opp Rim FG$|^(Off|Def) after /
+// A document's stats marked `pct` as it arrives, so fmt prints their %.
+export const markPercents = doc => {
+  if (doc && doc.stats && !Array.isArray(doc.stats)) {
+    for (const [l, st] of Object.entries(doc.stats)) if (st && typeof st === 'object') st.pct = !st.swing && PERCENT.test(l)
+  }
+  return doc
+}
+
+// Fixed decimals, "+" for positive relative stats, typographic minus, a % for a share.
 export const fmt = (stat, n) => {
   if (n === null || n === undefined) return '—'
   // A height in inches, as feet and inches.
@@ -53,7 +65,7 @@ export const fmt = (stat, n) => {
   const rounded = Number(n.toFixed(stat.dec))
   let t = Math.abs(rounded) === 0 ? (0).toFixed(stat.dec) : n.toFixed(stat.dec)
   if (stat.relative && rounded > 0) t = '+' + t
-  return t.replace('-', '−')
+  return t.replace('-', '−') + (stat.pct ? '%' : '')
 }
 
 export const signed = (n, dec = 1) => (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(dec)

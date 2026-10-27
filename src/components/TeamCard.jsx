@@ -90,8 +90,8 @@ function Head({ t, x, season, intro, closeButton }) {
 // Its percentiles, as a player's card's but untitled: offense beside defense, each headed, each stat a bar to its
 // percentile (the league's median marked) and its value.
 const SIDES = [
-  ['Offense', [['Adj rORTG', 'Opp-adjusted', ''], ['Half-Court PPP', 'Half court', ''], ['3p', '3P%', '%'], ['Rim/FTA Share', 'Rim + FT', '%'], ['LayupAst', 'Layup ast', '%']]],
-  ['Defense', [['Adj rDRTG', 'Opp-adjusted', ''], ['Opp 3p', 'Opp 3P%', '%'], ['Opp Corner3 share', 'Corner 3s', '%'], ['Opp Wide Open 3s/g', 'Open 3s / g', ''], ['Opp Rim Share', 'Rim share', '%'], ['Opp Rim FG', 'Rim FG%', '%']]]
+  ['Offense', [['Adj rORTG', 'Opp-adjusted'], ['Half-Court PPP', 'Half court'], ['3p', '3P%'], ['Rim/FTA Share', 'Rim + FT'], ['LayupAst', 'Layup ast']]],
+  ['Defense', [['Adj rDRTG', 'Opp-adjusted'], ['Opp 3p', 'Opp 3P%'], ['Opp Corner3 share', 'Corner 3s'], ['Opp Wide Open 3s/g', 'Open 3s / g'], ['Opp Rim Share', 'Rim share'], ['Opp Rim FG', 'Rim FG%']]]
 ]
 function Percentiles({ x }) {
   return (
@@ -99,13 +99,13 @@ function Percentiles({ x }) {
       {SIDES.map(([side, rows], s) => (
         <div key={side} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
           <span style={{ ...label, fontSize: 10.5, fontWeight: 700, color: INK, paddingBottom: 5, marginBottom: 2, borderBottom: `1px solid ${RULE}` }}>{side}</span>
-          {rows.filter(([l]) => x.has(l)).map(([l, name, unit], i) => {
+          {rows.filter(([l]) => x.has(l)).map(([l, name], i) => {
             const pc = x.p(l)
             return (
               <div key={l} title={titleOf(x, l)} style={{ display: 'grid', gridTemplateColumns: '92px minmax(0, 1fr) 42px', gap: 6, alignItems: 'center' }}>
                 <span style={rowName}>{name}</span>
                 <Bar w={pc === null ? null : Math.max(pc, 2)} c={x.tone(l)} mark={50} delay={AT.bars + (i * 2 + s) * AT.step} />
-                <span style={{ fontSize: 11, textAlign: 'right', color: x.v(l) === null ? FAINT : INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : unit}</span>
+                <span style={{ fontSize: 11, textAlign: 'right', color: x.v(l) === null ? FAINT : INK, fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}</span>
               </div>
             )
           })}
@@ -136,7 +136,7 @@ const SPLITS = [
 ]
 const STARTS = [['stop', 'STOP'], ['make', 'MAKE'], ['set', 'SET']]
 const startsOf = side => STARTS.map(([name, k]) => [`After ${name}`, `${side} after ${k}`, `${side === 'Off' ? 'ORTG' : 'DRTG'} after ${k}`])
-function Rows({ x, heads, rows, delay, units = [] }) {
+function Rows({ x, heads, rows, delay }) {
   const cols = { display: 'grid', gridTemplateColumns: `92px repeat(${heads.length}, minmax(0, 1fr))`, gap: 6, alignItems: 'center' }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -147,7 +147,7 @@ function Rows({ x, heads, rows, delay, units = [] }) {
       {rows.map(([name, ...ls], i) => (
         <div key={name} className="tc-fade" style={{ ...cols, animationDelay: `${delay + i * AT.step}ms` }}>
           <span style={rowName}>{name}</span>
-          {ls.map((l, j) => <span key={l} title={titleOf(x, l)} style={{ fontSize: 11, textAlign: 'right', color: x.ink(l), fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}{x.v(l) === null ? '' : units[j] || ''}</span>)}
+          {ls.map(l => <span key={l} title={titleOf(x, l)} style={{ fontSize: 11, textAlign: 'right', color: x.ink(l), fontVariantNumeric: 'tabular-nums' }}>{x.text(l)}</span>)}
         </div>
       ))}
     </div>
@@ -274,13 +274,13 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
         <Section title="Splits" right="per 100"><Rows x={x} heads={['ORTG', 'DRTG', 'Net']} rows={SPLITS} delay={AT.rows} /></Section>
         <div style={{ borderLeft: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column' }}>
-          <Section title="Play types" right={`half court ${x.text('Half-Court Share')}%`}><Playtypes x={x} /></Section>
+          <Section title="Play types" right={`half court ${x.text('Half-Court Share')}`}><Playtypes x={x} /></Section>
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-        <Section title="Offense by start" right="share · rating"><Rows x={x} heads={['Share', 'ORTG']} rows={startsOf('Off')} delay={AT.rows + 4 * AT.step} units={['%']} /></Section>
+        <Section title="Offense by start" right="share · rating"><Rows x={x} heads={['Share', 'ORTG']} rows={startsOf('Off')} delay={AT.rows + 4 * AT.step} /></Section>
         <div style={{ borderLeft: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column' }}>
-          <Section title="Defense by start" right="share · rating"><Rows x={x} heads={['Share', 'DRTG']} rows={startsOf('Def')} delay={AT.rows + 4 * AT.step} units={['%']} /></Section>
+          <Section title="Defense by start" right="share · rating"><Rows x={x} heads={['Share', 'DRTG']} rows={startsOf('Def')} delay={AT.rows + 4 * AT.step} /></Section>
         </div>
       </div>
       {/* The last section takes the card's spare height, its unit centred in it. */}

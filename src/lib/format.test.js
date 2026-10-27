@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { col, heat, ord, fmt } from './format.js'
+import { col, heat, ord, fmt, markPercents } from './format.js'
 import { chartModel, seasonTick } from './chart.js'
 import { BANDS, shotModel, zoneFill } from './shot.js'
 
@@ -118,5 +118,20 @@ describe('shot map', () => {
     const brightness = id => m.find(z => z.id === id).fill.match(/\d+/g).map(Number).reduce((a, b) => a + b)
     expect(m.find(z => z.id === 'rim').fill).toBe('rgb(19,18,17)')
     expect(brightness('short_mid')).toBeGreaterThan(brightness('rim'))
+  })
+})
+
+describe('percentages', () => {
+  test('a share of 100 prints its %, the players\' by their label and the team sheet\'s by name', () => {
+    const doc = markPercents({ stats: { 'rTS%': { dec: 1, relative: true }, 'Corner 3 Share': { dec: 1 }, 'Off-Ball Share': { dec: 0 }, '3p': { dec: 0 }, 'Off after STOP': { dec: 0 }, 'ORTG after STOP': { dec: 1 }, 'Corner share': { dec: 1, swing: 'pct' }, BPM: { dec: 1 } } })
+    expect(fmt(doc.stats['rTS%'], 2.14)).toBe('+2.1%')
+    expect(fmt(doc.stats['Corner 3 Share'], 26.1)).toBe('26.1%')
+    expect(fmt(doc.stats['Off-Ball Share'], 47)).toBe('47%')
+    expect(fmt(doc.stats['3p'], -3)).toBe('−3%')
+    expect(fmt(doc.stats['Off after STOP'], 38)).toBe('38%')
+    expect(fmt(doc.stats['ORTG after STOP'], 112.4)).toBe('112.4')
+    expect(fmt(doc.stats['Corner share'], 1.2)).toBe('1.2')
+    expect(fmt(doc.stats.BPM, 1.2)).toBe('1.2')
+    expect(fmt(doc.stats['rTS%'], null)).toBe('—')
   })
 })

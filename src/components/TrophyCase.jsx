@@ -9,8 +9,8 @@
 // medallion with a sprout, Sixth Man a jersey numbered 6, Most Improved an arrow climbing,
 // Clutch a stopwatch, All-Star a star. Drawn on 32 × 34 (the plinth
 // under it in type), shown at SIZE × `scale`. A player's own award (WON: MVP, Finals MVP,
-// DPOY, ROY, Sixth Man, MIP, Clutch; not a title or a team selection) shines: a faint white
-// bar steps across its metal now and then, and its plinth's edge is lit in its metal
+// DPOY, ROY, Sixth Man, MIP, Clutch; not a title or a team selection) glimmers: a faint
+// white bar drifts across its metal all the time, and its plinth's edge is lit in its metal
 // (index.css .tr-*).
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { MONO } from '../lib/format.js'
@@ -104,7 +104,7 @@ const EMBLEMS = {
   </> }
 }
 
-// `delay`: when its shine first runs (ms), so trophies side by side take turns. `bare`:
+// `delay`: how far into its glimmer it starts (ms), so trophies side by side differ. `bare`:
 // without its plinth (on a shelf).
 function Trophy({ award, scale: k = 1, delay = 0, bare = false }) {
   const mask = `tr-${useId().replace(/:/g, '')}`
@@ -121,7 +121,7 @@ function Trophy({ award, scale: k = 1, delay = 0, bare = false }) {
         {/* The bar, through the trophy's own drawing (its metal bright, its engraving dark). */}
         {won && <>
           <mask id={mask} maskUnits="userSpaceOnUse" x={0} y={0} width={32} height={34}>{e.draw}<Stand light={light} dark={dark} /></mask>
-          <g mask={`url(#${mask})`}><polygon className="tr-glint" points="-4,0 0,0 -8,34 -12,34" fill="#fff" /></g>
+          <g mask={`url(#${mask})`}><polygon className="tr-glint" points="-6,0 0,0 -8,34 -14,34" fill="#fff" /></g>
         </>}
       </svg>
       {!bare && <span style={{ width: TROPHY_W * k, height: 4 * scale, background: '#141312', borderTop: `1px solid ${won ? light : '#4a4642'}` }} />}
@@ -152,7 +152,7 @@ export default function TrophyCase({ awards, season, room, right, away, onOpen }
         return (
           <span key={key} className="tc-item" tabIndex={0} role="button" aria-label={`${tip}: open his accolades`} onClick={e => onOpen(key, e.currentTarget.getBoundingClientRect())} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(key, e.currentTarget.getBoundingClientRect()) } }}
             style={{ '--d': `${delayOf(i)}ms`, position: 'relative', display: 'flex', cursor: 'pointer', outline: 'none' }}>
-            <Trophy award={key} scale={scale} delay={700 + i * 450} />
+            <Trophy award={key} scale={scale} delay={i * 1300} />
             {/* Every other name a line higher, so neighbours never touch. */}
             <span className="tc-tag" aria-hidden="true" style={{ position: 'absolute', left: '50%', bottom: `calc(100% + ${i % 2 ? 13 : 3}px)`, fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
               {EMBLEMS[key].label}
@@ -278,7 +278,7 @@ export function CareerCase({ awards, seasons, name, focus, season, from, top = 0
                       {list.map((season, i) => (
                         <span key={season} data-copy={`${key}|${season}`} className={key === focus && season === flying ? undefined : 'ac-drop'} title={`${names[key]} · ${season.replace('-', '–')}`}
                           style={{ '--d': `${starts[s] + 60 + Math.min(n++, 12) * 25}ms`, display: 'flex', marginLeft: i ? -W * (1 - step) : 0, position: 'relative', zIndex: list.length - i }}>
-                          <Trophy award={key} scale={k} bare delay={900 + s * 300 + i * 180} />
+                          <Trophy award={key} scale={k} bare delay={s * 900 + i * 700} />
                         </span>
                       ))}
                     </div>

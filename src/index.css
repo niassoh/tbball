@@ -514,15 +514,11 @@ a:hover > .lineup-tile > * { filter: none; }
 @keyframes idx-live { 0%, 100% { opacity: 0; } 50% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .idx-live::after { animation: none; opacity: .3; } }
 
-/* A player's own award shines (TrophyCase.jsx Trophy): a faint white bar steps across its
-   metal in eight frames, then nothing for six seconds. */
-.tr-glint { animation: tr-glint 7.2s steps(1, end) infinite var(--d, 0ms); opacity: .25; }
-@keyframes tr-glint {
-  0% { transform: translateX(0); }
-  2% { transform: translateX(6px); } 4% { transform: translateX(12px); } 6% { transform: translateX(18px); }
-  8% { transform: translateX(24px); } 10% { transform: translateX(30px); } 12% { transform: translateX(36px); }
-  14% { transform: translateX(42px); } 16%, 100% { transform: translateX(48px); }
-}
+/* A player's own award glimmers (TrophyCase.jsx Trophy): a faint white bar drifts across
+   its metal without pause, each trophy's already partway through (--d, so side by side
+   they don't move as one). */
+.tr-glint { animation: tr-glint 4s linear infinite calc(var(--d, 0ms) * -1); opacity: .14; }
+@keyframes tr-glint { from { transform: translateX(0); } to { transform: translateX(48px); } }
 @media (prefers-reduced-motion: reduce) { .tr-glint { animation: none; opacity: 0; } }
 
 /* His accolades (TrophyCase.jsx CareerCase) wipe down under the banner; each shelf's rule

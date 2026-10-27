@@ -12,6 +12,8 @@ import { CountUp, Meter, Section } from './PlayerCard.jsx'
 // side; how its possessions start, offense beside defense; and its units. Blue is better than the league, orange worse, grey a style. It
 // comes in on opening: the logo settles, the name wipes in, the numbers count up as their
 // meters light, the bars wipe in and the units' faces arrive (index.css .pc-*, .tc-*).
+// A row over many seasons (the board's spans and runs) reads its years in the head, its
+// places among the board's rows, and its units are its last season's (`season`).
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -61,7 +63,7 @@ function Head({ t, x, season, intro, closeButton }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="pc-type" style={{ ...small, lineHeight: '13px' }}>{[t.team, x.v('Wins') !== null && `${x.v('Wins')}–${x.v('Losses')}`, x.v('LA Bayes Win-pace') !== null && `${x.text('LA Bayes Win-pace')}-win pace`, season.replace('-', '–')].filter(Boolean).join(' · ')}</span>
+          <span className="pc-type" style={{ ...small, lineHeight: '13px' }}>{[t.team, x.v('Wins') !== null && `${x.v('Wins')}–${x.v('Losses')}`, x.v('LA Bayes Win-pace') !== null && `${x.text('LA Bayes Win-pace')}-win pace`, t.span || season.replace('-', '–')].filter(Boolean).join(' · ')}</span>
           {closeButton}
         </span>
         <span className="pc-name" style={{ marginTop: 1, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>

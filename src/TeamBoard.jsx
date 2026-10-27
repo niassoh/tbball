@@ -1,18 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchTeamboard, fetchTeamboardSeasons } from './api.js'
 import { MONO, fmt, heat, ord } from './lib/format.js'
 import { ranked } from './lib/leaderboard.js'
+import { seasonsBetween } from './lib/seasons.js'
 import { asset } from './lib/static.js'
-import { placeOf, tiedOf } from './lib/teamboard.js'
+import { boardOver, placeOf, tiedOf } from './lib/teamboard.js'
 import ModeSwitch from './components/ModeSwitch.jsx'
+import SeasonPicker from './components/SeasonPicker.jsx'
+import { Each, Eras } from './components/SpanControls.jsx'
 import TeamScatter from './components/TeamScatter.jsx'
 import BrandMark from './components/BrandMark.jsx'
 import SiteNav from './components/SiteNav.jsx'
 import TeamCard from './components/TeamCard.jsx'
 
 // The Team board: the 30 teams' season from the team sheet (thinking-bball
-// lib/teamboard.js), 2013-14 on, the latest to begin with and a year strip in the head for
-// the rest; one screen like the Leaderboard (index.css .lb): ORTG against DRTG on
+// lib/teamboard.js), 2013-14 on, the latest to begin with; the Leaderboard's season picker
+// for the rest: a season, a span (a row per team-season, or one per team combined), or
+// every team's runs of 3, 5 or 7 seasons (lib/teamboard.js boardOver). One screen like the
+// Leaderboard (index.css .lb): ORTG against DRTG on
 // the left, each team its logo, and a table on the right of the picked group's stats (the
 // sheet's own categories: Overview, Playtype, Offense, Defense, Home-Away, v Good/Bad, O
 // after D, D after O), a head sorting by its stat, best first, again for worst, each cell
@@ -29,27 +34,6 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 const plain = p => `rgba(201,195,188,${((Math.abs(p - 50) / 50) * 0.32).toFixed(2)})`
 // A relative stat (net, rORTG and the like) reads with its sign.
 const RELATIVE = /^Net|^r|^Adj r| Net$/
-
-// The seasons as a strip of years ('14 … '27), the one on show lit, each a click away.
-// On a phone the strip scrolls; it opens on the season on show, not '14.
-function Years({ seasons, season, pick }) {
-  const box = useRef(null)
-  useEffect(() => {
-    const on = box.current.querySelector('[aria-pressed="true"]')
-    box.current.scrollLeft = Math.max(0, on.offsetLeft + on.offsetWidth - box.current.clientWidth)
-  }, [season])
-  return (
-    <div ref={box} role="group" aria-label="Season" style={{ position: 'relative', display: 'flex', border: `1px solid ${EDGE}`, overflowX: 'auto', minWidth: 0, scrollbarWidth: 'none' }}>
-      {seasons.map((s, i) => {
-        const on = s === season
-        return (
-          <button key={s} type="button" aria-pressed={on} title={s.replace('-', '–')} onClick={() => pick(s)}
-            style={{ flex: 'none', height: 24, padding: '0 7px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: on ? '#3a3734' : 'transparent', boxShadow: on ? 'inset 0 -2px 0 var(--accent)' : 'none', color: on ? INK : DIM, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 500, letterSpacing: '.04em', cursor: 'pointer' }}>’{s.slice(5)}</button>
-        )
-      })}
-    </div>
-  )
-}
 
 function Groups({ groups, active, pick }) {
   return (
@@ -77,7 +61,7 @@ function Table({ doc, group, sort, onSort, rankView, hot, setHot, picked, onPick
   const shown = group.stats.filter(l => !RECORD.includes(l))
   const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
   const rows = useMemo(() => ranked(doc, doc.teams, sort.label, sort.reverse), [doc, sort])
-  const rank = useMemo(() => new Map(ranked(doc, doc.teams, sort.label).map((t, i) => [t.team, i + 1])), [doc, sort.label])
+  const rank = useMemo(() => new Map(ranked(doc, doc.teams, sort.label).map((t, i) => [t.id, i + 1])), [doc, sort.label])
   const at = l => doc.labels.indexOf(l)
   const wins = at('Wins')
   const losses = at('Losses')
@@ -105,13 +89,18 @@ function Table({ doc, group, sort, onSort, rankView, hot, setHot, picked, onPick
       </thead>
       <tbody>
         {rows.map(t => (
-          <tr key={t.team} className="lb-row" aria-selected={t.team === hot || t.team === picked} onMouseEnter={() => setHot(t.team)} onMouseLeave={() => setHot(null)} onClick={() => onPick(t.team)} style={{ cursor: 'pointer' }}>
-            <td style={{ ...td, textAlign: 'center', padding: 0, color: DIM, fontSize: 11 }}>{rank.get(t.team)}</td>
+          <tr key={t.id} className="lb-row" aria-selected={t.id === hot || t.id === picked} onMouseEnter={() => setHot(t.id)} onMouseLeave={() => setHot(null)} onClick={() => onPick(t.id)} style={{ cursor: 'pointer' }}>
+            <td style={{ ...td, textAlign: 'center', padding: 0, color: DIM, fontSize: 11 }}>{rank.get(t.id)}</td>
             <td style={{ ...td, textAlign: 'left', borderRight: `1px solid ${RULE}` }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <img src={asset(`logos/color/sm/${t.team}.webp`)} alt="" width={20} height={20} style={{ flex: 'none' }} />
-                <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, width: 28 }}>{t.team}</span>
-                <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: INK }}>{t.name}</span>
+                {/* Over many seasons the row's years sit under its name in the code's place (the
+                    logo says the team), so the wider records still leave the table its width. */}
+                {!doc.dated && <span style={{ fontFamily: MONO, fontSize: 10, color: DIM, width: 28 }}>{t.team}</span>}
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: INK, lineHeight: doc.dated ? '13px' : undefined }}>{t.name}</span>
+                  {doc.dated && <span style={{ ...label, fontSize: 8.5, letterSpacing: '.08em', lineHeight: '10px' }}>{t.span}</span>}
+                </span>
               </span>
             </td>
             <td style={{ ...td, color: '#d9d3cc' }}>{wins >= 0 && t.v[wins] !== null ? `${t.v[wins]}–${t.v[losses]}` : '—'}</td>
@@ -154,20 +143,41 @@ export default function TeamBoard() {
   // A row opens its card, or closes it when it's the one open.
   const toggle = useCallback(k => setPicked(p => (p === k ? null : k)), [])
   const [seasons, setSeasons] = useState(null)
-  const [season, setSeason] = useState(null)
+  // The span on show; over many seasons a row per team-season (`each`) or one per team;
+  // runs' length (3, 5 or 7), or null for the span.
+  const [span, setSpan] = useState(null)
+  const [each, setEach] = useState(false)
+  const [era, setEra] = useState(null)
+  // Season documents fetched so far (false: none for it).
+  const [docs, setDocs] = useState({})
   useEffect(() => {
     fetchTeamboardSeasons().then(d => {
       setSeasons(d.seasons)
-      setSeason(d.seasons[d.seasons.length - 1])
+      const last = d.seasons[d.seasons.length - 1]
+      setSpan({ from: last, to: last })
     }, () => setDoc(false))
   }, [])
+  const wanted = !seasons || !span ? [] : era ? seasons : seasonsBetween(span.from, span.to).filter(s => seasons.includes(s))
+  const wantedKey = wanted.join()
   useEffect(() => {
-    if (!season) return
+    const missing = wanted.filter(s => !(s in docs))
+    if (!missing.length) return
     let live = true
-    fetchTeamboard(season).then(d => live && setDoc(d || false), () => live && setDoc(false))
+    Promise.all(missing.map(s => fetchTeamboard(s).then(d => [s, d || false], () => [s, false])))
+      .then(got => live && setDocs(d => ({ ...d, ...Object.fromEntries(got) })))
     return () => { live = false }
-  }, [season])
+  }, [wantedKey, docs]) // eslint-disable-line react-hooks/exhaustive-deps -- wanted is wantedKey's
+  // The board once every season it needs is in; the last one stays on show till then.
+  useEffect(() => {
+    if (!wanted.length || wanted.some(s => !(s in docs))) return
+    const got = wanted.map(s => docs[s]).filter(Boolean)
+    setDoc(got.length ? boardOver(got, { each: each && got.length > 1, run: era }) : false)
+  }, [wantedKey, docs, each, era]) // eslint-disable-line react-hooks/exhaustive-deps -- wanted is wantedKey's
   const g = doc ? doc.groups.find(x => x.id === group) || doc.groups[0] : null
+  // A group the view lacks (Last month over many seasons) falls back to the first; so does
+  // its sort.
+  const by = g && g.stats.includes(sort.label) ? sort : g && { label: g.stats.find(l => !['Wins', 'Losses'].includes(l)), reverse: false }
+  const row = doc && picked && doc.teams.find(t => t.id === picked)
   const choose = id => {
     const next = doc.groups.find(x => x.id === id)
     setGroup(id)
@@ -178,22 +188,30 @@ export default function TeamBoard() {
       <header className="head-row" style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}` }}>
         <BrandMark />
         <SiteNav at="teams" />
-        {seasons && <span style={{ marginLeft: 'auto', minWidth: 0, display: 'flex' }}><Years seasons={seasons} season={season} pick={setSeason} /></span>}
       </header>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>
+        {seasons && span
+          ? (
+            <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={wanted.length} width="auto"
+              pick={(from, to) => { setSpan({ from, to }); setEra(null); setEach(false) }}
+              readout={era ? `${era}-yr runs` : null}
+              aside={wanted.length > 1 && !era ? <Each each={each} set={setEach} tips={['A row for each team-season', 'One row for each team over the span']} /> : null}
+              extra={<Eras era={era} set={setEra} who="team" />} />
+          )
+          : <span className="lb-skel" style={{ width: 184, height: 30 }} />}
         {doc ? <Groups groups={doc.groups} active={g.id} pick={choose} /> : <span className="lb-skel" style={{ width: 560, height: 30 }} />}
         <span style={{ marginLeft: 'auto' }}><ModeSwitch name="Cells read in" options={MODES} mode={mode} setMode={setMode} /></span>
       </div>
       {doc === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
       {doc && (
         <div className="lb-body tb-body lb-enter">
-          <div className={`lb-side${picked ? ' lb-carded' : ''}`}>
-            {picked
-              ? <TeamCard key={picked} doc={doc} team={doc.teams.find(t => t.team === picked)} season={doc.season} onClose={close} />
+          <div className={`lb-side${row ? ' lb-carded' : ''}`}>
+            {row
+              ? <TeamCard key={picked} doc={doc} team={row} season={row.season || doc.season} onClose={close} />
               : <TeamScatter doc={doc} hot={hot} setHot={setHot} onPick={setPicked} />}
           </div>
           <div className="lb-table-wrap" style={{ scrollSnapType: 'none' }}>
-            <Table doc={doc} group={g} sort={sort} onSort={l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false }))} rankView={mode === 'rank'} hot={hot} setHot={setHot} picked={picked} onPick={toggle} />
+            <Table doc={doc} group={g} sort={by} onSort={l => setSort(s => ({ label: l, reverse: s.label === l ? !s.reverse : false }))} rankView={mode === 'rank'} hot={hot} setHot={setHot} picked={picked} onPick={toggle} />
           </div>
         </div>
       )}

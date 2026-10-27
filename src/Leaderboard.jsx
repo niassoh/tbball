@@ -13,6 +13,7 @@ import ModeSwitch from './components/ModeSwitch.jsx'
 import PlayerCard from './components/PlayerCard.jsx'
 import Popover from './components/Popover.jsx'
 import SeasonPicker from './components/SeasonPicker.jsx'
+import { Each, Eras } from './components/SpanControls.jsx'
 import SeasonToggle from './components/SeasonToggle.jsx'
 import BrandMark from './components/BrandMark.jsx'
 import SiteNav from './components/SiteNav.jsx'
@@ -130,48 +131,12 @@ function Pager({ n, pages, total, turn }) {
   )
 }
 
-// A span's rows: each player-season, or one per player combined over the span (the
-// profile's span averages): SINGLE | COMBINED, small, beside the span's readout in the
-// season picker's panel.
-function Each({ each, set }) {
-  return (
-    <div role="group" aria-label="Rows" style={{ display: 'flex', flex: 'none', border: `1px solid ${EDGE}` }}>
-      {[[true, 'Single', 'A row for each of his seasons'], [false, 'Combined', 'One row for his seasons together']].map(([on, name, tip]) => (
-        <button key={name} type="button" aria-pressed={each === on} onClick={() => set(on)} title={tip}
-          style={{ height: 22, padding: '0 8px', border: 0, borderLeft: on ? 0 : `1px solid ${EDGE}`, background: each === on ? '#3a3734' : 'transparent', color: each === on ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 9, fontWeight: each === on ? 700 : 400, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{name}</button>
-      ))}
-    </div>
-  )
-}
-
-// Eras, in the season picker's panel, set apart from the seasons under an OR (a run is
-// a view of its own, not a span): every player's runs of 3, 5 or 7 of his seasons over all
-// the years (lib/board.js eras), the span lightly beside his name; in the playoffs, of his
-// playoff runs. A lit length again, or a season picked on the strip, goes back to seasons.
-// Turning runs on sets the minutes qualifier to the top half.
-const ERAS = [3, 5, 7]
 // The ages the picker offers by age: every season's players at those ages (their age on
 // February 1 of it), a row each or combined over the span; once the seasons are in, an age
 // no player had (18: the 1996-97 board lacks Kobe) is dim and can't be picked. Turning it on
 // reads one age, 25. A span picked, by year or by age, starts combined.
 const AGES = Array.from({ length: 26 }, (_, i) => 18 + i)
 const FIRST_AGE = 25
-function Eras({ era, set, playoffs }) {
-  const rule = <span style={{ flex: 1, height: 1, background: EDGE }} />
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-      <div aria-hidden="true" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>{rule}<span style={{ ...label, fontSize: 10, color: '#b8b2ab' }}>or</span>{rule}</div>
-      <span style={{ ...label, fontSize: 10, color: era ? 'var(--accent)' : INK }}>Runs <span style={{ color: '#d9d3cc' }}>· every player's 3, 5 or 7 {playoffs ? 'playoff runs' : 'seasons'} in a row, across all years</span></span>
-      <div role="group" aria-label="Runs" style={{ display: 'flex', border: `1px solid ${era ? 'var(--accent)' : EDGE}` }}>
-        {ERAS.map(n => (
-          <button key={n} type="button" data-era={n} aria-pressed={era === n} onClick={() => set(era === n ? null : n)} title={era === n ? 'Back to seasons' : `Every ${n}-season run of every player, averaged`}
-            style={{ flex: 1, height: 26, padding: '0 10px', border: 0, borderLeft: n === ERAS[0] ? 0 : `1px solid ${EDGE}`, background: era === n ? '#3a3734' : 'transparent', color: era === n ? INK : '#e4dfd9', fontFamily: MONO, fontSize: 11, fontWeight: era === n ? 700 : 500, letterSpacing: '.1em', cursor: 'pointer' }}>{n} YR</button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // The minutes qualifier: everyone, or the top three-quarters, half or quarter of the rows
 // by minutes (playoff minutes in the playoffs).
 const TOPS = [[1, 'All'], [0.75, 'Top 75%'], [0.5, 'Top 50%'], [0.25, 'Top 25%']]

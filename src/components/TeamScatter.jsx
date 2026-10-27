@@ -56,7 +56,7 @@ export default function TeamScatter({ doc, hot, setHot, onPick }) {
   const cx = px(league)
   const cy = py(lgD)
   const lit = hover || hot
-  const t = lit && teams.find(x => x.team === lit)
+  const t = lit && teams.find(x => x.id === lit)
   const net = tm => tm.v[kx] - tm.v[ky]
   const best = teams.reduce((a, b) => (net(b) > net(a) ? b : a), teams[0])
   const cell = { padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, borderLeft: `1px solid ${RULE}` }
@@ -106,12 +106,12 @@ export default function TeamScatter({ doc, hot, setHot, onPick }) {
           <text x={M.l - 6} y={cy} textAnchor="middle" style={{ ...label, fill: DIM }} transform={`rotate(-90 ${M.l - 6} ${cy})`}>{lgD.toFixed(1)}</text>
           <text x={M.l - 6} y={(M.t + cy) / 2} textAnchor="middle" style={{ ...label, fontSize: 8, fill: DIM }} transform={`rotate(-90 ${M.l - 6} ${(M.t + cy) / 2})`}>DRTG · fewer allowed →</text>
           {/* The lit team last, so it sits over its neighbours. */}
-          {[...teams].sort((a, b) => (a.team === lit) - (b.team === lit)).map(tm => {
-            const on = tm.team === lit
+          {[...teams].sort((a, b) => (a.id === lit) - (b.id === lit)).map(tm => {
+            const on = tm.id === lit
             const s = on ? LOGO * 1.3 : LOGO
             return (
-              <g key={tm.team} className="tb-logo" style={{ transform: `translate(${px(tm.v[kx])}px, ${py(tm.v[ky])}px)`, opacity: lit && !on ? 0.25 : 1, cursor: 'pointer' }}
-                onMouseEnter={() => { setHover(tm.team); setHot(tm.team) }} onClick={() => onPick(tm.team)}>
+              <g key={tm.id} className="tb-logo" style={{ transform: `translate(${px(tm.v[kx])}px, ${py(tm.v[ky])}px)`, opacity: lit && !on ? 0.25 : 1, cursor: 'pointer' }}
+                onMouseEnter={() => { setHover(tm.id); setHot(tm.id) }} onClick={() => onPick(tm.id)}>
                 <image href={asset(`logos/color/${tm.team}.png`)} x={-s / 2} y={-s / 2} width={s} height={s} style={{ filter: HALO }} />
               </g>
             )
@@ -139,7 +139,7 @@ export default function TeamScatter({ doc, hot, setHot, onPick }) {
                 <img src={asset(`logos/color/${t.team}.png`)} alt="" width={26} height={26} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, fontWeight: 800, textTransform: 'uppercase', color: INK }}>{t.name}</span>
-                  <span style={{ ...label, fontSize: 8 }}>{t.team}{wins !== null && losses !== null ? ` · ${wins}–${losses}` : ''}</span>
+                  <span style={{ ...label, fontSize: 8 }}>{t.team}{doc.dated ? ` · ${t.span}` : ''}{wins !== null && losses !== null ? ` · ${wins}–${losses}` : ''}</span>
                 </span>
               </span>
               <span style={{ height: 1, background: RULE }} />

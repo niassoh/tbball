@@ -156,7 +156,8 @@ function Rows({ x, heads, rows, delay }) {
 
 // Its play types: each half-court type's share of the offense as a bar (the league's share
 // marked) and its points a play, coloured by percentile; the rest (transition and the
-// like) its share alone.
+// like) its share alone. Without any of them (the sheet's play types not loaded), no
+// section: the rest would read as 100% transition.
 const TYPES = [['Off-Ball', 'Off-ball'], ['PnR Game', 'PnR'], ['Iso-Post', 'Iso / post']]
 const TYPE_COLS = { display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr) 32px 36px', gap: 6, alignItems: 'center' }
 function Playtypes({ x }) {
@@ -274,7 +275,7 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
         <Section title="Splits" right="per 100"><Rows x={x} heads={['ORTG', 'DRTG', 'Net']} rows={SPLITS} delay={AT.rows} /></Section>
         <div style={{ borderLeft: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column' }}>
-          <Section title="Play types" right={`half court ${x.text('Half-Court Share')}`}><Playtypes x={x} /></Section>
+          {TYPES.some(([k]) => x.v(`${k} Share`) !== null) && <Section title="Play types" right={`half court ${x.text('Half-Court Share')}`}><Playtypes x={x} /></Section>}
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>

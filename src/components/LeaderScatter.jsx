@@ -34,9 +34,9 @@ const M = { l: 30, r: 14, t: 16, b: 30 }
 
 // The stats a board can chart: those with values in it (the last 30 days leave some out).
 // `dim(label)`: a reason a stat is faint (Careers: none of the picked players has it),
-// still pickable.
+// still pickable. The Team board's too, its rows `teams`.
 export function AxisPicker({ doc, axis, value, set, dim }) {
-  const charted = l => !doc.stats[l].na && doc.players.some(p => valueOf(doc, p, l) !== null)
+  const charted = l => !doc.stats[l].na && (doc.players || doc.teams).some(p => valueOf(doc, p, l) !== null)
   const groups = doc.groups.map(g => ({ ...g, stats: g.stats.filter(charted) })).filter(g => g.stats.length)
   return (
     <Popover name={`${axis} axis: ${value}`} minWidth={300} trigger={<><span style={{ ...label, fontWeight: 400 }}>{axis}</span>{value}</>}>

@@ -12,9 +12,9 @@
 // DPOY, ROY, Sixth Man, MIP, Clutch; not a title or a team selection) shines: a hard white
 // bar steps across its metal, a spark flashes as it leaves, and its plinth's edge is lit
 // in its metal (index.css .tr-*).
-import { useEffect, useId } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { MONO } from '../lib/format.js'
-import { seasonsBetween, shortSeason } from '../lib/seasons.js'
+import { shortSeason } from '../lib/seasons.js'
 import { AWARDS, GAP, SIZE, TROPHY_W, delayOf, layout } from '../lib/trophies.js'
 
 const GOLD = '#d4af37'
@@ -164,62 +164,116 @@ export default function TrophyCase({ awards, season, room, right, onOpen }) {
   )
 }
 
-// His career trophy case, over the bio card when a trophy is clicked: every award he won, a
-// row each (its trophy, its name, how many), along a strip of his career's seasons, a lit
-// step in the award's metal for each season he won it, like a sequencer's (hover one for its
-// season); the row clicked (`focus`) marked. It wipes down over the card and its steps come
-// on in turn, left to right, row by row (index.css .cc-*). ✕ or Esc closes it.
+// His accolades, over the bio card when a trophy is clicked: a trophy case. A framed
+// cabinet lit from its top edge, behind one pane of glass, its shelves in order of
+// importance (SHELVES: the title and the MVPs on top, largest, down to All-Star), each award
+// standing as many copies as he won, grouped close and centred on its shelf, with a plate
+// in its metal on the shelf's lip (its name and how many); a crowded shelf closes its
+// copies up, then shrinks (fit). Under the case a readout gives the seasons of the award
+// under the pointer, else the one clicked (`focus`, its plate outlined). Each shelf's plank
+// wipes in, top first, its trophies drop onto it one by one in hard steps, then their plates
+// stamp on (index.css .ac-*). ✕ or Esc closes it.
+const SHELVES = [
+  [['champion', 'fmvp', 'mvp'], 1.3],
+  [['dpoy', 'roy', 'smoy', 'mip', 'clutch'], 1.05],
+  [['allnba1', 'allnba2', 'allnba3'], 0.9],
+  [['alldef1', 'alldef2'], 0.85],
+  [['allstar'], 0.72]
+]
+const PLAQUE = { allnba1: 'All-NBA 1st', allnba2: 'All-NBA 2nd', allnba3: 'All-NBA 3rd', alldef1: 'All-D 1st', alldef2: 'All-D 2nd' }
+const LIP = 16
+const PAD = 14
+const plateText = (key, count) => `${PLAQUE[key] || EMBLEMS[key].label} ×${count}`
+// A plate's width: its monospace letters (7.5px, .08em apart) and padding.
+const plateW = text => text.length * 5.1 + 10
+// A shelf's scale and how far each copy steps from the last: copies 0.6 of a trophy apart,
+// closer (to 0.16) when the shelf is full, the whole shelf smaller past that (to 0.6 of its
+// size), and wrapped past that. Each award takes the wider of its copies and its plate.
+const fit = (groups, k0, width) => {
+  const room = width - 2 * PAD
+  const span = (k, step) => groups.reduce((n, [c, plate]) => n + Math.max(TROPHY_W * k * (1 + (c - 1) * step), plate), 0) + 22 * k * (groups.length - 1)
+  for (let k = k0; k >= k0 * 0.6; k *= 0.94) {
+    for (let step = 0.6; step >= 0.16; step -= 0.02) if (span(k, step) <= room) return { k, step }
+  }
+  return { k: k0 * 0.6, step: 0.16 }
+}
 export function CareerCase({ awards, seasons, name, focus, onClose }) {
+  const box = useRef(null)
+  const [width, setWidth] = useState(0)
+  const [hover, setHover] = useState(null)
   useEffect(() => {
     const key = e => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)
   }, [onClose])
-  const rows = AWARDS.filter(([k]) => awards && awards[k] && awards[k].length)
-  const won = rows.flatMap(([k]) => awards[k])
-  const span = seasonsBetween([seasons[0], ...won].sort()[0], [seasons[seasons.length - 1], ...won].sort().pop())
-  // Every fifth season from his first, and his last when it isn't crowding the one before.
-  const ticks = new Set(span.filter((x, i) => i % 5 === 0 || (i === span.length - 1 && i % 5 >= 3)))
-  const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.16em', textTransform: 'uppercase', color: '#a09a93' }
-  const cols = '40px minmax(96px, 150px) minmax(0, 1fr) 26px'
+  useLayoutEffect(() => {
+    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
+    ro.observe(box.current)
+    return () => ro.disconnect()
+  }, [])
+  const has = k => awards && awards[k] && awards[k].length
+  const names = Object.fromEntries(AWARDS)
+  const won = AWARDS.filter(([k]) => has(k)).flatMap(([k]) => awards[k])
+  const shelves = SHELVES.map(([keys, k]) => [keys.filter(has), k]).filter(([keys]) => keys.length)
+  const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', color: '#a09a93' }
+  // When each shelf starts: after the one above it has set its trophies down.
+  const starts = shelves.reduce((at, [keys]) => [...at, at[at.length - 1] + 220 + Math.min(keys.reduce((n, x) => n + awards[x].length, 0), 10) * 70], [120])
+  const read = has(hover) ? hover : has(focus) ? focus : null
   return (
-    <div className="cc" role="dialog" aria-label={`${name}: accolades`} style={{ position: 'absolute', inset: 0, zIndex: 6, background: '#1f1d1c', display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px 16px', overflow: 'auto' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid #544f4b', paddingBottom: 9 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-          <span style={{ ...label, color: INK, fontWeight: 700 }}>Accolades</span>
-          <span style={{ ...label, letterSpacing: '.1em' }}>{name} · {won.length} honour{won.length === 1 ? '' : 's'} · {shortSeason(span[0])}–{shortSeason(span[span.length - 1])}</span>
+    <div className="cc" role="dialog" aria-label={`${name}: accolades`} style={{ position: 'absolute', inset: 0, zIndex: 6, background: '#1f1d1c', display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 16px 14px', overflowY: 'auto', overflowX: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
+          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 24, fontWeight: 800, lineHeight: 0.9, textTransform: 'uppercase', color: INK }}>{won.length} Accolade{won.length === 1 ? '' : 's'}</span>
+          <span style={{ ...label, letterSpacing: '.12em' }}>{name} · {shortSeason(seasons[0])}–{shortSeason(seasons[seasons.length - 1])}</span>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close his accolades" style={{ ...label, color: INK, background: 'none', border: '1px solid #544f4b', padding: '4px 8px', cursor: 'pointer' }}>Esc ✕</button>
+        <button type="button" onClick={onClose} aria-label="Close his accolades" style={{ ...label, fontSize: 8.5, background: 'none', border: 0, padding: '2px 0', cursor: 'pointer' }}>Esc ✕</button>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {rows.map(([key, long], r) => {
-          const lit = new Set(awards[key])
-          const metal = EMBLEMS[key].metal[0]
+      {/* The cabinet: its frame, a strip of light under its top, its shelves sharing its
+          height, and over it all a hard-edged reflection on the glass. */}
+      <div ref={box} onMouseLeave={() => setHover(null)} style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', border: '2px solid #4a4642', borderTop: '4px solid #4a4642', background: '#181716', boxShadow: 'inset 0 22px 30px -24px rgba(255, 236, 210, .16)' }}>
+        <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 1, background: '#8a8178' }} />
+        {width > 0 && shelves.map(([keys, k0], s) => {
+          const { k, step } = fit(keys.map(x => [awards[x].length, plateW(plateText(x, awards[x].length))]), k0, width)
+          const W = TROPHY_W * k
+          let n = 0
           return (
-            <div key={key} className="cc-row" style={{ '--r': `${80 + r * 45}ms`, display: 'grid', gridTemplateColumns: cols, alignItems: 'center', columnGap: 10, boxShadow: key === focus ? `inset 2px 0 0 ${metal}` : 'none', paddingLeft: 6 }}>
-              <Trophy award={key} scale={0.62} delay={600 + r * 450} />
-              <span style={{ ...label, fontSize: 8.5, letterSpacing: '.1em', color: key === focus ? INK : '#b3ada6', lineHeight: 1.3 }}>{long}</span>
-              <span style={{ display: 'grid', gridTemplateColumns: `repeat(${span.length}, minmax(0, 1fr))`, gap: 2 }}>
-                {span.map((season, i) => (
-                  <span key={season} title={`${long} · ${season.replace('-', '–')}`} className={lit.has(season) ? 'cc-on' : undefined}
-                    style={{ '--d': `${160 + r * 45 + i * 14}ms`, height: 12, background: lit.has(season) ? metal : 'transparent', boxShadow: lit.has(season) ? 'none' : 'inset 0 0 0 1px #34312e' }} />
-                ))}
-              </span>
-              <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, textAlign: 'right', color: INK, fontVariantNumeric: 'tabular-nums' }}>{lit.size}</span>
+            <div key={keys[0]} style={{ position: 'relative', flex: '1 0 auto', minHeight: 38 * SIZE * k + LIP + 16, display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', alignContent: 'flex-end', justifyContent: 'center', gap: `10px ${22 * k}px`, padding: `0 ${PAD}px` }}>
+              {/* The shelf: its plank's lip, full width, the plates fixed on it. */}
+              <span className="ac-plank" style={{ '--d': `${starts[s]}ms`, position: 'absolute', left: 0, right: 0, bottom: 0, height: LIP, background: '#121110', borderTop: '2px solid #55504b' }} />
+              {keys.map(key => {
+                const list = awards[key]
+                const [metal] = EMBLEMS[key].metal
+                return (
+                  <div key={key} onMouseEnter={() => setHover(key)} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                      {list.map((season, i) => (
+                        <span key={season} className="ac-drop" title={`${names[key]} · ${season.replace('-', '–')}`}
+                          style={{ '--d': `${starts[s] + 160 + Math.min(n++, 12) * 70}ms`, display: 'flex', marginLeft: i ? -W * (1 - step) : 0, position: 'relative', zIndex: list.length - i }}>
+                          <Trophy award={key} scale={k} delay={1600 + s * 500 + i * 180} />
+                        </span>
+                      ))}
+                    </div>
+                    <span style={{ height: LIP, display: 'flex', alignItems: 'center' }}>
+                      <span className="ac-plaque" title={list.map(x => x.replace('-', '–')).join(', ')}
+                        style={{ '--d': `${starts[s] + 260 + Math.min(n, 12) * 70}ms`, fontFamily: MONO, fontSize: 7.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', lineHeight: 1, padding: '2px 4px', background: metal, color: CUT, outline: key === focus ? `1px solid ${INK}` : 'none', outlineOffset: 1 }}>
+                        {plateText(key, list.length)}
+                      </span>
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           )
         })}
-        {/* The seasons under the steps. */}
-        <div style={{ display: 'grid', gridTemplateColumns: cols, columnGap: 10, paddingLeft: 6 }}>
-          <span />
-          <span />
-          <span style={{ display: 'grid', gridTemplateColumns: `repeat(${span.length}, minmax(0, 1fr))`, gap: 2 }}>
-            {span.map(season => <span key={season} style={{ fontFamily: MONO, fontSize: 7.5, color: '#837d76', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'visible' }}>{ticks.has(season) ? shortSeason(season) : ''}</span>)}
-          </span>
-          <span />
-        </div>
+        <span aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(118deg, transparent 58%, rgba(255, 255, 255, .03) 58%, rgba(255, 255, 255, .03) 66%, transparent 66%)' }} />
+      </div>
+      {/* The readout: the seasons of the award under the pointer, else the one clicked. */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minHeight: 14, ...label, letterSpacing: '.1em' }}>
+        {read && <>
+          <span style={{ color: INK, fontWeight: 700, whiteSpace: 'nowrap' }}>{names[read]} ×{awards[read].length}</span>
+          <span style={{ color: '#837d76', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{awards[read].map(shortSeason).join(' ')}</span>
+        </>}
       </div>
     </div>
   )
 }
-

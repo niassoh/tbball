@@ -8,8 +8,11 @@
 // shield (in the team's metal: first gold, second silver, third bronze), Rookie a
 // medallion with a sprout, Sixth Man a jersey numbered 6, Most Improved an arrow climbing,
 // Clutch a stopwatch, All-Star a star. Drawn on 32 × 34 (the plinth
-// under it in type), shown at SIZE × `scale`.
-import { useEffect } from 'react'
+// under it in type), shown at SIZE × `scale`. A player's own award (WON: MVP, Finals MVP,
+// DPOY, ROY, Sixth Man, MIP, Clutch; not a title or a team selection) shines: a hard white
+// bar steps across its metal, a spark flashes as it leaves, and its plinth's edge is lit
+// in its metal (index.css .tr-*).
+import { useEffect, useId } from 'react'
 import { MONO } from '../lib/format.js'
 import { seasonsBetween, shortSeason } from '../lib/seasons.js'
 import { AWARDS, GAP, SIZE, TROPHY_W, delayOf, layout } from '../lib/trophies.js'
@@ -23,6 +26,7 @@ const BRONZE_DARK = '#8a5a35'
 const INK = '#ece8e3'
 const CUT = '#2a2622'
 const TIERS = { 1: [GOLD, GOLD_DARK], 2: [SILVER, SILVER_DARK], 3: [BRONZE, BRONZE_DARK] }
+const WON = new Set(['fmvp', 'mvp', 'dpoy', 'roy', 'smoy', 'mip', 'clutch'])
 
 // A laurel wreath (five leaves a side on a ring round 16, 12.5, tied at the foot) in
 // `metal`, round `center`.
@@ -100,18 +104,27 @@ const EMBLEMS = {
   </> }
 }
 
-function Trophy({ award, scale: k = 1 }) {
+// `delay`: when its shine first runs (ms), so trophies side by side take turns.
+function Trophy({ award, scale: k = 1, delay = 0 }) {
+  const mask = `tr-${useId().replace(/:/g, '')}`
   const e = EMBLEMS[award]
   if (!e) return null
   const [light, dark] = e.metal
   const scale = SIZE * k
+  const won = WON.has(award)
   return (
     <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: TROPHY_W * k }}>
-      <svg viewBox="0 0 32 34" width={32 * scale} height={34 * scale} style={{ display: 'block' }} aria-hidden="true">
+      <svg viewBox="0 0 32 34" width={32 * scale} height={34 * scale} style={{ display: 'block', overflow: 'visible', '--d': `${delay}ms` }} aria-hidden="true">
         {e.draw}
         <Stand light={light} dark={dark} />
+        {/* The bar, through the trophy's own drawing (its metal bright, its engraving dark). */}
+        {won && <>
+          <mask id={mask} maskUnits="userSpaceOnUse" x={0} y={0} width={32} height={34}>{e.draw}<Stand light={light} dark={dark} /></mask>
+          <g mask={`url(#${mask})`}><polygon className="tr-glint" points="-4,0 0,0 -8,34 -12,34" fill="#fff" /></g>
+          <path className="tr-spark" d="M27 0 V6 M24 3 H30" stroke="#fff" strokeWidth={1.2} />
+        </>}
       </svg>
-      <span style={{ width: TROPHY_W * k, height: 4 * scale, background: '#141312', borderTop: '1px solid #4a4642' }} />
+      <span style={{ width: TROPHY_W * k, height: 4 * scale, background: '#141312', borderTop: `1px solid ${won ? light : '#4a4642'}` }} />
     </span>
   )
 }
@@ -138,7 +151,7 @@ export default function TrophyCase({ awards, season, room, right, onOpen }) {
         return (
           <span key={key} className="tc-item" tabIndex={0} role="button" aria-label={`${tip}: open his career trophy case`} onClick={() => onOpen(key)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(key) } }}
             style={{ '--d': `${delayOf(i)}ms`, position: 'relative', display: 'flex', cursor: 'pointer', outline: 'none' }}>
-            <Trophy award={key} scale={scale} />
+            <Trophy award={key} scale={scale} delay={700 + i * 450} />
             {/* Every other name a line higher, so neighbours never touch. */}
             <span className="tc-tag" aria-hidden="true" style={{ position: 'absolute', left: '50%', bottom: `calc(100% + ${i % 2 ? 13 : 3}px)`, fontFamily: MONO, fontSize: 7.5, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
               {EMBLEMS[key].label}
@@ -184,7 +197,7 @@ export function CareerCase({ awards, seasons, name, focus, onClose }) {
           const metal = EMBLEMS[key].metal[0]
           return (
             <div key={key} className="cc-row" style={{ '--r': `${80 + r * 45}ms`, display: 'grid', gridTemplateColumns: cols, alignItems: 'center', columnGap: 10, boxShadow: key === focus ? `inset 2px 0 0 ${metal}` : 'none', paddingLeft: 6 }}>
-              <Trophy award={key} scale={0.62} />
+              <Trophy award={key} scale={0.62} delay={600 + r * 450} />
               <span style={{ ...label, fontSize: 8.5, letterSpacing: '.1em', color: key === focus ? INK : '#b3ada6', lineHeight: 1.3 }}>{long}</span>
               <span style={{ display: 'grid', gridTemplateColumns: `repeat(${span.length}, minmax(0, 1fr))`, gap: 2 }}>
                 {span.map((season, i) => (

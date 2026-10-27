@@ -542,7 +542,9 @@ a:hover > .lineup-tile > * { filter: none; }
 /* A hard switch in the keyframes rather than steps(): steps() can stop a hair short of its
    last step and leave it at half. */
 @keyframes cc-step { 0%, 49% { opacity: 0; } 50%, 100% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .cc, .ac-plank, .ac-drop, .ac-plaque { animation: none; } }
+.ac-glare { transform: translateX(-120%); animation: ac-glare .4s steps(8, end) both var(--d, 0ms); }
+@keyframes ac-glare { from { transform: translateX(-120%); } to { transform: translateX(560%); } }
+@media (prefers-reduced-motion: reduce) { .cc, .ac-plank, .ac-drop, .ac-plaque { animation: none; } .ac-glare { animation: none; display: none; } }
 /* Careers' side panel scrolls without a bar; its stat cells light under the pointer. */
 .cg-scroll { scrollbar-width: none; }
 .cg-scroll::-webkit-scrollbar { display: none; }

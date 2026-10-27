@@ -165,17 +165,20 @@ export default function TrophyCase({ awards, season, room, right, away, onOpen }
   )
 }
 
-// His accolades, over the bio card when a trophy is clicked: a trophy case, flat. A
-// hairline frame, its shelves in order of importance (SHELVES: the title and the MVPs on
-// top, largest, down to All-Star), each a rule, each award on it standing as many
+// His accolades, over the bio card when a trophy is clicked: a glass trophy case, in hard
+// edges. A flat frame, a bar of light under its top, a pane with two hard reflections over
+// it all; its shelves glass (a bright edge over the glass's thickness, each row reflected
+// faintly under it), in order of importance (SHELVES: the title and the MVPs on top,
+// largest, down to All-Star), each award on one standing as many
 // copies as he won, grouped close and centred, its label under the rule (a square of its
 // metal, its name, how many); a crowded shelf closes its copies up, then shrinks (fit).
 // Under the case a readout gives the seasons of the award under the pointer, else the one
 // clicked (`focus`, its label lit). It opens under the banner (`top`), which stays as its
 // head, his portrait and all: the trophy clicked flies from the banner (`from`, its box
-// there) to its season's copy (`season`) on the shelf, while each shelf's rule wipes in,
-// top first, its other trophies drop onto it in hard steps, then their labels cut on
-// (index.css .ac-*), about a second in all. ✕ or Esc closes it.
+// there) to its season's copy (`season`) on the shelf, while each shelf wipes in, top
+// first, its other trophies drop onto it in hard steps, then their labels cut on, and a
+// glare steps once across the glass (index.css .ac-*), about a second in all. ✕ or Esc
+// closes it.
 const SHELVES = [
   [['champion', 'fmvp', 'mvp'], 1.3],
   [['dpoy', 'roy', 'smoy', 'mip', 'clutch'], 1.05],
@@ -254,22 +257,24 @@ export function CareerCase({ awards, seasons, name, focus, season, from, top = 0
         </div>
         <button type="button" onClick={onClose} aria-label="Close his accolades" style={{ ...label, fontSize: 9, fontWeight: 600, color: '#d9d3cc', background: 'none', border: '1px solid #6b655f', padding: '4px 8px', cursor: 'pointer' }}>Esc ✕</button>
       </div>
-      {/* The case: a hairline frame, its shelves sharing its height. */}
-      <div ref={box} onMouseLeave={() => setHover(null)} style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', border: '1px solid #544f4b', background: '#1a1918' }}>
+      {/* The case: its frame (the glass's edge catching light inside it), a bar of light
+          under its top, its shelves sharing its height. */}
+      <div ref={box} onMouseLeave={() => setHover(null)} style={{ position: 'relative', flex: '1 0 auto', display: 'flex', flexDirection: 'column', border: '3px solid #34312e', background: '#171615', boxShadow: 'inset 1px 1px 0 rgba(255, 255, 255, .14)', overflow: 'hidden' }}>
+        <span aria-hidden="true" style={{ position: 'absolute', left: 10, right: 10, top: 0, height: 2, background: '#f2e6d4', opacity: 0.55 }} />
         {width > 0 && shelves.map(([keys, k0], s) => {
           const { k, step } = fit(keys.map(x => [awards[x].length, plateW(plateText(x, awards[x].length))]), k0, width)
           const W = TROPHY_W * k
           let n = 0
           return (
             <div key={keys[0]} style={{ position: 'relative', flex: '1 0 auto', minHeight: 38 * SIZE * k + LIP + 16, display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', alignContent: 'flex-end', justifyContent: 'center', gap: `10px ${22 * k}px`, padding: `0 ${PAD}px` }}>
-              {/* The shelf: a rule, full width. */}
-              <span className="ac-plank" style={{ '--d': `${starts[s]}ms`, position: 'absolute', left: 0, right: 0, bottom: LIP, height: 1, background: '#837d76' }} />
+              {/* The shelf, glass: its bright front edge over its thickness. */}
+              <span className="ac-plank" style={{ '--d': `${starts[s]}ms`, position: 'absolute', left: 0, right: 0, bottom: LIP - 4, height: 4, background: 'rgba(255, 255, 255, .06)', borderTop: '1px solid rgba(236, 232, 227, .55)' }} />
               {keys.map(key => {
                 const list = awards[key]
                 const [metal] = EMBLEMS[key].metal
                 return (
                   <div key={key} onMouseEnter={() => setHover(key)} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', WebkitBoxReflect: 'below 4px linear-gradient(rgba(255, 255, 255, .16), transparent 22%)' }}>
                       {list.map((season, i) => (
                         <span key={season} data-copy={`${key}|${season}`} className={key === focus && season === flying ? undefined : 'ac-drop'} title={`${names[key]} · ${season.replace('-', '–')}`}
                           style={{ '--d': `${starts[s] + 60 + Math.min(n++, 12) * 25}ms`, display: 'flex', marginLeft: i ? -W * (1 - step) : 0, position: 'relative', zIndex: list.length - i }}>
@@ -289,6 +294,10 @@ export function CareerCase({ awards, seasons, name, focus, season, from, top = 0
             </div>
           )
         })}
+        {/* The pane: a hairline and a band of reflection, hard-edged, in front of it all; a
+            glare steps across it once the trophies are in. */}
+        <span aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(115deg, transparent 61%, rgba(255, 255, 255, .07) 61%, rgba(255, 255, 255, .07) calc(61% + 1px), transparent calc(61% + 1px), transparent 64%, rgba(255, 255, 255, .035) 64%, rgba(255, 255, 255, .035) 70%, transparent 70%)' }} />
+        <span aria-hidden="true" className="ac-glare" style={{ '--d': `${starts[starts.length - 1] + 120}ms`, position: 'absolute', top: 0, bottom: 0, left: 0, width: '22%', pointerEvents: 'none', background: 'linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .09) 30%, rgba(255, 255, 255, .09) 60%, transparent 60%)' }} />
       </div>
       {/* The readout: the seasons of the award under the pointer, else the one clicked. */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minHeight: 14, ...label, letterSpacing: '.1em' }}>

@@ -138,18 +138,19 @@ function Trophy({ award, scale: k = 1, delay = 0 }) {
 // names on a tap. They keep their size while they fit in `room` (the banner between his
 // name and his portrait, measured by the card), then shrink to fit, to MIN_SCALE, past
 // which the last fold into a "+n" (lib/trophies.js lays it out). Nothing in a season he
-// won none. A click (or Enter) on a trophy opens his career trophy case (`onOpen`,
-// CareerCase).
-export default function TrophyCase({ awards, season, room, right, onOpen }) {
+// won none. A click (or Enter) on a trophy opens his accolades (`onOpen`, with where it
+// stands, so it can fly there; CareerCase), and the case stays hidden while they're open
+// (`away`): its trophies are in them.
+export default function TrophyCase({ awards, season, room, right, away, onOpen }) {
   const l = layout(awards, season, room)
   if (!l) return null
   const { items, shown, scale, more } = l
   return (
-    <div style={{ position: 'absolute', right, bottom: 0, display: 'flex', alignItems: 'flex-end', gap: GAP * scale, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.6))' }}>
+    <div style={{ position: 'absolute', right, bottom: 0, display: 'flex', alignItems: 'flex-end', gap: GAP * scale, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.6))', visibility: away ? 'hidden' : undefined }}>
       {shown.map(([key, long], i) => {
         const tip = `${long} · ${season.replace('-', '–')}`
         return (
-          <span key={key} className="tc-item" tabIndex={0} role="button" aria-label={`${tip}: open his accolades`} onClick={() => onOpen(key)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(key) } }}
+          <span key={key} className="tc-item" tabIndex={0} role="button" aria-label={`${tip}: open his accolades`} onClick={e => onOpen(key, e.currentTarget.getBoundingClientRect())} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(key, e.currentTarget.getBoundingClientRect()) } }}
             style={{ '--d': `${delayOf(i)}ms`, position: 'relative', display: 'flex', cursor: 'pointer', outline: 'none' }}>
             <Trophy award={key} scale={scale} delay={700 + i * 450} />
             {/* Every other name a line higher, so neighbours never touch. */}
@@ -170,9 +171,11 @@ export default function TrophyCase({ awards, season, room, right, onOpen }) {
 // standing as many copies as he won, grouped close and centred on its shelf, with a plate
 // in its metal on the shelf's lip (its name and how many); a crowded shelf closes its
 // copies up, then shrinks (fit). Under the case a readout gives the seasons of the award
-// under the pointer, else the one clicked (`focus`, its plate outlined). Each shelf's plank
-// wipes in, top first, its trophies drop onto it one by one in hard steps, then their plates
-// stamp on (index.css .ac-*). ✕ or Esc closes it.
+// under the pointer, else the one clicked (`focus`, its plate outlined). It opens under the
+// banner (`top`), which stays as its head, his portrait and all: the trophy clicked flies
+// from the banner (`from`, its box there) to its season's copy (`season`) on the shelf,
+// while each shelf's plank wipes in, top first, its other trophies drop onto it one by one
+// in hard steps, then their plates stamp on (index.css .ac-*). ✕ or Esc closes it.
 const SHELVES = [
   [['champion', 'fmvp', 'mvp'], 1.3],
   [['dpoy', 'roy', 'smoy', 'mip', 'clutch'], 1.05],
@@ -197,10 +200,32 @@ const fit = (groups, k0, width) => {
   }
   return { k: k0 * 0.6, step: 0.16 }
 }
-export function CareerCase({ awards, seasons, name, focus, onClose }) {
+export function CareerCase({ awards, seasons, name, focus, season, from, top = 0, onClose }) {
   const box = useRef(null)
   const [width, setWidth] = useState(0)
   const [hover, setHover] = useState(null)
+  // The flight: a copy of the trophy on the shelf, fixed over the page (the case clips),
+  // from the banner's box to the shelf's, the shelf's own hidden till it lands. Once.
+  const flown = useRef(false)
+  useLayoutEffect(() => {
+    if (flown.current || !width || !from) return undefined
+    flown.current = true
+    const el = box.current.querySelector(`[data-copy="${focus}|${season}"]`)
+    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    const to = el.getBoundingClientRect()
+    const fly = el.cloneNode(true)
+    fly.removeAttribute('class')
+    Object.assign(fly.style, { position: 'fixed', left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px`, margin: 0, zIndex: 50, pointerEvents: 'none' })
+    document.body.appendChild(fly)
+    el.style.visibility = 'hidden'
+    const done = () => { el.style.visibility = ''; fly.remove() }
+    const a = fly.animate([
+      { transformOrigin: '0 0', transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width})` },
+      { transformOrigin: '0 0', transform: 'none' }
+    ], { duration: 620, easing: 'cubic-bezier(.3, .7, .15, 1)', fill: 'both' })
+    a.onfinish = done
+    return () => { a.cancel(); done() }
+  }, [width]) // eslint-disable-line react-hooks/exhaustive-deps -- once, when the shelves are laid out
   useEffect(() => {
     const key = e => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', key)
@@ -219,12 +244,13 @@ export function CareerCase({ awards, seasons, name, focus, onClose }) {
   // When each shelf starts: after the one above it has set its trophies down.
   const starts = shelves.reduce((at, [keys]) => [...at, at[at.length - 1] + 220 + Math.min(keys.reduce((n, x) => n + awards[x].length, 0), 10) * 70], [120])
   const read = has(hover) ? hover : has(focus) ? focus : null
+  const flying = from ? season : null
   return (
-    <div className="cc" role="dialog" aria-label={`${name}: accolades`} style={{ position: 'absolute', inset: 0, zIndex: 6, background: '#1f1d1c', display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 16px 14px', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div className="cc" role="dialog" aria-label={`${name}: accolades`} style={{ position: 'absolute', inset: `${top}px 0 0 0`, zIndex: 6, background: '#1f1d1c', display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 16px 14px', overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
           <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 24, fontWeight: 800, lineHeight: 0.9, textTransform: 'uppercase', color: INK }}>{won.length} Accolade{won.length === 1 ? '' : 's'}</span>
-          <span style={{ ...label, letterSpacing: '.12em' }}>{name} · {shortSeason(seasons[0])}–{shortSeason(seasons[seasons.length - 1])}</span>
+          <span style={{ ...label, letterSpacing: '.12em' }}>{shortSeason(seasons[0])}–{shortSeason(seasons[seasons.length - 1])}</span>
         </div>
         <button type="button" onClick={onClose} aria-label="Close his accolades" style={{ ...label, fontSize: 8.5, background: 'none', border: 0, padding: '2px 0', cursor: 'pointer' }}>Esc ✕</button>
       </div>
@@ -247,7 +273,7 @@ export function CareerCase({ awards, seasons, name, focus, onClose }) {
                   <div key={key} onMouseEnter={() => setHover(key)} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                       {list.map((season, i) => (
-                        <span key={season} className="ac-drop" title={`${names[key]} · ${season.replace('-', '–')}`}
+                        <span key={season} data-copy={`${key}|${season}`} className={key === focus && season === flying ? undefined : 'ac-drop'} title={`${names[key]} · ${season.replace('-', '–')}`}
                           style={{ '--d': `${starts[s] + 160 + Math.min(n++, 12) * 70}ms`, display: 'flex', marginLeft: i ? -W * (1 - step) : 0, position: 'relative', zIndex: list.length - i }}>
                           <Trophy award={key} scale={k} delay={1600 + s * 500 + i * 180} />
                         </span>

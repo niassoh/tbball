@@ -3,7 +3,8 @@ import { defineConfig, loadEnv } from 'vite'
 
 // A static build's player index starts fetching its player list from the page itself, so
 // it downloads alongside the app instead of after it. The URL is src/api.js's for
-// profiles.json (a different one would be fetched twice).
+// profiles.json (a different one would be fetched twice). Not for a visit the patron gate
+// will likely stop (no pass arriving or kept, no admin password: src/lib/pass.js).
 const preloadPlayers = () => ({
   name: 'preload-players',
   transformIndexHtml(html, ctx) {
@@ -11,7 +12,7 @@ const preloadPlayers = () => ({
     if (env.VITE_STATIC !== '1') return html
     const base = process.env.VITE_BASE || '/'
     const url = `${base.replace(/\/$/, '')}/api/profiles.json${env.VITE_DATA_VERSION ? `?v=${env.VITE_DATA_VERSION}` : ''}`
-    const script = `if (location.pathname.replace(/index\\.html$/, '').replace(/\\/?$/, '/') === ${JSON.stringify(base)}) { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'fetch'; l.crossOrigin = 'anonymous'; l.href = ${JSON.stringify(url)}; document.head.appendChild(l) }`
+    const script = `if ((() => { try { return location.hash.startsWith('#pass=') || localStorage.getItem('tb-pass') || Number(localStorage.getItem('tb-admin')) > Date.now() } catch { return false } })() && location.pathname.replace(/index\\.html$/, '').replace(/\\/?$/, '/') === ${JSON.stringify(base)}) { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'fetch'; l.crossOrigin = 'anonymous'; l.href = ${JSON.stringify(url)}; document.head.appendChild(l) }`
     return [{ tag: 'script', children: script, injectTo: 'head-prepend' }]
   }
 })

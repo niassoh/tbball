@@ -577,3 +577,12 @@ a:hover > .lineup-tile > * { filter: none; }
 @keyframes tour-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 .tour-term { animation: tour-in .15s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } .tour-in, .tour-term { animation: none; } }
+/* The patron gate (Gate.jsx): the logo, one line and a button, centred. */
+.gate { min-height: 100vh; min-height: 100dvh; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; }
+.gate .brand { display: flex; margin: 0; }
+.gate .brand::after { display: none; }
+.gate p { margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #b3ada6; }
+.gate-go { height: 30px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid #544f4b; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #ece8e3; }
+.gate-go:hover, .gate-go:focus-visible { border-color: #ece8e3; color: #ece8e3; outline: none; }
+.gate-admin input { width: 220px; padding: 6px 0; border: 0; border-bottom: 1px solid #544f4b; background: transparent; color: #ece8e3; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: .2em; text-align: center; outline: none; }
+.gate-admin input:focus { border-bottom-color: #ece8e3; }

@@ -7,19 +7,22 @@ import Leaderboard from './Leaderboard.jsx'
 import TeamBoard from './TeamBoard.jsx'
 import PlayerIndex from './PlayerIndex.jsx'
 import ProfilePage from './ProfilePage.jsx'
+import Gate from './components/Gate.jsx'
 import { ModeSync } from './useSeasonType.js'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <ModeSync />
-      <Routes>
-        <Route path="/" element={<PlayerIndex />} />
-        <Route path="/player/:slug" element={<ProfilePage />} />
-        <Route path="/leaderboard" element={<Leaderboard />} />
-        <Route path="/careers" element={<Careers />} />
-        <Route path="/teams" element={<TeamBoard />} />
-      </Routes>
-    </BrowserRouter>
+    <Gate>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <ModeSync />
+        <Routes>
+          <Route path="/" element={<PlayerIndex />} />
+          <Route path="/player/:slug" element={<ProfilePage />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/teams" element={<TeamBoard />} />
+        </Routes>
+      </BrowserRouter>
+    </Gate>
   </StrictMode>
 )

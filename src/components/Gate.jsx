@@ -18,7 +18,7 @@ function Admin({ onAdmit }) {
   useEffect(() => field.current.focus(), [])
   const submit = async e => {
     e.preventDefault()
-    if (await isAdminPassword(value)) {
+    if (await isAdminPassword(value.trim())) {
       admitAdmin()
       onAdmit()
     } else setValue('')
@@ -38,7 +38,10 @@ function Screen({ onAdmit }) {
     const key = e => {
       if (e.key.length !== 1) return
       typed = (typed + e.key.toLowerCase()).slice(-WORD.length)
-      if (typed === WORD) setAdmin(true)
+      if (typed !== WORD) return
+      // The word's last key would otherwise type itself into the field it opens.
+      e.preventDefault()
+      setAdmin(true)
     }
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)

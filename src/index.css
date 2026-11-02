@@ -578,11 +578,39 @@ a:hover > .lineup-tile > * { filter: none; }
 .tour-term { animation: tour-in .15s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } .tour-in, .tour-term { animation: none; } }
 /* The patron gate (Gate.jsx): the logo, one line and a button, centred. */
-.gate { min-height: 100vh; min-height: 100dvh; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; }
-.gate .brand { display: flex; margin: 0; }
+.gate { min-height: 100vh; min-height: 100dvh; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; text-align: center; }
+.gate .brand { display: flex; margin: 0; width: 72px; height: 72px; }
+.gate .brand svg { height: 68px; }
 .gate .brand::after { display: none; }
-.gate p { margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #b3ada6; }
-.gate-go { height: 30px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid #544f4b; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #ece8e3; }
+.gate p { margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; color: #b3ada6; }
+.gate-go { height: 46px; display: inline-flex; align-items: center; padding: 0 24px; border: 1px solid #544f4b; font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #ece8e3; }
 .gate-go:hover, .gate-go:focus-visible { border-color: #ece8e3; color: #ece8e3; outline: none; }
-.gate-admin input { width: 220px; padding: 6px 0; border: 0; border-bottom: 1px solid #544f4b; background: transparent; color: #ece8e3; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: .2em; text-align: center; outline: none; }
+.gate-admin input { width: 260px; padding: 8px 0; border: 0; border-bottom: 1px solid #544f4b; background: transparent; color: #ece8e3; font-family: 'IBM Plex Mono', monospace; font-size: 15px; letter-spacing: .2em; text-align: center; outline: none; }
 .gate-admin input:focus { border-bottom-color: #ece8e3; }
+/* Its motion, once: the head draws in as one line, the bulb's seams and base appear, the
+   bulb flickers on like a filament catching and stays lit, glowing warm white (BrandMark's
+   lit glass, halo and bloom re-coloured from the hover's orange; no rays) and barely
+   breathing, then the line and button rise in. */
+.gate .bm-line { stroke-dasharray: 1 1; animation: gate-draw 1s cubic-bezier(.6, 0, .25, 1) both; }
+.gate .bm-base path:not(.bm-line) { animation: gate-fade .4s .75s both; }
+.gate .bm-rays { display: none; }
+.gate #bm-glow stop:nth-child(1) { stop-color: #fffaf0; }
+.gate #bm-glow stop:nth-child(2) { stop-color: #f7e7c6; }
+.gate #bm-glow stop:nth-child(3) { stop-color: #d8b88a; }
+.gate #bm-halo stop { stop-color: #ffe7bd; }
+.gate .bm-lit path { stroke: #5a4632; }
+.gate .bm-lit path:first-child { stroke: #fff4df; }
+.gate .bm-lit { animation: gate-flicker .6s 1s both, gate-breathe 3.6s 1.6s ease-in-out infinite alternate both; }
+.gate .bm-halo { animation: gate-flicker .6s 1s both, gate-swell 3.6s 1.6s ease-in-out infinite alternate; }
+.gate > p { animation: gate-in .6s 1.35s cubic-bezier(.2, .7, .2, 1) both; }
+.gate > .gate-go { animation: gate-in .6s 1.5s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes gate-draw { from { stroke-dashoffset: 1; opacity: 0; } 4% { opacity: 1; } to { stroke-dashoffset: 0; } }
+@keyframes gate-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes gate-fade { from { opacity: 0; } }
+@keyframes gate-flicker { 0% { opacity: 0; } 18% { opacity: .75; } 30% { opacity: .1; } 52% { opacity: 1; } 64% { opacity: .45; } 100% { opacity: 1; } }
+@keyframes gate-breathe {
+  from { filter: drop-shadow(0 0 3px rgba(255, 236, 200, .8)) drop-shadow(0 0 10px rgba(255, 220, 160, .35)); }
+  to { filter: drop-shadow(0 0 4px rgba(255, 236, 200, .95)) drop-shadow(0 0 16px rgba(255, 220, 160, .55)); }
+}
+@keyframes gate-swell { from { scale: 1; } to { scale: 1.08; } }
+@media (prefers-reduced-motion: reduce) { .gate *, .gate > * { animation: none !important; } .gate .bm-line { stroke-dasharray: none; } }

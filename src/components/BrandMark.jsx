@@ -41,10 +41,11 @@ export default function BrandMark() {
           </radialGradient>
         </defs>
         <circle className="bm-halo" cx={74.05} cy={55} r={46} fill="url(#bm-halo)" />
-        <g stroke="currentColor">
-          <path d={HEAD} strokeWidth={3.8} />
-          <path d={BASE} strokeWidth={3.8} />
-          <path d={GLASS} strokeWidth={3.8} />
+        {/* pathLength 1: the patron gate draws the outline in (index.css .gate .bm-line). */}
+        <g className="bm-base" stroke="currentColor">
+          <path className="bm-line" d={HEAD} strokeWidth={3.8} pathLength={1} />
+          <path className="bm-line" d={BASE} strokeWidth={3.8} pathLength={1} />
+          <path className="bm-line" d={GLASS} strokeWidth={3.8} pathLength={1} />
           <Bulb seams="currentColor" chord="currentColor" />
         </g>
         <g className="bm-lit">

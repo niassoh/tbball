@@ -61,7 +61,7 @@ export default function TeamScatter({ doc, hot, setHot, onPick }) {
   const ky = doc.labels.indexOf(Y)
   const lgO = doc.league.ORTG ?? 116
   const lgDRTG = doc.league.DRTG ?? lgO
-  const end = v => (rel && v > 0 ? `+${v.toFixed(0)}` : v.toFixed(0).replace('-', '−'))
+  const end = v => ((rel || doc.change) && v > 0 ? `+${v.toFixed(0)}` : v.toFixed(0).replace('-', '−'))
   const field = !!doc.dated
   const games = t => (t.v[doc.labels.indexOf('Wins')] ?? 0) + (t.v[doc.labels.indexOf('Losses')] ?? 0)
   const teams = doc.teams.filter(t => t.v[kx] !== null && t.v[ky] !== null && (!field || games(t) >= FIELD_GAMES))

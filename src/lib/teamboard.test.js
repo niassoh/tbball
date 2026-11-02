@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boardOver, frameOf, netLines, placeOf, tiedOf } from './teamboard.js'
+import { boardOver, frameOf, netLines, placeOf, teamChange, tiedOf } from './teamboard.js'
 
 describe('team board chart', () => {
   it('frames every team on one scale, centred on the league', () => {
@@ -81,5 +81,41 @@ describe('team board over seasons', () => {
     expect(board.teams.map(t => t.id)).toEqual(['GSW|2014-15..2015-16', 'NYK|2014-15..2015-16', 'GSW|2015-16..2016-17', 'NYK|2015-16..2016-17'])
     expect(board.teams[0]).toMatchObject({ season: '2015-16', span: '2015–16' })
     expect(board.teams[0].v[0]).toBe(130)
+  })
+})
+
+describe('team board against the season before', () => {
+  const doc = (season, labels, rows, league) => ({
+    season,
+    labels,
+    stats: Object.fromEntries(labels.map(l => [l, l === 'DRTG' ? { lowerBetter: true } : {}])),
+    groups: [{ id: 'overview', stats: labels }],
+    league,
+    teams: rows.map(([team, ...v]) => ({ team, name: team, v, p: v.map(() => 50) }))
+  })
+  const prev = doc('2024-25', ['Wins', 'Losses', 'ORTG', 'DRTG', 'Def after SET'], [['GSW', 50, 32, 115, 112, 99], ['NYK', 41, 41, 112, 110, 98], ['OKC', 60, 22, 118, 106, 97]], { ORTG: 114, DRTG: 112, 'Def after SET': 98 })
+  const now = doc('2025-26', ['Wins', 'Losses', 'ORTG', 'DRTG', 'Iso-Post PPP'], [['GSW', 3, 1, 120, 110, 1.1], ['NYK', 2, 2, 111, 114, 0.9], ['SAS', 4, 0, 116, 105, 1.0]], { ORTG: 115, DRTG: 113, 'Iso-Post PPP': 0.95 })
+  const change = teamChange(now, prev)
+
+  it('pairs teams by code, leaving out one not in both', () => {
+    expect(change.teams.map(t => t.team)).toEqual(['GSW', 'NYK'])
+  })
+
+  it('takes each stat\'s change by name, a stat only one season has null, the record kept', () => {
+    expect(change.teams[0].v).toEqual([3, 1, 5, -2, null])
+    expect(change.league).toEqual({ Wins: null, Losses: null, ORTG: 1, DRTG: 1, 'Iso-Post PPP': null })
+    expect(change.stats.ORTG.relative).toBe(true)
+    expect(change.stats.Wins.relative).toBeUndefined()
+  })
+
+  it('ranks the changes, a lower-is-better stat\'s fall the better one', () => {
+    // ORTG: GSW +5 beats NYK −1; DRTG: GSW −2 (better) beats NYK +4.
+    expect(change.teams.map(t => [t.p[2], t.p[3]])).toEqual([[50, 50], [0, 0]])
+  })
+
+  it('sets a span against the span before it', () => {
+    const span = teamChange(boardOver([prev, now]), boardOver([prev]))
+    expect(span.teams.find(t => t.team === 'GSW').v[0]).toBe(53)
+    expect(span.teams.find(t => t.team === 'GSW').v[2]).toBeCloseTo((115 * 82 + 120 * 4) / 86 - 115)
   })
 })

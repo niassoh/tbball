@@ -2,14 +2,16 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchTeamboard, fetchTeamboardSeasons } from './api.js'
 import { MONO, fmt, heat, ord } from './lib/format.js'
 import { ranked } from './lib/leaderboard.js'
+import { seasonsBefore } from './lib/board.js'
 import { seasonsBetween } from './lib/seasons.js'
 import { asset } from './lib/static.js'
-import { boardOver, placeOf, tiedOf } from './lib/teamboard.js'
+import { boardOver, placeOf, teamChange, tiedOf } from './lib/teamboard.js'
 import ModeSwitch from './components/ModeSwitch.jsx'
 import SeasonPicker from './components/SeasonPicker.jsx'
 import { Each, Eras } from './components/SpanControls.jsx'
 import TeamScatter from './components/TeamScatter.jsx'
 import BrandMark from './components/BrandMark.jsx'
+import DeltaToggle from './components/DeltaToggle.jsx'
 import SiteNav from './components/SiteNav.jsx'
 import TeamCard from './components/TeamCard.jsx'
 
@@ -24,6 +26,9 @@ import TeamCard from './components/TeamCard.jsx'
 // shaded by its percentile among the 30 (blue above the middle, orange below, a style stat
 // in grey), RAW its value or RANK its place among the 30, the league's average along the foot. The team under the pointer in either is lit
 // in the other. A row or a logo opens the team's card in the chart's place (TeamCard).
+// Δ VS PREV (the Leaderboard's switch) sets each season against the one before, or a
+// combined span against as many seasons before it (lib/teamboard.js teamChange); none for
+// runs or the first season.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -65,7 +70,7 @@ const Row = memo(function Row({ t, doc, shown, sortLabel, rankView, on, rank, se
   const at = l => doc.labels.indexOf(l)
   const wins = at('Wins')
   const losses = at('Losses')
-  const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
+  const stat = l => ({ ...doc.stats[l], relative: !!doc.stats[l].relative || RELATIVE.test(l) })
   return (
     <tr key={t.id} className="lb-row" aria-selected={on} onMouseEnter={() => setHot(t.id)} onMouseLeave={() => setHot(null)} onClick={() => onPick(t.id)} style={{ cursor: 'pointer' }}>
       <td style={{ ...td, textAlign: 'center', padding: 0, color: DIM, fontSize: 11 }}>{rank}</td>
@@ -98,7 +103,7 @@ const Row = memo(function Row({ t, doc, shown, sortLabel, rankView, on, rank, se
 
 function Table({ doc, group, sort, onSort, rankView, hot, setHot, picked, onPick }) {
   const shown = useMemo(() => group.stats.filter(l => !RECORD.includes(l)), [group])
-  const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
+  const stat = l => ({ ...doc.stats[l], relative: !!doc.stats[l].relative || RELATIVE.test(l) })
   const rows = useMemo(() => ranked(doc, doc.teams, sort.label, sort.reverse), [doc, sort])
   const rank = useMemo(() => new Map(ranked(doc, doc.teams, sort.label).map((t, i) => [t.id, i + 1])), [doc, sort.label])
   const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 8px 6px', borderBottom: `1px solid ${RULE}`, background: '#262422', textAlign: 'right', verticalAlign: 'bottom' }
@@ -158,6 +163,7 @@ export default function TeamBoard() {
   const [span, setSpan] = useState(null)
   const [each, setEach] = useState(false)
   const [era, setEra] = useState(null)
+  const [delta, setDelta] = useState(false)
   // Season documents fetched so far (false: none for it).
   const [docs, setDocs] = useState({})
   useEffect(() => {
@@ -168,26 +174,43 @@ export default function TeamBoard() {
     }, () => setDoc(false))
   }, [])
   const wanted = !seasons || !span ? [] : era ? seasons : seasonsBetween(span.from, span.to).filter(s => seasons.includes(s))
-  const wantedKey = wanted.join()
+  // Δ's seasons before: the one before each season, or as many as a combined span has.
+  const apart = each || wanted.length === 1
+  const prior = !wanted.length || era ? [] : seasonsBefore(seasons, wanted[0], apart ? 1 : wanted.length)
+  const changing = delta && prior.length > 0
+  const needed = changing ? [...prior, ...wanted] : wanted
+  const wantedKey = needed.join()
   useEffect(() => {
-    const missing = wanted.filter(s => !(s in docs))
+    const missing = needed.filter(s => !(s in docs))
     if (!missing.length) return
     let live = true
     Promise.all(missing.map(s => fetchTeamboard(s).then(d => [s, d || false], () => [s, false])))
       .then(got => live && setDocs(d => ({ ...d, ...Object.fromEntries(got) })))
     return () => { live = false }
-  }, [wantedKey, docs]) // eslint-disable-line react-hooks/exhaustive-deps -- wanted is wantedKey's
+  }, [wantedKey, docs]) // eslint-disable-line react-hooks/exhaustive-deps -- needed is wantedKey's
   // The board once every season it needs is in; the last one stays on show till then.
   useEffect(() => {
-    if (!wanted.length || wanted.some(s => !(s in docs))) return
+    if (!needed.length || needed.some(s => !(s in docs))) return
     const got = wanted.map(s => docs[s]).filter(Boolean)
-    setDoc(got.length ? boardOver(got, { each: each && got.length > 1, run: era }) : false)
-  }, [wantedKey, docs, each, era]) // eslint-disable-line react-hooks/exhaustive-deps -- wanted is wantedKey's
+    if (!changing) return setDoc(got.length ? boardOver(got, { each: each && got.length > 1, run: era }) : false)
+    let board
+    if (apart) {
+      const before = [prior[0], ...wanted]
+      const changes = wanted.map((s, i) => docs[s] && docs[before[i]] && teamChange(docs[s], docs[before[i]])).filter(Boolean)
+      board = changes.length && boardOver(changes, { each: changes.length > 1 })
+    } else {
+      const was = prior.map(s => docs[s]).filter(Boolean)
+      board = got.length && was.length && teamChange(boardOver(got), boardOver(was))
+    }
+    setDoc(board ? { ...board, change: true } : false)
+  }, [wantedKey, docs, each, era, changing]) // eslint-disable-line react-hooks/exhaustive-deps -- needed is wantedKey's
   const g = doc ? doc.groups.find(x => x.id === group) || doc.groups[0] : null
   // A group the view lacks (Last month over many seasons) falls back to the first; so does
   // its sort.
   const by = g && g.stats.includes(sort.label) ? sort : g && { label: g.stats.find(l => !['Wins', 'Losses'].includes(l)), reverse: false }
   const row = doc && picked && doc.teams.find(t => t.id === picked)
+  // The seasons the open card's row is set against: the one before its season, or the span before.
+  const against = !row || !doc.change ? null : apart ? Array(2).fill(seasonsBefore(seasons, row.season || doc.season, 1)[0]) : [prior[0], prior[prior.length - 1]]
   const choose = id => {
     const next = doc.groups.find(x => x.id === id)
     setGroup(id)
@@ -198,6 +221,9 @@ export default function TeamBoard() {
       <header className="head-row" style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}` }}>
         <BrandMark />
         <SiteNav at="teams" />
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center' }}>
+          <DeltaToggle on={changing} set={setDelta} disabled={!prior.length} who="team" />
+        </span>
       </header>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>
         {seasons && span
@@ -217,7 +243,7 @@ export default function TeamBoard() {
         <div className="lb-body tb-body lb-enter">
           <div className={`lb-side${row ? ' lb-carded' : ''}`}>
             {row
-              ? <TeamCard key={picked} doc={doc} team={row} season={row.season || doc.season} onClose={close} />
+              ? <TeamCard key={`${picked}|${!!doc.change}`} doc={doc} team={row} season={row.season || doc.season} against={against} onClose={close} />
               : <TeamScatter doc={doc} hot={hot} setHot={setHot} onPick={setPicked} />}
           </div>
           <div className="lb-table-wrap" style={{ scrollSnapType: 'none' }}>

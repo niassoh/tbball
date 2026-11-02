@@ -16,6 +16,7 @@ import SeasonPicker from './components/SeasonPicker.jsx'
 import { Each, Eras } from './components/SpanControls.jsx'
 import SeasonToggle from './components/SeasonToggle.jsx'
 import BrandMark from './components/BrandMark.jsx'
+import DeltaToggle from './components/DeltaToggle.jsx'
 import SiteNav from './components/SiteNav.jsx'
 import Tour, { TourButton } from './components/Tour.jsx'
 
@@ -183,20 +184,6 @@ const TEAM_W = 104
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 const day = d => `${MONTHS[Number(d.slice(5, 7)) - 1]} ${Number(d.slice(8))}`
-
-// Playoffs minus regular season, or a regular season minus the one before: a small switch
-// beside the season toggle, so the toggle stays the choice that matters; off (greyed, in its
-// place) where there's nothing to set against. VS REG is held to VS PREV's width, so a switch
-// of mode doesn't move the season toggle; on a phone it reads Δ alone (index.css .lb-vs).
-function DeltaToggle({ on, set, disabled, playoffs }) {
-  return (
-    <button type="button" aria-pressed={on} aria-label={playoffs ? 'Δ vs regular season' : 'Δ vs previous season'} disabled={disabled} onClick={() => set(!on)} title={playoffs ? "Each player's playoffs minus his regular season" : "Each player's season minus his season before"}
-      style={{ height: 26, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0 9px', border: `1px solid ${on ? 'var(--accent)' : EDGE}`, background: 'transparent', color: on ? 'var(--accent)' : DIM, fontFamily: MONO, fontSize: 10, fontWeight: on ? 700 : 400, letterSpacing: '.08em', opacity: disabled ? 0.35 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
-      <span aria-hidden="true" style={{ width: 6, height: 6, border: '1px solid currentColor', background: on ? 'currentColor' : 'transparent' }} />
-      Δ<span className="lb-vs" style={{ minWidth: '4.8em' }}>VS {playoffs ? 'REG' : 'PREV'}</span>
-    </button>
-  )
-}
 
 function Teams({ teams, team, set }) {
   return (

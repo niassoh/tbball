@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchPlayers, fetchTeamUnits, headshotUrl } from '../api.js'
 import { MONO, col, colText, fmt, ord } from '../lib/format.js'
+import { shortSeason, spanYears } from '../lib/seasons.js'
 import { placeOf, tiedOf } from '../lib/teamboard.js'
 import { asset } from '../lib/static.js'
 import { initials } from '../lib/teams.js'
@@ -13,7 +14,10 @@ import { CountUp, Meter, Section } from './PlayerCard.jsx'
 // comes in on opening: the logo settles, the name wipes in, the numbers count up as their
 // meters light, the bars wipe in and the units' faces arrive (index.css .pc-*, .tc-*).
 // A row over many seasons (the board's spans and runs) reads its years in the head, its
-// places among the board's rows, and its units are its last season's (`season`).
+// places among the board's rows, and its units are its last season's (`season`). On the
+// board's Δ (`against`: the seasons it's set against, [first, last]) every stat is the
+// change, its percentile among the changes; the record and units stay the season's own,
+// and there are no play types (a change in shares leaves no transition share).
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -40,7 +44,7 @@ const reader = (doc, t) => {
   const has = l => k(l) >= 0
   const v = l => (has(l) ? t.v[k(l)] : null)
   const p = l => (has(l) ? t.p[k(l)] : null)
-  const stat = l => ({ ...doc.stats[l], relative: RELATIVE.test(l) })
+  const stat = l => ({ ...doc.stats[l], relative: !!doc.stats[l].relative || RELATIVE.test(l) })
   const place = l => (v(l) === null ? '—' : `${tiedOf(doc, t, l) ? 'T-' : ''}${ord(placeOf(doc, t, l))}`)
   const tone = l => (p(l) === null ? FAINT : doc.stats[l].neutral ? MID : col(p(l)))
   const ink = l => (p(l) === null ? FAINT : doc.stats[l].neutral ? SOFT : colText(p(l)))
@@ -53,7 +57,9 @@ const titleOf = (x, l) => [x.v(l) === null ? null : `${x.place(l)} of 30`, x.sta
 // record, win pace and season (and the close button) over the name; then ORTG, DRTG and net, each with its meter and place.
 const HEROES = ['ORTG', 'DRTG', 'Net']
 const RADIAL = 'radial-gradient(circle closest-side, #000 35%, transparent)'
-function Head({ t, x, season, intro, closeButton }) {
+function Head({ t, x, season, against, intro, closeButton }) {
+  const when = t.span || season.replace('-', '–')
+  const mark = against ? ' Δ' : ''
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', columnGap: 14, padding: '12px 14px' }}>
       <div style={{ position: 'relative', width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -63,7 +69,7 @@ function Head({ t, x, season, intro, closeButton }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="pc-type" style={{ ...small, lineHeight: '13px' }}>{[t.team, x.v('Wins') !== null && `${x.v('Wins')}–${x.v('Losses')}`, x.v('LA Bayes Win-pace') !== null && `${x.text('LA Bayes Win-pace')}-win pace`, t.span || season.replace('-', '–')].filter(Boolean).join(' · ')}</span>
+          <span className="pc-type" style={{ ...small, lineHeight: '13px' }}>{[t.team, x.v('Wins') !== null && `${x.v('Wins')}–${x.v('Losses')}`, x.v('LA Bayes Win-pace') !== null && (against ? `${x.text('LA Bayes Win-pace')} win pace` : `${x.text('LA Bayes Win-pace')}-win pace`), against ? `${t.span || shortSeason(season)} − ${against[0] === against[1] ? shortSeason(against[0]) : spanYears(against[0], against[1])}` : when].filter(Boolean).join(' · ')}</span>
           {closeButton}
         </span>
         <span className="pc-name" style={{ marginTop: 1, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
@@ -72,7 +78,7 @@ function Head({ t, x, season, intro, closeButton }) {
             const delay = AT.heroes + k * 90
             return (
               <div key={l} title={titleOf(x, l)} style={{ padding: k ? '0 0 0 12px' : '0 12px 0 0', borderLeft: k ? `1px solid ${RULE}` : 'none', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-                <span style={small}>{l}</span>
+                <span style={small}>{l}{mark}</span>
                 <span style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: 8, alignItems: 'center' }}>
                   <span style={{ fontSize: 18, fontWeight: 600, lineHeight: 1, color: INK, fontVariantNumeric: 'tabular-nums' }}><CountUp stat={x.stat(l)} value={x.v(l)} delay={delay} instant={!intro} /></span>
                   <Meter pc={x.p(l)} delay={delay} />
@@ -93,12 +99,12 @@ const SIDES = [
   ['Offense', [['Adj rORTG', 'Opp-adjusted'], ['Half-Court PPP', 'Half court'], ['3p', '3P%'], ['Rim/FTA Share', 'Rim + FT'], ['LayupAst', 'Layup ast']]],
   ['Defense', [['Adj rDRTG', 'Opp-adjusted'], ['Opp 3p', 'Opp 3P%'], ['Opp Corner3 share', 'Corner 3s'], ['Opp Wide Open 3s/g', 'Open 3s / g'], ['Opp Rim Share', 'Rim share'], ['Opp Rim FG', 'Rim FG%']]]
 ]
-function Percentiles({ x }) {
+function Percentiles({ x, change }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 16 }}>
       {SIDES.map(([side, rows], s) => (
         <div key={side} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-          <span style={{ ...label, fontSize: 10.5, fontWeight: 700, color: INK, paddingBottom: 5, marginBottom: 2, borderBottom: `1px solid ${RULE}` }}>{side}</span>
+          <span style={{ ...label, fontSize: 10.5, fontWeight: 700, color: INK, paddingBottom: 5, marginBottom: 2, borderBottom: `1px solid ${RULE}` }}>{side}{change ? ' Δ' : ''}</span>
           {rows.filter(([l]) => x.has(l)).map(([l, name], i) => {
             const pc = x.p(l)
             return (
@@ -251,7 +257,7 @@ const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
 const INTRO_MS = 2000
 const QUICK_MS = 300
 let open = 0
-export default function TeamCard({ doc, team: t, season, onClose }) {
+export default function TeamCard({ doc, team: t, season, against, onClose }) {
   const [quick] = useState(() => open > 0)
   const [settling, setSettling] = useState(true)
   useEffect(() => {
@@ -270,12 +276,12 @@ export default function TeamCard({ doc, team: t, season, onClose }) {
   const [pick, setPick] = useState('mostUsed')
   return (
     <div className={`pc-card${!settling ? ' tc-still' : quick ? ' tc-quick' : ' pc-intro'}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
-      <Head t={t} x={x} season={season} intro={intro} closeButton={<button type="button" aria-label="Close the card" onClick={onClose} style={{ marginLeft: 'auto', flex: 'none', width: 22, height: 22, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>} />
-      <div style={{ padding: '10px 14px', borderTop: `1px solid ${RULE}` }}><Percentiles x={x} /></div>
+      <Head t={t} x={x} season={season} against={against} intro={intro} closeButton={<button type="button" aria-label="Close the card" onClick={onClose} style={{ marginLeft: 'auto', flex: 'none', width: 22, height: 22, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>} />
+      <div style={{ padding: '10px 14px', borderTop: `1px solid ${RULE}` }}><Percentiles x={x} change={!!against} /></div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
         <Section title="Splits" right="per 100"><Rows x={x} heads={['ORTG', 'DRTG', 'Net']} rows={SPLITS} delay={AT.rows} /></Section>
         <div style={{ borderLeft: `1px solid ${RULE}`, display: 'flex', flexDirection: 'column' }}>
-          {TYPES.some(([k]) => x.v(`${k} Share`) !== null) && <Section title="Play types" right={`half court ${x.text('Half-Court Share')}`}><Playtypes x={x} /></Section>}
+          {!against && TYPES.some(([k]) => x.v(`${k} Share`) !== null) && <Section title="Play types" right={`half court ${x.text('Half-Court Share')}`}><Playtypes x={x} /></Section>}
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>

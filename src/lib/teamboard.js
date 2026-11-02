@@ -116,3 +116,24 @@ export const boardOver = (docs, { each = false, run = null } = {}) => {
     teams: rows
   }
 }
+
+// A board (a season's, or boardOver's over a span) against the one before it (`prev`, the
+// same shape), for the board's Δ: each team in both, each stat its change, matched by name
+// (the sheet's stats differ by season; one either lacks is null), ranked among the changes.
+// Wins and losses stay the later board's own: the W–L column, the card's record and the
+// chart's games floor read them.
+export const teamChange = (now, prev) => {
+  const before = new Map(prev.teams.map(t => [t.team, t]))
+  const minus = (a, b) => (a === null || a === undefined || b === null || b === undefined ? null : a - b)
+  const teams = now.teams.filter(t => before.has(t.team)).map(t => ({
+    ...t,
+    v: now.labels.map((l, k) => (SUMMED.has(l) ? t.v[k] : minus(t.v[k], valueIn(prev, before.get(t.team), l))))
+  }))
+  const pools = now.labels.map((_, k) => teams.map(t => t.v[k]))
+  return {
+    ...now,
+    stats: Object.fromEntries(now.labels.map(l => [l, SUMMED.has(l) ? now.stats[l] : { ...now.stats[l], relative: true }])),
+    league: Object.fromEntries(now.labels.map(l => [l, SUMMED.has(l) ? now.league[l] ?? null : minus(now.league[l], prev.league[l])])),
+    teams: teams.map(t => ({ ...t, p: t.v.map((x, k) => percentileOf(x, pools[k], !!now.stats[now.labels[k]].lowerBetter)) }))
+  }
+}

@@ -138,8 +138,8 @@ export default function BioCard({ profile: p, season, loading = false, playing =
   // Hover line over the specs: the draft pick, e.g. "2017 DRAFT · R1 #30 · UTA" (the specs'
   // dividers stop short of the row's top to leave it room).
   const draft = draftLine(p.bio.draft)
-  // The header logo and the depth chart's team name toggle the team switcher, which
-  // opens just below whichever was clicked (picking holds that element).
+  // The header logo toggles the team switcher, which opens just below it (picking holds
+  // that element); the depth chart's team name opens the team on the Team board.
   const [picking, setPicking] = useState(null)
   // The career trophy case, open for this player from the trophy clicked (CareerCase).
   const [trophy, setTrophy] = useState(null)
@@ -221,10 +221,9 @@ export default function BioCard({ profile: p, season, loading = false, playing =
       {v.chart && (
         <div ref={depthRef} style={{ marginTop: depthGap === null ? 'auto' : depthGap, padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
           <div ref={ruleRef} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #544f4b', paddingBottom: 5 }}>
-            <button type="button" className="team-switch" {...switcher} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0, background: 'none', border: 'none', color: '#ece8e3', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>
+            <Link to={`/teams?season=${v.rotation ? p.seasons[season].season : p.depth.season}&team=${v.team}`} className="team-switch" title="Open on the Team board" style={{ color: '#ece8e3', fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>
               {(v.teamName || v.team).toUpperCase()}
-              <span aria-hidden="true" style={{ fontFamily: MONO, fontSize: 9, color: '#a09a93' }}>▾</span>
-            </button>
+            </Link>
             <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a09a93', display: 'flex', gap: 8, alignItems: 'center' }}>
               {v.rotation
                 ? <span title="First row: the team's most-used five. Then everyone with an hour on the floor, by minutes">ROTATION · BY MIN</span>

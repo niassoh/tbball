@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { fetchTeamboard, fetchTeamboardSeasons } from './api.js'
 import { MONO, fmt, heat, ord } from './lib/format.js'
 import { ranked } from './lib/leaderboard.js'
@@ -28,7 +29,8 @@ import TeamCard from './components/TeamCard.jsx'
 // in the other. A row or a logo opens the team's card in the chart's place (TeamCard).
 // Δ VS PREV (the Leaderboard's switch) sets each season against the one before, or a
 // combined span against as many seasons before it (lib/teamboard.js teamChange); none for
-// runs or the first season.
+// runs or the first season. /teams?season=2018-19&team=PHI opens on that season with
+// that team's card open (a player page's team name links here).
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -147,13 +149,15 @@ function Table({ doc, group, sort, onSort, rankView, hot, setHot, picked, onPick
 }
 
 export default function TeamBoard() {
+  const [params] = useSearchParams()
+  const [opening] = useState(() => params.get('season'))
   const [doc, setDoc] = useState(null)
   const [group, setGroup] = useState('overview')
   // Ranked by luck-adjusted win pace to begin with: the sheet's best read of how good a team is.
   const [sort, setSort] = useState({ label: 'LA Bayes Win-pace', reverse: false })
   const [mode, setMode] = useState('raw')
   const [hot, setHot] = useState(null)
-  const [picked, setPicked] = useState(null)
+  const [picked, setPicked] = useState(() => params.get('team'))
   const close = useCallback(() => setPicked(null), [])
   // A row opens its card, or closes it when it's the one open.
   const toggle = useCallback(k => setPicked(p => (p === k ? null : k)), [])
@@ -169,10 +173,10 @@ export default function TeamBoard() {
   useEffect(() => {
     fetchTeamboardSeasons().then(d => {
       setSeasons(d.seasons)
-      const last = d.seasons[d.seasons.length - 1]
-      setSpan({ from: last, to: last })
+      const start = d.seasons.includes(opening) ? opening : d.seasons[d.seasons.length - 1]
+      setSpan({ from: start, to: start })
     }, () => setDoc(false))
-  }, [])
+  }, [opening])
   const wanted = !seasons || !span ? [] : era ? seasons : seasonsBetween(span.from, span.to).filter(s => seasons.includes(s))
   // Δ's seasons before: the one before each season, or as many as a combined span has.
   const apart = each || wanted.length === 1

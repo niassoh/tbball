@@ -335,15 +335,17 @@ export default function TeamCard({ doc, team: t, season, against, onClose }) {
           <Section title="Defense by start" right="share · rating"><Rows x={x} heads={['Share', 'DRTG']} rows={startsOf('Def')} delay={AT.rows + 4 * AT.step} /></Section>
         </div>
       </div>
-      {/* The last section takes the card's spare height, its units centred under the chart. */}
+      {/* The last section takes the card's spare height, its chart and units centred in it. */}
       <Section title="Depth" style={{ flex: '1 0 auto', paddingBottom: 6 }} right={today && today.season === season ? 'Today · ESPN' : <span title="First row: the team's most-used five. Then everyone with an hour on the floor, by minutes">Rotation · by min</span>}>
-        <Depth team={t.team} season={season} doc={units} />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 14, paddingTop: 5, borderTop: `1px solid ${RULE}` }}>
-          <span style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><span style={{ ...label, color: '#b8b2ab' }}>Units</span><Pick label="Unit size" options={SIZES} value={n} set={setN} /></span>
-            <Pick label="Unit shown" options={PICKS} value={pick} set={setPick} />
-          </span>
-          <Units team={t.team} season={season} doc={units} n={n} pick={pick} intro={intro} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 7 }}>
+          <Depth team={t.team} season={season} doc={units} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 5, borderTop: `1px solid ${RULE}` }}>
+            <span style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><span style={{ ...label, color: '#b8b2ab' }}>Units</span><Pick label="Unit size" options={SIZES} value={n} set={setN} /></span>
+              <Pick label="Unit shown" options={PICKS} value={pick} set={setPick} />
+            </span>
+            <Units team={t.team} season={season} doc={units} n={n} pick={pick} intro={intro} />
+          </div>
         </div>
       </Section>
     </div>

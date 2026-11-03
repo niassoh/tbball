@@ -11,6 +11,13 @@ describe('library', () => {
     expect(franchisePlayers(rows, 'OKC').map(r => r.slug)).toEqual(['durant'])
   })
 
+  test("a franchise's player comes once, by his best season there, with all of his seasons there", () => {
+    const rows = seasonRows([board('2007-08', [['durant', 'SEA', 2768, 1]]), board('2012-13', [['durant', 'OKC', 3119, 8]]), board('2016-17', [['durant', 'GSW', 2070, 7]])])
+    const [kd] = franchisePlayers(rows, 'OKC')
+    expect(kd.season).toBe('2012-13')
+    expect(kd.set.map(r => `${r.team} ${r.season}`)).toEqual(['SEA 2007-08', 'OKC 2012-13'])
+  })
+
   test("a franchise's players with a season in the league's top 5%, once each by his best there", () => {
     expect(franchiseOf('SEA')).toBe('OKC')
     expect(franchiseOf('CHH')).toBe('CHA')

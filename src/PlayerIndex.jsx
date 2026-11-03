@@ -390,24 +390,64 @@ function Roster({ list, playerPath }) {
 const decadeOf = p => `${p.bestSeason.season.slice(0, 3)}0`
 
 // A line in a team's roster: his rank, face, initial and surname, best season and its
-// BPM. The face is the one carried into his page when it opens.
+// BPM. The face is the one carried into his page when it opens. With two or more qualified
+// seasons there (`seasons`), the line opens them beneath it instead (its count and a caret
+// by his name), each a line to his page at that season, his best in ink; the list slides
+// open and shut (index.css .idx-seasons).
+const LIST_COLS = '18px 28px minmax(0, 1fr) 24px 29px 30px'
 function ListRow({ player: p, to }) {
   const { opening, events } = useOpen(p, to)
-  const Root = p.stub ? 'span' : Link
-  const link = p.stub ? {} : { to, state: previewOf(p), ...events }
-  return (
+  const [open, setOpen] = useState(false)
+  const many = p.seasons && p.seasons.length > 1
+  const Root = many ? 'button' : p.stub ? 'span' : Link
+  const link = many ? { type: 'button', 'aria-expanded': open, onClick: () => setOpen(o => !o) } : p.stub ? {} : { to, state: previewOf(p), ...events }
+  const row = (
     <Root {...link} className="idx-row idx-list-row"
-      style={{ position: 'relative', display: 'grid', gridTemplateColumns: '18px 28px minmax(0, 1fr) 24px 29px 30px', gap: 8, alignItems: 'center', height: 34, padding: '0 4px', borderBottom: `1px solid ${RULE}`, color: p.stub ? DIM : INK }}>
+      style={{ position: 'relative', display: 'grid', gridTemplateColumns: LIST_COLS, gap: 8, alignItems: 'center', width: '100%', height: 34, padding: '0 4px', border: 0, borderBottom: `1px solid ${RULE}`, background: 'transparent', color: p.stub ? DIM : INK, font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
       <span style={{ fontFamily: MONO, fontSize: 9, color: FAINT }}>{String(p.rank).padStart(2, '0')}</span>
       <Face player={p} size={28} carry={opening} />
-      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{firstName(p.name)[0]}. </span>
-        <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.01em' }}>{lastName(p.name)}</span>
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+        <span style={{ minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{firstName(p.name)[0]}. </span>
+          <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.01em' }}>{lastName(p.name)}</span>
+        </span>
+        {many && <span aria-hidden="true" style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: MONO, fontSize: 9, color: open ? INK : FAINT }}>×{p.seasons.length}<span className="idx-caret" style={{ transform: open ? 'rotate(180deg)' : 'none' }}>▾</span></span>}
       </span>
       <span className="idx-list-year" style={{ fontFamily: MONO, fontSize: 10, color: DIM }}>{bestYear(p)}</span>
       <span className="idx-tile-meter" style={{ display: 'flex' }}><Meter value={best(p)} small /></span>
       <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 600, textAlign: 'right', color: low(best(p)) ? '#fa962a' : INK }}>{signed(best(p))}</span>
       {opening && <span aria-hidden="true" className="idx-opening" />}
+    </Root>
+  )
+  if (!many) return row
+  return (
+    <div style={{ breakInside: 'avoid' }}>
+      {row}
+      <div className={`idx-seasons${open ? ' idx-seasons-open' : ''}`} inert={!open}>
+        <div style={{ overflow: 'hidden' }}>
+          {p.seasons.map((r, k) => <SeasonLine key={r.season} player={p} row={r} to={to} k={k} />)}
+        </div>
+      </div>
+    </div>
+  )
+}
+// One of a roster player's seasons there: the season (with its team's code where it isn't
+// his best season's, SEA among OKC's), its BPM, to his page at that season.
+function SeasonLine({ player: p, row: r, to, k }) {
+  const top = r.season === p.bestSeason.season
+  const Root = p.stub ? 'span' : Link
+  const link = p.stub ? {} : { to, state: { ...previewOf(p), season: r.season } }
+  return (
+    <Root {...link} className="idx-row" style={{ '--k': k, display: 'grid', gridTemplateColumns: LIST_COLS, gap: 8, alignItems: 'center', height: 26, padding: '0 4px', borderBottom: `1px solid ${RULE}`, background: '#22201e', color: top ? INK : '#b8b2ab' }}>
+      <span />
+      <span style={{ justifySelf: 'center', width: 1, height: 26, background: EDGE }} />
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, fontFamily: MONO, fontSize: 10, fontWeight: top ? 600 : 400 }}>
+        {r.season.replace('-', '–')}
+        {r.team !== p.bestSeason.team && <TeamChip team={r.team} />}
+      </span>
+      <span />
+      <span className="idx-tile-meter" style={{ display: 'flex' }}><Meter value={r.bpm} small /></span>
+      <span style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: top ? 600 : 400, textAlign: 'right', color: low(r.bpm) ? '#fa962a' : top ? INK : '#b8b2ab' }}>{signed(r.bpm)}</span>
     </Root>
   )
 }
@@ -573,7 +613,7 @@ export default function PlayerIndex() {
   // A team's everyone else: the franchise's whole roster but the tiles' players.
   const tiled = new Set(portraits.map(p => p.slug))
   const listed = mode === 'all' && pick && best[pick] && roster[pick]
-    ? roster[pick].filter(r => !tiled.has(r.slug)).map((r, i) => ({ ...(bySlug.get(r.slug) || { slug: r.slug, name: r.name, headshot: null, stub: true }), bestSeason: { season: r.season, bpm: r.bpm, team: r.team }, pinned: true, jersey: jerseyIn(bySlug.get(r.slug)?.layers, r.team), rank: i + 1 })).filter(named)
+    ? roster[pick].filter(r => !tiled.has(r.slug)).map((r, i) => ({ ...(bySlug.get(r.slug) || { slug: r.slug, name: r.name, headshot: null, stub: true }), bestSeason: { season: r.season, bpm: r.bpm, team: r.team }, pinned: true, jersey: jerseyIn(bySlug.get(r.slug)?.layers, r.team), rank: i + 1, seasons: r.set })).filter(named)
     : null
   // No caption: All-time or Current, in the first section's line, standing no taller than it.
   const toggle = <ModeToggle mode={mode} setMode={setMode} />

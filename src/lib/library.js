@@ -17,10 +17,14 @@ export const seasonRows = docs => docs.flatMap(doc => {
 })
 
 // Everyone who had a qualified season with a franchise, once, by his best season there
-// (by BPM), best first; but those in `except` (slugs: the ones its tiles already show).
+// (by BPM), best first, bringing his `set`: every qualified season of his there, by season;
+// but those in `except` (slugs: the ones its tiles already show).
 export const franchisePlayers = (rows, franchise, except = new Set()) => {
   const seen = new Set(except)
-  return rows.filter(r => franchiseOf(r.team) === franchise).sort((a, b) => b.bpm - a.bpm).filter(r => !seen.has(r.slug) && seen.add(r.slug))
+  const own = rows.filter(r => franchiseOf(r.team) === franchise).sort((a, b) => b.bpm - a.bpm)
+  return own.filter(r => !seen.has(r.slug) && seen.add(r.slug)).map(r => ({
+    ...r, set: own.filter(t => t.slug === r.slug).sort((a, b) => (a.season < b.season ? -1 : 1))
+  }))
 }
 
 // A franchise's players with a season among the league's best: the top 5% (`share`) of

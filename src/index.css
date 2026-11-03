@@ -257,6 +257,14 @@ html { scroll-behavior: smooth; scrollbar-gutter: stable; }
 .idx-tile .idx-face img { transition: opacity .25s ease, transform .35s cubic-bezier(.2,.8,.2,1); }
 .idx-tile:hover .idx-face img { transform: scale(1.04); }
 .idx-row:hover { background: #2c2a28; }
+/* A roster player's seasons there slide open under his line (PlayerIndex ListRow): the
+   rows' height eases from nothing, the lines fade in a beat after each other. */
+.idx-seasons { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .22s cubic-bezier(.2,.8,.2,1); }
+.idx-seasons-open { grid-template-rows: 1fr; }
+.idx-seasons .idx-row { opacity: 0; transform: translateY(-4px); transition: opacity .16s, transform .16s; }
+.idx-seasons-open .idx-row { opacity: 1; transform: none; transition-delay: calc(var(--k) * 30ms + 60ms); }
+.idx-caret { display: inline-block; transition: transform .2s; }
+@media (prefers-reduced-motion: reduce) { .idx-seasons, .idx-seasons .idx-row, .idx-caret { transition: none; } }
 .idx-alltime > * { break-inside: avoid; }
 /* A team's roster (PlayerIndex Roster) on a phone: two decades abreast, no year or meter. */
 @media (max-width: 560px) {

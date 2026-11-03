@@ -44,7 +44,8 @@ const reader = (doc, t) => {
   const has = l => k(l) >= 0
   const v = l => (has(l) ? t.v[k(l)] : null)
   const p = l => (has(l) ? t.p[k(l)] : null)
-  const stat = l => ({ ...doc.stats[l], relative: !!doc.stats[l].relative || RELATIVE.test(l) })
+  // A season's sheet can lack a stat (2025-26 has no "Def after SET"): it reads as a blank.
+  const stat = l => ({ ...doc.stats[l], relative: !!(doc.stats[l] || {}).relative || RELATIVE.test(l) })
   const place = l => (v(l) === null ? '—' : `${tiedOf(doc, t, l) ? 'T-' : ''}${ord(placeOf(doc, t, l))}`)
   const tone = l => (p(l) === null ? FAINT : doc.stats[l].neutral ? MID : col(p(l)))
   const ink = l => (p(l) === null ? FAINT : doc.stats[l].neutral ? SOFT : colText(p(l)))

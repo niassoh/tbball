@@ -207,11 +207,13 @@ function useOpen(p, to) {
 // outline running on into the open set). In an open set (`of`, the franchise) the season
 // is the headline, with no head: his team shows, in place of the BPM label, only where it
 // isn't the franchise's code (SEA for OKC).
+const SEASON_HEAD = 36
 function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of, carry, season }) {
   const { opening, events } = useOpen(p, to)
   const tile = (
     <Link to={to} state={previewOf(p)} {...events} className={order < EAGER ? 'idx-tile' : 'idx-tile idx-later'} style={{ position: 'relative', display: 'flex', flexDirection: 'column', background: '#262422', color: INK, minWidth: 0, border: `1px solid ${open ? INK : RULE}`, borderBottomColor: open ? 'transparent' : RULE, margin: '0 -1px -1px 0', opacity: dim && !set ? 0.35 : undefined }}>
-      {!of && <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px' }}>
+      {/* A team's tiles share one head height, a collection's key (over it) included: its year sets it. */}
+      {!of && <span className="idx-tile-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', height: season ? SEASON_HEAD : undefined, boxSizing: 'border-box' }}>
         <TeamChip team={teamOf(p)} />
         {!set && (season
           ? <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1, color: INK }}>{bestYear(p)}</span>
@@ -243,7 +245,7 @@ function Tile({ player: p, to, order, onShown, set, open, onSet, dim, of, carry,
     <span className="idx-set" style={{ position: 'relative', zIndex: open ? 1 : undefined, display: 'flex', flexDirection: 'column', minWidth: 0, opacity: dim ? 0.35 : undefined }}>
       {tile}
       <button type="button" className="idx-tile-head" aria-expanded={open} aria-label={`${p.name}: ${set.length} seasons`} onClick={onSet}
-        style={{ position: 'absolute', top: 1, right: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '4px 9px', background: open ? INK : 'transparent', border: 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, color: open ? '#262422' : DIM }}>
+        style={{ position: 'absolute', top: 1, right: 1, height: SEASON_HEAD, display: 'flex', alignItems: 'center', gap: 6, padding: '0 9px', background: open ? INK : 'transparent', border: 'none', cursor: 'pointer', fontFamily: MONO, fontSize: 10, color: open ? '#262422' : DIM }}>
         <span title={`${yyFrom(set[0].bestSeason.season)}–${yy(set[set.length - 1].bestSeason.season)}`} style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 20, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1, color: open ? '#262422' : INK }}>{bestYear(p)}</span>
         <Stack ink={open ? '#262422' : INK} back={open ? '#262422' : FAINT} />
         <span style={{ fontWeight: 600, color: open ? '#262422' : INK }}>{String(set.length).padStart(2, '0')}</span>

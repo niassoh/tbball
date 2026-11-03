@@ -3,19 +3,17 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { loadTeams } from '../api.js'
 import { MONO } from '../lib/format.js'
-import { bestFit, depthSlot, slotName } from '../lib/depth.js'
 import { asset } from '../lib/static.js'
-import { useSeasonType } from '../useSeasonType.js'
 
 const COLS = 6
 const CELL = 46
 const WIDTH = COLS * CELL + (COLS - 1) + 2
 
-// Team switcher: a small popover under the clicked trigger (the header logo or the depth
-// chart's team name) with every team's logo on a hard grid. Picking a team opens the
-// player in the viewed player's depth slot there (Jokic, the starting C, opens each
-// team's starting C); the line under the grid says who, for the team under the pointer.
-export default function TeamPicker({ profile: p, anchor, onClose }) {
+// Team switcher: a small popover under the clicked trigger (the header logo) with every
+// team's logo on a hard grid. Picking a team opens its card on the Team board in the
+// season being viewed (`season`), his own team's included; the line under the grid names
+// the team under the pointer.
+export default function TeamPicker({ profile: p, season, anchor, onClose }) {
   const [teams, setTeams] = useState(null)
   const [failed, setFailed] = useState(false)
   const [hover, setHover] = useState(null)
@@ -24,7 +22,6 @@ export default function TeamPicker({ profile: p, anchor, onClose }) {
   const [, setLayout] = useState(0)
   const panel = useRef(null)
   const navigate = useNavigate()
-  const { playerPath } = useSeasonType()
 
   useEffect(() => {
     let live = true
@@ -44,16 +41,12 @@ export default function TeamPicker({ profile: p, anchor, onClose }) {
     }
   }, [onClose])
 
-  // Not on his team's chart (or no chart): his listed position, as a starter.
-  const slot = depthSlot(p.depth, p.slug) || { pos: p.bio.position || 'SF', index: 0 }
-  const fits = teams && Object.fromEntries(teams.map(t => [t.team, t.team === p.team ? null : bestFit(slot, t.depth)]))
   const shown = teams && hover && teams.find(t => t.team === hover)
+  const when = season ? ` · ${season.replace('-', '–')}` : ''
   const line = failed ? "COULDN'T LOAD TEAMS"
     : !teams ? 'LOADING TEAMS…'
-    : !shown ? `${slotName(slot)} ON EACH TEAM`
-    : shown.team === p.team ? `${shown.name.toUpperCase()} · CURRENT`
-    : fits[shown.team] ? `${shown.name.toUpperCase()} → ${fits[shown.team].player.name.toUpperCase()}`
-    : `${shown.name.toUpperCase()} · NO PLAYER`
+    : !shown ? `A TEAM'S CARD${when}`
+    : `${shown.name.toUpperCase()} → TEAM CARD${when}`
   // Just below the trigger (page coordinates, so it scrolls with the page), kept inside
   // the page horizontally.
   const r = anchor.getBoundingClientRect()
@@ -66,18 +59,16 @@ export default function TeamPicker({ profile: p, anchor, onClose }) {
       <div onMouseLeave={() => setHover(null)} style={{ display: 'grid', gridTemplateColumns: `repeat(${COLS}, ${CELL}px)`, gridAutoRows: CELL, gap: 1, background: '#3d3a37', minHeight: 5 * CELL + 4 }}>
         {teams && teams.map(t => {
           const current = t.team === p.team
-          const fit = fits[t.team]
           return (
             <button
               key={t.team}
               type="button"
               className="team-cell"
-              disabled={current || !fit}
               onMouseEnter={() => setHover(t.team)}
               onFocus={() => setHover(t.team)}
-              onClick={() => { onClose(); navigate(playerPath(fit.player.slug)) }}
-              aria-label={current ? `${t.name} (current team)` : fit ? `${t.name}: open ${fit.player.name}` : `${t.name}: no player`}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, border: 'none', background: '#1f1d1c', boxShadow: current ? 'inset 0 0 0 2px #ece8e3' : 'none', cursor: current || !fit ? 'default' : 'pointer', opacity: current || fit ? 1 : 0.3 }}
+              onClick={() => { onClose(); navigate(`/teams?season=${season}&team=${t.team}`) }}
+              aria-label={`${t.name}: open its team card`}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, border: 'none', background: '#1f1d1c', boxShadow: current ? 'inset 0 0 0 2px #ece8e3' : 'none', cursor: 'pointer' }}
             >
               <img className="team-cell-logo" src={asset(`logos/color/${t.team}.png`)} alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
             </button>

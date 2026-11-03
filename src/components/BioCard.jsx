@@ -85,14 +85,15 @@ const draftLine = d => (!d ? null : d.undrafted ? 'UNDRAFTED' : `${d.year} DRAFT
 // team he played most for that season, his age in it (from his birth date where known:
 // lib/age.js), its lineups and its rotation (p.seasons[i].card). The depth chart's own
 // season (and a profile without seasons) shows today's team, lineups and depth chart.
+// `season` is the one shown, for the Team board's links ('' when there's none).
 const seasonView = (p, i) => {
   const s = p.seasons[i]
   const ageOf = (season, sheet) => (p.bio.born && season ? ageIn(p.bio.born, season) : sheet)
   if (!s || (!s.card && p.depth && s.season === p.depth.season)) {
-    return { team: p.team, teamName: p.teamName, age: ageOf(p.depth && p.depth.season, p.bio.age), lineups: p.lineups, chart: p.depth, rotation: false }
+    return { team: p.team, teamName: p.teamName, age: ageOf(p.depth && p.depth.season, p.bio.age), lineups: p.lineups, chart: p.depth, rotation: false, season: (s && s.season) || (p.depth && p.depth.season) || '' }
   }
-  if (!s.card) return { team: s.teams[s.teams.length - 1], teamName: null, age: ageOf(s.season, s.age), lineups: null, chart: null, rotation: true }
-  return { team: s.card.team, teamName: s.card.teamName, age: ageOf(s.season, s.age), lineups: s.card.lineups, chart: s.card.rotation, rotation: true }
+  if (!s.card) return { team: s.teams[s.teams.length - 1], teamName: null, age: ageOf(s.season, s.age), lineups: null, chart: null, rotation: true, season: s.season }
+  return { team: s.card.team, teamName: s.card.teamName, age: ageOf(s.season, s.age), lineups: s.card.lineups, chart: s.card.rotation, rotation: true, season: s.season }
 }
 
 export default function BioCard({ profile: p, season, loading = false, playing = false }) {
@@ -221,7 +222,7 @@ export default function BioCard({ profile: p, season, loading = false, playing =
       {v.chart && (
         <div ref={depthRef} style={{ marginTop: depthGap === null ? 'auto' : depthGap, padding: 14, display: 'flex', flexDirection: 'column', gap: 6, '--team': accent || '#ece8e3' }}>
           <div ref={ruleRef} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid #544f4b', paddingBottom: 5 }}>
-            <Link to={`/teams?season=${v.rotation ? p.seasons[season].season : p.depth.season}&team=${v.team}`} className="team-switch" title="Open on the Team board" style={{ color: '#ece8e3', fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>
+            <Link to={`/teams?season=${v.season}&team=${v.team}`} className="team-switch" title="Open on the Team board" style={{ color: '#ece8e3', fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>
               {(v.teamName || v.team).toUpperCase()}
             </Link>
             <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#a09a93', display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -256,7 +257,7 @@ export default function BioCard({ profile: p, season, loading = false, playing =
           </div>
         </div>
       )}
-      {picking && <TeamPicker profile={p} anchor={picking} onClose={closePicker} />}
+      {picking && <TeamPicker profile={p} season={v.season} anchor={picking} onClose={closePicker} />}
       {trophy && trophy.slug === p.slug && <CareerCase awards={p.awards} seasons={p.seasons.map(x => x.season)} name={p.name} focus={trophy.award} season={trophy.season} from={trophy.from} top={HERO_H} onClose={closeCase} />}
     </div>
   )

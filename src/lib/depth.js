@@ -1,5 +1,5 @@
-// Depth-chart slots for the team switcher: where the viewed player sits on his own
-// chart, and who sits in that slot on another team.
+// Depth-chart slots for the top-bar search's team results: where the viewed player sits on
+// his own chart, and who sits in that slot on another team.
 const POSITIONS = ['PG', 'SG', 'SF', 'PF', 'C']
 
 // His highest slot ({ pos, index }) on the chart (a player listed at two positions
@@ -29,5 +29,3 @@ export const bestFit = (slot, depth) => {
   return null
 }
 
-// "STARTING C", "C #2".
-export const slotName = slot => (slot.index === 0 ? `STARTING ${slot.pos}` : `${slot.pos} #${slot.index + 1}`)

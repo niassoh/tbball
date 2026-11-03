@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { depthSlot, bestFit, slotName } from './depth.js'
+import { depthSlot, bestFit } from './depth.js'
 
 const pl = (slug, hasProfile = true) => ({ slug, name: slug, hasProfile })
 const chart = rows => ({ rows: Object.entries(rows).map(([pos, players]) => ({ pos, players })) })
@@ -30,10 +30,5 @@ describe('team switcher slots', () => {
     expect(bestFit({ pos: 'PF', index: 0 }, t).pos).toBe('SF')
     expect(bestFit({ pos: 'SG', index: 0 }, t).player.slug).toBe('pg')
     expect(bestFit({ pos: 'C', index: 0 }, chart({ C: [pl('x', false)] }))).toBe(null)
-  })
-
-  test('slot names', () => {
-    expect(slotName({ pos: 'C', index: 0 })).toBe('STARTING C')
-    expect(slotName({ pos: 'SG', index: 1 })).toBe('SG #2')
   })
 })

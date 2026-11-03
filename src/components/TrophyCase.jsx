@@ -7,7 +7,8 @@
 // shield, All-NBA a laurel wreath round its team's number and All-Defensive one round a
 // shield (in the team's metal: first gold, second silver, third bronze), Rookie a
 // medallion with a sprout, Sixth Man a jersey numbered 6, Most Improved an arrow climbing,
-// Clutch a stopwatch, All-Star a star. Drawn on 32 × 34 (the plinth
+// Clutch a stopwatch, All-Star a star; and a team's deep playoff runs (the team card's head):
+// a lost Finals a silver ball, a lost conference finals a bronze one. Drawn on 32 × 34 (the plinth
 // under it in type), shown at SIZE × `scale`. A player's own award (WON: MVP, Finals MVP,
 // DPOY, ROY, Sixth Man, MIP, Clutch; not a title or a team selection) glimmers: a faint
 // white bar drifts across its metal all the time, and its plinth's edge is lit in its metal
@@ -41,6 +42,13 @@ const Wreath = ({ metal, center }) => <>
 </>
 const allNba = tier => ({ label: 'All-NBA', metal: TIERS[tier], draw: <Wreath metal={TIERS[tier][0]} center={<text x={16} y={16.2} textAnchor="middle" fontFamily={MONO} fontSize={10} fontWeight={700} fill={TIERS[tier][0]}>{tier}</text>} /> })
 const allDefense = tier => ({ label: 'All-D', metal: TIERS[tier], draw: <Wreath metal={TIERS[tier][0]} center={<path d="M16 7.6 L20.2 9.1 V12.2 C20.2 14.7 18.4 16.3 16 17.1 C13.6 16.3 11.8 14.7 11.8 12.2 V9.1 Z" fill={TIERS[tier][0]} />} /> })
+
+// A ball in its seams, held in a cup: a team's playoff run short of the title.
+const Ball = ({ light, dark }) => <>
+  <circle cx={16} cy={10} r={8.6} fill={light} />
+  <path d="M7.4 10 H24.6 M16 1.4 V18.6 M10 3.8 C12.8 7.4 12.8 12.6 10 16.2 M22 3.8 C19.2 7.4 19.2 12.6 22 16.2" stroke={dark} strokeWidth={0.9} fill="none" />
+  <path d="M10.4 17.4 H21.6 L19.6 24 H12.4 Z" fill={dark} />
+</>
 
 // Stem and pedestal under every emblem.
 const Stand = ({ light, dark }) => <>
@@ -98,6 +106,8 @@ const EMBLEMS = {
     <path d="M16 13.5 V7 M16 13.5 L20.2 16" stroke={CUT} strokeWidth={1.3} fill="none" />
     <circle cx={16} cy={13.5} r={1.2} fill={CUT} />
   </> },
+  finals: { label: 'Finals', metal: [SILVER, SILVER_DARK], draw: <Ball light={SILVER} dark={SILVER_DARK} /> },
+  conf: { label: 'Conf finals', metal: [BRONZE, BRONZE_DARK], draw: <Ball light={BRONZE} dark={BRONZE_DARK} /> },
   allstar: { label: 'All-Star', metal: [INK, '#a09a93'], draw: <>
     <path d="M16 1.5 L18.9 8.3 L26.2 8.9 L20.6 13.7 L22.3 20.8 L16 17 L9.7 20.8 L11.4 13.7 L5.8 8.9 L13.1 8.3 Z" fill={INK} />
     <rect x={15} y={19.5} width={2} height={4.5} fill="#a09a93" />
@@ -106,7 +116,7 @@ const EMBLEMS = {
 
 // `delay`: how far into its glimmer it starts (ms), so trophies side by side differ. `bare`:
 // without its plinth (on a shelf).
-function Trophy({ award, scale: k = 1, delay = 0, bare = false }) {
+export function Trophy({ award, scale: k = 1, delay = 0, bare = false }) {
   const mask = `tr-${useId().replace(/:/g, '')}`
   const e = EMBLEMS[award]
   if (!e) return null

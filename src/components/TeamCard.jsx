@@ -8,6 +8,7 @@ import { asset } from '../lib/static.js'
 import { initials, teamColor } from '../lib/teams.js'
 import { useSeasonType } from '../useSeasonType.js'
 import { CountUp, Meter, Section } from './PlayerCard.jsx'
+import { Trophy } from './TrophyCase.jsx'
 
 // A team's card on the Team board, in the chart's place, drawn as a player's card is: its
 // head (logo, name, record and win pace, then ORTG, DRTG and net with their meters and
@@ -57,10 +58,35 @@ const reader = (doc, t) => {
 const titleOf = (x, l) => [x.v(l) === null ? null : `${x.place(l)} of 30`, x.stat(l).desc].filter(Boolean).join(' · ') || undefined
 
 // The head, as a player's card's: the logo on the banner's bokeh; the abbreviation,
-// record, win pace and season (and the close button) over the name; then ORTG, DRTG and net, each with its meter and place.
+// record, win pace and season (and the close button) over the name, its deep playoff runs
+// at the name's end (Trophies); then ORTG, DRTG and net, each with its meter and place.
 const HEROES = ['ORTG', 'DRTG', 'Net']
+// Its deep playoff runs (lib/teamboard.js trophiesOf) as trophies on their plinths, in the
+// head's top right beside the close button, as tall as the season line and the name
+// together (RUNS_H): one season's named beside it (CHAMPIONS), a span's smaller, each over
+// its year; the series on hover. They pop in after the name, which keeps clear of them.
+const RUNS_H = 36
+const RUN_NAMES = { champion: 'Champions', finals: 'Finals', conf: 'Conf finals' }
+const RUN_INK = { champion: '#d4af37', finals: '#c9ced3', conf: '#b8794a' }
+const runsWidth = n => (n === 0 ? 0 : n === 1 ? 120 : n * 30)
+function Trophies({ trophies, intro }) {
+  if (!trophies.length) return null
+  const one = trophies.length === 1
+  return (
+    <span style={{ position: 'absolute', top: 0, right: 32, height: RUNS_H, display: 'flex', alignItems: 'flex-end', gap: one ? 0 : 4 }}>
+      {trophies.map((t, i) => (
+        <span key={t.season} className={intro ? 'tc-pop' : undefined} title={`${RUN_NAMES[t.kind]} · ${t.season.replace('-', '–')}\n${t.path}`}
+          style={{ display: 'flex', flexDirection: one ? 'row' : 'column', alignItems: one ? 'flex-end' : 'center', gap: one ? 7 : 2, animationDelay: `${AT.heroes + i * AT.step}ms` }}>
+          {one && <span style={{ ...small, fontSize: 9, fontWeight: 700, color: RUN_INK[t.kind], paddingBottom: 4 }}>{RUN_NAMES[t.kind]}</span>}
+          <Trophy award={t.kind} scale={one ? 0.86 : 0.6} />
+          {!one && <span style={{ ...small, fontSize: 7.5, lineHeight: 1, color: RUN_INK[t.kind] }}>{shortSeason(t.season)}</span>}
+        </span>
+      ))}
+    </span>
+  )
+}
 const RADIAL = 'radial-gradient(circle closest-side, #000 35%, transparent)'
-function Head({ t, x, season, against, intro, closeButton }) {
+function Head({ t, x, season, against, trophies, intro, closeButton }) {
   const when = t.span || season.replace('-', '–')
   const mark = against ? ' Δ' : ''
   return (
@@ -70,12 +96,13 @@ function Head({ t, x, season, against, intro, closeButton }) {
         <img src={asset('banner-bokeh.png')} alt="" style={{ position: 'absolute', inset: -14, width: 'calc(100% + 28px)', height: 'calc(100% + 28px)', objectFit: 'cover', objectPosition: '30% 0%', opacity: 0.75, WebkitMaskImage: RADIAL, maskImage: RADIAL }} />
         <img className="tc-logo" src={asset(`logos/color/${t.team}.png`)} alt="" width={60} height={60} style={{ position: 'relative' }} />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <Trophies trophies={trophies} intro={intro} />
         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span className="pc-type" style={{ ...small, lineHeight: '13px' }}>{[t.team, x.v('Wins') !== null && `${x.v('Wins')}–${x.v('Losses')}`, x.v('LA Bayes Win-pace') !== null && (against ? `${x.text('LA Bayes Win-pace')} win pace` : `${x.text('LA Bayes Win-pace')}-win pace`), against ? `${t.span || shortSeason(season)} − ${against[0] === against[1] ? shortSeason(against[0]) : spanYears(against[0], against[1])}` : when].filter(Boolean).join(' · ')}</span>
           {closeButton}
         </span>
-        <span className="pc-name" style={{ marginTop: 1, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
+        <span className="pc-name" style={{ marginTop: 1, paddingRight: trophies.length ? runsWidth(trophies.length) + 44 : 0, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
         <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
           {HEROES.map((l, k) => {
             const delay = AT.heroes + k * 90
@@ -300,7 +327,7 @@ const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
 const INTRO_MS = 2000
 const QUICK_MS = 300
 let open = 0
-export default function TeamCard({ doc, team: t, season, against, onClose }) {
+export default function TeamCard({ doc, team: t, season, against, trophies = [], onClose }) {
   const [quick] = useState(() => open > 0)
   const [settling, setSettling] = useState(true)
   useEffect(() => {
@@ -321,7 +348,7 @@ export default function TeamCard({ doc, team: t, season, against, onClose }) {
   const today = units && units.today && (units.today.find(u => u.team === t.team) || {}).depth
   return (
     <div className={`pc-card${!settling ? ' tc-still' : quick ? ' tc-quick' : ' pc-intro'}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto', fontFamily: MONO }}>
-      <Head t={t} x={x} season={season} against={against} intro={intro} closeButton={<button type="button" aria-label="Close the card" onClick={onClose} style={{ marginLeft: 'auto', flex: 'none', width: 22, height: 22, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>} />
+      <Head t={t} x={x} season={season} against={against} trophies={trophies} intro={intro} closeButton={<button type="button" aria-label="Close the card" onClick={onClose} style={{ marginLeft: 'auto', flex: 'none', width: 22, height: 22, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>} />
       <div style={{ padding: '10px 14px', borderTop: `1px solid ${RULE}` }}><Percentiles x={x} change={!!against} /></div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
         <Section title="Splits" right="per 100"><Rows x={x} heads={['ORTG', 'DRTG', 'Net']} rows={SPLITS} delay={AT.rows} /></Section>

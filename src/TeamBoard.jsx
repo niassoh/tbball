@@ -6,7 +6,7 @@ import { ranked } from './lib/leaderboard.js'
 import { seasonsBefore } from './lib/board.js'
 import { seasonsBetween } from './lib/seasons.js'
 import { asset } from './lib/static.js'
-import { boardOver, placeOf, teamChange, tiedOf } from './lib/teamboard.js'
+import { boardOver, placeOf, teamChange, tiedOf, trophiesOf } from './lib/teamboard.js'
 import ModeSwitch from './components/ModeSwitch.jsx'
 import SeasonPicker from './components/SeasonPicker.jsx'
 import { Each, Eras } from './components/SpanControls.jsx'
@@ -215,6 +215,9 @@ export default function TeamBoard() {
   const row = doc && picked && doc.teams.find(t => t.id === picked)
   // The seasons the open card's row is set against: the one before its season, or the span before.
   const against = !row || !doc.change ? null : apart ? Array(2).fill(seasonsBefore(seasons, row.season || doc.season, 1)[0]) : [prior[0], prior[prior.length - 1]]
+  // The open card's seasons, for its trophies: a run's own, a combined span's all, else its season.
+  const covered = !row ? [] : era ? seasonsBetween(...row.id.split('|')[1].split('..')) : doc.many && !each ? wanted : [row.season || doc.season]
+  const trophies = row ? trophiesOf(docs, covered, row.team) : []
   const choose = id => {
     const next = doc.groups.find(x => x.id === id)
     setGroup(id)
@@ -247,7 +250,7 @@ export default function TeamBoard() {
         <div className="lb-body tb-body lb-enter">
           <div className={`lb-side${row ? ' lb-carded' : ''}`}>
             {row
-              ? <TeamCard key={`${picked}|${!!doc.change}`} doc={doc} team={row} season={row.season || doc.season} against={against} onClose={close} />
+              ? <TeamCard key={`${picked}|${!!doc.change}`} doc={doc} team={row} season={row.season || doc.season} against={against} trophies={trophies} onClose={close} />
               : <TeamScatter doc={doc} hot={hot} setHot={setHot} onPick={setPicked} />}
           </div>
           <div className="lb-table-wrap" style={{ scrollSnapType: 'none' }}>

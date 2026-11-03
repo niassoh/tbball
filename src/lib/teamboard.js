@@ -137,3 +137,16 @@ export const teamChange = (now, prev) => {
     teams: teams.map(t => ({ ...t, p: t.v.map((x, k) => percentileOf(x, pools[k], !!now.stats[now.labels[k]].lowerBetter)) }))
   }
 }
+
+// A team's deep playoff runs over `seasons` (each season's document's `playoffs`, by team:
+// thinking-bball scripts/team-playoffs.js), in season order, as trophies: the title
+// ('champion'), a lost Finals ('finals') or a lost conference finals ('conf'); with the
+// run's series for its tip. Earlier exits aren't trophies.
+const ROUNDS = ['', 'R1', 'R2', 'Conf finals', 'Finals']
+export const trophiesOf = (docs, seasons, team) => seasons.flatMap(season => {
+  const run = docs[season] && docs[season].playoffs && docs[season].playoffs[team]
+  if (!run || run.round < 3) return []
+  const kind = run.champion ? 'champion' : run.round === 4 ? 'finals' : 'conf'
+  const path = run.series.map(x => `${ROUNDS[x.round]}: ${x.w > x.l ? 'beat' : 'lost to'} ${x.opp} ${x.w}–${x.l}`).join(' · ')
+  return [{ season, kind, path }]
+})

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boardOver, frameOf, netLines, placeOf, teamChange, tiedOf } from './teamboard.js'
+import { boardOver, frameOf, netLines, placeOf, teamChange, tiedOf, trophiesOf } from './teamboard.js'
 
 describe('team board chart', () => {
   it('frames every team on one scale, centred on the league', () => {
@@ -117,5 +117,22 @@ describe('team board against the season before', () => {
     const span = teamChange(boardOver([prev, now]), boardOver([prev]))
     expect(span.teams.find(t => t.team === 'GSW').v[0]).toBe(53)
     expect(span.teams.find(t => t.team === 'GSW').v[2]).toBeCloseTo((115 * 82 + 120 * 4) / 86 - 115)
+  })
+})
+
+describe('trophiesOf', () => {
+  const run = (round, champion, ...series) => ({ round, champion, series: series.map(([r, opp, w, l]) => ({ round: r, opp, w, l })) })
+  const docs = {
+    '2016-17': { playoffs: { GSW: run(4, true, [1, 'POR', 4, 0], [2, 'UTA', 4, 0], [3, 'SAS', 4, 0], [4, 'CLE', 4, 1]), CLE: run(4, false, [4, 'GSW', 1, 4]), BOS: run(3, false, [3, 'CLE', 1, 4]), POR: run(1, false, [1, 'GSW', 0, 4]) } },
+    '2017-18': { playoffs: null },
+    '2018-19': {}
+  }
+  it('makes the title, a lost Finals and a lost conference finals trophies, nothing earlier', () => {
+    const at = team => trophiesOf(docs, ['2016-17', '2017-18', '2018-19', '2019-20'], team)
+    expect(at('GSW').map(t => t.kind)).toEqual(['champion'])
+    expect(at('GSW')[0].path).toBe('R1: beat POR 4–0 · R2: beat UTA 4–0 · Conf finals: beat SAS 4–0 · Finals: beat CLE 4–1')
+    expect(at('CLE')).toEqual([{ season: '2016-17', kind: 'finals', path: 'Finals: lost to GSW 1–4' }])
+    expect(at('BOS').map(t => t.kind)).toEqual(['conf'])
+    expect(at('POR')).toEqual([])
   })
 })

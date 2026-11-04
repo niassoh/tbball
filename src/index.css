@@ -463,7 +463,9 @@ a:hover > .lineup-tile > * { filter: none; }
 .lb-body.lb-wide { grid-template-columns: minmax(0, 1fr) 30px; }
 .lb-rail-show { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 0; border: 1px solid #3d3a37; background: #262422; color: #a09a93; cursor: pointer; }
 .lb-rail-show:hover { color: #ece8e3; border-color: #544f4b; }
-.lb-chip:hover { border-color: #a09a93 !important; color: #ece8e3 !important; }
+.lb-axis-group:hover { color: #ece8e3 !important; }
+.lb-axis-pane { scrollbar-width: thin; scrollbar-color: #544f4b transparent; }
+.lb-axis-stat:focus-visible, .lb-axis-group:focus-visible { outline: 1px solid #a09a93; outline-offset: -1px; }
 @media (max-width: 1000px), (max-height: 600px) {
   .lb { height: auto; }
   .lb-body { grid-template-columns: minmax(0, 1fr); }

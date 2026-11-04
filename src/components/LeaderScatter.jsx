@@ -3,6 +3,7 @@ import { headshotUrl } from '../api.js'
 import { rowAge } from '../lib/age.js'
 import { stintsOf as minutesBy } from '../lib/board.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
+import { define } from '../lib/glossary.js'
 import { axisOf, median, pctlOf, quadrantOf, radiusOf, valueOf } from '../lib/leaderboard.js'
 import { initials } from '../lib/teams.js'
 import { asset } from '../lib/static.js'
@@ -81,30 +82,90 @@ const teamsOf = pts => {
 
 // The stats a board can chart: those with values in it (the last 30 days leave some out).
 // `dim(label)`: a reason a stat is faint (Careers: none of the picked players has it),
-// still pickable. The Team board's too, its rows `teams`.
+// still pickable. The Team board's too, its rows `teams`. A fixed panel whatever the board
+// carries: a find box (typing looks through every group; arrows move, Enter picks), the
+// groups down the left with their counts, the open group's stats down the right (it opens
+// on the axis's own; a group opens on a click, not under a passing pointer, so the way across
+// to its stats never opens another), and the stat under the pointer's definition along the foot.
+const PICK_W = 520
+const PICK_H = 324
+// A stat's line; a list longer than ROWS runs on in a second column, so no group scrolls
+// (only a broad search, past two columns' worth).
+const STAT_H = 24
+const ROWS = 13
+function AxisPanel({ groups, value, set, dim, close }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(() => (groups.find(g => g.stats.includes(value)) || groups[0]).id)
+  const [at, setAt] = useState(0)
+  const [over, setOver] = useState(value)
+  const q = query.trim().toLowerCase()
+  const match = l => !q || l.toLowerCase().includes(q)
+  const counts = new Map(groups.map(g => [g.id, g.stats.filter(match).length]))
+  const list = q ? groups.flatMap(g => g.stats.filter(match).map(l => ({ l, g }))) : (groups.find(g => g.id === open) || groups[0]).stats.map(l => ({ l }))
+  const pick = l => { set(l); close() }
+  const key = e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      const next = Math.max(0, Math.min(list.length - 1, at + (e.key === 'ArrowDown' ? 1 : -1)))
+      setAt(next)
+      if (list[next]) setOver(list[next].l)
+    } else if (e.key === 'Enter' && list[at]) pick(list[at].l)
+  }
+  const shown = define(over)
+  return (
+    <div style={{ width: PICK_W, maxWidth: '100%', display: 'flex', flexDirection: 'column' }} onKeyDown={key}>
+      <input autoFocus value={query} onChange={e => { setQuery(e.target.value); setAt(0) }} placeholder="FIND A STAT" aria-label="Find a stat" spellCheck={false}
+        style={{ height: 30, padding: '0 10px', border: `1px solid ${EDGE}`, background: '#262422', color: INK, fontFamily: MONO, fontSize: 11, letterSpacing: '.06em', outline: 'none' }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '170px minmax(0, 1fr)', height: PICK_H, marginTop: 8, borderTop: `1px solid ${RULE}`, borderBottom: `1px solid ${RULE}` }}>
+        <div role="tablist" aria-label="Stat groups" className="lb-axis-pane" style={{ overflowY: 'auto', borderRight: `1px solid ${RULE}`, padding: '6px 0' }}>
+          {groups.map(g => {
+            const sel = !q && g.id === open
+            const n = counts.get(g.id)
+            return (
+              <button key={g.id} type="button" role="tab" aria-selected={sel} className="lb-axis-group" onClick={() => { setQuery(''); setOpen(g.id); setAt(0) }}
+                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '5px 10px', border: 0, borderLeft: `2px solid ${sel ? INK : 'transparent'}`, background: sel ? '#2e2b29' : 'transparent', color: sel ? INK : q && !n ? '#4f4b47' : DIM, fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer' }}>
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</span>
+                <span style={{ color: sel ? DIM : FAINT }}>{n}</span>
+              </button>
+            )
+          })}
+        </div>
+        <div role="listbox" aria-label="Stats" className="lb-axis-pane"
+          style={{ overflowY: 'auto', padding: '6px 0', display: 'grid', gridAutoFlow: 'column', gridTemplateRows: `repeat(${Math.max(1, Math.ceil(list.length / (list.length > ROWS ? 2 : 1)))}, ${STAT_H}px)`, gridTemplateColumns: list.length > ROWS ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)', alignContent: 'start' }}>
+          {list.map(({ l, g }, i) => {
+            const why = dim && l !== value ? dim(l) : null
+            const cur = l === value
+            const hot = i === at
+            return (
+              <button key={`${g ? g.id : ''}|${l}`} type="button" role="option" aria-selected={cur} title={why || undefined} className="lb-axis-stat"
+                onClick={() => pick(l)} onMouseEnter={() => { setAt(i); setOver(l) }}
+                style={{ width: '100%', height: STAT_H, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', border: 0, background: hot ? '#2e2b29' : 'transparent', color: cur ? INK : why ? FAINT : '#cfc9c2', fontFamily: MONO, fontSize: 11, fontWeight: cur ? 700 : 400, textAlign: 'left', cursor: 'pointer', textDecoration: why ? 'line-through' : 'none', textDecorationColor: '#5a5550' }}>
+                <span aria-hidden="true" style={{ width: 6, height: 6, flex: 'none', background: cur ? INK : 'transparent', border: `1px solid ${cur ? INK : hot ? DIM : 'transparent'}` }} />
+                <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</span>
+                {g && <span style={{ ...label, fontSize: 8, color: FAINT }}>{g.name}</span>}
+              </button>
+            )
+          })}
+          {!list.length && <div style={{ ...label, padding: '14px 12px', color: FAINT }}>No stat matches</div>}
+        </div>
+      </div>
+      {/* Two lines kept, so the panel doesn't jump as the pointer moves. */}
+      <div style={{ height: 34, paddingTop: 8, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <span style={{ ...label, flex: 'none', color: INK, fontWeight: 700 }}>{over}</span>
+        <span style={{ fontFamily: MONO, fontSize: 10, lineHeight: 1.35, color: DIM, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{shown || ''}</span>
+      </div>
+    </div>
+  )
+}
+
 export function AxisPicker({ doc, axis, value, set, dim }) {
   const charted = l => !doc.stats[l].na && (doc.players || doc.teams).some(p => valueOf(doc, p, l) !== null)
+  // A name an earlier group has already (Lonestar's duo set) carries its variant: 'Lonestar · duo'.
   const groups = doc.groups.map(g => ({ ...g, stats: g.stats.filter(charted) })).filter(g => g.stats.length)
+    .map((g, i, all) => (all.slice(0, i).some(o => o.name === g.name) ? { ...g, name: `${g.name} · ${g.id.split('-').pop()}` } : g))
   return (
-    <Popover name={`${axis} axis: ${value}`} minWidth={300} trigger={<><span style={{ ...label, fontWeight: 400 }}>{axis}</span>{value}</>}>
-      {close => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 460 }}>
-          {groups.map(g => (
-            <div key={g.id} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <span style={{ ...label, fontSize: 8, color: FAINT }}>{g.name}</span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {g.stats.map(l => {
-                  const why = dim && l !== value ? dim(l) : null
-                  return (
-                    <button key={l} type="button" className="lb-chip" title={why || undefined} onClick={() => { set(l); close() }}
-                      style={{ padding: '3px 6px', border: `1px ${why ? 'dashed' : 'solid'} ${l === value ? INK : EDGE}`, background: l === value ? '#3a3734' : 'transparent', color: l === value ? INK : why ? FAINT : '#b8b2ab', fontFamily: MONO, fontSize: 10, cursor: 'pointer' }}>{l}</button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+    <Popover name={`${axis} axis: ${value}`} minWidth={PICK_W + 24} trigger={<><span style={{ ...label, fontWeight: 400 }}>{axis}</span>{value}</>}>
+      {close => <AxisPanel groups={groups} value={value} set={set} dim={dim} close={close} />}
     </Popover>
   )
 }

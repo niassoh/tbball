@@ -47,16 +47,50 @@ const LOGO = 22
 const GATHER = { fall: 720, step: 22, land: 380 }
 const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rgba(0,0,0,.6))'
 
-// The lit team's players, each at his own spot as his face: a square, ink-edged, centred on
-// his point, his initials on a plate across its foot. The most minutes drawn last, on top.
-const FACE = 36
-function Face({ p, x, y }) {
+// The lit team's players: his dot stays his exact point, his face (small, round, quiet) and
+// initials just above it. Laid out so none overlaps another or the team's logo: each starts
+// over his dot and is pushed apart from the rest and pulled back toward it, kept inside the
+// chart; one pushed off his dot is joined to it by a hairline.
+const FACE = 22
+const CARD = { w: 30, h: FACE + 13 }
+const facesOf = (ds, px, py, radius, logo, w, h) => {
+  const cards = ds.map(d => {
+    const x = px(d.vx)
+    const y = py(d.vy)
+    const home = { x, y: y - radius(d.p) - 3 - CARD.h / 2 }
+    return { d, x, y, home, cx: home.x, cy: home.y }
+  })
+  const fixed = { cx: logo.x, cy: logo.y, w: LOGO * 1.45 + 10, h: LOGO * 1.45 + 10 }
+  const push = (a, b, bw, bh, share) => {
+    const dx = a.cx - b.cx || 0.01
+    const dy = a.cy - b.cy || 0.01
+    const ox = (CARD.w + bw) / 2 + 3 - Math.abs(dx)
+    const oy = (CARD.h + bh) / 2 + 3 - Math.abs(dy)
+    if (ox <= 0 || oy <= 0) return
+    if (ox < oy) { a.cx += Math.sign(dx) * ox * share; if (b !== fixed) b.cx -= Math.sign(dx) * ox * (1 - share) }
+    else { a.cy += Math.sign(dy) * oy * share; if (b !== fixed) b.cy -= Math.sign(dy) * oy * (1 - share) }
+  }
+  for (let k = 0; k < 160; k++) {
+    for (let i = 0; i < cards.length; i++) {
+      for (let j = i + 1; j < cards.length; j++) push(cards[i], cards[j], CARD.w, CARD.h, 0.5)
+      push(cards[i], fixed, fixed.w, fixed.h, 1)
+    }
+    for (const c of cards) {
+      c.cx += (c.home.x - c.cx) * 0.04
+      c.cy += (c.home.y - c.cy) * 0.04
+      c.cx = Math.max(M.l + CARD.w / 2 + 2, Math.min(w - M.r - CARD.w / 2 - 2, c.cx))
+      c.cy = Math.max(M.t + CARD.h / 2 + 2, Math.min(h - M.b - CARD.h / 2 - 2, c.cy))
+    }
+  }
+  return cards.map(c => ({ ...c, moved: Math.hypot(c.cx - c.home.x, c.cy - c.home.y) > 4 }))
+}
+function Face({ p, cx, cy }) {
   return (
-    <div className="lb-enter" style={{ position: 'absolute', left: x - FACE / 2, top: y - FACE / 2, width: FACE, height: FACE, pointerEvents: 'none', zIndex: 4 }}>
-      <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', border: `1px solid ${INK}`, background: PORTRAIT_BG, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 10, color: DIM, boxShadow: '0 2px 6px rgba(0,0,0,.55)' }}>
-        {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={FACE} height={FACE} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(p.name)}
-      </div>
-      <span style={{ position: 'absolute', left: '50%', bottom: -6, transform: 'translateX(-50%)', padding: '1px 3px', background: INK, color: '#1f1d1c', fontFamily: MONO, fontSize: 8, fontWeight: 700, lineHeight: 1, letterSpacing: '.08em', whiteSpace: 'nowrap' }}>{initials(p.name).toUpperCase()}</span>
+    <div className="lb-enter" style={{ position: 'absolute', left: cx - CARD.w / 2, top: cy - CARD.h / 2, width: CARD.w, height: CARD.h, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pointerEvents: 'none', zIndex: 4 }}>
+      <span style={{ width: FACE, height: FACE, borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, boxShadow: '0 0 0 1px rgba(236, 232, 227, .35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: DIM }}>
+        {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={FACE} height={FACE} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%', opacity: 0.88 }} /> : null}
+      </span>
+      <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1, letterSpacing: '.1em', color: INK, textShadow: '0 0 3px #141312, 0 0 2px #141312' }}>{initials(p.name).toUpperCase()}</span>
     </div>
   )
 }
@@ -280,6 +314,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const teams = useMemo(() => (byTeam ? teamsOf(pts.filter(d => shown.has(d.p.id))) : []), [byTeam, pts, shown])
   const lit = byTeam ? teamHover || pinned : null
   const litTeam = teams.find(t => t.team === lit)
+  const faces = litTeam ? facesOf(litTeam.ds, px, py, radius, { x: px(litTeam.vx), y: py(litTeam.vy) }, w, h) : []
   // Each mote from its player's dot into his team's average, quickening as it nears, shrinking
   // into it; the gathering cleared once the last team has landed.
   useLayoutEffect(() => {
@@ -362,6 +397,10 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           {litTeam && litTeam.ds.map(d => (
             <line key={d.p.id} x1={px(litTeam.vx)} y1={py(litTeam.vy)} x2={px(d.vx)} y2={py(d.vy)} stroke={INK} strokeOpacity={0.4} strokeWidth={1} pointerEvents="none" />
           ))}
+          {/* A face pushed off its dot, joined to it. */}
+          {faces.filter(f => f.moved).map(f => (
+            <line key={f.d.p.id} x1={f.x} y1={f.y} x2={f.cx} y2={f.cy} stroke={INK} strokeOpacity={0.55} strokeWidth={1} strokeDasharray="1 2" pointerEvents="none" />
+          ))}
           {/* Every team's logo at its average, the rest quieter while one is lit. They keep their
               order (a node moved under the pointer loses its mouseleave, and its team stayed lit);
               the lit one is drawn again over them, larger, above its players' faces. */}
@@ -393,7 +432,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         {hv && hover && <Tip doc={doc} d={hv} x={x} y={y}
           left={px(hv.vx) + 16 + TIP_W < w ? px(hv.vx) + 16 : px(hv.vx) - 16 - TIP_W}
           top={Math.max(4, Math.min(h - TIP_H - 4, py(hv.vy) - TIP_H / 2))} />}
-        {litTeam && [...litTeam.ds].sort((a, b) => (a.p.mp || 0) - (b.p.mp || 0)).map(d => <Face key={d.p.id} p={d.p} x={px(d.vx)} y={py(d.vy)} />)}
+        {faces.map(f => <Face key={f.d.p.id} p={f.d.p} cx={f.cx} cy={f.cy} />)}
         {/* The lit team's logo, larger, over its players' faces, where their lines meet. */}
         {litTeam && (() => {
           const s = LOGO * 1.45

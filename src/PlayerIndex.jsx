@@ -603,9 +603,10 @@ export default function PlayerIndex() {
 
   const named = p => !q || typedTeam || fold(p.name).includes(q)
   const chart = mode === 'current' && pick && teams ? teams.find(t => t.team === pick) : null
-  // On the depth chart he's on its team, whichever the index last saw him with; one with
-  // no headshot yet is left off, as the chart is a wall of faces.
-  const tiers = chart ? depthTiers(chart.depth).map(tier => tier.map(d => bySlug.get(d.slug)).filter(p => p && p.headshot && named(p)).map(p => ({ ...p, team: pick }))) : null
+  // A team's players now (its depth chart's, starters and bench alike), each by his BPM this
+  // season, best first, as CURRENT ranks everyone; on the chart he's on its team, whichever
+  // the index last saw him with; one with no headshot yet is left off, as it's a wall of faces.
+  const lineup = chart ? depthTiers(chart.depth).flat().map(d => bySlug.get(d.slug)).filter(p => p && p.headshot && named(p)).map(p => ({ ...p, team: pick, bestSeason: now?.get(p.slug) ?? null })).sort(byBest) : null
   const pool = mode === 'current' ? (pick ? null : current) : pick ? best[pick] : peaks
   const matches = (pool || []).filter(named).sort(byBest)
   const portraits = matches.filter(p => ILLUSTRATED.has(p.headshot))
@@ -639,18 +640,15 @@ export default function PlayerIndex() {
         </div>
       </div>
 
-      {tiers && (
-        <Section title={chart.name} count={tiers[0].length + tiers[1].length} controls={toggle}>
-          {/* The bench starts a row of its own, under the starters. */}
-          {tiers.map((tier, k) => (
-            <div key={k} className="idx-grid" style={{ ...grid, marginTop: k ? 12 : 0 }}>
-              {tier.map((p, i) => <Tile key={p.slug} player={p} to={playerPath(p.slug)} order={i} />)}
-            </div>
-          ))}
+      {lineup && (
+        <Section title={chart.name} count={lineup.length} controls={toggle}>
+          <div className="idx-grid" style={grid}>
+            {lineup.map((p, i) => <Tile key={p.slug} player={p} to={playerPath(p.slug)} order={i} />)}
+          </div>
         </Section>
       )}
 
-      {!tiers && players && (portraits.length > 0 || !rest.length) && (
+      {!lineup && players && (portraits.length > 0 || !rest.length) && (
         <Section title="Illustrated" count={portraits.length} controls={toggle}>
           {/* Tiles share their 1px edges (each overlaps the next by 1px), so a short last row leaves empty cells blank. */}
           <div className="idx-grid" style={grid}>
@@ -672,7 +670,7 @@ export default function PlayerIndex() {
         </section>
       )}
 
-      {!tiers && !listed && (q || pick) && rest.length > 0 && (
+      {!lineup && !listed && (q || pick) && rest.length > 0 && (
         <Section title={portraits.length ? 'Everyone else' : 'Players'} count={rest.length} controls={portraits.length ? null : toggle}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', columnGap: 28 }}>
             {rest.map(p => <Row key={key(p)} player={p} to={playerPath(p.slug)} />)}
@@ -680,7 +678,7 @@ export default function PlayerIndex() {
         </Section>
       )}
 
-      {pool && !tiers && matches.length === 0 && (
+      {pool && !lineup && matches.length === 0 && (
         <div style={{ marginTop: 36, padding: '28px 0', border: `1px dashed ${EDGE}`, textAlign: 'center', fontFamily: MONO, fontSize: 12, letterSpacing: '.08em', color: DIM }}>NO PLAYERS MATCH</div>
       )}
 

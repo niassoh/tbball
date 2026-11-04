@@ -4,6 +4,7 @@ import { rowAge } from '../lib/age.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
 import { axisOf, median, pctlOf, quadrantOf, radiusOf, valueOf } from '../lib/leaderboard.js'
 import { initials } from '../lib/teams.js'
+import { asset } from '../lib/static.js'
 import Popover from './Popover.jsx'
 
 // The Leaderboard's scatter: any two stats of the season against each other, each axis
@@ -20,6 +21,10 @@ import Popover from './Popover.jsx'
 // row under the pointer (`hot`) rings its dot with just his face and surname, so the chart
 // stays in view as the table is read. A click opens his card. Under it: the season,
 // both medians, how many players, and how many are in the top right.
+// TEAMS in its header groups them (teamsOf): each team's logo at its players' minutes-weighted
+// average, the dots ash behind. A logo under the pointer, or the table's row's team, lights
+// its players white with a hairline from the logo to each, and the strip under the chart
+// becomes that team's; a click on a logo keeps it lit.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -31,6 +36,21 @@ const TIP_W = 228
 const TIP_H = 138
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM, textTransform: 'uppercase' }
 const M = { l: 30, r: 14, t: 16, b: 30 }
+const ASH = '#6f6a64'
+const LOGO = 22
+const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rgba(0,0,0,.6))'
+
+// The live dots by team: each team's players and its minutes-weighted average on each axis,
+// in the axes' own units.
+const teamsOf = pts => {
+  const by = new Map()
+  for (const d of pts) by.set(d.p.team, [...(by.get(d.p.team) || []), d])
+  return [...by].filter(([team]) => team).map(([team, ds]) => {
+    const wt = d => d.p.mp || 1
+    const sum = ds.reduce((a, d) => a + wt(d), 0)
+    return { team, ds, vx: ds.reduce((a, d) => a + wt(d) * d.vx, 0) / sum, vy: ds.reduce((a, d) => a + wt(d) * d.vy, 0) / sum }
+  })
+}
 
 // The stats a board can chart: those with values in it (the last 30 days leave some out).
 // `dim(label)`: a reason a stat is faint (Careers: none of the picked players has it),
@@ -121,6 +141,9 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const box = useRef(null)
   const [size, setSize] = useState({ w: 480, h: 420 })
   const [hover, setHover] = useState(null)
+  const [byTeam, setByTeam] = useState(false)
+  const [teamHover, setTeamHover] = useState(null)
+  const [pinned, setPinned] = useState(null)
   useLayoutEffect(() => {
     const ro = new ResizeObserver(([e]) => setSize({ w: Math.round(e.contentRect.width), h: Math.round(e.contentRect.height) }))
     ro.observe(box.current)
@@ -163,13 +186,16 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   // from how far up and right he sits, each axis 0 to 1 with its median at the middle).
   const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (ax(d.vx) + ay(d.vy) - 1))))
   const hv = (hover || hot) && byId.get(hover || hot)
+  const teams = useMemo(() => (byTeam ? teamsOf(pts.filter(d => shown.has(d.p.id))) : []), [byTeam, pts, shown])
+  const lit = byTeam ? teamHover || (hv && hv.p.team) || pinned : null
+  const litTeam = teams.find(t => t.team === lit)
   // The same elements while only the lit dot changes, so React passes over them.
   const dots = useMemo(() => order.filter(d => shown.has(d.p.id)).map(d => (
     <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
-      fill={tint(d)} fillOpacity={0.82}
+      fill={!byTeam ? tint(d) : d.p.team === lit ? INK : ASH} fillOpacity={!byTeam ? 0.82 : d.p.team === lit ? 0.92 : lit ? 0.16 : 0.3}
       style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: 'pointer' }}
       onMouseEnter={() => setHover(d.p.id)} onMouseLeave={() => setHover(id => (id === d.p.id ? null : id))} onClick={() => onPick(d.p.id)} />
-  )), [order, shown, xa, ya, most, least, w, h, onPick]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py, radius and tint are these
+  )), [order, shown, xa, ya, most, least, w, h, onPick, byTeam, lit]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py, radius and tint are these
   const faint = useRef(null)
   useEffect(() => {
     const c = faint.current
@@ -200,6 +226,10 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         <AxisPicker doc={doc} axis="X" value={x} set={v => setAxis('x', v)} />
         <AxisPicker doc={doc} axis="Y" value={y} set={v => setAxis('y', v)} />
         <span style={{ ...label, marginLeft: 'auto', fontSize: 8 }}>● = minutes · ┼ median</span>
+        <button type="button" aria-pressed={byTeam} onClick={() => { setByTeam(v => !v); setPinned(null) }} title="Each team at its players' minutes-weighted average"
+          style={{ height: 26, padding: '0 9px', display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${byTeam ? INK : EDGE}`, background: byTeam ? '#3a3734' : 'transparent', color: byTeam ? INK : DIM, fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', cursor: 'pointer' }}>
+          <span aria-hidden="true" style={{ width: 7, height: 7, border: `1px solid currentColor`, background: byTeam ? 'currentColor' : 'transparent' }} />TEAMS
+        </button>
         {/* Folds the chart away to the right, so the table takes the board's width. */}
         {onHide && (
           <button type="button" onClick={onHide} aria-label="Hide the chart" title="Hide the chart"
@@ -222,6 +252,22 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           <text x={w - M.r - 6} y={M.t + 12} textAnchor="end" style={{ ...label, fontSize: 9, fill: TONE.both }}>+ +</text>
           <text x={M.l + 6} y={h - M.b - 6} style={{ ...label, fontSize: 9, fill: TONE.neither }}>− −</text>
           {dots}
+          {/* The lit team: a hairline from its logo to each of its players. */}
+          {litTeam && litTeam.ds.map(d => (
+            <line key={d.p.id} x1={px(litTeam.vx)} y1={py(litTeam.vy)} x2={px(d.vx)} y2={py(d.vy)} stroke={INK} strokeOpacity={0.4} strokeWidth={1} pointerEvents="none" />
+          ))}
+          {/* Every team's logo at its average, the lit one larger and on top, the rest quieter. */}
+          {[...teams].sort((a, b) => (a.team === lit) - (b.team === lit)).map(t => {
+            const on = t.team === lit
+            const s = on ? LOGO * 1.45 : LOGO
+            return (
+              <g key={t.team} className="lb-dot lb-team" style={{ transform: `translate(${px(t.vx)}px, ${py(t.vy)}px)`, opacity: lit && !on ? 0.3 : 1, cursor: 'pointer' }}
+                onMouseEnter={() => setTeamHover(t.team)} onMouseLeave={() => setTeamHover(v => (v === t.team ? null : v))} onClick={() => setPinned(v => (v === t.team ? null : t.team))}>
+                {pinned === t.team && <rect x={-s / 2 - 4} y={-s / 2 - 4} width={s + 8} height={s + 8} fill="none" stroke={INK} strokeWidth={1} />}
+                <image href={asset(`logos/color/${t.team}.png`)} x={-s / 2} y={-s / 2} width={s} height={s} style={{ filter: HALO }} />
+              </g>
+            )
+          })}
           {hv && <circle cx={px(hv.vx)} cy={py(hv.vy)} r={radius(hv.p) + 2.5} fill="none" stroke={INK} strokeWidth={1.5} pointerEvents="none" />}
           {/* Each axis: its ends' values and its name, the better end up and to the right. */}
           <text x={M.l} y={h - M.b + 14} style={{ ...label, fill: FAINT }}>{fmt(sx, xl)}</text>
@@ -240,11 +286,19 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         })()}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', borderTop: `1px solid ${RULE}` }}>
-        <div style={{ ...cell, borderLeft: 0 }}><span style={cap}>League</span><span style={big}>{seasonLabel}</span></div>
-        <div style={cell}><span style={cap}>{x} med</span><span style={big}>{fmt(sx, mx)}</span></div>
-        <div style={cell}><span style={cap}>{y} med</span><span style={big}>{fmt(sy, my)}</span></div>
-        <div style={cell}><span style={cap}>Players</span><span style={big}>{pts.length}</span></div>
-        <div style={cell}><span style={cap}>Top right</span><span style={{ ...big, color: TONE.both }}>{top}</span></div>
+        {litTeam ? <>
+          <div style={{ ...cell, borderLeft: 0 }}><span style={cap}>Team</span><span style={{ ...big, display: 'flex', alignItems: 'center', gap: 6 }}><img src={asset(`logos/color/${litTeam.team}.png`)} alt="" width={18} height={18} />{litTeam.team}</span></div>
+          <div style={cell}><span style={cap} title="Minutes-weighted">{x} avg</span><span style={big}>{fmt(sx, litTeam.vx)}</span></div>
+          <div style={cell}><span style={cap} title="Minutes-weighted">{y} avg</span><span style={big}>{fmt(sy, litTeam.vy)}</span></div>
+          <div style={cell}><span style={cap}>Players</span><span style={big}>{litTeam.ds.length}</span></div>
+          <div style={cell}><span style={cap}>Top right</span><span style={{ ...big, color: TONE.both }}>{litTeam.ds.filter(d => quadrantOf(d.vx, d.vy, mx, my, sx.lowerBetter, sy.lowerBetter) === 'both').length}</span></div>
+        </> : <>
+          <div style={{ ...cell, borderLeft: 0 }}><span style={cap}>League</span><span style={big}>{seasonLabel}</span></div>
+          <div style={cell}><span style={cap}>{x} med</span><span style={big}>{fmt(sx, mx)}</span></div>
+          <div style={cell}><span style={cap}>{y} med</span><span style={big}>{fmt(sy, my)}</span></div>
+          <div style={cell}><span style={cap}>Players</span><span style={big}>{pts.length}</span></div>
+          <div style={cell}><span style={cap}>Top right</span><span style={{ ...big, color: TONE.both }}>{top}</span></div>
+        </>}
       </div>
     </>
   )

@@ -50,7 +50,8 @@ const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rg
 // The lit team's players: each his face (small, round, quiet) on his exact point, his initials
 // under it. Laid out so none overlaps another or the team's logo: each starts on his point and
 // is pushed apart from the rest and pulled back toward it, kept inside the chart; one pushed
-// off his point leaves his dot there, joined to his face by a hairline.
+// off his point leaves a small square there, joined to his face by a hairline (his own dot,
+// sized by minutes, hidden under his face while his team is lit).
 const FACE = 22
 const CARD = { w: 30, h: FACE + 13 }
 const facesOf = (ds, px, py, radius, logo, w, h) => {
@@ -82,9 +83,18 @@ const facesOf = (ds, px, py, radius, logo, w, h) => {
       c.cy = Math.max(M.t + CARD.h / 2 + 2, Math.min(h - M.b - CARD.h / 2 - 2, c.cy))
     }
   }
-  // Initials two teammates share run on into the surname: BCA, BCO.
+  // Initials teammates share run on into the surname (BCA, BCO), or, the surname shared too,
+  // into the first name (JALW, JAYW): the shortest that tells them apart.
   const short = c => initials(c.d.p.name).toUpperCase()
-  const tag = c => (cards.filter(o => short(o) === short(c)).length > 1 ? short(c)[0] + surname(c.d.p).slice(0, 2).toUpperCase() : short(c))
+  const tag = c => {
+    const same = cards.filter(o => short(o) === short(c))
+    if (same.length < 2) return short(c)
+    const first = o => o.d.p.name.split(' ')[0].toUpperCase()
+    const last = o => surname(o.d.p).toUpperCase()
+    const ways = [...Array(8)].flatMap((_, i) => [o => first(o)[0] + last(o).slice(0, i + 2)]).concat([...Array(8)].map((_, i) => o => first(o).slice(0, i + 2) + last(o)[0]))
+    const way = ways.find(f => new Set(same.map(f)).size === same.length)
+    return way ? way(c) : short(c)
+  }
   return cards.map(c => ({ ...c, tag: tag(c), moved: Math.hypot(c.cx - c.home.x, c.cy - c.home.y) > 4 }))
 }
 // No photo: the circle hatched, not left empty.
@@ -338,7 +348,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   // The same elements while only the lit dot changes, so React passes over them.
   const dots = useMemo(() => order.filter(d => shown.has(d.p.id)).map(d => (
     <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
-      fill={!byTeam ? tint(d) : playsFor(d.p, lit) ? INK : ASH} fillOpacity={!byTeam ? 0.82 : playsFor(d.p, lit) ? 0.92 : lit ? 0.16 : 0.3}
+      fill={!byTeam ? tint(d) : ASH} fillOpacity={!byTeam ? 0.82 : playsFor(d.p, lit) ? 0 : lit ? 0.16 : 0.3}
       style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: 'pointer' }}
       onMouseEnter={() => setHover(d.p.id)} onMouseLeave={() => setHover(id => (id === d.p.id ? null : id))} onClick={() => onPick(d.p.id)} />
   )), [order, shown, xa, ya, most, least, w, h, onPick, byTeam, lit]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py, radius and tint are these
@@ -404,7 +414,10 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           ))}
           {/* A face pushed off its dot, joined to it. */}
           {faces.filter(f => f.moved).map(f => (
-            <line key={f.d.p.id} x1={f.x} y1={f.y} x2={f.cx} y2={f.cy - (CARD.h - FACE) / 2} stroke={INK} strokeOpacity={0.7} strokeWidth={1} pointerEvents="none" />
+            <g key={f.d.p.id} pointerEvents="none">
+              <line x1={f.x} y1={f.y} x2={f.cx} y2={f.cy - (CARD.h - FACE) / 2} stroke={INK} strokeOpacity={0.7} strokeWidth={1} />
+              <rect x={f.x - 2} y={f.y - 2} width={4} height={4} fill={INK} />
+            </g>
           ))}
           {/* Every team's logo at its average, the rest quieter while one is lit. They keep their
               order (a node moved under the pointer loses its mouseleave, and its team stayed lit);

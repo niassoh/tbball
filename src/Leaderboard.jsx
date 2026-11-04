@@ -528,10 +528,10 @@ export default function Leaderboard() {
         text: '**Δ VS PREV** turns each value into its change from the season before (in the playoffs, from his regular season): who jumped, who slipped.' },
       { title: 'Last 30 days', target: '.lb button[aria-label="Last 30 days"]',
         text: 'The calendar narrows the season to its **last 30 days**: who\'s hot right now.' },
-      { title: 'Team', target: '.lb button[aria-label^="Team:"]',
-        text: '**Team** keeps one team\'s players on the board.' },
-      { title: 'Teams on the chart', target: '.lb [data-tour="teams"]', action: () => setChart(true),
-        text: '**TEAMS** gathers each team\'s players into its logo, at their minutes-weighted average; point at a logo to see where each of its players sits.' }
+      { title: 'Filter by team', target: '.lb button[aria-label^="Team:"]',
+        text: 'Narrow the board to **one team**.' },
+      { title: 'Team averages', target: '.lb [data-tour="teams"]', action: () => setChart(true),
+        text: 'Or see **every team\'s average** on the chart.' }
     ]
   }
 

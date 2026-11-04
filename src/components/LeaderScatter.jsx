@@ -26,7 +26,9 @@ import Popover from './Popover.jsx'
 // TEAMS in its header groups them (teamsOf): each team's logo at its players' minutes-weighted
 // average, the dots ash behind. A logo under the pointer, or the table's row's team, lights
 // its players white with a hairline from the logo to each, and the strip under the chart
-// becomes that team's; a click on a logo keeps it lit.
+// becomes that team's; a click on a logo keeps it lit. Turning TEAMS on gathers them (GATHER):
+// each player's dot, in its colour, falls into his team's average as the field goes ash, and
+// the team's logo lands where its players met, team after team.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -40,6 +42,9 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', color: DIM
 const M = { l: 30, r: 14, t: 16, b: 30 }
 const ASH = '#6f6a64'
 const LOGO = 22
+// The gathering: each team MOTE ms after the one before; a dot's fall, its team's logo landing
+// as its players arrive.
+const GATHER = { fall: 720, step: 22, land: 380 }
 const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rgba(0,0,0,.6))'
 
 // The lit team's players' tags (Mini), beside their dots: on the right, or on the left near
@@ -234,6 +239,9 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const [byTeam, setByTeam] = useState(false)
   const [teamHover, setTeamHover] = useState(null)
   const [pinned, setPinned] = useState(null)
+  // Set as TEAMS turns on: the gathering plays once, then its motes go.
+  const [gather, setGather] = useState(false)
+  const motes = useRef(null)
   useLayoutEffect(() => {
     const ro = new ResizeObserver(([e]) => setSize({ w: Math.round(e.contentRect.width), h: Math.round(e.contentRect.height) }))
     ro.observe(box.current)
@@ -280,6 +288,21 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const lit = byTeam ? teamHover || (hv && (stintsOf(hv.p).sort((a, b) => b[1] - a[1])[0] || [])[0]) || pinned : null
   const litTeam = teams.find(t => t.team === lit)
   const tags = litTeam ? tagsOf(litTeam.ds, px, py, radius, w, h) : []
+  // Each mote from its player's dot into his team's average, quickening as it nears, shrinking
+  // into it; the gathering cleared once the last team has landed.
+  useLayoutEffect(() => {
+    if (!gather || !motes.current) return
+    const all = [...motes.current.children]
+    for (const m of all) {
+      const { x0, y0, x1, y1, k } = m.dataset
+      m.animate([
+        { transform: `translate(${x0}px, ${y0}px) scale(1)`, opacity: 0.95 },
+        { transform: `translate(${x1}px, ${y1}px) scale(.25)`, opacity: 0.2 }
+      ], { duration: GATHER.fall, delay: k * GATHER.step, easing: 'cubic-bezier(.55, 0, .75, .3)', fill: 'both' })
+    }
+    const done = setTimeout(() => setGather(false), GATHER.fall + teams.length * GATHER.step + GATHER.land)
+    return () => clearTimeout(done)
+  }, [gather]) // eslint-disable-line react-hooks/exhaustive-deps -- once a gathering
   // The same elements while only the lit dot changes, so React passes over them.
   const dots = useMemo(() => order.filter(d => shown.has(d.p.id)).map(d => (
     <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
@@ -317,7 +340,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         <AxisPicker doc={doc} axis="X" value={x} set={v => setAxis('x', v)} />
         <AxisPicker doc={doc} axis="Y" value={y} set={v => setAxis('y', v)} />
         <span style={{ ...label, marginLeft: 'auto', fontSize: 8 }}>● = minutes · ┼ median</span>
-        <button type="button" aria-pressed={byTeam} onClick={() => { setByTeam(v => !v); setPinned(null) }} title="Each team at its players' minutes-weighted average"
+        <button type="button" aria-pressed={byTeam} onClick={() => { setGather(!byTeam && !window.matchMedia('(prefers-reduced-motion: reduce)').matches); setByTeam(v => !v); setPinned(null) }} title="Each team at its players' minutes-weighted average"
           style={{ height: 26, padding: '0 9px', display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${byTeam ? INK : EDGE}`, background: byTeam ? '#3a3734' : 'transparent', color: byTeam ? INK : DIM, fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', cursor: 'pointer' }}>
           <span aria-hidden="true" style={{ width: 7, height: 7, border: `1px solid currentColor`, background: byTeam ? 'currentColor' : 'transparent' }} />TEAMS
         </button>
@@ -354,10 +377,20 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           {/* Every team's logo at its average, the rest quieter while one is lit. They keep their
               order (a node moved under the pointer loses its mouseleave, and its team stayed lit);
               the lit one is drawn again over them, larger. */}
-          {teams.map(t => (
+          {gather && (
+            <g ref={motes} pointerEvents="none">
+              {teams.flatMap((t, k) => t.ds.map(d => (
+                <circle key={`${t.team}|${d.p.id}`} r={Math.min(radius(d.p), 6)} fill={tint(d)}
+                  data-x0={px(d.vx)} data-y0={py(d.vy)} data-x1={px(t.vx)} data-y1={py(t.vy)} data-k={k}
+                  style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)` }} />
+              )))}
+            </g>
+          )}
+          {teams.map((t, k) => (
             <g key={t.team} className="lb-dot lb-team" style={{ transform: `translate(${px(t.vx)}px, ${py(t.vy)}px)`, opacity: lit && t.team !== lit ? 0.3 : 1, cursor: 'pointer' }}
               onMouseEnter={() => setTeamHover(t.team)} onMouseLeave={() => setTeamHover(v => (v === t.team ? null : v))} onClick={() => setPinned(v => (v === t.team ? null : t.team))}>
-              <image href={asset(`logos/color/${t.team}.png`)} x={-LOGO / 2} y={-LOGO / 2} width={LOGO} height={LOGO} style={{ filter: HALO }} />
+              <image href={asset(`logos/color/${t.team}.png`)} x={-LOGO / 2} y={-LOGO / 2} width={LOGO} height={LOGO} className={gather ? 'lb-team-land' : undefined}
+                style={{ filter: HALO, animationDelay: `${GATHER.fall * 0.82 + k * GATHER.step}ms`, animationDuration: `${GATHER.land}ms` }} />
             </g>
           ))}
           {litTeam && (() => {

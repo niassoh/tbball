@@ -38,11 +38,16 @@ function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) 
 }
 
 // The empty state renders the same header and legend rows, hidden, so the card's
-// sections sit at the same heights whether or not there is data.
-function ShotHeader({ divided, children }) {
+// sections sit at the same heights whether or not there is data. The heading names what
+// the zones are set against (`base`: the rest of the season, his career, last season, his
+// regular season), not the league; its "i" explains the map (glossary 'Shot zones').
+function ShotHeader({ divided, base, children }) {
   return (
     <div style={{ padding: '10px 0 0', margin: '0 14px', borderTop: divided ? '1px solid #544f4b' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <span style={subhead}>SHOT PROFILE</span>
+      <Gloss term="Shot zones" style={{ ...subhead, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        SHOT ZONES{base ? ` VS ${base}` : ''}
+        <span aria-hidden="true" style={{ width: 11, height: 11, boxSizing: 'border-box', border: '1px solid #837d76', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, lineHeight: 1, color: '#b3ada6' }}>i</span>
+      </Gloss>
       {children}
     </div>
   )
@@ -123,7 +128,7 @@ function ShotMap({ shotShift, divided, po = false, labels = WINDOWS[po ? 'playof
   }
   return (
     <>
-      <ShotHeader divided={divided}><ModeToggle mode={mode} onPick={setMode} /></ShotHeader>
+      <ShotHeader divided={divided} base={labels.base}><ModeToggle mode={mode} onPick={setMode} /></ShotHeader>
       {/* Takes up the card's slack, the court centred in it: the card spans the season
           rail's row too, so it runs taller than its rows whenever its neighbours do. */}
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, padding: '8px 14px 12px' }}>

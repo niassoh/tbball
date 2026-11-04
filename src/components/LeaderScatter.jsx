@@ -82,15 +82,20 @@ const facesOf = (ds, px, py, radius, logo, w, h) => {
       c.cy = Math.max(M.t + CARD.h / 2 + 2, Math.min(h - M.b - CARD.h / 2 - 2, c.cy))
     }
   }
-  return cards.map(c => ({ ...c, moved: Math.hypot(c.cx - c.home.x, c.cy - c.home.y) > 4 }))
+  // Initials two teammates share run on into the surname: BCA, BCO.
+  const short = c => initials(c.d.p.name).toUpperCase()
+  const tag = c => (cards.filter(o => short(o) === short(c)).length > 1 ? short(c)[0] + surname(c.d.p).slice(0, 2).toUpperCase() : short(c))
+  return cards.map(c => ({ ...c, tag: tag(c), moved: Math.hypot(c.cx - c.home.x, c.cy - c.home.y) > 4 }))
 }
-function Face({ p, cx, cy }) {
+// No photo: the circle hatched, not left empty.
+const HATCH = 'repeating-linear-gradient(45deg, #5a5550 0 1px, transparent 1px 4px)'
+function Face({ p, tag, cx, cy }) {
   return (
     <div className="lb-enter" style={{ position: 'absolute', left: cx - CARD.w / 2, top: cy - CARD.h / 2, width: CARD.w, height: CARD.h, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pointerEvents: 'none', zIndex: 4 }}>
-      <span style={{ width: FACE, height: FACE, borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, boxShadow: '0 0 0 1px rgba(236, 232, 227, .35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: DIM }}>
+      <span style={{ width: FACE, height: FACE, borderRadius: '50%', overflow: 'hidden', background: p.headshot ? PORTRAIT_BG : `${HATCH}, ${PORTRAIT_BG}`, boxShadow: '0 0 0 1px rgba(236, 232, 227, .35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: DIM }}>
         {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={FACE} height={FACE} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%', opacity: 0.88 }} /> : null}
       </span>
-      <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1, letterSpacing: '.1em', color: INK, textShadow: '0 0 3px #141312, 0 0 2px #141312' }}>{initials(p.name).toUpperCase()}</span>
+      <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1, letterSpacing: '.1em', color: INK, textShadow: '0 0 3px #141312, 0 0 2px #141312' }}>{tag}</span>
     </div>
   )
 }
@@ -399,7 +404,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           ))}
           {/* A face pushed off its dot, joined to it. */}
           {faces.filter(f => f.moved).map(f => (
-            <line key={f.d.p.id} x1={f.x} y1={f.y} x2={f.cx} y2={f.cy - (CARD.h - FACE) / 2} stroke={INK} strokeOpacity={0.55} strokeWidth={1} strokeDasharray="1 2" pointerEvents="none" />
+            <line key={f.d.p.id} x1={f.x} y1={f.y} x2={f.cx} y2={f.cy - (CARD.h - FACE) / 2} stroke={INK} strokeOpacity={0.7} strokeWidth={1} pointerEvents="none" />
           ))}
           {/* Every team's logo at its average, the rest quieter while one is lit. They keep their
               order (a node moved under the pointer loses its mouseleave, and its team stayed lit);
@@ -432,7 +437,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         {hv && hover && <Tip doc={doc} d={hv} x={x} y={y}
           left={px(hv.vx) + 16 + TIP_W < w ? px(hv.vx) + 16 : px(hv.vx) - 16 - TIP_W}
           top={Math.max(4, Math.min(h - TIP_H - 4, py(hv.vy) - TIP_H / 2))} />}
-        {faces.map(f => <Face key={f.d.p.id} p={f.d.p} cx={f.cx} cy={f.cy} />)}
+        {faces.map(f => <Face key={f.d.p.id} p={f.d.p} tag={f.tag} cx={f.cx} cy={f.cy} />)}
         {/* The lit team's logo, larger, over its players' faces, where their lines meet. */}
         {litTeam && (() => {
           const s = LOGO * 1.45

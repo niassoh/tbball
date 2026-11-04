@@ -382,7 +382,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         <AxisPicker doc={doc} axis="X" value={x} set={v => setAxis('x', v)} />
         <AxisPicker doc={doc} axis="Y" value={y} set={v => setAxis('y', v)} />
         <span style={{ ...label, marginLeft: 'auto', fontSize: 8 }}>● = minutes · ┼ median</span>
-        <button type="button" aria-pressed={byTeam} onClick={() => { setGather(!byTeam && !window.matchMedia('(prefers-reduced-motion: reduce)').matches); setByTeam(v => !v); setPinned(null) }} title="Each team at its players' minutes-weighted average"
+        <button type="button" data-tour="teams" aria-pressed={byTeam} onClick={() => { setGather(!byTeam && !window.matchMedia('(prefers-reduced-motion: reduce)').matches); setByTeam(v => !v); setPinned(null) }} title="Each team at its players' minutes-weighted average"
           style={{ height: 26, padding: '0 9px', display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${byTeam ? INK : EDGE}`, background: byTeam ? '#3a3734' : 'transparent', color: byTeam ? INK : DIM, fontFamily: MONO, fontSize: 9, letterSpacing: '.1em', cursor: 'pointer' }}>
           <span aria-hidden="true" style={{ width: 7, height: 7, border: `1px solid currentColor`, background: byTeam ? 'currentColor' : 'transparent' }} />TEAMS
         </button>

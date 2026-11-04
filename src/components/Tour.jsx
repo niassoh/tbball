@@ -27,11 +27,19 @@ const rich = text => text.split('**').map((part, k) => {
 const LINE = '#837d76'
 const CARD_BG = '#1f1d1c'
 
-// The tour button, drawn as the controls around it are (`height`: theirs).
+// The tour button, drawn as the controls around it are (`height`: theirs), with a wand in
+// the charts' blue so it catches the eye.
+const WAND = '#8fb0e6'
 export function TourButton({ onClick, height = 30 }) {
   return (
     <button type="button" onClick={onClick} title="A short guided tour of this view"
-      style={{ height, flex: 'none', padding: '0 12px', border: `1px solid ${EDGE}`, background: 'transparent', color: '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: 500, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      style={{ height, flex: 'none', padding: '0 12px 0 10px', display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${EDGE}`, background: 'transparent', color: '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: 500, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      <svg aria-hidden="true" width="13" height="13" viewBox="0 0 13 13" style={{ flex: 'none' }}>
+        <line x1="1.5" y1="11.5" x2="8" y2="5" stroke={WAND} strokeWidth="1.6" strokeLinecap="square" />
+        <path d="M9.5 0.5 L10.2 2.8 L12.5 3.5 L10.2 4.2 L9.5 6.5 L8.8 4.2 L6.5 3.5 L8.8 2.8 Z" fill={WAND} />
+        <rect x="3.5" y="1.5" width="1.6" height="1.6" fill={WAND} opacity=".7" />
+        <rect x="10.5" y="9" width="1.4" height="1.4" fill={WAND} opacity=".55" />
+      </svg>
       Tour
     </button>
   )
@@ -68,7 +76,8 @@ const boxOf = sels => {
 // and BACK / NEXT, DONE on the last. Esc closes; the arrow keys step.
 // `steps`: { target: a selector, or several for one cutout around them all; small: a
 // smaller target for where the target and card don't both fit on screen; mark: a
-// selector for one control in the cutout to outline, which the card then speaks for; title;
+// selector for one control in the cutout to outline (or several, each outlined), which the
+// card then speaks for; title;
 // text: what the thing is, in general; math: a worked sum for the example, its terms
 // ([label, value]) and signs shown a term at a time; example: the player's own case;
 // action }. An action runs as its step comes up, so the page can show what the step
@@ -116,7 +125,7 @@ export default function Tour({ steps, onClose }) {
     let phase = 0
     const frame = () => {
       const st = live.current[i]
-      const markEl = st.mark && document.querySelector(st.mark)
+      const markEls = [].concat(st.mark || []).map(sel => document.querySelector(sel)).filter(Boolean)
       const vw = document.documentElement.clientWidth
       const vh = window.innerHeight
       const shelf = GUTTER + [...document.querySelectorAll('.topbar, #tabs')].reduce((n, el) => n + el.offsetHeight, 0)
@@ -130,14 +139,16 @@ export default function Tour({ steps, onClose }) {
       const first = document.querySelector([].concat(target)[0])
       if (first && phase === 0) {
         phase = 1
-        first.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'instant' })
+        // Nearest, not centred: centring a table column slides it under the table's sticky
+        // player columns.
+        first.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' })
         next.current.focus({ preventScroll: true })
         r = boxOf(target)
       }
       let g = { w, pinned: true }
       if (r) {
-        const m = markEl && shownBox(markEl)
-        const a = m && m.right > m.left ? { top: m.top - 3, left: m.left - 3, bottom: m.bottom + 3, right: m.right + 3 } : r
+        const ms = markEls.map(shownBox).filter(m => m.right > m.left).map(m => ({ top: m.top - 3, left: m.left - 3, bottom: m.bottom + 3, right: m.right + 3 }))
+        const a = ms.length ? { top: Math.min(...ms.map(m => m.top)), left: Math.min(...ms.map(m => m.left)), bottom: Math.max(...ms.map(m => m.bottom)), right: Math.max(...ms.map(m => m.right)) } : r
         // Target and card as one block, centred in the room the screen has, if it's out of it.
         const tall = a.bottom - a.top + GAP + ch
         if (phase === 1) {
@@ -163,7 +174,7 @@ export default function Tour({ steps, onClose }) {
           // Pinned, the pointer shows only where the target is above the card.
           point: pinned ? (a.top < cardTop - GAP ? { side: 'top', at } : null) : { side: under ? 'top' : 'bottom', at }
         }
-        if (m && m.right > m.left) g.mark = { top: a.top + window.scrollY, left: a.left + window.scrollX, width: a.right - a.left, height: a.bottom - a.top }
+        if (ms.length) g.marks = ms.map(m => ({ top: m.top + window.scrollY, left: m.left + window.scrollX, width: m.right - m.left, height: m.bottom - m.top }))
       }
       setGeo(old => (JSON.stringify(old) === JSON.stringify(g) ? old : g))
       raf = requestAnimationFrame(frame)
@@ -184,7 +195,7 @@ export default function Tour({ steps, onClose }) {
       {spot
         ? <div className="tour-spot" style={{ position: 'absolute', ...spot, boxShadow: `0 0 0 1px ${INK}, 0 0 0 200vmax rgba(20, 19, 18, .72)`, pointerEvents: 'none' }} />
         : <div style={{ position: 'fixed', inset: 0, background: 'rgba(20, 19, 18, .72)', pointerEvents: 'none' }} />}
-      {geo && geo.mark && <div style={{ position: 'absolute', ...geo.mark, boxShadow: '0 0 0 2px var(--accent)', pointerEvents: 'none' }} />}
+      {geo && geo.marks && geo.marks.map((m, k) => <div key={k} style={{ position: 'absolute', ...m, boxShadow: '0 0 0 2px var(--accent)', pointerEvents: 'none' }} />)}
       <div ref={card} role="dialog" aria-label={`Tour: ${step.title}`}
         style={{ position: !geo || geo.pinned ? 'fixed' : 'absolute', ...(geo && geo.card ? geo.card : { left: GUTTER, bottom: GUTTER }), width: geo ? geo.w : CARD_W, boxSizing: 'border-box', background: CARD_BG, border: `1px solid ${LINE}`, boxShadow: '0 12px 32px rgba(0,0,0,.5)', fontFamily: MONO, visibility: geo ? 'visible' : 'hidden' }}>
         {/* The callout's pointer: a square turned on its edge, half out of the card, in the

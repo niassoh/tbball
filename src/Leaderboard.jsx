@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchLeaderboard, fetchLeaderboardRecent, fetchLeaderboardSeasons } from './api.js'
 import { agesText, liveAges } from './lib/age.js'
 import { bestEras, combined, combinedDelta, eachSeason, eras, qualified, seasonChange, seasonsBefore, singleYear, withPlayer } from './lib/board.js'
-import { MONO, fmt } from './lib/format.js'
+import { MONO } from './lib/format.js'
 import { ranked, valueOf } from './lib/leaderboard.js'
 import { seasonsBetween, spanYears } from './lib/seasons.js'
 import { useSeasonType } from './useSeasonType.js'
@@ -492,19 +492,15 @@ export default function Leaderboard() {
   const none = doc && !doc.players.length ? (ageOn ? `No players at ${agesText(ageOn.from, ageOn.to).toLowerCase()}` : 'No players') : null
   const spanText = windowed ? 'Last 30 days' : eraOn ? `${eraOn}-season runs` : ageOn ? agesText(ageOn.from, ageOn.to) : !span ? '' : span.from === span.to ? span.from.replace('-', '–') : spanYears(span.from, span.to)
 
-  // The tour: a wander through the board rather than a lesson. It opens on five-year runs
-  // (the seasons panel opens on RUNS, 5 YR picked in it), brings up the Offense tab ranked by
-  // ScoreVal and names whoever's run is on top once its board is in, then shows the other
-  // ways in: regular season or playoffs, Δ vs previous, the last 30 days, one team's players,
-  // and the chart's TEAMS. It sets the board only for the runs; the rest it points at.
+  // The tour (Ben's six steps): seasons, then runs (the seasons panel opens on RUNS and 5 YR
+  // is picked in it), finding a stat (Offense opened, ranked by ScoreVal, the run on top
+  // named once its board is in), the column filters and the minutes box, the header's
+  // filters, and one team or every team's average.
   const tourSteps = () => {
     const top = eraOn === 5 && sortLabel === 'ScoreVal' && !sort.reverse && !loading && drawn[0]
     const seasonsBox = '.lb button[aria-label^="Seasons"]'
     const panel = '.lb [role="dialog"][aria-label^="Seasons"]'
     return [
-      { title: 'Stat groups', target: '.lb [aria-label="Stat group"]', action: () => holdPanel(false),
-        text: "Each tab is a **stat group**; the table and the chart show its stats.",
-        example: "Let's go looking through five-year scoring runs." },
       { title: 'Seasons', target: seasonsBox, action: () => { setRecent(false); holdPanel(false) },
         text: '**Seasons** sets what a row is: one season, a span of seasons, or a run.' },
       { title: 'Runs', target: [seasonsBox, panel], mark: '.lb [data-era="5"]',
@@ -516,22 +512,17 @@ export default function Leaderboard() {
         },
         text: "A **run** averages a player's consecutive seasons into one row, so every 3-, 5- or 7-year stretch sits side by side.",
         example: 'With 5 YR, every five-season stretch is on the board.' },
-      { title: 'Scoring runs', target: '.lb-table-wrap tr[data-id]',
+      { title: 'Find the stat', target: ['.lb [data-group="offense"]', '.lb th[data-stat="ScoreVal"]'],
         action: () => { holdPanel(false); choose('offense'); setSort({ label: 'ScoreVal', reverse: false }) },
-        text: 'The **Offense** tab, ranked by ScoreVal: his scoring\'s value, volume and efficiency together.',
-        example: top
-          ? `On top: **good:${top.name} ${spanYears(top.era[0], top.era[1])}**, ${fmt(doc.stats.ScoreVal, valueOf(doc, top, 'ScoreVal'))} ScoreVal, the best five-year scoring stretch on the board.`
-          : 'Loading every five-year run…' },
-      { title: 'Regular season · Playoffs', target: '.lb [aria-label="Season type"]', action: () => holdPanel(false),
-        text: 'The same board for **the regular season or the playoffs**.' },
-      { title: 'Δ vs previous', target: '.lb button[aria-label^="Δ vs"]',
-        text: '**Δ VS PREV** turns each value into its change from the season before (in the playoffs, from his regular season): who jumped, who slipped.' },
-      { title: 'Last 30 days', target: '.lb button[aria-label="Last 30 days"]',
-        text: 'The calendar narrows the season to its **last 30 days**: who\'s hot right now.' },
-      { title: 'Filter by team', target: '.lb button[aria-label^="Team:"]',
-        text: 'Narrow the board to **one team**.' },
-      { title: 'Team averages', target: '.lb [data-tour="teams"]', action: () => setChart(true),
-        text: 'Or see **every team\'s average** on the chart.' }
+        text: 'To find a stat, **click a category**, then **sort by a stat**.',
+        example: `ScoreVal is an Offense stat, so click OFFENSE and then ScoreVal to see leaders${top ? `: **good:${top.name} ${spanYears(top.era[0], top.era[1])}**.` : '.'}` },
+      { title: 'Filters', target: '.lb button[aria-label^="Filter ScoreVal"]',
+        text: "The little mark on each column keeps only the **top 75%, 50% or 25%** in that stat; they add up across stats.",
+        example: '**MIN** up top does the same for minutes, across the whole board.' },
+      { title: 'More filters', target: '.lb [data-tour="header-filters"]',
+        text: 'Up here: the **last 30 days**, **regular season or playoffs**, and **Δ VS PREV**, each value as its change from the season before.' },
+      { title: 'Teams', target: ['.lb button[aria-label^="Team:"]', '.lb [data-tour="teams"]'], mark: ['.lb button[aria-label^="Team:"]', '.lb [data-tour="teams"]'], action: () => setChart(true),
+        text: '**Team** narrows the board to one team; **TEAMS** turns the chart into each team\'s average.' }
     ]
   }
 
@@ -540,7 +531,7 @@ export default function Leaderboard() {
       <header className="head-row" style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}` }}>
         <BrandMark />
         <SiteNav at="leaderboard" />
-        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <span data-tour="header-filters" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <RecentButton on={recent && !playoffs} set={setRecent} disabled={playoffs} />
           <SeasonToggle regularLit={!recent} onRegular={() => setRecent(false)} />
           <DeltaToggle on={delta && (playoffs ? !eraOn && !ageOn : !!before)} set={setDelta} disabled={playoffs ? !!eraOn || !!ageOn : !prior.length} playoffs={playoffs} />

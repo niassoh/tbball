@@ -15,9 +15,10 @@ const GAP = 6
 // the body, fixed to the screen, so a scrolling table or a card's overflow can't clip
 // it; it closes on a scroll rather than chase the label. `style` is the label's own (a
 // label that's also a button keeps its pointer by passing one).
-// A label the glossary doesn't know renders as is.
-export default function Gloss({ term, style, children }) {
-  const text = define(term)
+// A label the glossary doesn't know renders as is. `note`: the panel's text in place of the
+// glossary's, for a label whose meaning changes with what's on show.
+export default function Gloss({ term, note, style, children }) {
+  const text = note || define(term)
   const id = useId()
   const ref = useRef(null)
   const panel = useRef(null)

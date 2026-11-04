@@ -40,11 +40,12 @@ function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) 
 // The empty state renders the same header and legend rows, hidden, so the card's
 // sections sit at the same heights whether or not there is data. The heading names what
 // the zones are set against (`base`: the rest of the season, his career, last season, his
-// regular season), not the league; its "i" explains the map (glossary 'Shot zones').
-function ShotHeader({ divided, base, children }) {
+// regular season), not the league; its "i" says what the zones show now (`mode`, `say`).
+const SHOWING = { value: 'points per 75 possessions from each zone', freq: 'each zone’s share of his shots', fg: 'his FG% in each zone' }
+function ShotHeader({ divided, base, mode, say, children }) {
   return (
     <div style={{ padding: '10px 0 0', margin: '0 14px', borderTop: divided ? '1px solid #544f4b' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <Gloss term="Shot zones" style={{ ...subhead, color: '#d9d3cc', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <Gloss term="Shot zones" note={mode && `Currently showing ${SHOWING[mode]}, ${say}.`} style={{ ...subhead, color: '#d9d3cc', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
         SHOT ZONES{base ? ` VS ${base}` : ''}
         <span aria-hidden="true" style={{ width: 13, height: 13, boxSizing: 'border-box', background: '#d9d3cc', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, lineHeight: 1, color: '#1f1d1c' }}>i</span>
       </Gloss>
@@ -69,7 +70,11 @@ function ModeToggle({ mode, onPick, hidden }) {
 // The card's two windows: the last 30 days against the rest of the season, or in
 // playoffs mode the playoffs against that regular season (same data shape).
 // `short` fits the shot map's hover box.
-const WINDOWS = { regular: { base: 'SEASON', window: 'RECENT', short: 'SEASON' }, playoffs: { base: 'REG SEASON', window: 'PLAYOFFS', short: 'SEASON' } }
+// `say`: the comparison in words, for the shot map's note.
+const WINDOWS = {
+  regular: { base: 'SEASON', window: 'RECENT', short: 'SEASON', say: 'the last 30 days against the rest of the season' },
+  playoffs: { base: 'REG SEASON', window: 'PLAYOFFS', short: 'SEASON', say: 'the playoffs against the regular season' }
+}
 
 function Legend({ hidden, labels = WINDOWS.regular }) {
   const base = <span key="base" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 1, height: 9, background: '#a09a93' }} />{labels.base}</span>
@@ -128,7 +133,7 @@ function ShotMap({ shotShift, divided, po = false, labels = WINDOWS[po ? 'playof
   }
   return (
     <>
-      <ShotHeader divided={divided} base={labels.base}><ModeToggle mode={mode} onPick={setMode} /></ShotHeader>
+      <ShotHeader divided={divided} base={labels.base} mode={mode} say={labels.say}><ModeToggle mode={mode} onPick={setMode} /></ShotHeader>
       {/* Takes up the card's slack, the court centred in it: the card spans the season
           rail's row too, so it runs taller than its rows whenever its neighbours do. */}
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, padding: '8px 14px 12px' }}>
@@ -385,7 +390,7 @@ function CareerShift({ profile: p, season: k, active = false }) {
     return () => { live = false }
   }, [p.slug])
   const dots = useMemo(() => (packed ? careerDots(packed, s.season) : []), [packed, s.season])
-  const labels = { base: 'CAREER', window: yy(s.season), short: 'CAREER', windowFirst: true }
+  const labels = { base: 'CAREER', window: yy(s.season), short: 'CAREER', windowFirst: true, say: `${s.season.replace('-', '–')} against the rest of his career` }
   const reason = s.empty ? emptyNote(s, 'regular') : 'NO OTHER SEASONS TO COMPARE'
   return (
     <div style={{ border: '1px solid #544f4b', background: '#2c2a28', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -425,7 +430,7 @@ export default function RecentShift({ profile: p, season }) {
   // player in both seasons' pulls.
   const young = !!p.recentShift && !p.recentShift.window.restEnd
   const was = young && `’${p.recentShift.season.slice(2, 4)}`
-  const labels = young ? { base: was, window: yy(p.recentShift.season), short: was, windowFirst: true } : WINDOWS.regular
+  const labels = young ? { base: was, window: yy(p.recentShift.season), short: was, windowFirst: true, say: 'this season so far against last season' } : WINDOWS.regular
   const compared = young ? p.recentShift.stats.length > 0 : games !== 0 && !unqualified
   const reason = young
     ? (games === 0 ? 'NO GAMES THIS SEASON' : 'NO LAST SEASON TO COMPARE')

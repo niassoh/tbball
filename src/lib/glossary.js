@@ -9,8 +9,6 @@ const GLOSSARY = {
   'AuPM / g': 'AuPM scaled by his minutes into points per game above average, so heavy minutes count for more.',
   'Net On': 'His team’s point differential per 100 possessions while he’s on the floor.',
   'Net On/Off': 'His team’s point differential per 100 possessions with him on the floor, minus with him off it.',
-  // The profile's shot map (RecentShift.jsx), not a stat column.
-  'Shot zones': 'Each zone’s change against the period named. PTS / 75: points from the zone. FREQ: share of his shots. FG%: accuracy. Green is up, dark is down.',
 
   // Load & Creation
   'Load': 'Offensive Load: how many plays per 100 possessions he’s directly involved in: his shots, free-throw trips and turnovers, plus the shots and assists he creates for teammates.',

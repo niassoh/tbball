@@ -70,6 +70,11 @@ const positionsOf = doc => {
   return POSITIONS.get(doc)
 }
 
+// A row's minutes by team: a season's own, or a season he was traded in ('2 TM', its teams
+// listed but not his minutes with each) split evenly between them; a combined row's summed.
+export const stintsOf = p => p.stints || (p.teams ? Object.fromEntries(p.teams.map(t => [t, (p.mp || 0) / p.teams.length])) : { [p.team]: p.mp || 0 })
+const addStints = (m, s) => Object.entries(s).reduce((a, [t, mp]) => ({ ...a, [t]: (a[t] || 0) + mp }), m)
+
 const combineOne = (entries, labels, stats = {}) => {
   const last = entries[entries.length - 1].p
   // His age over the seasons: the plain mean of theirs (25 to 28 reads 26.5), in the Age
@@ -120,7 +125,8 @@ const combineOne = (entries, labels, stats = {}) => {
     id: last.slug,
     name: last.name,
     team: teams.length > 1 ? `${teams.length} TM` : teams[0] || last.team,
-    ...(teams.length > 1 ? { teams } : {}),
+    // A player who moved: his minutes with each team (the Leaderboard chart's TEAMS).
+    ...(teams.length > 1 ? { teams, stints: entries.reduce((m, { p }) => addStints(m, stintsOf(p)), {}) } : {}),
     pos: last.pos,
     age,
     gp: entries.reduce((a, { p }) => a + (p.gp || 0), 0),

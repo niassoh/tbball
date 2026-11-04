@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { headshotUrl } from '../api.js'
 import { rowAge } from '../lib/age.js'
+import { stintsOf as minutesBy } from '../lib/board.js'
 import { MONO, col, fmt, ord } from '../lib/format.js'
 import { axisOf, median, pctlOf, quadrantOf, radiusOf, valueOf } from '../lib/leaderboard.js'
 import { initials } from '../lib/teams.js'
@@ -61,19 +62,20 @@ const tagsOf = (ds, px, py, radius, w, h) => {
   return tags
 }
 
-// A dot's team: over several seasons a player who moved ('2 TM') counts for his latest
-// (lib/board.js combineOne keeps his teams in order); nothing else that isn't a team's code.
-const teamOf = p => (p.teams ? p.teams[p.teams.length - 1] : p.team)
+// A dot's teams and his minutes with each: a player who moved ('2 TM') counts for each of his
+// teams by his minutes there (lib/board.js stintsOf), at his values over all of them; nothing
+// that isn't a team's code.
+const stintsOf = p => Object.entries(minutesBy(p)).filter(([team]) => /^[A-Z]{3}$/.test(team || ''))
+const playsFor = (p, team) => stintsOf(p).some(([t]) => t === team)
 
 // The live dots by team: each team's players and its minutes-weighted average on each axis,
 // in the axes' own units.
 const teamsOf = pts => {
   const by = new Map()
-  for (const d of pts) by.set(teamOf(d.p), [...(by.get(teamOf(d.p)) || []), d])
-  return [...by].filter(([team]) => /^[A-Z]{3}$/.test(team || '')).map(([team, ds]) => {
-    const wt = d => d.p.mp || 1
-    const sum = ds.reduce((a, d) => a + wt(d), 0)
-    return { team, ds, vx: ds.reduce((a, d) => a + wt(d) * d.vx, 0) / sum, vy: ds.reduce((a, d) => a + wt(d) * d.vy, 0) / sum }
+  for (const d of pts) for (const [team, mp] of stintsOf(d.p)) by.set(team, [...(by.get(team) || []), { d, mp: mp || 1e-6 }])
+  return [...by].map(([team, xs]) => {
+    const sum = xs.reduce((a, x) => a + x.mp, 0)
+    return { team, ds: xs.map(x => x.d), vx: xs.reduce((a, x) => a + x.mp * x.d.vx, 0) / sum, vy: xs.reduce((a, x) => a + x.mp * x.d.vy, 0) / sum }
   })
 }
 
@@ -214,13 +216,13 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (ax(d.vx) + ay(d.vy) - 1))))
   const hv = (hover || hot) && byId.get(hover || hot)
   const teams = useMemo(() => (byTeam ? teamsOf(pts.filter(d => shown.has(d.p.id))) : []), [byTeam, pts, shown])
-  const lit = byTeam ? teamHover || (hv && teamOf(hv.p)) || pinned : null
+  const lit = byTeam ? teamHover || (hv && (stintsOf(hv.p).sort((a, b) => b[1] - a[1])[0] || [])[0]) || pinned : null
   const litTeam = teams.find(t => t.team === lit)
   const tags = litTeam ? tagsOf(litTeam.ds, px, py, radius, w, h) : []
   // The same elements while only the lit dot changes, so React passes over them.
   const dots = useMemo(() => order.filter(d => shown.has(d.p.id)).map(d => (
     <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
-      fill={!byTeam ? tint(d) : teamOf(d.p) === lit ? INK : ASH} fillOpacity={!byTeam ? 0.82 : teamOf(d.p) === lit ? 0.92 : lit ? 0.16 : 0.3}
+      fill={!byTeam ? tint(d) : playsFor(d.p, lit) ? INK : ASH} fillOpacity={!byTeam ? 0.82 : playsFor(d.p, lit) ? 0.92 : lit ? 0.16 : 0.3}
       style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: 'pointer' }}
       onMouseEnter={() => setHover(d.p.id)} onMouseLeave={() => setHover(id => (id === d.p.id ? null : id))} onClick={() => onPick(d.p.id)} />
   )), [order, shown, xa, ya, most, least, w, h, onPick, byTeam, lit]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py, radius and tint are these

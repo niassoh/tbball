@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { bestEras, combined, combinedDelta, eachSeason, eras, percentileOf, qualified, seasonChange, seasonsBefore, singleYear, withPlayer } from './board.js'
+import { bestEras, combined, combinedDelta, eachSeason, eras, percentileOf, qualified, seasonChange, seasonsBefore, singleYear, stintsOf, withPlayer } from './board.js'
 
 // Two seasons' documents: BPM, and C&S 3% weighted by C&S 3s/36.
 const labels = ['BPM', 'C&S 3%', 'C&S 3s/36']
@@ -182,5 +182,17 @@ describe('board', () => {
     expect(qualified(rows, 1)).toHaveLength(4)
     expect(qualified(rows, 0.5).map(r => r.mp)).toEqual([300, 400])
     expect(qualified(rows, 0.25).map(r => r.mp)).toEqual([400])
+  })
+
+  test('combined: a player who moved keeps his minutes with each team', () => {
+    const [a] = combined([doc('2023-24', [P('a', 1000, [2, 40, 1], { team: 'BOS' })]), doc('2024-25', [P('a', 3000, [6, 30, 3], { team: 'LAL' })]), doc('2025-26', [P('a', 500, [1, 30, 1], { team: 'BOS' })])]).players
+    expect(a.team).toBe('2 TM')
+    expect(a.stints).toEqual({ BOS: 1500, LAL: 3000 })
+    // A season he was traded in: its minutes split between its teams.
+    const [c] = combined([doc('2024-25', [P('a', 1800, [2, 40, 1], { team: '2 TM', teams: ['DAL', 'LAL'] })]), doc('2025-26', [P('a', 2000, [6, 30, 3], { team: 'LAL' })])]).players
+    expect(c.stints).toEqual({ DAL: 900, LAL: 2900 })
+    const [b] = combined([s1, doc('2024-25', [P('a', 3000, [6, 30, 3])])]).players
+    expect(b.stints).toBeUndefined()
+    expect(stintsOf(P('a', 1200, [], { team: '3 TM', teams: ['A', 'B', 'C'] }))).toEqual({ A: 400, B: 400, C: 400 })
   })
 })

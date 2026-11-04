@@ -21,13 +21,15 @@ export const percentileOf = (value, pool, lowerBetter = false) => {
 export const withPlayer = doc => {
   if (doc.labels.includes('Age')) return doc
   const vals = doc.players.map(p => [p.age ?? null, p.ht ?? null])
-  const pools = [0, 1].map(k => vals.map(v => v[k]))
+  // Sorted once and counted by halving (countBelow, as ranked): runs make thousands of rows.
+  const pools = [0, 1].map(k => Float64Array.from(vals.map(v => v[k]).filter(v => v !== null)).sort())
+  const pct = (v, k) => (v === null || !pools[k].length ? null : Math.round((countBelow(pools[k], v, true) / pools[k].length) * 100))
   return {
     ...doc,
     labels: [...doc.labels, 'Age', 'Height'],
     stats: { ...doc.stats, Age: { dec: 1, neutral: true }, Height: { dec: 0, neutral: true, feet: true } },
     groups: [...doc.groups, { id: 'player', name: 'Player', stats: ['Age', 'Height'], axesOnly: true }],
-    players: doc.players.map((p, i) => ({ ...p, v: [...p.v, ...vals[i]], p: [...p.p, ...vals[i].map((v, k) => percentileOf(v, pools[k]))] }))
+    players: doc.players.map((p, i) => ({ ...p, v: [...p.v, ...vals[i]], p: [...p.p, ...vals[i].map(pct)] }))
   }
 }
 
@@ -69,6 +71,23 @@ const positionsOf = doc => {
   if (!POSITIONS.has(doc)) POSITIONS.set(doc, new Map(doc.labels.map((l, k) => [l, k])))
   return POSITIONS.get(doc)
 }
+// Where each of `labels` sits in a document, and its volume stat (SHOT_VOLUME, or a side's
+// `weight`), -1 for none: looked up once per document and label list, not per row.
+const COLUMNS = new WeakMap()
+const columnsOf = (doc, labels, stats) => {
+  if (!COLUMNS.has(doc)) COLUMNS.set(doc, new WeakMap())
+  const byLabels = COLUMNS.get(doc)
+  if (!byLabels.has(labels)) {
+    const at = positionsOf(doc)
+    const col = labels.map(l => at.get(l) ?? -1)
+    const vol = labels.map(l => {
+      const volume = SHOT_VOLUME[l] || (stats[l] || {}).weight
+      return volume ? at.get(volume) ?? -1 : null
+    })
+    byLabels.set(labels, { col, vol })
+  }
+  return byLabels.get(labels)
+}
 
 // A row's minutes by team: a season's own, or a season he was traded in ('2 TM', its teams
 // listed but not his minutes with each) split evenly between them; a combined row's summed.
@@ -82,17 +101,17 @@ const combineOne = (entries, labels, stats = {}) => {
   const ages = entries.map(({ p }) => p.age).filter(a => a !== null && a !== undefined)
   const age = ages.length ? ages.reduce((a, b) => a + b, 0) / ages.length : null
   const teams = [...new Set(entries.flatMap(({ p }) => p.teams || [p.team]).filter(t => !/TM$/.test(t)))]
-  const at = entries.map(({ doc }) => positionsOf(doc))
-  const v = labels.map(l => {
+  const at = entries.map(({ doc }) => columnsOf(doc, labels, stats))
+  const v = labels.map((l, j) => {
     const { weight: by, sum: added } = stats[l] || {}
-    const volume = SHOT_VOLUME[l] || by
     let sum = 0
     let weight = 0
     entries.forEach(({ p }, i) => {
-      const k = at[i].get(l)
-      const x = k === undefined ? null : p.v[k]
+      const k = at[i].col[j]
+      const x = k === -1 ? null : p.v[k]
       if (x === null || !p.mp) return
-      const shots = volume ? p.v[at[i].get(volume)] ?? null : 1
+      const vk = at[i].vol[j]
+      const shots = vk === null ? 1 : p.v[vk] ?? null
       if (!shots) return
       const w = by ? shots : p.mp * shots
       sum += added ? x : x * w
@@ -156,7 +175,7 @@ const countBelow = (sorted, v, strict) => {
 // (eras run to thousands of rows).
 const ranked = (labels, stats, players) => {
   labels.forEach((l, k) => {
-    const pool = players.map(p => p.v[k]).filter(v => v !== null).sort((a, b) => a - b)
+    const pool = Float64Array.from(players.map(p => p.v[k]).filter(v => v !== null)).sort()
     const lower = !!stats[l].lowerBetter
     for (const p of players) {
       const v = p.v[k]

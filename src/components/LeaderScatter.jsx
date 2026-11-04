@@ -265,7 +265,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
       {/* As tall as the panel allows, but never much taller than it's wide. */}
       <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 240, maxHeight: Math.round(w * 1.1) }}>
         <canvas ref={faint} aria-hidden="true" style={{ position: 'absolute', inset: 0, width: w, height: h, pointerEvents: 'none' }} />
-        <svg width={w} height={h} style={{ position: 'absolute', inset: 0, display: 'block' }} onMouseLeave={() => setHover(null)}>
+        <svg width={w} height={h} style={{ position: 'absolute', inset: 0, display: 'block' }} onMouseLeave={() => { setHover(null); setTeamHover(null) }}>
           <rect x={M.l} y={M.t} width={w - M.l - M.r} height={h - M.t - M.b} fill="none" stroke={RULE} />
           {/* The medians cross at the centre: better-in-both up and right, worse-in-both down
               and left, each tinted. */}
@@ -284,18 +284,24 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           {tags.filter(t => Math.abs(t.top + MINI_H / 2 - t.y) > 3).map(t => (
             <line key={t.d.p.id} x1={t.x} y1={t.y} x2={t.left} y2={t.top + MINI_H / 2} stroke={INK} strokeOpacity={0.5} strokeWidth={1} pointerEvents="none" />
           ))}
-          {/* Every team's logo at its average, the lit one larger and on top, the rest quieter. */}
-          {[...teams].sort((a, b) => (a.team === lit) - (b.team === lit)).map(t => {
-            const on = t.team === lit
-            const s = on ? LOGO * 1.45 : LOGO
+          {/* Every team's logo at its average, the rest quieter while one is lit. They keep their
+              order (a node moved under the pointer loses its mouseleave, and its team stayed lit);
+              the lit one is drawn again over them, larger. */}
+          {teams.map(t => (
+            <g key={t.team} className="lb-dot lb-team" style={{ transform: `translate(${px(t.vx)}px, ${py(t.vy)}px)`, opacity: lit && t.team !== lit ? 0.3 : 1, cursor: 'pointer' }}
+              onMouseEnter={() => setTeamHover(t.team)} onMouseLeave={() => setTeamHover(v => (v === t.team ? null : v))} onClick={() => setPinned(v => (v === t.team ? null : t.team))}>
+              <image href={asset(`logos/color/${t.team}.png`)} x={-LOGO / 2} y={-LOGO / 2} width={LOGO} height={LOGO} style={{ filter: HALO }} />
+            </g>
+          ))}
+          {litTeam && (() => {
+            const s = LOGO * 1.45
             return (
-              <g key={t.team} className="lb-dot lb-team" style={{ transform: `translate(${px(t.vx)}px, ${py(t.vy)}px)`, opacity: lit && !on ? 0.3 : 1, cursor: 'pointer' }}
-                onMouseEnter={() => setTeamHover(t.team)} onMouseLeave={() => setTeamHover(v => (v === t.team ? null : v))} onClick={() => setPinned(v => (v === t.team ? null : t.team))}>
-                {pinned === t.team && <rect x={-s / 2 - 4} y={-s / 2 - 4} width={s + 8} height={s + 8} fill="none" stroke={INK} strokeWidth={1} />}
-                <image href={asset(`logos/color/${t.team}.png`)} x={-s / 2} y={-s / 2} width={s} height={s} style={{ filter: HALO }} />
+              <g style={{ transform: `translate(${px(litTeam.vx)}px, ${py(litTeam.vy)}px)` }} pointerEvents="none">
+                {pinned === litTeam.team && <rect x={-s / 2 - 4} y={-s / 2 - 4} width={s + 8} height={s + 8} fill="none" stroke={INK} strokeWidth={1} />}
+                <image href={asset(`logos/color/${litTeam.team}.png`)} x={-s / 2} y={-s / 2} width={s} height={s} style={{ filter: HALO }} />
               </g>
             )
-          })}
+          })()}
           {hv && <circle cx={px(hv.vx)} cy={py(hv.vy)} r={radius(hv.p) + 2.5} fill="none" stroke={INK} strokeWidth={1.5} pointerEvents="none" />}
           {/* Each axis: its ends' values and its name, the better end up and to the right. */}
           <text x={M.l} y={h - M.b + 14} style={{ ...label, fill: FAINT }}>{fmt(sx, xl)}</text>

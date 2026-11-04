@@ -47,17 +47,17 @@ const LOGO = 22
 const GATHER = { fall: 720, step: 22, land: 380 }
 const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rgba(0,0,0,.6))'
 
-// The lit team's players: his dot stays his exact point, his face (small, round, quiet) and
-// initials just above it. Laid out so none overlaps another or the team's logo: each starts
-// over his dot and is pushed apart from the rest and pulled back toward it, kept inside the
-// chart; one pushed off his dot is joined to it by a hairline.
+// The lit team's players: each his face (small, round, quiet) on his exact point, his initials
+// under it. Laid out so none overlaps another or the team's logo: each starts on his point and
+// is pushed apart from the rest and pulled back toward it, kept inside the chart; one pushed
+// off his point leaves his dot there, joined to his face by a hairline.
 const FACE = 22
 const CARD = { w: 30, h: FACE + 13 }
 const facesOf = (ds, px, py, radius, logo, w, h) => {
   const cards = ds.map(d => {
     const x = px(d.vx)
     const y = py(d.vy)
-    const home = { x, y: y - radius(d.p) - 3 - CARD.h / 2 }
+    const home = { x, y: y + (CARD.h - FACE) / 2 }
     return { d, x, y, home, cx: home.x, cy: home.y }
   })
   const fixed = { cx: logo.x, cy: logo.y, w: LOGO * 1.45 + 10, h: LOGO * 1.45 + 10 }
@@ -399,7 +399,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           ))}
           {/* A face pushed off its dot, joined to it. */}
           {faces.filter(f => f.moved).map(f => (
-            <line key={f.d.p.id} x1={f.x} y1={f.y} x2={f.cx} y2={f.cy} stroke={INK} strokeOpacity={0.55} strokeWidth={1} strokeDasharray="1 2" pointerEvents="none" />
+            <line key={f.d.p.id} x1={f.x} y1={f.y} x2={f.cx} y2={f.cy - (CARD.h - FACE) / 2} stroke={INK} strokeOpacity={0.55} strokeWidth={1} strokeDasharray="1 2" pointerEvents="none" />
           ))}
           {/* Every team's logo at its average, the rest quieter while one is lit. They keep their
               order (a node moved under the pointer loses its mouseleave, and its team stayed lit);

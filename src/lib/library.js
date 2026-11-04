@@ -27,13 +27,12 @@ export const franchisePlayers = (rows, franchise, except = new Set()) => {
   }))
 }
 
-// A franchise's players with a season among the league's best: the top 5% (`share`) of
-// every qualified season, all teams and years, by BPM. Each comes once, by his best season
-// there, best first, bringing his `set`: his seasons there over that bar, by season; two
-// or more make a collection. A franchise can have none.
-export const topSeasons = (rows, franchise, share = 0.05) => {
-  const all = rows.map(r => r.bpm).sort((a, b) => b - a)
-  const bar = all[Math.max(0, Math.ceil(all.length * share) - 1)]
+// A franchise's players with a season worth a tile: a qualified season of 3.5+ BPM (`bar`)
+// there. Each comes once, by his best season there, best first, bringing his `set`: his
+// seasons there over that bar, by season; two or more make a collection. A franchise can
+// have none.
+export const TILE_BPM = 3.5
+export const topSeasons = (rows, franchise, bar = TILE_BPM) => {
   const top = rows.filter(r => franchiseOf(r.team) === franchise && r.bpm >= bar).sort((a, b) => b.bpm - a.bpm)
   const seen = new Set()
   return top.filter(r => !seen.has(r.slug) && seen.add(r.slug)).map(r => ({

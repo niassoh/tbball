@@ -24,7 +24,7 @@ import Popover from './Popover.jsx'
 // stays in view as the table is read. A click opens his card. Under it: the season,
 // both medians, how many players, and how many are in the top right.
 // TEAMS in its header groups them (teamsOf): each team's logo at its players' minutes-weighted
-// average, the dots ash behind. A logo under the pointer, or the table's row's team, lights
+// average, the dots ash behind (a player's dot or row answers nothing). A logo under the pointer lights
 // its players white with a hairline from the logo to each, and the strip under the chart
 // becomes that team's; a click on a logo keeps it lit. Turning TEAMS on gathers them (GATHER):
 // each player's dot, in its colour, falls into his team's average as the field goes ash, and
@@ -283,9 +283,10 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   // Toward the top right, bluer; toward the bottom left, more orange (the percentile scale,
   // from how far up and right he sits, each axis 0 to 1 with its median at the middle).
   const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (ax(d.vx) + ay(d.vy) - 1))))
-  const hv = (hover || hot) && byId.get(hover || hot)
+  // Under TEAMS only a team answers the pointer: a player's dot (or row) under it does nothing.
+  const hv = !byTeam && (hover || hot) && byId.get(hover || hot)
   const teams = useMemo(() => (byTeam ? teamsOf(pts.filter(d => shown.has(d.p.id))) : []), [byTeam, pts, shown])
-  const lit = byTeam ? teamHover || (hv && (stintsOf(hv.p).sort((a, b) => b[1] - a[1])[0] || [])[0]) || pinned : null
+  const lit = byTeam ? teamHover || pinned : null
   const litTeam = teams.find(t => t.team === lit)
   const tags = litTeam ? tagsOf(litTeam.ds, px, py, radius, w, h) : []
   // Each mote from its player's dot into his team's average, quickening as it nears, shrinking

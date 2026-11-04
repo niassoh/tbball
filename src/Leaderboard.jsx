@@ -494,11 +494,11 @@ export default function Leaderboard() {
 
   // The tour: a wander through the board rather than a lesson. It opens on five-year runs
   // (the seasons panel opens on RUNS, 5 YR picked in it), brings up the Offense tab ranked by
-  // Pts / 75 and names whoever's run is on top once its board is in, then shows the other
+  // ScoreVal and names whoever's run is on top once its board is in, then shows the other
   // ways in: regular season or playoffs, Δ vs previous, the last 30 days, one team's players,
   // and the chart's TEAMS. It sets the board only for the runs; the rest it points at.
   const tourSteps = () => {
-    const top = eraOn === 5 && sortLabel === 'Pts / 75' && !sort.reverse && !loading && drawn[0]
+    const top = eraOn === 5 && sortLabel === 'ScoreVal' && !sort.reverse && !loading && drawn[0]
     const seasonsBox = '.lb button[aria-label^="Seasons"]'
     const panel = '.lb [role="dialog"][aria-label^="Seasons"]'
     return [
@@ -517,10 +517,10 @@ export default function Leaderboard() {
         text: "A **run** averages a player's consecutive seasons into one row, so every 3-, 5- or 7-year stretch sits side by side.",
         example: 'With 5 YR, every five-season stretch is on the board.' },
       { title: 'Scoring runs', target: '.lb-table-wrap tr[data-id]',
-        action: () => { holdPanel(false); choose('offense'); setSort({ label: 'Pts / 75', reverse: false }) },
-        text: 'The **Offense** tab, ranked by points per 75 possessions.',
+        action: () => { holdPanel(false); choose('offense'); setSort({ label: 'ScoreVal', reverse: false }) },
+        text: 'The **Offense** tab, ranked by ScoreVal: his scoring\'s value, volume and efficiency together.',
         example: top
-          ? `On top: **good:${top.name} ${spanYears(top.era[0], top.era[1])}**, ${fmt(doc.stats['Pts / 75'], valueOf(doc, top, 'Pts / 75'))} points per 75, the best five-year scoring stretch on the board.`
+          ? `On top: **good:${top.name} ${spanYears(top.era[0], top.era[1])}**, ${fmt(doc.stats.ScoreVal, valueOf(doc, top, 'ScoreVal'))} ScoreVal, the best five-year scoring stretch on the board.`
           : 'Loading every five-year run…' },
       { title: 'Regular season · Playoffs', target: '.lb [aria-label="Season type"]', action: () => holdPanel(false),
         text: 'The same board for **the regular season or the playoffs**.' },

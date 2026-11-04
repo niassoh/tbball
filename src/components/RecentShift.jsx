@@ -44,9 +44,9 @@ function Shot({ shot: [x, y, made, recent], offset: [dx, dy], delay, animate }) 
 function ShotHeader({ divided, base, children }) {
   return (
     <div style={{ padding: '10px 0 0', margin: '0 14px', borderTop: divided ? '1px solid #544f4b' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <Gloss term="Shot zones" style={{ ...subhead, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <Gloss term="Shot zones" style={{ ...subhead, color: '#d9d3cc', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
         SHOT ZONES{base ? ` VS ${base}` : ''}
-        <span aria-hidden="true" style={{ width: 11, height: 11, boxSizing: 'border-box', border: '1px solid #837d76', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, lineHeight: 1, color: '#b3ada6' }}>i</span>
+        <span aria-hidden="true" style={{ width: 13, height: 13, boxSizing: 'border-box', background: '#d9d3cc', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, lineHeight: 1, color: '#1f1d1c' }}>i</span>
       </Gloss>
       {children}
     </div>

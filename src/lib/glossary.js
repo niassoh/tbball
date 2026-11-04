@@ -10,7 +10,7 @@ const GLOSSARY = {
   'Net On': 'His team’s point differential per 100 possessions while he’s on the floor.',
   'Net On/Off': 'His team’s point differential per 100 possessions with him on the floor, minus with him off it.',
   // The profile's shot map (RecentShift.jsx), not a stat column.
-  'Shot zones': 'How his shooting in each zone changed from the period named (the rest of the season, his career, last season or his regular season) to this one. PTS / 75 is the points he scores from the zone per 75 possessions, so it moves with how often and how well he shoots there; FREQ is the zone’s share of his shots; FG% his accuracy there. Green zones went up, dark ones down. Point at a zone for its makes and misses in each period.',
+  'Shot zones': 'Each zone’s change against the period named. PTS / 75: points from the zone. FREQ: share of his shots. FG%: accuracy. Green is up, dark is down.',
 
   // Load & Creation
   'Load': 'Offensive Load: how many plays per 100 possessions he’s directly involved in: his shots, free-throw trips and turnovers, plus the shots and assists he creates for teammates.',

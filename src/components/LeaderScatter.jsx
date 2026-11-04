@@ -47,25 +47,18 @@ const LOGO = 22
 const GATHER = { fall: 720, step: 22, land: 380 }
 const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rgba(0,0,0,.6))'
 
-// The lit team's players' tags (Mini), beside their dots: on the right, or on the left near
-// the chart's right edge; each side's stacked top to bottom so none overlaps, kept inside the
-// chart, a tag moved off its dot joined to it by a hairline.
-const tagsOf = (ds, px, py, radius, w, h) => {
-  const tags = ds.map(d => {
-    const x = px(d.vx)
-    const y = py(d.vy)
-    const r = radius(d.p)
-    const flip = x + r + 6 + 30 + surname(d.p).length * 7 > w - M.r
-    return { d, x, y, flip, left: flip ? x - r - 6 : x + r + 6, top: y - MINI_H / 2 }
-  })
-  for (const side of [false, true]) {
-    const col = tags.filter(t => t.flip === side).sort((a, b) => a.top - b.top)
-    for (let i = 1; i < col.length; i++) col[i].top = Math.max(col[i].top, col[i - 1].top + MINI_H + 2)
-    const floor = h - M.b - MINI_H
-    for (let i = col.length - 1; i >= 0; i--) col[i].top = Math.min(col[i].top, i === col.length - 1 ? floor : col[i + 1].top - MINI_H - 2)
-    for (const t of col) t.top = Math.max(2, t.top)
-  }
-  return tags
+// The lit team's players, each at his own spot as his face: a square, ink-edged, centred on
+// his point, his initials on a plate across its foot. The most minutes drawn last, on top.
+const FACE = 36
+function Face({ p, x, y }) {
+  return (
+    <div className="lb-enter" style={{ position: 'absolute', left: x - FACE / 2, top: y - FACE / 2, width: FACE, height: FACE, pointerEvents: 'none', zIndex: 4 }}>
+      <div style={{ width: '100%', height: '100%', boxSizing: 'border-box', border: `1px solid ${INK}`, background: PORTRAIT_BG, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 10, color: DIM, boxShadow: '0 2px 6px rgba(0,0,0,.55)' }}>
+        {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={FACE} height={FACE} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(p.name)}
+      </div>
+      <span style={{ position: 'absolute', left: '50%', bottom: -6, transform: 'translateX(-50%)', padding: '1px 3px', background: INK, color: '#1f1d1c', fontFamily: MONO, fontSize: 8, fontWeight: 700, lineHeight: 1, letterSpacing: '.08em', whiteSpace: 'nowrap' }}>{initials(p.name).toUpperCase()}</span>
+    </div>
+  )
 }
 
 // A dot's teams and his minutes with each: a player who moved ('2 TM') counts for each of his
@@ -219,7 +212,6 @@ function Tip({ doc, d, x, y, left, top }) {
 // dot on its right, or, near the chart's right edge, on its left (`flip`: placed by its
 // right edge, so it sits as close whatever the name's length).
 const MINI_W = 160
-const MINI_H = 22
 const surname = p => p.name.split(' ').slice(1).join(' ') || p.name
 function Mini({ p, left, top, flip }) {
   return (
@@ -288,7 +280,6 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const teams = useMemo(() => (byTeam ? teamsOf(pts.filter(d => shown.has(d.p.id))) : []), [byTeam, pts, shown])
   const lit = byTeam ? teamHover || pinned : null
   const litTeam = teams.find(t => t.team === lit)
-  const tags = litTeam ? tagsOf(litTeam.ds, px, py, radius, w, h) : []
   // Each mote from its player's dot into his team's average, quickening as it nears, shrinking
   // into it; the gathering cleared once the last team has landed.
   useLayoutEffect(() => {
@@ -371,13 +362,9 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           {litTeam && litTeam.ds.map(d => (
             <line key={d.p.id} x1={px(litTeam.vx)} y1={py(litTeam.vy)} x2={px(d.vx)} y2={py(d.vy)} stroke={INK} strokeOpacity={0.4} strokeWidth={1} pointerEvents="none" />
           ))}
-          {/* A tag moved off its dot, joined to it. */}
-          {tags.filter(t => Math.abs(t.top + MINI_H / 2 - t.y) > 3).map(t => (
-            <line key={t.d.p.id} x1={t.x} y1={t.y} x2={t.left} y2={t.top + MINI_H / 2} stroke={INK} strokeOpacity={0.5} strokeWidth={1} pointerEvents="none" />
-          ))}
           {/* Every team's logo at its average, the rest quieter while one is lit. They keep their
               order (a node moved under the pointer loses its mouseleave, and its team stayed lit);
-              the lit one is drawn again over them, larger. */}
+              the lit one is drawn again over them, larger, above its players' faces. */}
           {gather && (
             <g ref={motes} pointerEvents="none">
               {teams.flatMap((t, k) => t.ds.map(d => (
@@ -394,15 +381,6 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
                 style={{ filter: HALO, animationDelay: `${GATHER.fall * 0.82 + k * GATHER.step}ms`, animationDuration: `${GATHER.land}ms` }} />
             </g>
           ))}
-          {litTeam && (() => {
-            const s = LOGO * 1.45
-            return (
-              <g style={{ transform: `translate(${px(litTeam.vx)}px, ${py(litTeam.vy)}px)` }} pointerEvents="none">
-                {pinned === litTeam.team && <rect x={-s / 2 - 4} y={-s / 2 - 4} width={s + 8} height={s + 8} fill="none" stroke={INK} strokeWidth={1} />}
-                <image href={asset(`logos/color/${litTeam.team}.png`)} x={-s / 2} y={-s / 2} width={s} height={s} style={{ filter: HALO }} />
-              </g>
-            )
-          })()}
           {hv && <circle cx={px(hv.vx)} cy={py(hv.vy)} r={radius(hv.p) + 2.5} fill="none" stroke={INK} strokeWidth={1.5} pointerEvents="none" />}
           {/* Each axis: its ends' values and its name, the better end up and to the right. */}
           <text x={M.l} y={h - M.b + 14} style={{ ...label, fill: FAINT }}>{fmt(sx, xl)}</text>
@@ -415,7 +393,16 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         {hv && hover && <Tip doc={doc} d={hv} x={x} y={y}
           left={px(hv.vx) + 16 + TIP_W < w ? px(hv.vx) + 16 : px(hv.vx) - 16 - TIP_W}
           top={Math.max(4, Math.min(h - TIP_H - 4, py(hv.vy) - TIP_H / 2))} />}
-        {tags.map(t => <Mini key={t.d.p.id} p={t.d.p} flip={t.flip} left={t.left} top={t.top} />)}
+        {litTeam && [...litTeam.ds].sort((a, b) => (a.p.mp || 0) - (b.p.mp || 0)).map(d => <Face key={d.p.id} p={d.p} x={px(d.vx)} y={py(d.vy)} />)}
+        {/* The lit team's logo, larger, over its players' faces, where their lines meet. */}
+        {litTeam && (() => {
+          const s = LOGO * 1.45
+          return (
+            <div style={{ position: 'absolute', left: px(litTeam.vx) - s / 2 - 4, top: py(litTeam.vy) - s / 2 - 4, width: s + 8, height: s + 8, boxSizing: 'border-box', border: pinned === litTeam.team ? `1px solid ${INK}` : 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 5 }}>
+              <img src={asset(`logos/color/${litTeam.team}.png`)} alt="" width={s} height={s} style={{ filter: HALO }} />
+            </div>
+          )
+        })()}
         {hv && !hover && !(litTeam && litTeam.ds.includes(hv)) && (() => {
           const flip = px(hv.vx) + radius(hv.p) + 6 + MINI_W > w
           return <Mini p={hv.p} flip={flip} left={flip ? px(hv.vx) - radius(hv.p) - 6 : px(hv.vx) + radius(hv.p) + 6} top={Math.max(2, py(hv.vy) - 12)} />

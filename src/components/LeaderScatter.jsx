@@ -99,14 +99,14 @@ const facesOf = (ds, px, py, radius, logo, w, h) => {
 }
 // No photo: the circle hatched, not left empty.
 const HATCH = 'repeating-linear-gradient(45deg, #5a5550 0 1px, transparent 1px 4px)'
-function Face({ p, tag, share, cx, cy }) {
+function Face({ p, tag, cx, cy }) {
   return (
     <div className="lb-enter" style={{ position: 'absolute', left: cx - CARD.w / 2, top: cy - CARD.h / 2, width: CARD.w, height: CARD.h, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pointerEvents: 'none', zIndex: 4 }}>
       <span style={{ width: FACE, height: FACE, borderRadius: '50%', overflow: 'hidden', background: p.headshot ? PORTRAIT_BG : `${HATCH}, ${PORTRAIT_BG}`, boxShadow: '0 0 0 1px rgba(236, 232, 227, .35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: DIM }}>
         {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={FACE} height={FACE} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%', opacity: 0.88 }} /> : null}
       </span>
       <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1, letterSpacing: '.1em', color: INK, textShadow: '0 0 3px #141312, 0 0 2px #141312', whiteSpace: 'nowrap' }}>
-        {tag}{share != null && <span style={{ fontWeight: 400, letterSpacing: 0, color: DIM, marginLeft: 3 }}>{Math.round(share * 100)}%</span>}
+        {tag}
       </span>
     </div>
   )
@@ -455,7 +455,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         {hv && hover && <Tip doc={doc} d={hv} x={x} y={y}
           left={px(hv.vx) + 16 + TIP_W < w ? px(hv.vx) + 16 : px(hv.vx) - 16 - TIP_W}
           top={Math.max(4, Math.min(h - TIP_H - 4, py(hv.vy) - TIP_H / 2))} />}
-        {faces.map(f => <Face key={f.d.p.id} p={f.d.p} tag={f.tag} share={litTeam.share.get(f.d.p.id)} cx={f.cx} cy={f.cy} />)}
+        {faces.map(f => <Face key={f.d.p.id} p={f.d.p} tag={f.tag} cx={f.cx} cy={f.cy} />)}
         {/* The lit team's logo, larger, over its players' faces, where their lines meet. */}
         {litTeam && (() => {
           const s = LOGO * 1.45

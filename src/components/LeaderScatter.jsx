@@ -53,7 +53,7 @@ const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rg
 // off his point leaves a small square there, joined to his face by a hairline (his own dot,
 // sized by minutes, hidden under his face while his team is lit).
 const FACE = 22
-const CARD = { w: 44, h: FACE + 13 }
+const CARD = { w: 44, h: FACE + 15 }
 const facesOf = (ds, px, py, radius, logo, w, h) => {
   const cards = ds.map(d => {
     const x = px(d.vx)
@@ -102,10 +102,10 @@ const HATCH = 'repeating-linear-gradient(45deg, #5a5550 0 1px, transparent 1px 4
 function Face({ p, tag, cx, cy }) {
   return (
     <div className="lb-enter" style={{ position: 'absolute', left: cx - CARD.w / 2, top: cy - CARD.h / 2, width: CARD.w, height: CARD.h, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pointerEvents: 'none', zIndex: 4 }}>
-      <span style={{ width: FACE, height: FACE, borderRadius: '50%', overflow: 'hidden', background: p.headshot ? PORTRAIT_BG : `${HATCH}, ${PORTRAIT_BG}`, boxShadow: '0 0 0 1px rgba(236, 232, 227, .35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: DIM }}>
-        {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={FACE} height={FACE} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%', opacity: 0.88 }} /> : null}
+      <span style={{ width: FACE, height: FACE, borderRadius: '50%', overflow: 'hidden', background: p.headshot ? PORTRAIT_BG : `${HATCH}, ${PORTRAIT_BG}`, boxShadow: '0 0 0 1.5px rgba(236, 232, 227, .8), 0 0 0 3px #141312', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: DIM }}>
+        {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={FACE} height={FACE} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : null}
       </span>
-      <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1, letterSpacing: '.1em', color: INK, textShadow: '0 0 3px #141312, 0 0 2px #141312', whiteSpace: 'nowrap' }}>
+      <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1, letterSpacing: '.1em', color: INK, background: 'rgba(20, 19, 18, .85)', padding: '2px 3px', whiteSpace: 'nowrap' }}>
         {tag}
       </span>
     </div>
@@ -351,7 +351,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   // The same elements while only the lit dot changes, so React passes over them.
   const dots = useMemo(() => order.filter(d => shown.has(d.p.id)).map(d => (
     <circle key={d.p.id} className="lb-dot lb-dot-in" cx={0} cy={0} r={radius(d.p)}
-      fill={!byTeam ? tint(d) : ASH} fillOpacity={!byTeam ? 0.82 : playsFor(d.p, lit) ? 0 : lit ? 0.16 : 0.3}
+      fill={!byTeam ? tint(d) : ASH} fillOpacity={!byTeam ? 0.82 : playsFor(d.p, lit) ? 0 : lit ? 0.2 : 0.3}
       style={{ transform: `translate(${px(d.vx)}px, ${py(d.vy)}px)`, cursor: 'pointer' }}
       onMouseEnter={() => setHover(d.p.id)} onMouseLeave={() => setHover(id => (id === d.p.id ? null : id))} onClick={() => onPick(d.p.id)} />
   )), [order, shown, xa, ya, most, least, w, h, onPick, byTeam, lit]) // eslint-disable-line react-hooks/exhaustive-deps -- px, py, radius and tint are these
@@ -411,11 +411,21 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           <text x={w - M.r - 6} y={M.t + 12} textAnchor="end" style={{ ...label, fontSize: 9, fill: TONE.both }}>+ +</text>
           <text x={M.l + 6} y={h - M.b - 6} style={{ ...label, fontSize: 9, fill: TONE.neither }}>− −</text>
           {dots}
-          {/* The lit team: a line from its logo to each of its players, as heavy as his weight in
-              its average (his share of its minutes, against the team's biggest). */}
+          {/* The lit team: a hairline from its logo to each of its players, glowing as strongly as
+              his weight in its average (his share of its minutes, against the team's biggest).
+              Squared: a rotation's shares sit close together, and a glow at half strength
+              reads nearly as bright as a full one. The glow's region is the whole chart: a level or upright line's own box has no
+              height or width, and the blur would vanish in it. */}
+          <defs><filter id="lb-glow" filterUnits="userSpaceOnUse" x={0} y={0} width={w} height={h}><feGaussianBlur stdDeviation={2} /></filter></defs>
           {litTeam && litTeam.ds.map(d => {
-            const k = litTeam.share.get(d.p.id) / Math.max(...litTeam.share.values())
-            return <line key={d.p.id} x1={px(litTeam.vx)} y1={py(litTeam.vy)} x2={px(d.vx)} y2={py(d.vy)} stroke={INK} strokeOpacity={0.2 + 0.45 * k} strokeWidth={0.5 + 2.5 * k} pointerEvents="none" />
+            const k = (litTeam.share.get(d.p.id) / Math.max(...litTeam.share.values())) ** 2
+            const ends = { x1: px(litTeam.vx), y1: py(litTeam.vy), x2: px(d.vx), y2: py(d.vy) }
+            return (
+              <g key={d.p.id} pointerEvents="none">
+                <line {...ends} stroke={INK} strokeOpacity={0.5 * k} strokeWidth={1 + 3 * k} filter="url(#lb-glow)" />
+                <line {...ends} stroke={INK} strokeOpacity={0.12 + 0.78 * k} strokeWidth={1} />
+              </g>
+            )
           })}
           {/* A face pushed off its dot, joined to it. */}
           {faces.filter(f => f.moved).map(f => (
@@ -437,7 +447,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
             </g>
           )}
           {teams.map((t, k) => (
-            <g key={t.team} className="lb-dot lb-team" style={{ transform: `translate(${px(t.vx)}px, ${py(t.vy)}px)`, opacity: lit && t.team !== lit ? 0.3 : 1, cursor: 'pointer' }}
+            <g key={t.team} className="lb-dot lb-team" style={{ transform: `translate(${px(t.vx)}px, ${py(t.vy)}px)`, opacity: lit && t.team !== lit ? 0.12 : 1, cursor: 'pointer' }}
               onMouseEnter={() => setTeamHover(t.team)} onMouseLeave={() => setTeamHover(v => (v === t.team ? null : v))} onClick={() => setPinned(v => (v === t.team ? null : t.team))}>
               <image href={asset(`logos/color/${t.team}.png`)} x={-LOGO / 2} y={-LOGO / 2} width={LOGO} height={LOGO} className={gather ? 'lb-team-land' : undefined}
                 style={{ filter: HALO, animationDelay: `${GATHER.fall * 0.82 + k * GATHER.step}ms`, animationDuration: `${GATHER.land}ms` }} />

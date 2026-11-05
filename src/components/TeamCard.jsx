@@ -362,9 +362,9 @@ export default function TeamCard({ doc, team: t, season, against, trophies = [],
           <Section title="Defense by start" right="share · rating"><Rows x={x} heads={['Share', 'DRTG']} rows={startsOf('Def')} delay={AT.rows + 4 * AT.step} /></Section>
         </div>
       </div>
-      {/* The last section takes the card's spare height, its chart and units centred in it. */}
-      <Section title="Depth" style={{ flex: '1 0 auto', paddingBottom: 6 }} right={today && today.season === season ? 'Today · ESPN' : <span title="First row: the team's most-used five. Then everyone with an hour on the floor, by minutes">Rotation · by min</span>}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 7 }}>
+      {/* The last section takes the card's spare height, its chart and units at its top. */}
+      <Section title="Depth" style={{ flex: '1 0 auto', paddingBottom: 6 }} right={today && today.season === season ? 'Today' : <span title="First row: the team's most-used five. Then everyone with an hour on the floor, by minutes">Rotation · by min</span>}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
           <Depth team={t.team} season={season} doc={units} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 5, borderTop: `1px solid ${RULE}` }}>
             <span style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>

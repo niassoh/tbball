@@ -53,7 +53,7 @@ const HALO = 'drop-shadow(0 0 1.5px rgba(20,19,18,.95)) drop-shadow(0 1px 3px rg
 // off his point leaves a small square there, joined to his face by a hairline (his own dot,
 // sized by minutes, hidden under his face while his team is lit).
 const FACE = 22
-const CARD = { w: 30, h: FACE + 13 }
+const CARD = { w: 44, h: FACE + 13 }
 const facesOf = (ds, px, py, radius, logo, w, h) => {
   const cards = ds.map(d => {
     const x = px(d.vx)
@@ -99,13 +99,15 @@ const facesOf = (ds, px, py, radius, logo, w, h) => {
 }
 // No photo: the circle hatched, not left empty.
 const HATCH = 'repeating-linear-gradient(45deg, #5a5550 0 1px, transparent 1px 4px)'
-function Face({ p, tag, cx, cy }) {
+function Face({ p, tag, share, cx, cy }) {
   return (
     <div className="lb-enter" style={{ position: 'absolute', left: cx - CARD.w / 2, top: cy - CARD.h / 2, width: CARD.w, height: CARD.h, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pointerEvents: 'none', zIndex: 4 }}>
       <span style={{ width: FACE, height: FACE, borderRadius: '50%', overflow: 'hidden', background: p.headshot ? PORTRAIT_BG : `${HATCH}, ${PORTRAIT_BG}`, boxShadow: '0 0 0 1px rgba(236, 232, 227, .35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 8, color: DIM }}>
         {p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={FACE} height={FACE} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%', opacity: 0.88 }} /> : null}
       </span>
-      <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1, letterSpacing: '.1em', color: INK, textShadow: '0 0 3px #141312, 0 0 2px #141312' }}>{tag}</span>
+      <span style={{ fontFamily: MONO, fontSize: 9, fontWeight: 700, lineHeight: 1, letterSpacing: '.1em', color: INK, textShadow: '0 0 3px #141312, 0 0 2px #141312', whiteSpace: 'nowrap' }}>
+        {tag}{share != null && <span style={{ fontWeight: 400, letterSpacing: 0, color: DIM, marginLeft: 3 }}>{Math.round(share * 100)}%</span>}
+      </span>
     </div>
   )
 }
@@ -117,13 +119,14 @@ const stintsOf = p => Object.entries(minutesBy(p)).filter(([team]) => /^[A-Z]{3}
 const playsFor = (p, team) => stintsOf(p).some(([t]) => t === team)
 
 // The live dots by team: each team's players and its minutes-weighted average on each axis,
-// in the axes' own units.
+// in the axes' own units, and each player's weight in it (`share`, by id: his minutes there
+// over the team's).
 const teamsOf = pts => {
   const by = new Map()
   for (const d of pts) for (const [team, mp] of stintsOf(d.p)) by.set(team, [...(by.get(team) || []), { d, mp: mp || 1e-6 }])
   return [...by].map(([team, xs]) => {
     const sum = xs.reduce((a, x) => a + x.mp, 0)
-    return { team, ds: xs.map(x => x.d), vx: xs.reduce((a, x) => a + x.mp * x.d.vx, 0) / sum, vy: xs.reduce((a, x) => a + x.mp * x.d.vy, 0) / sum }
+    return { team, ds: xs.map(x => x.d), share: new Map(xs.map(x => [x.d.p.id, x.mp / sum])), vx: xs.reduce((a, x) => a + x.mp * x.d.vx, 0) / sum, vy: xs.reduce((a, x) => a + x.mp * x.d.vy, 0) / sum }
   })
 }
 
@@ -408,10 +411,12 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           <text x={w - M.r - 6} y={M.t + 12} textAnchor="end" style={{ ...label, fontSize: 9, fill: TONE.both }}>+ +</text>
           <text x={M.l + 6} y={h - M.b - 6} style={{ ...label, fontSize: 9, fill: TONE.neither }}>− −</text>
           {dots}
-          {/* The lit team: a hairline from its logo to each of its players. */}
-          {litTeam && litTeam.ds.map(d => (
-            <line key={d.p.id} x1={px(litTeam.vx)} y1={py(litTeam.vy)} x2={px(d.vx)} y2={py(d.vy)} stroke={INK} strokeOpacity={0.4} strokeWidth={1} pointerEvents="none" />
-          ))}
+          {/* The lit team: a line from its logo to each of its players, as heavy as his weight in
+              its average (his share of its minutes, against the team's biggest). */}
+          {litTeam && litTeam.ds.map(d => {
+            const k = litTeam.share.get(d.p.id) / Math.max(...litTeam.share.values())
+            return <line key={d.p.id} x1={px(litTeam.vx)} y1={py(litTeam.vy)} x2={px(d.vx)} y2={py(d.vy)} stroke={INK} strokeOpacity={0.2 + 0.45 * k} strokeWidth={0.5 + 2.5 * k} pointerEvents="none" />
+          })}
           {/* A face pushed off its dot, joined to it. */}
           {faces.filter(f => f.moved).map(f => (
             <g key={f.d.p.id} pointerEvents="none">
@@ -450,7 +455,7 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
         {hv && hover && <Tip doc={doc} d={hv} x={x} y={y}
           left={px(hv.vx) + 16 + TIP_W < w ? px(hv.vx) + 16 : px(hv.vx) - 16 - TIP_W}
           top={Math.max(4, Math.min(h - TIP_H - 4, py(hv.vy) - TIP_H / 2))} />}
-        {faces.map(f => <Face key={f.d.p.id} p={f.d.p} tag={f.tag} cx={f.cx} cy={f.cy} />)}
+        {faces.map(f => <Face key={f.d.p.id} p={f.d.p} tag={f.tag} share={litTeam.share.get(f.d.p.id)} cx={f.cx} cy={f.cy} />)}
         {/* The lit team's logo, larger, over its players' faces, where their lines meet. */}
         {litTeam && (() => {
           const s = LOGO * 1.45

@@ -3,7 +3,7 @@ import { fetchUnits, headshotUrl } from '../api.js'
 import { MONO, heat, signed } from '../lib/format.js'
 import { asset } from '../lib/static.js'
 import { initials } from '../lib/teams.js'
-import { combine, statsOf, teamRow } from '../lib/unitsView.js'
+import { ALL_COLS, UNIT_GROUPS, combine, statsOf, teamRow } from '../lib/unitsView.js'
 
 // The Team board's UNITS mode: the 30 teams ranked by their units of one size (2 to 5) over
 // the board's seasons (lib/unitsView.js teamRow), in the board's own shape. On the right a
@@ -59,20 +59,6 @@ function useLeague(seasons, teams) {
   return { views: state.key === key ? state.views : new Map(), loading: state.key !== key || state.got < teams.length }
 }
 
-// The table's columns: a label, the value from a team's row, how it prints, and which way
-// is better (1 higher, -1 lower, 0 unshaded).
-const COLS = [
-  { id: 'min', name: 'Min', v: r => r.top && r.top.s.minutes, text: v => Math.round(v).toLocaleString(), better: 0, title: 'The most-used unit’s minutes' },
-  { id: 'share', name: 'Share', v: r => r.share, text: v => `${v.toFixed(0)}%`, better: 0, title: 'Its share of the team’s minutes: how settled the rotation is' },
-  { id: 'net', name: 'Net', v: r => r.top && r.top.s.net, text: v => signed(v), better: 1, title: 'Its net rating (ORTG − DRTG)' },
-  { id: 'ortg', name: 'ORTG', v: r => r.top && r.top.s.ortg, text: v => v.toFixed(1), better: 1 },
-  { id: 'drtg', name: 'DRTG', v: r => r.top && r.top.s.drtg, text: v => v.toFixed(1), better: -1 },
-  { id: 'rest', name: 'Rest net', v: r => r.rest && r.rest.net, text: v => signed(v), better: 1, title: 'The team’s net in every other minute' },
-  { id: 'best', name: 'Best net', v: r => r.best && r.best.s.net, text: v => signed(v), better: 1, title: 'Its best unit over the league’s minutes floor' },
-  { id: 'rank', name: 'Best #', v: r => r.best && r.best.rank && r.best.rank.rank, text: (v, r) => `${v}/${r.best.rank.of}`, better: -1, title: 'That unit’s rank among the league’s' },
-  { id: 'over', name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Units over the league’s minutes floor' },
-  { id: 'positive', name: '+Min', v: r => r.positive, text: v => `${v.toFixed(0)}%`, better: 1, title: 'Share of those units’ minutes in units with a positive net' }
-]
 // A value's place among the 30 as a percentile (100 the best), for its shade.
 const percentiles = (rows, col) => {
   const vals = rows.map(r => col.v(r)).filter(v => v !== null && v !== undefined)
@@ -99,7 +85,7 @@ function Faces({ ids, view }) {
 }
 
 const td = { height: 30, padding: '0 8px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', whiteSpace: 'nowrap' }
-const Row = memo(function Row({ r, rank, pct, on, setHot, onPick }) {
+const Row = memo(function Row({ r, cols, sortId, rank, pct, on, setHot, onPick }) {
   return (
     <tr className="lb-row" aria-selected={on} onMouseEnter={() => setHot(r.code)} onMouseLeave={() => setHot(null)} onClick={() => onPick(r.code)}>
       <td style={{ ...td, textAlign: 'center', padding: 0, color: DIM, fontSize: 11 }}>{rank}</td>
@@ -110,10 +96,10 @@ const Row = memo(function Row({ r, rank, pct, on, setHot, onPick }) {
         </span>
       </td>
       <td style={{ ...td, textAlign: 'left' }}>{r.top ? <Faces ids={r.top.ids} view={r.view} /> : <span style={{ color: FAINT }}>—</span>}</td>
-      {COLS.map(c => {
+      {cols.map(c => {
         const v = c.v(r)
         const p = pct[c.id](v)
-        return <td key={c.id} style={{ ...td, background: p === null ? undefined : heat(p), color: v === null || v === undefined ? FAINT : INK }}>{v === null || v === undefined ? '—' : c.text(v, r)}</td>
+        return <td key={c.id} style={{ ...td, background: p === null ? undefined : heat(p), color: v === null || v === undefined ? FAINT : INK, fontWeight: sortId === c.id ? 600 : 400 }}>{v === null || v === undefined ? '—' : c.text(v, r)}</td>
       })}
     </tr>
   )
@@ -138,6 +124,13 @@ function Field({ rows, k, hot, setHot, onPick }) {
   const maxMin = Math.max(1, ...rows.flatMap(r => (r.view ? r.view.units[k] : []).map(u => u.seconds / 60)))
   const radius = m => 1.2 + 6 * Math.sqrt(m / maxMin)
   const run = 1100
+  // The sweep plays once, on arrival (a new size or seasons remount the field); a new
+  // order just moves the rows.
+  const [intro, setIntro] = useState(true)
+  useEffect(() => {
+    const id = setTimeout(() => setIntro(false), run + 400)
+    return () => clearTimeout(id)
+  }, [])
   return (
     <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 0 }} onMouseLeave={() => { setHot(null); setTip(null) }}>
       <svg width={w} height={h} style={{ display: 'block' }}>
@@ -163,16 +156,16 @@ function Field({ rows, k, hot, setHot, onPick }) {
                 // The biggest on the line, the rest a little above or below in turn.
                 const dy = j === 0 ? 0 : ((j % 2 ? -1 : 1) * Math.ceil(j / 2) * rowH) / 9 % (rowH / 2.6)
                 return (
-                  <circle key={u.key} className="uf-dot" cx={cx} cy={y + dy} r={radius(s.minutes)} fill={tone(s.net)} fillOpacity={j === 0 ? 0.95 : 0.5}
+                  <circle key={u.key} className={intro ? 'uf-dot' : undefined} cx={cx} cy={y + dy} r={radius(s.minutes)} fill={tone(s.net)} fillOpacity={j === 0 ? 0.95 : 0.5}
                     stroke={j === 0 ? INK : 'none'} strokeWidth={1.2} style={{ animationDelay: `${Math.round(((cx - GUTTER) / (w - GUTTER)) * run)}ms` }}
                     onMouseEnter={() => setTip({ x: cx, y: y + dy, r, u, s })} onMouseLeave={() => setTip(null)} />
                 )
               })}
-              {r.team.net !== null && <rect x={x(r.team.net) - 1} y={y - rowH / 2 + 3} width={2} height={rowH - 6} fill={INK} className="uf-dot" style={{ animationDelay: `${run}ms` }} />}
+              {r.team.net !== null && <rect x={x(r.team.net) - 1} y={y - rowH / 2 + 3} width={2} height={rowH - 6} fill={INK} className={intro ? 'uf-dot' : undefined} style={{ animationDelay: `${run}ms` }} />}
             </g>
           )
         })}
-        <rect className="uf-playhead" x={GUTTER} y={top - 6} width={2} height={h - top} style={{ '--run': `${w - GUTTER}px`, '--ms': `${run}ms` }} />
+        {intro && <rect className="uf-playhead" x={GUTTER} y={top - 6} width={2} height={h - top} style={{ '--run': `${w - GUTTER}px`, '--ms': `${run}ms` }} />}
       </svg>
       {tip && (
         <div style={{ position: 'absolute', left: Math.min(tip.x + 10, w - 230), top: tip.y + 10, width: 220, padding: '8px 10px', background: 'rgba(28,27,26,.94)', border: `1px solid ${EDGE}`, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -190,7 +183,7 @@ function Field({ rows, k, hot, setHot, onPick }) {
 }
 
 // `teams`: [{ team, name }]; `seasons`: the board's; `k`: the unit size.
-export default function UnitsBoard({ teams, seasons, k, onPick }) {
+export default function UnitsBoard({ teams, seasons, k, group: groupId, onPick }) {
   const codes = useMemo(() => teams.map(t => t.team), [teams])
   const { views, loading } = useLeague(seasons, codes)
   const [sort, setSort] = useState({ id: 'min', reverse: false })
@@ -199,13 +192,14 @@ export default function UnitsBoard({ teams, seasons, k, onPick }) {
     const view = views.get(t.team)
     return { code: t.team, name: t.name, view, ...teamRow(view, k) }
   }), [teams, views, k])
-  const col = COLS.find(c => c.id === sort.id)
-  const sorted = useMemo(() => {
-    const dir = (col.better || 1) * (sort.reverse ? -1 : 1)
-    const v = r => col.v(r)
-    return [...rows].sort((a, b) => (v(a) === null || v(a) === undefined) - (v(b) === null || v(b) === undefined) || (v(b) - v(a)) * dir)
-  }, [rows, col, sort.reverse])
-  const pct = useMemo(() => Object.fromEntries(COLS.map(c => [c.id, percentiles(rows, c)])), [rows])
+  const group = UNIT_GROUPS.find(g => g.id === groupId) || UNIT_GROUPS[0]
+  // A group without the sorted stat sorts by its first.
+  const col = group.cols.find(c => c.id === sort.id) || group.cols[0]
+  const by = col.id === sort.id ? sort : { id: col.id, reverse: false }
+  const dir = (col.better || 1) * (by.reverse ? -1 : 1)
+  const none = r => col.v(r) === null || col.v(r) === undefined
+  const sorted = [...rows].sort((a, b) => none(a) - none(b) || (col.v(b) - col.v(a)) * dir)
+  const pct = useMemo(() => Object.fromEntries(ALL_COLS.map(c => [c.id, percentiles(rows, c)])), [rows])
   const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 8px 6px', borderBottom: `1px solid ${RULE}`, background: '#262422', textAlign: 'right', verticalAlign: 'bottom' }
   return (
     <div className={`lb-body tb-body${loading ? ' lb-loading' : ''}`}>
@@ -223,14 +217,14 @@ export default function UnitsBoard({ teams, seasons, k, onPick }) {
             <tr>
               <th style={{ ...head, width: 30, textAlign: 'center', padding: '15px 0 6px' }}><span style={label}>#</span></th>
               <th style={{ ...head, textAlign: 'left', borderRight: `1px solid ${RULE}` }}><span style={label}>Team</span></th>
-              <th style={{ ...head, textAlign: 'left' }}><span style={label}>Most used</span></th>
-              {COLS.map(c => {
-                const on = sort.id === c.id
+              <th style={{ ...head, textAlign: 'left' }}><span style={label}>Most-used unit</span></th>
+              {group.cols.map(c => {
+                const on = by.id === c.id
                 return (
-                  <th key={c.id} style={{ ...head, minWidth: 58, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none' }} aria-sort={on ? (sort.reverse ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" className="lb-head-cell" title={[c.title, 'Sort by this; again to flip'].filter(Boolean).join(' · ')} onClick={() => setSort(s => ({ id: c.id, reverse: s.id === c.id ? !s.reverse : false }))}
+                  <th key={c.id} style={{ ...head, minWidth: 58, boxShadow: on ? `inset 0 -2px 0 ${INK}` : 'none' }} aria-sort={on ? (by.reverse ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" className="lb-head-cell" title={[c.title, 'Sort by this; again to flip'].filter(Boolean).join(' · ')} onClick={() => setSort({ id: c.id, reverse: by.id === c.id ? !by.reverse : false })}
                       style={{ ...label, display: 'inline-flex', alignItems: 'flex-end', gap: 3, padding: 0, border: 0, background: 'transparent', color: on ? INK : DIM, cursor: 'pointer' }}>
-                      {c.name}<span aria-hidden="true" style={{ width: 7, color: INK }}>{on ? (sort.reverse ? '↑' : '↓') : ''}</span>
+                      {c.name}<span aria-hidden="true" style={{ width: 7, color: INK }}>{on ? (by.reverse ? '↑' : '↓') : ''}</span>
                     </button>
                   </th>
                 )
@@ -238,7 +232,7 @@ export default function UnitsBoard({ teams, seasons, k, onPick }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((r, i) => <Row key={r.code} r={r} rank={i + 1} pct={pct} on={hot === r.code} setHot={setHot} onPick={onPick} />)}
+            {sorted.map((r, i) => <Row key={r.code} r={r} cols={group.cols} sortId={by.id} rank={i + 1} pct={pct} on={hot === r.code} setHot={setHot} onPick={onPick} />)}
           </tbody>
         </table>
       </div>

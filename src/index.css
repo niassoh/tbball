@@ -674,3 +674,4 @@ a:hover > .lineup-tile > * { filter: none; }
 .uf-playhead { fill: var(--accent); opacity: 0; animation: uf-run var(--ms, 1s) linear both; }
 @keyframes uf-run { 0% { opacity: .9; transform: translateX(0); } 92% { opacity: .9; } 100% { opacity: 0; transform: translateX(var(--run, 0)); } }
 @media (prefers-reduced-motion: reduce) { .uf-dot { animation: none; } .uf-playhead { display: none; } }
+.lb-select:focus-visible { outline: 1px solid #a09a93; outline-offset: -1px; }

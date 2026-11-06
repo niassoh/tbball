@@ -7,6 +7,7 @@ import { seasonsBefore } from './lib/board.js'
 import { seasonsBetween } from './lib/seasons.js'
 import { asset } from './lib/static.js'
 import { boardOver, placeOf, teamChange, tiedOf, trophiesOf } from './lib/teamboard.js'
+import { UNIT_GROUPS } from './lib/unitsView.js'
 import ModeSwitch from './components/ModeSwitch.jsx'
 import SeasonPicker from './components/SeasonPicker.jsx'
 import { Each, Eras } from './components/SpanControls.jsx'
@@ -70,8 +71,21 @@ const td = { height: 30, padding: '0 8px', borderBottom: `1px solid ${RULE}`, te
 const RECORD = ['Wins', 'Losses']
 // A head's name where the sheet's is cryptic.
 const NAMES = { 'LA Bayes Win-pace': 'Luck Adjusted\nBayes Win-pace' }
-// UNITS mode's unit sizes, in the stat groups' place.
-const UNIT_SIZES = [2, 3, 4, 5].map(k => ({ id: k, name: `${k}-man` }))
+// The board's two views (TEAMS | UNITS), and UNITS mode's unit sizes.
+const VIEWS = [['teams', 'Teams'], ['units', 'Units']]
+const UNIT_SIZES = [2, 3, 4, 5]
+// The unit size, a dropdown in RAW | RANK's place.
+function SizeSelect({ k, set }) {
+  return (
+    <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', height: 30, border: `1px solid ${EDGE}` }}>
+      <select aria-label="Unit size" value={k} onChange={e => set(Number(e.target.value))} className="lb-select"
+        style={{ appearance: 'none', height: '100%', padding: '0 28px 0 12px', border: 0, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+        {UNIT_SIZES.map(n => <option key={n} value={n} style={{ background: '#262422' }}>{n}-man units</option>)}
+      </select>
+      <span aria-hidden="true" style={{ position: 'absolute', right: 10, color: DIM, fontSize: 9, pointerEvents: 'none' }}>▾</span>
+    </label>
+  )
+}
 // RAW | RANK: a cell's value, or its place among the 30 ("1st", "4th", a shared one "T-6th").
 const MODES = [['raw', 'Raw'], ['rank', 'Rank']]
 // A row of the table; memoized, so a hover redraws only the rows it lights and unlights
@@ -171,6 +185,7 @@ export default function TeamBoard() {
   // open under it stays open).
   const [unitsMode, setUnitsMode] = useState(() => params.get('view') === 'units')
   const [unitK, setUnitK] = useState(5)
+  const [unitGroup, setUnitGroup] = useState('overview')
   const [unitsOf, setUnitsOf] = useState(() => (params.get('view') === 'units' ? params.get('team') : null))
   const closeUnits = useCallback(() => setUnitsOf(null), [])
   const openUnits = useCallback(team => { setUnitsMode(true); setUnitsOf(team) }, [])
@@ -275,15 +290,11 @@ export default function TeamBoard() {
           )
           : <span className="lb-skel" style={{ width: 184, height: 30 }} />}
         {doc && unitsMode
-          ? <Groups groups={UNIT_SIZES} active={unitK} pick={setUnitK} />
+          ? <Groups groups={UNIT_GROUPS} active={unitGroup} pick={setUnitGroup} />
           : doc ? <Groups groups={doc.groups} active={g.id} pick={choose} /> : <span className="lb-skel" style={{ width: 560, height: 30 }} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <button type="button" className="lb-group uv-enter" aria-pressed={unitsMode} disabled={!doc} onClick={() => { setUnitsMode(m => !m); setUnitsOf(null) }} title="The teams by their 2- to 5-man units"
-            style={{ height: 30, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${unitsMode ? INK : EDGE}`, background: unitsMode ? '#3a3734' : 'transparent', color: unitsMode ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', cursor: doc ? 'pointer' : 'default' }}>
-            <span aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 4px)', gap: 1 }}>{[1, 0, 1, 1, 1, 0, 0, 1, 1].map((on, i) => <span key={i} style={{ width: 4, height: 4, background: on ? 'currentColor' : EDGE }} />)}</span>
-            Units
-          </button>
-          {!unitsMode && <ModeSwitch name="Cells read in" options={MODES} mode={mode} setMode={setMode} />}
+          <ModeSwitch name="Board" height={30} options={VIEWS} mode={unitsMode ? 'units' : 'teams'} setMode={m => { setUnitsMode(m === 'units'); setUnitsOf(null) }} />
+          {unitsMode ? <SizeSelect k={unitK} set={setUnitK} /> : <ModeSwitch name="Cells read in" options={MODES} mode={mode} setMode={setMode} />}
         </span>
       </div>
       {doc === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
@@ -292,7 +303,7 @@ export default function TeamBoard() {
           <UnitsView key={unitK} size={unitK} team={unitsOf} seasons={unitSeasons} teams={boardTeams} setTeam={setUnitsOf} onClose={closeUnits} />
         </div>
       )}
-      {doc && unitsMode && !unitsOf && unitSeasons.length > 0 && <UnitsBoard teams={boardTeams} seasons={unitSeasons} k={unitK} onPick={setUnitsOf} />}
+      {doc && unitsMode && !unitsOf && unitSeasons.length > 0 && <UnitsBoard teams={boardTeams} seasons={unitSeasons} k={unitK} group={unitGroup} onPick={setUnitsOf} />}
       {doc && !unitsMode && (
         <div className="lb-body tb-body lb-enter">
           <div className={`lb-side${row ? ' lb-carded' : ''}`}>

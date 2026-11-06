@@ -1,3 +1,5 @@
+import { signed } from './format.js'
+
 // The Team board's units view (components/UnitsView.jsx): a team's 2- to 5-man units from
 // thinking-bball's units files (lib/profile.js unitsDoc), which carry counts, not ratings
 // (seconds, possessions, and box-score counts for the unit, t, and its opponents, o, in
@@ -157,3 +159,50 @@ export const teamRow = (view, k) => {
     positive: minutes ? (100 * qualified.filter(u => u.s.net > 0).reduce((a, u) => a + u.s.minutes, 0)) / minutes : null
   }
 }
+
+// The table's columns: a label, the value from a team's row, how it prints, and which way
+// is better (1 higher, -1 lower, 0 unshaded: a style, or how much). In groups, as the
+// board's stats are: Overview (the most-used unit, the rest of the team's minutes, its
+// best unit and how its units do), then the most-used unit's offense and defense.
+const pctText = v => `${v.toFixed(1)}`
+const ofTop = f => r => (r.top ? f(r.top.s) : null)
+const COL_OVERVIEW = [
+  { id: 'min', name: 'Min', v: ofTop(s => s.minutes), text: v => Math.round(v).toLocaleString(), better: 0, title: 'The most-used unit’s minutes' },
+  { id: 'share', name: 'Share', v: r => r.share, text: v => `${v.toFixed(0)}%`, better: 0, title: 'Its share of the team’s minutes: how settled the rotation is' },
+  { id: 'net', name: 'Net', v: ofTop(s => s.net), text: v => signed(v), better: 1, title: 'Its net rating (ORTG − DRTG)' },
+  { id: 'ortg', name: 'ORTG', v: ofTop(s => s.ortg), text: v => v.toFixed(1), better: 1 },
+  { id: 'drtg', name: 'DRTG', v: ofTop(s => s.drtg), text: v => v.toFixed(1), better: -1 },
+  { id: 'rest', name: 'Rest net', v: r => r.rest && r.rest.net, text: v => signed(v), better: 1, title: 'The team’s net in every other minute' },
+  { id: 'best', name: 'Best net', v: r => r.best && r.best.s.net, text: v => signed(v), better: 1, title: 'Its best unit over the league’s minutes floor' },
+  { id: 'rank', name: 'Best #', v: r => r.best && r.best.rank && r.best.rank.rank, text: (v, r) => `${v}/${r.best.rank.of}`, better: -1, title: 'That unit’s rank among the league’s' },
+  { id: 'over', name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Units over the league’s minutes floor' },
+  { id: 'positive', name: '+Min', v: r => r.positive, text: v => `${v.toFixed(0)}%`, better: 1, title: 'Share of those units’ minutes in units with a positive net' }
+]
+// The most-used unit's shot mix on one end, as shares of FGA (a style: unshaded).
+const mixCols = (end, pre) => [['rim', 'Rim'], ['short', 'Short mid'], ['long', 'Long mid'], ['corner', 'Corner 3'], ['above', 'Above-break 3']]
+  .map(([k, name]) => ({ id: `${end}-${k}`, name: `${pre}${name}`, v: ofTop(s => s[end].mix[k]), text: v => `${v.toFixed(0)}%`, better: 0, title: `Share of ${end === 'off' ? 'its' : 'opponents’'} FGA` }))
+const COL_OFFENSE = [
+  { id: 'o-ortg', name: 'ORTG', v: ofTop(s => s.ortg), text: v => v.toFixed(1), better: 1 },
+  { id: 'o-rortg', name: 'rORTG', v: ofTop(s => s.rortg), text: v => signed(v), better: 1, title: 'ORTG against the league’s' },
+  { id: 'o-efg', name: 'eFG%', v: ofTop(s => s.off.efg), text: pctText, better: 1 },
+  { id: 'o-tov', name: 'TOV%', v: ofTop(s => s.off.tov), text: pctText, better: -1, title: 'Turnovers per 100 possessions' },
+  { id: 'o-oreb', name: 'OREB%', v: ofTop(s => s.off.oreb), text: pctText, better: 1, title: 'Share of its misses it got back' },
+  { id: 'o-ftr', name: 'FT rate', v: ofTop(s => s.off.ftr), text: pctText, better: 1, title: 'FTA per 100 FGA' },
+  ...mixCols('off', ''),
+  { id: 'o-pace', name: 'Pace', v: ofTop(s => s.pace), text: v => v.toFixed(1), better: 0, title: 'Possessions per 48 minutes' }
+]
+const COL_DEFENSE = [
+  { id: 'd-drtg', name: 'DRTG', v: ofTop(s => s.drtg), text: v => v.toFixed(1), better: -1 },
+  { id: 'd-rdrtg', name: 'rDRTG', v: ofTop(s => s.rdrtg), text: v => signed(v), better: -1, title: 'DRTG against the league’s' },
+  { id: 'd-efg', name: 'Opp eFG%', v: ofTop(s => s.def.efg), text: pctText, better: -1 },
+  { id: 'd-tov', name: 'Forced TOV%', v: ofTop(s => s.def.tov), text: pctText, better: 1, title: 'Opponents’ turnovers per 100 possessions' },
+  { id: 'd-dreb', name: 'DREB%', v: ofTop(s => (s.def.oreb === null ? null : 100 - s.def.oreb)), text: pctText, better: 1, title: 'Share of opponents’ misses it got' },
+  { id: 'd-ftr', name: 'Opp FT rate', v: ofTop(s => s.def.ftr), text: pctText, better: -1, title: 'Opponents’ FTA per 100 FGA' },
+  ...mixCols('def', 'Opp ')
+]
+export const UNIT_GROUPS = [
+  { id: 'overview', name: 'Overview', cols: COL_OVERVIEW },
+  { id: 'offense', name: 'Offense', cols: COL_OFFENSE },
+  { id: 'defense', name: 'Defense', cols: COL_DEFENSE }
+]
+export const ALL_COLS = UNIT_GROUPS.flatMap(g => g.cols)

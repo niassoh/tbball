@@ -17,8 +17,9 @@ const add = (a, b) => (a ? a.map((v, i) => v + (b[i] || 0)) : [...b])
 // face); the team's and the league's totals summed. Each unit also sums the league's
 // ORTG and DRTG weighted by its own possessions each season (lgOff, lgDef), so its rORTG
 // and rDRTG set it against the league of its own seasons. A unit's league rank is its
-// season's (null over many seasons, which have no league of units to rank in); the
-// league's minutes floors are the seasons' added up.
+// season's (null over many seasons, which have no league of units to rank in). Over many
+// seasons a unit clears the league's minutes floor with what one season asks (the highest
+// of theirs), not their sum: few units play together every season of a long span.
 export const combine = docs => {
   const one = docs.length === 1
   const units = Object.fromEntries(SIZES.map(k => [k, new Map()]))
@@ -43,7 +44,7 @@ export const combine = docs => {
     const sum = (a, b) => ({ seconds: (a ? a.seconds : 0) + b.seconds, offPoss: (a ? a.offPoss : 0) + b.offPoss, defPoss: (a ? a.defPoss : 0) + b.defPoss, t: add(a && a.t, b.t), o: add(a && a.o, b.o) })
     total = { ...sum(total, d.total), lgOff: ((total || {}).lgOff || 0) + lgO * d.total.offPoss, lgDef: ((total || {}).lgDef || 0) + lgD * d.total.defPoss }
     league = sum(league, d.league)
-    for (const k of SIZES) floors[k] += (d.floors || {})[k] || 0
+    for (const k of SIZES) floors[k] = Math.max(floors[k], (d.floors || {})[k] || 0)
   }
   const last = docs[docs.length - 1]
   return {

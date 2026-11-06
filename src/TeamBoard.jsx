@@ -263,7 +263,8 @@ export default function TeamBoard() {
   const covered = !row ? [] : era ? seasonsBetween(...row.id.split('|')[1].split('..')) : doc.many && !each ? wanted : [row.season || doc.season]
   const trophies = row ? trophiesOf(docs, covered, row.team) : []
   // The units' seasons: the open card's, else the board's (a run's board: its last season).
-  const unitSeasons = row ? covered : era ? wanted.slice(-1) : wanted
+  // Units have no runs (a run is a team's own seasons): UNITS reads the picked span.
+  const unitSeasons = row ? covered : wanted
   const boardTeams = doc ? [...new Map(doc.teams.map(t => [t.team, { team: t.team, name: t.name }])).values()].sort((a, b) => a.name.localeCompare(b.name)) : []
   const choose = id => {
     const next = doc.groups.find(x => x.id === id)
@@ -284,9 +285,9 @@ export default function TeamBoard() {
           ? (
             <SeasonPicker seasons={seasons} from={span.from} to={span.to} n={wanted.length} width="auto"
               pick={(from, to) => { setSpan({ from, to }); setEra(null); setEach(false) }}
-              readout={era ? `${era}-yr runs` : null}
-              aside={wanted.length > 1 && !era ? <Each each={each} set={setEach} tips={['A row for each team-season', 'One row for each team over the span']} /> : null}
-              extra={<Eras era={era} set={setEra} who="team" />} />
+              readout={era && !unitsMode ? `${era}-yr runs` : null}
+              aside={wanted.length > 1 && !era && !unitsMode ? <Each each={each} set={setEach} tips={['A row for each team-season', 'One row for each team over the span']} /> : null}
+              extra={unitsMode ? null : <Eras era={era} set={setEra} who="team" />} />
           )
           : <span className="lb-skel" style={{ width: 184, height: 30 }} />}
         {doc && unitsMode

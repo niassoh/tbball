@@ -175,7 +175,8 @@ export const fieldUnits = (view, k) => (view.units[k] || [])
   .sort((a, b) => b.s.minutes - a.s.minutes)
 
 // The table's columns: a label, the value from a team's row, how it prints, and which way
-// is better (1 higher, -1 lower, 0 unshaded: a style, or how much). In groups, as the
+// is better (1 higher, -1 lower, 0 unshaded: a style, or how much); `team`: a column of
+// the team's units together, not of one unit. In groups, as the
 // board's stats are: Overview (the most-used unit, the rest of the team's minutes, its
 // best unit and how its units do), then the most-used unit's offense and defense.
 const pctText = v => `${v.toFixed(1)}`
@@ -187,9 +188,8 @@ const COL_OVERVIEW = [
   { id: 'ortg', name: 'ORTG', v: ofTop(s => s.ortg), text: v => v.toFixed(1), better: 1 },
   { id: 'drtg', name: 'DRTG', v: ofTop(s => s.drtg), text: v => v.toFixed(1), better: -1 },
   { id: 'rest', name: 'Rest net', v: r => r.rest && r.rest.net, text: v => signed(v), better: 1, title: 'The team’s net in every other minute' },
-  { id: 'best', name: 'Best net', v: r => r.best && r.best.s.net, text: v => signed(v), better: 1, title: 'Its best unit over the league’s minutes floor' },
-  { id: 'over', name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Units over the league’s minutes floor' },
-  { id: 'positive', name: '+Min', v: r => r.positive, text: v => `${v.toFixed(0)}%`, better: 1, title: 'Share of those units’ minutes in units with a positive net' }
+  { id: 'over', team: true, name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Units over the league’s minutes floor' },
+  { id: 'positive', team: true, name: '+Min', v: r => r.positive, text: v => `${v.toFixed(0)}%`, better: 1, title: 'Share of those units’ minutes in units with a positive net' }
 ]
 // The most-used unit's shot mix on one end, as shares of FGA (a style: unshaded).
 const mixCols = (end, pre) => [['rim', 'Rim'], ['short', 'Short mid'], ['long', 'Long mid'], ['corner', 'Corner 3'], ['above', 'Above-break 3']]
@@ -219,3 +219,19 @@ export const UNIT_GROUPS = [
   { id: 'defense', name: 'Defense', cols: COL_DEFENSE }
 ]
 export const ALL_COLS = UNIT_GROUPS.flatMap(g => g.cols)
+
+// A team's best unit by a column, among `cands` ([{ u, row: unitRow }], its units over the
+// floor): the highest value, or the lowest where lower is better.
+export const bestBy = (cands, col) => {
+  let best = null
+  let bv = null
+  for (const x of cands) {
+    const v = col.v(x.row)
+    if (v === null || v === undefined) continue
+    if (best === null || (v - bv) * (col.better || 1) > 0) {
+      best = x
+      bv = v
+    }
+  }
+  return best
+}

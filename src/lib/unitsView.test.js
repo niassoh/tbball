@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { columns, combine, statsOf, teamRow, tracks } from './unitsView.js'
+import { bestBy, columns, combine, statsOf, teamRow, tracks } from './unitsView.js'
 
 const FIELDS = ['Points', 'FG2M', 'FG2A', 'FG3M', 'FG3A', 'AtRimFGM', 'AtRimFGA', 'ShortMidRangeFGM', 'ShortMidRangeFGA', 'LongMidRangeFGM', 'LongMidRangeFGA', 'Corner3FGM', 'Corner3FGA', 'FTA', 'Turnovers', 'LiveBallTurnovers', 'OffRebounds', 'DefRebounds', 'Assists', 'Steals', 'Blocks', 'Fouls']
 // Counts by name, the rest 0.
@@ -93,5 +93,15 @@ describe('combine floors', () => {
     const b = { ...season('2001-02', 100, []), floors: { 2: 250, 3: 120, 4: 100, 5: 60 } }
     expect(combine([a, b]).floors).toEqual({ 2: 354, 3: 212, 4: 141, 5: 85 })
     expect(combine([a]).floors).toEqual(a.floors)
+  })
+})
+
+describe('bestBy', () => {
+  it('takes the highest value, or the lowest where lower is better, past empty ones', () => {
+    const cands = [{ u: 'a', row: { x: 3 } }, { u: 'b', row: { x: null } }, { u: 'c', row: { x: 7 } }]
+    expect(bestBy(cands, { v: r => r.x, better: 1 }).u).toBe('c')
+    expect(bestBy(cands, { v: r => r.x, better: -1 }).u).toBe('a')
+    expect(bestBy(cands, { v: r => r.x, better: 0 }).u).toBe('c')
+    expect(bestBy([], { v: r => r.x, better: 1 })).toBeNull()
   })
 })

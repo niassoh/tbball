@@ -184,7 +184,7 @@ export default function TeamBoard() {
   // UNITS mode, its unit size, and the team whose units are open in it, if any (a card
   // open under it stays open).
   const [unitsMode, setUnitsMode] = useState(() => params.get('view') === 'units')
-  const [unitK, setUnitK] = useState(5)
+  const [unitK, setUnitK] = useState(3)
   const [unitGroup, setUnitGroup] = useState('overview')
   const [unitsOf, setUnitsOf] = useState(() => (params.get('view') === 'units' ? params.get('team') : null))
   const closeUnits = useCallback(() => setUnitsOf(null), [])

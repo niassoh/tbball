@@ -221,7 +221,7 @@ function Field({ rows, k, hot, setHot, onPick, lit, setLit, onUnit }) {
 export default function UnitsBoard({ teams, seasons, k, group: groupId, onPick }) {
   const codes = useMemo(() => teams.map(t => t.team), [teams])
   const { views, loading } = useLeague(seasons, codes)
-  const [sort, setSort] = useState({ id: 'min', reverse: false })
+  const [sort, setSort] = useState({ id: 'best', reverse: false })
   const [hot, setHot] = useState(null)
   // Teams whose units are open under their rows; the unit under the pointer (`team|unit`),
   // and the one a dot's click held.

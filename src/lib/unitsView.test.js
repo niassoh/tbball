@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bestBy, columns, combine, statsOf, teamRow, tracks } from './unitsView.js'
+import { bestBy, columns, combine, minutesCut, statsOf, teamRow, tracks } from './unitsView.js'
 
 const FIELDS = ['Points', 'FG2M', 'FG2A', 'FG3M', 'FG3A', 'AtRimFGM', 'AtRimFGA', 'ShortMidRangeFGM', 'ShortMidRangeFGA', 'LongMidRangeFGM', 'LongMidRangeFGA', 'Corner3FGM', 'Corner3FGA', 'FTA', 'Turnovers', 'LiveBallTurnovers', 'OffRebounds', 'DefRebounds', 'Assists', 'Steals', 'Blocks', 'Fouls']
 // Counts by name, the rest 0.
@@ -75,7 +75,7 @@ describe('teamRow', () => {
       unit(['A', 'C'], 40, 40, 40, { Points: 52 }, { Points: 40 }), // +30, under the 200-min floor
       unit(['B', 'C'], 30, 30, 30, { Points: 27 }, { Points: 30 }) // −10
     ])])
-    view.floors[2] = 50 // its units on the board: 37.5 min and up
+    view.floors[2] = 70 // the league's pool: 35 min and up
     const r = teamRow(view, 2)
     expect(r.top.key).toBe('A-B')
     expect(r.share).toBeCloseTo(60) // 60 of the team's 100 minutes
@@ -102,5 +102,21 @@ describe('bestBy', () => {
     expect(bestBy(cands, { v: r => r.x, better: -1 }).u).toBe('a')
     expect(bestBy(cands, { v: r => r.x, better: 0 }).u).toBe('c')
     expect(bestBy([], { v: r => r.x, better: 1 })).toBeNull()
+  })
+})
+
+describe('minutesCut', () => {
+  it('reads the minutes the top share of the league’s pool has, the pool half the floor and up', () => {
+    const view = combine([season('2001-02', 100, [
+      unit(['A', 'B'], 60, 50, 50, { Points: 60 }, { Points: 50 }),
+      unit(['A', 'C'], 40, 40, 40, { Points: 52 }, { Points: 40 }),
+      unit(['B', 'C'], 30, 30, 30, { Points: 27 }, { Points: 30 }),
+      unit(['B', 'D'], 10, 10, 10, { Points: 10 }, { Points: 10 }) // under the pool's 15
+    ])])
+    view.floors[2] = 30
+    expect(minutesCut([view], 2, 1)).toBe(30)
+    expect(minutesCut([view], 2, 0.5)).toBe(40)
+    expect(minutesCut([view], 2, 0.25)).toBe(60)
+    expect(minutesCut([], 2, 0.5)).toBe(0)
   })
 })

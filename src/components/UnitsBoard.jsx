@@ -203,11 +203,10 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
 }
 
 // `teams`: [{ team, name }]; `seasons`: the board's; `k`: the unit size.
-// `views`, `loading`: every team's units over `seasons` (useLeagueUnits); `minShare`: the
-// share of the league's minutes floor a unit needs to be on the board (lib/unitsView.js
-// fieldUnits); `card`: the team whose units (UnitsView) cover the field, if any;
+// `views`, `loading`: every team's units over `seasons` (useLeagueUnits); `min`: the
+// minutes a unit needs to be on the board (MIN, lib/unitsView.js minutesCut); `card`: the team whose units (UnitsView) cover the field, if any;
 // `onClose` closes it.
-export default function UnitsBoard({ teams, seasons, views, loading, k, minShare, group: groupId, card, onPick, onClose }) {
+export default function UnitsBoard({ teams, seasons, views, loading, k, min, group: groupId, card, onPick, onClose }) {
   const [sort, setSort] = useState({ id: 'net', reverse: false })
   const [bestStat, setBestStat] = useState('net')
   const [hot, setHot] = useState(null)
@@ -232,12 +231,12 @@ export default function UnitsBoard({ teams, seasons, views, loading, k, minShare
   }, [held])
   const rows = useMemo(() => teams.filter(t => views.has(t.team)).map(t => {
     const view = views.get(t.team)
-    const units = fieldUnits(view, k, minShare)
-    const row = teamRow(view, k, minShare)
+    const units = fieldUnits(view, k, min)
+    const row = teamRow(view, k, min)
     // BEST picks among the units listed under its row and on its line of the field.
     const cands = units.map(u => ({ u, row: unitRow(view, u, row.team) }))
     return { code: t.team, name: t.name, view, units, cands, ...row }
-  }), [teams, views, k, minShare])
+  }), [teams, views, k, min])
   const group = UNIT_GROUPS.find(g => g.id === groupId) || UNIT_GROUPS[0]
   const cols = group.cols
   // Each team's row is one unit, its best by `bestStat` (by minutes, its most-used),

@@ -140,12 +140,12 @@ export const floorSteps = (view, k) => {
 // unit's ratings; the team's net in every other minute (rest: the team's counts less the
 // unit's); how many units it has on the board (fieldUnits), and the share of their
 // minutes in units with a positive net.
-export const teamRow = (view, k, share = 0.75) => {
+export const teamRow = (view, k, min = 0) => {
   const all = (view.units[k] || []).map(u => ({ ...u, s: statsOf(u, view.fields) })).filter(u => u.s.net !== null)
   const top = all.reduce((a, u) => (!a || u.s.minutes > a.s.minutes ? u : a), null)
   const team = statsOf(view.total, view.fields)
   if (!top) return { team, top: null, share: null, rest: null, over: 0, positive: null }
-  const qualified = fieldUnits(view, k, share)
+  const qualified = fieldUnits(view, k, min)
   const minutes = qualified.reduce((a, u) => a + u.s.minutes, 0)
   return {
     ...unitRow(view, top, team),
@@ -164,12 +164,23 @@ export const unitRow = (view, u, team = statsOf(view.total, view.fields)) => {
   return { top: u, share: team.minutes ? (100 * u.s.minutes) / team.minutes : null, rest: rest.minutes > 0 ? rest : null, over: null, positive: null }
 }
 
-// A team's units on the board's field and under its row: those with `share` of the
-// league's minutes floor (the reader's MIN; ¾ unless picked: the small ones would drown
-// it, the whole floor leaves some teams none), most minutes first.
-export const fieldUnits = (view, k, share = 0.75) => (view.units[k] || [])
+// The league's units the board ranks by minutes: those with half its minutes floor (which
+// grows with the seasons, so a long span's pool isn't every pairing that ever shared a
+// minute).
+const inPool = (view, k, s) => s.net !== null && s.minutes >= view.floors[k] / 2
+
+// MIN: the minutes the top `top` of the league's pooled units of size k have (`views`:
+// every team's, combine's), so 1 keeps the whole pool.
+export const minutesCut = (views, k, top) => {
+  const mins = views.flatMap(v => (v.units[k] || []).map(u => statsOf(u, v.fields)).filter(s => inPool(v, k, s)).map(s => s.minutes)).sort((a, b) => b - a)
+  return mins.length ? mins[Math.max(0, Math.ceil(mins.length * top) - 1)] : 0
+}
+
+// A team's units on the board's field and under its row: those in the pool with `min`
+// minutes or more (minutesCut), most minutes first.
+export const fieldUnits = (view, k, min = 0) => (view.units[k] || [])
   .map(u => ({ ...u, s: statsOf(u, view.fields) }))
-  .filter(u => u.s.net !== null && u.s.minutes >= view.floors[k] * share)
+  .filter(u => inPool(view, k, u.s) && u.s.minutes >= min)
   .sort((a, b) => b.s.minutes - a.s.minutes)
 
 // The table's columns: a label, the value from a team's row, how it prints, and which way
@@ -186,7 +197,7 @@ const COL_OVERVIEW = [
   { id: 'ortg', name: 'ORTG', v: ofTop(s => s.ortg), text: v => v.toFixed(1), better: 1 },
   { id: 'drtg', name: 'DRTG', v: ofTop(s => s.drtg), text: v => v.toFixed(1), better: -1 },
   { id: 'rest', name: 'Rest net', v: r => r.rest && r.rest.net, text: v => signed(v), better: 1, title: 'The team’s net in every other minute' },
-  { id: 'over', team: true, name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Units on the board: those over MIN' },
+  { id: 'over', team: true, name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Its units on the board (MIN)' },
   { id: 'positive', team: true, name: '+Min', v: r => r.positive, text: v => `${v.toFixed(0)}%`, better: 1, title: 'Share of those units’ minutes in units with a positive net' }
 ]
 // The unit's shot mix on one end, as shares of FGA (a style: unshaded).

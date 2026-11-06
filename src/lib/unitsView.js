@@ -198,7 +198,7 @@ const COL_OVERVIEW = [
   { id: 'drtg', name: 'DRTG', v: ofTop(s => s.drtg), text: v => v.toFixed(1), better: -1 },
   { id: 'rest', name: 'Rest net', v: r => r.rest && r.rest.net, text: v => signed(v), better: 1, title: 'The team’s net in every other minute' },
   { id: 'over', team: true, name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Its units on the board (MIN)' },
-  { id: 'positive', team: true, name: '+Min', v: r => r.positive, text: v => `${v.toFixed(0)}%`, better: 1, title: 'Share of those units’ minutes in units with a positive net' }
+  { id: 'positive', team: true, name: 'Min in +', v: r => r.positive, text: v => `${v.toFixed(0)}%`, better: 1, title: 'Of the minutes its units on the board played, the share played by units that outscored their opponents (net above 0): how much of its rotation wins' }
 ]
 // The unit's shot mix on one end, as shares of FGA (a style: unshaded).
 const mixCols = (end, pre) => [['rim', 'Rim'], ['short', 'Short mid'], ['long', 'Long mid'], ['corner', 'Corner 3'], ['above', 'Above-break 3']]

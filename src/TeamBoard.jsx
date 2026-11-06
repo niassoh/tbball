@@ -79,7 +79,7 @@ const UNIT_SIZES = [2, 3, 4, 5]
 // (lib/unitsView.js minutesCut), or the top half, quarter or tenth of them by minutes
 // (a tenth, so a season's strictest asks well past the league floor). `cut`: what the pick asks, in minutes.
 const TOPS = [[1, 'All'], [0.5, 'Top 50%'], [0.25, 'Top 25%'], [0.1, 'Top 10%']]
-const UNIT_TOP = 0.5
+const UNIT_TOP = 0.25
 function UnitMinutes({ top, set, cut }) {
   return (
     <Popover name={`Unit minutes: ${top === 1 ? 'all' : `top ${top * 100}%`}`} minWidth={240} width={94} trigger={<><span style={{ ...label, fontWeight: 400 }}>Min</span>{top === 1 ? 'All' : `${top * 100}%`}</>}>
@@ -304,7 +304,8 @@ export default function TeamBoard() {
       <header className="head-row" style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 'var(--head-h)', borderBottom: `1px solid ${RULE}` }}>
         <BrandMark />
         <SiteNav at="teams" />
-        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center' }}>
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          <ModeSwitch name="Board" height={26} options={VIEWS} mode={unitsMode ? 'units' : 'teams'} setMode={m => { setUnitsMode(m === 'units'); setUnitsOf(null) }} />
           <DeltaToggle on={changing} set={setDelta} disabled={!prior.length} who="team" />
         </span>
       </header>
@@ -322,7 +323,6 @@ export default function TeamBoard() {
           ? <><Groups groups={UNIT_GROUPS} active={unitGroup} pick={setUnitGroup} /><UnitMinutes top={unitTop} set={setUnitTop} cut={unitCut} /></>
           : doc ? <Groups groups={doc.groups} active={g.id} pick={choose} /> : <span className="lb-skel" style={{ width: 560, height: 30 }} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <ModeSwitch name="Board" height={30} options={VIEWS} mode={unitsMode ? 'units' : 'teams'} setMode={m => { setUnitsMode(m === 'units'); setUnitsOf(null) }} />
           {unitsMode ? <SizeSelect k={unitK} set={setUnitK} /> : <ModeSwitch name="Cells read in" options={MODES} mode={mode} setMode={setMode} />}
         </span>
       </div>

@@ -654,18 +654,13 @@ a:hover > .lineup-tile > * { filter: none; }
 .uv-pop { animation: uv-pop .3s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--k, 0) * 35ms); }
 @keyframes uv-pop { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .uv-track:hover { background: rgba(236, 232, 227, .04); }
-.uv-key:hover, .uv-channel:hover { color: #ece8e3 !important; opacity: 1 !important; }
+.uv-key:hover { color: #ece8e3 !important; opacity: 1 !important; }
 .uv-seq-wrap, .uv-side { scrollbar-width: thin; scrollbar-color: #544f4b transparent; }
 .uv-dot { transition: cx .4s cubic-bezier(.2, .8, .2, 1), cy .4s cubic-bezier(.2, .8, .2, 1), fill-opacity .15s; }
 @media (prefers-reduced-motion: reduce) {
   .uv-col, .uv-cell, .uv-col .uv-lamp, .uv-col .uv-bar, .uv-pop { animation: none; transition: none; }
   .uv-playhead { display: none; }
   .uv-dot { transition: none; }
-}
-@media (max-width: 1000px), (max-height: 600px) {
-  .uv { position: fixed; inset: 0; z-index: 30; overflow: auto; }
-  .uv-main { grid-template-columns: minmax(0, 1fr) !important; }
-  .uv-side { border-left: 0 !important; border-top: 1px solid #3d3a37; }
 }
 .tc-units-all:hover { color: #ece8e3 !important; }
 /* The units board's field (UnitsBoard.jsx): a playhead crosses it on arrival and each dot

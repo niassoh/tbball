@@ -138,21 +138,18 @@ export const floorSteps = (view, k) => {
 // A team's row on the units board, for units of size k (`view`: combine's, over the
 // board's seasons): its most-used unit (with its share of the team's minutes) and that
 // unit's ratings; the team's net in every other minute (rest: the team's counts less the
-// unit's); its best unit over the league's minutes floor, with its league rank (a single
-// season's); how many units clear the floor, and the share of their minutes in units with
-// a positive net.
+// unit's); how many units it has on the board (fieldUnits), and the share of their
+// minutes in units with a positive net.
 export const teamRow = (view, k) => {
   const all = (view.units[k] || []).map(u => ({ ...u, s: statsOf(u, view.fields) })).filter(u => u.s.net !== null)
   const top = all.reduce((a, u) => (!a || u.s.minutes > a.s.minutes ? u : a), null)
   const team = statsOf(view.total, view.fields)
-  if (!top) return { team, top: null, share: null, rest: null, best: null, over: 0, positive: null }
-  const qualified = all.filter(u => u.s.minutes >= view.floors[k])
-  const best = qualified.reduce((a, u) => (!a || u.s.net > a.s.net ? u : a), null)
+  if (!top) return { team, top: null, share: null, rest: null, over: 0, positive: null }
+  const qualified = fieldUnits(view, k)
   const minutes = qualified.reduce((a, u) => a + u.s.minutes, 0)
   return {
     ...unitRow(view, top, team),
     team,
-    best,
     over: qualified.length,
     positive: minutes ? (100 * qualified.filter(u => u.s.net > 0).reduce((a, u) => a + u.s.minutes, 0)) / minutes : null
   }
@@ -164,7 +161,7 @@ export const teamRow = (view, k) => {
 export const unitRow = (view, u, team = statsOf(view.total, view.fields)) => {
   const t = view.total
   const rest = statsOf({ seconds: t.seconds - u.seconds, offPoss: t.offPoss - u.offPoss, defPoss: t.defPoss - u.defPoss, t: t.t.map((v, i) => v - u.t[i]), o: t.o.map((v, i) => v - u.o[i]), lgOff: t.lgOff - u.lgOff, lgDef: t.lgDef - u.lgDef }, view.fields)
-  return { top: u, share: team.minutes ? (100 * u.s.minutes) / team.minutes : null, rest: rest.minutes > 0 ? rest : null, best: null, over: null, positive: null }
+  return { top: u, share: team.minutes ? (100 * u.s.minutes) / team.minutes : null, rest: rest.minutes > 0 ? rest : null, over: null, positive: null }
 }
 
 // A team's units on the board's field and under its row: those with half the league's
@@ -188,7 +185,7 @@ const COL_OVERVIEW = [
   { id: 'ortg', name: 'ORTG', v: ofTop(s => s.ortg), text: v => v.toFixed(1), better: 1 },
   { id: 'drtg', name: 'DRTG', v: ofTop(s => s.drtg), text: v => v.toFixed(1), better: -1 },
   { id: 'rest', name: 'Rest net', v: r => r.rest && r.rest.net, text: v => signed(v), better: 1, title: 'The team’s net in every other minute' },
-  { id: 'over', team: true, name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Units over the league’s minutes floor' },
+  { id: 'over', team: true, name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Units on the board: half the league’s minutes floor' },
   { id: 'positive', team: true, name: '+Min', v: r => r.positive, text: v => `${v.toFixed(0)}%`, better: 1, title: 'Share of those units’ minutes in units with a positive net' }
 ]
 // The most-used unit's shot mix on one end, as shares of FGA (a style: unshaded).

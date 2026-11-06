@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import { fetchUnits, headshotUrl } from '../api.js'
 import { MONO, heat, signed } from '../lib/format.js'
 import { asset } from '../lib/static.js'
+import UnitsView from './UnitsView.jsx'
 import { initials } from '../lib/teams.js'
 import { UNIT_GROUPS, bestBy, combine, fieldUnits, statsOf, teamRow, unitRow } from '../lib/unitsView.js'
 
@@ -20,7 +21,7 @@ import { UNIT_GROUPS, bestBy, combine, fieldUnits, statsOf, teamRow, unitRow } f
 // opens the units on its line of the field beneath it, in the table's columns and order;
 // a unit under the pointer in either is lit in the other, and a dot clicked opens its
 // team's units with it lit. MOST USED | BEST: the columns read the team's most-used unit,
-// or each its best unit over the floor in that stat (the faces then the sorted column's),
+// or each its best unit in that stat of those on the field (the faces then the sorted column's),
 // so sorting a column puts the league's best unit in it on top.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
@@ -204,7 +205,7 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
             </g>
           )
         })}
-        {intro && <rect className="uf-playhead" x={GUTTER} y={top - 6} width={2} height={h - top} style={{ '--run': `${w - GUTTER}px`, '--ms': `${run}ms` }} />}
+        {intro && <rect className="uf-playhead" x={GUTTER} y={top - 6} width={2} height={Math.max(0, h - top)} style={{ '--run': `${w - GUTTER}px`, '--ms': `${run}ms` }} />}
       </svg>
       {tip && (
         <div style={{ position: 'absolute', left: Math.min(tip.x + 10, w - 230), top: tip.y + 10, width: 220, padding: '8px 10px', background: 'rgba(28,27,26,.94)', border: `1px solid ${EDGE}`, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -222,7 +223,8 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
 }
 
 // `teams`: [{ team, name }]; `seasons`: the board's; `k`: the unit size.
-export default function UnitsBoard({ teams, seasons, k, group: groupId, onPick }) {
+// `card`: the team whose units (UnitsView) cover the field, if any; `onClose` closes it.
+export default function UnitsBoard({ teams, seasons, k, group: groupId, card, onPick, onClose }) {
   const codes = useMemo(() => teams.map(t => t.team), [teams])
   const { views, loading } = useLeague(seasons, codes)
   const [sort, setSort] = useState({ id: 'net', reverse: false })
@@ -251,8 +253,8 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, onPick }
     const view = views.get(t.team)
     const units = fieldUnits(view, k)
     const row = teamRow(view, k)
-    // Its units over the floor, as rows, for BEST.
-    const cands = units.filter(u => u.s.minutes >= view.floors[k]).map(u => ({ u, row: unitRow(view, u, row.team) }))
+    // BEST picks among the units listed under its row and on its line of the field.
+    const cands = units.map(u => ({ u, row: unitRow(view, u, row.team) }))
     return { code: t.team, name: t.name, view, units, cands, ...row }
   }), [teams, views, k])
   const group = UNIT_GROUPS.find(g => g.id === groupId) || UNIT_GROUPS[0]
@@ -278,7 +280,12 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, onPick }
   return (
     <div className={`lb-body tb-body${loading ? ' lb-loading' : ''}`}>
       {loading && <div className="lb-progress"><span style={{ transform: `scaleX(${rows.length / Math.max(1, teams.length)})` }} /></div>}
-      <div className="lb-side" style={{ padding: '10px 12px 6px' }}>
+      {card && (
+        <div className="lb-side lb-carded">
+          <UnitsView key={k} size={k} team={card} seasons={seasons} teams={teams} onClose={onClose} />
+        </div>
+      )}
+      <div className="lb-side" style={{ padding: '10px 12px 6px', display: card ? 'none' : undefined }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 2 }}>
           <span style={{ ...label, color: INK }}>Unit field · {k}-man</span>
           <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · ring: {best && !col.team ? `best by ${col.name}` : 'most used'} · tick: team</span>
@@ -294,7 +301,7 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, onPick }
               <th style={{ ...head, textAlign: 'left', whiteSpace: 'nowrap', padding: '5px 8px 6px' }}>
                 <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
                   <span role="group" aria-label="Which unit" style={{ display: 'flex', border: `1px solid ${EDGE}` }}>
-                    {[['best', 'Best', 'Each column: the team’s best unit in it, over the league’s minutes floor'], ['used', 'Most used', 'Each team’s most-used unit']].map(([m, name, tip], i) => (
+                    {[['best', 'Best', 'Each column: the team’s best unit in it, of those listed under its row'], ['used', 'Most used', 'Each team’s most-used unit']].map(([m, name, tip], i) => (
                       <button key={m} type="button" aria-pressed={pick === m} title={tip} onClick={() => setPick(m)}
                         style={{ height: 18, padding: '0 8px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: pick === m ? '#3a3734' : 'transparent', color: pick === m ? INK : DIM, fontFamily: MONO, fontSize: 8.5, fontWeight: pick === m ? 700 : 500, letterSpacing: '.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer' }}>{name}</button>
                     ))}
@@ -317,7 +324,7 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, onPick }
           </thead>
           <tbody>
             {sorted.map((r, i) => [
-              <Row key={r.code} r={r} unit={unitOf(r)} cols={cols} value={value} sortId={by.id} rank={i + 1} pct={pct} on={hot === r.code} open={open.has(r.code)} toggle={toggle} setHot={setHot} onPick={onPick} />,
+              <Row key={r.code} r={r} unit={unitOf(r)} cols={cols} value={value} sortId={by.id} rank={i + 1} pct={pct} on={hot === r.code || card === r.code} open={open.has(r.code)} toggle={toggle} setHot={setHot} onPick={onPick} />,
               open.has(r.code) && <UnitRows key={`${r.code}-units`} r={r} cols={cols} col={col} dir={dir} sortId={by.id} lit={litUnit || held} setLit={setLitUnit} />
             ])}
           </tbody>

@@ -69,19 +69,18 @@ describe('unitsView', () => {
 })
 
 describe('teamRow', () => {
-  it('reads a team by its units: the most-used one, the rest, the best over the floor', () => {
+  it('reads a team by its units: the most-used one, the rest, how its units on the board do', () => {
     const view = combine([season('2001-02', 100, [
       unit(['A', 'B'], 60, 50, 50, { Points: 60 }, { Points: 50 }), // +20, the most used
       unit(['A', 'C'], 40, 40, 40, { Points: 52 }, { Points: 40 }), // +30, under the 200-min floor
       unit(['B', 'C'], 30, 30, 30, { Points: 27 }, { Points: 30 }) // −10
     ])])
-    view.floors[2] = 35
+    view.floors[2] = 70 // its units on the board: 35 min and up
     const r = teamRow(view, 2)
     expect(r.top.key).toBe('A-B')
     expect(r.share).toBeCloseTo(60) // 60 of the team's 100 minutes
     // The team (220 − 210 on 200 each way) less the unit (60 − 50 on 50): 160 − 160 on 150.
     expect(r.rest.net).toBeCloseTo(0)
-    expect(r.best.key).toBe('A-C')
     expect(r.over).toBe(2)
     expect(r.positive).toBe(100) // A-B and A-C, both up; B-C is under 35 min
   })

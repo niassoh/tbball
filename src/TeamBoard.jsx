@@ -17,7 +17,6 @@ import DeltaToggle from './components/DeltaToggle.jsx'
 import SiteNav from './components/SiteNav.jsx'
 import TeamCard from './components/TeamCard.jsx'
 import UnitsBoard from './components/UnitsBoard.jsx'
-import UnitsView from './components/UnitsView.jsx'
 
 // The Team board: the 30 teams' season from the team sheet (thinking-bball
 // lib/teamboard.js), 2013-14 on, the latest to begin with; the Leaderboard's season picker
@@ -36,7 +35,7 @@ import UnitsView from './components/UnitsView.jsx'
 // that team's card open (a player page's team name links here). UNITS turns the board to
 // the teams' units (UnitsBoard: a table of the 30 by their units of one size beside the
 // unit field) over the same seasons; a team there (or a card's ALL UNITS) opens its units
-// (UnitsView) in the board's place. &view=units in the address (with &team= for a team's),
+// (UnitsView) as a card over the field. &view=units in the address (with &team= for a team's),
 // so a player page's lineups can link to it.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
@@ -299,12 +298,7 @@ export default function TeamBoard() {
         </span>
       </div>
       {doc === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
-      {doc && unitsMode && unitsOf && unitSeasons.length > 0 && (
-        <div className="lb-body tb-body" style={{ display: 'flex' }}>
-          <UnitsView key={unitK} size={unitK} team={unitsOf} seasons={unitSeasons} teams={boardTeams} setTeam={setUnitsOf} onClose={closeUnits} />
-        </div>
-      )}
-      {doc && unitsMode && !unitsOf && unitSeasons.length > 0 && <UnitsBoard teams={boardTeams} seasons={unitSeasons} k={unitK} group={unitGroup} onPick={setUnitsOf} />}
+      {doc && unitsMode && unitSeasons.length > 0 && <UnitsBoard teams={boardTeams} seasons={unitSeasons} k={unitK} group={unitGroup} card={unitsOf} onPick={setUnitsOf} onClose={closeUnits} />}
       {doc && !unitsMode && (
         <div className="lb-body tb-body lb-enter">
           <div className={`lb-side${row ? ' lb-carded' : ''}`}>

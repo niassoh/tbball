@@ -33,26 +33,26 @@ const ORANGE = '#fa962a'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 // The sequencer's grid: a column's pitch, a row's height, the names' gutter, the heads'.
-const COL = 22
-const ROW = 26
-const GUTTER = 148
-const HEAD = 78
+const COL = 20
+const ROW = 21
+const GUTTER = 128
+const HEAD = 60
 const STEP_MS = 28
 const SORTS = [['min', 'Min'], ['net', 'Net'], ['ortg', 'ORTG'], ['drtg', 'DRTG']]
-const SIZES = [[2, '2'], [3, '3'], [4, '4'], [5, '5']]
 const READS = [['raw', 'Raw'], ['rel', 'Rel']]
 const surname = name => (name || '?').split(' ').slice(1).join(' ') || name || '?'
 const tone = v => (v === null ? FAINT : v >= 0 ? BLUE : ORANGE)
 
 // Hardware keys: a row of square switches, the pressed one lit from below.
-function Keys({ name, options, value, set }) {
+// `bare`: no name shown (still the group's label).
+function Keys({ name, options, value, set, bare = false }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ ...label, fontSize: 8.5, color: FAINT }}>{name}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      {!bare && <span style={{ ...label, fontSize: 8, color: FAINT }}>{name}</span>}
       <span role="group" aria-label={name} style={{ display: 'inline-flex', border: `1px solid ${EDGE}` }}>
         {options.map(([k, text], i) => (
           <button key={k} type="button" className="uv-key" aria-pressed={value === k} onClick={() => set(k)}
-            style={{ minWidth: 30, height: 26, padding: '0 9px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: value === k ? '#3a3734' : 'transparent', boxShadow: value === k ? 'inset 0 -2px 0 var(--accent)' : 'none', color: value === k ? INK : DIM, fontFamily: MONO, fontSize: 10, fontWeight: value === k ? 700 : 500, letterSpacing: '.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{text}</button>
+            style={{ minWidth: 24, height: 20, padding: '0 6px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: value === k ? '#3a3734' : 'transparent', boxShadow: value === k ? 'inset 0 -2px 0 var(--accent)' : 'none', color: value === k ? INK : DIM, fontFamily: MONO, fontSize: 9, fontWeight: value === k ? 700 : 500, letterSpacing: '.06em', textTransform: 'uppercase', cursor: 'pointer' }}>{text}</button>
         ))}
       </span>
     </span>
@@ -88,8 +88,8 @@ function Sequencer({ cols, rows, lit, hotPlayer, setHot, setHotPlayer, pinned, s
               onMouseEnter={() => setHot(c.key)} onClick={() => setPinned(p => (p === c.key ? null : c.key))}>
               <span style={{ fontFamily: MONO, fontSize: 8.5, fontWeight: on ? 700 : 500, color: on ? INK : tone(c.s.net), fontVariantNumeric: 'tabular-nums', letterSpacing: '-.04em' }}>{c.s.net >= 0 ? '+' : '−'}{Math.abs(Math.round(c.s.net))}</span>
               <span className="uv-lamp" style={{ width: 10, height: 10, background: lamp, boxShadow: on ? `0 0 0 1px ${INK}, 0 0 8px ${lamp}` : `0 0 5px ${lamp}66` }} />
-              <span style={{ height: 34, display: 'flex', alignItems: 'flex-end' }}>
-                <span style={{ width: 8, height: Math.max(2, Math.round((c.s.minutes / maxMin) * 34)), background: on ? INK : '#6f6a64' }} className="uv-bar" />
+              <span style={{ height: 20, display: 'flex', alignItems: 'flex-end' }}>
+                <span style={{ width: 8, height: Math.max(2, Math.round((c.s.minutes / maxMin) * 20)), background: on ? INK : '#6f6a64' }} className="uv-bar" />
               </span>
             </div>
           )
@@ -100,7 +100,7 @@ function Sequencer({ cols, rows, lit, hotPlayer, setHot, setHotPlayer, pinned, s
         return [
           <div key={`n${p.id}`} className="uv-track" onMouseEnter={() => { setHotPlayer(p.id); setHot(null) }}
             style={{ height: ROW, display: 'flex', alignItems: 'center', gap: 8, borderTop: `1px solid ${RULE}`, paddingRight: 10, cursor: 'default' }}>
-            <Face p={p} lit={!!lightRow} />
+            <Face p={p} size={17} lit={!!lightRow} />
             <span style={{ flex: 1, minWidth: 0, fontFamily: 'Montserrat, sans-serif', fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', color: lightRow ? INK : '#c9c3bc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{surname(p.name)}</span>
             <span style={{ fontFamily: MONO, fontSize: 9, color: FAINT, fontVariantNumeric: 'tabular-nums' }}>{Math.round(p.minutes).toLocaleString()}</span>
           </div>,
@@ -113,7 +113,7 @@ function Sequencer({ cols, rows, lit, hotPlayer, setHot, setHotPlayer, pinned, s
                 <span key={c.key} className="uv-cell" onMouseEnter={() => { setHot(c.key); setHotPlayer(null) }} onClick={() => setPinned(x => (x === c.key ? null : c.key))}
                   style={{ position: 'absolute', left: 0, top: 0, width: COL, height: ROW - 1, transform: `translateX(${placeOf.get(c.key) * COL}px)`, '--k': placeOf.get(c.key), display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'rgba(236,232,227,.07)' : 'transparent', cursor: 'pointer' }}>
                   {has
-                    ? <span style={{ width: 14, height: 14, background: INK, boxShadow: on ? 'inset 0 -3px 0 var(--team)' : 'none', opacity: dim ? 0.22 : on ? 1 : 0.82, transition: 'opacity .15s, background .15s' }} />
+                    ? <span style={{ width: 12, height: 12, background: INK, boxShadow: on ? 'inset 0 -3px 0 var(--team)' : 'none', opacity: dim ? 0.22 : on ? 1 : 0.82, transition: 'opacity .15s, background .15s' }} />
                     : <span style={{ width: 3, height: 3, background: FAINT, opacity: dim ? 0.3 : 0.7 }} />}
                 </span>
               )
@@ -122,17 +122,17 @@ function Sequencer({ cols, rows, lit, hotPlayer, setHot, setHotPlayer, pinned, s
         ]
       })}
       <div />
-      <div style={{ position: 'relative', width, height: 18, borderTop: `1px solid ${EDGE}` }}>
+      <div style={{ position: 'relative', width, height: 15, borderTop: `1px solid ${EDGE}` }}>
         {cols.map(c => {
           const i = placeOf.get(c.key)
           const on = c.key === lit
           return (
-            <span key={c.key} className="uv-cell" style={{ position: 'absolute', left: 0, top: 0, width: COL, height: 17, transform: `translateX(${i * COL}px)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 7.5, color: on ? '#1c1b1a' : FAINT, background: on ? INK : 'transparent', fontVariantNumeric: 'tabular-nums' }}>
+            <span key={c.key} className="uv-cell" style={{ position: 'absolute', left: 0, top: 0, width: COL, height: 14, transform: `translateX(${i * COL}px)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: 7.5, color: on ? '#1c1b1a' : FAINT, background: on ? INK : 'transparent', fontVariantNumeric: 'tabular-nums' }}>
               {String(i + 1).padStart(2, '0')}
             </span>
           )
         })}
-        {pinned && placeOf.has(pinned) && <span aria-hidden="true" style={{ position: 'absolute', top: -(HEAD + rows.length * ROW + 1), left: placeOf.get(pinned) * COL, width: COL, height: HEAD + rows.length * ROW + 18, outline: `1px solid ${INK}`, outlineOffset: -1, pointerEvents: 'none', transition: 'left .4s cubic-bezier(.2,.8,.2,1)' }} />}
+        {pinned && placeOf.has(pinned) && <span aria-hidden="true" style={{ position: 'absolute', top: -(HEAD + rows.length * ROW + 1), left: placeOf.get(pinned) * COL, width: COL, height: HEAD + rows.length * ROW + 15, outline: `1px solid ${INK}`, outlineOffset: -1, pointerEvents: 'none', transition: 'left .4s cubic-bezier(.2,.8,.2,1)' }} />}
       </div>
       <span className="uv-playhead" aria-hidden="true" style={{ '--run': `${width}px`, '--ms': `${cols.length * STEP_MS}ms`, left: GUTTER }} />
     </div>
@@ -185,35 +185,31 @@ function Readout({ unit, view, rel, k, season }) {
   const heads = rel ? [['rORTG', s.rortg, s.rortg], ['rDRTG', s.rdrtg, -s.rdrtg], ['Net', s.net, s.net]] : [['ORTG', s.ortg, s.rortg], ['DRTG', s.drtg, -s.rdrtg], ['Net', s.net, s.net]]
   const sub = rel ? [s.ortg, s.drtg, null] : [s.rortg, s.rdrtg, null]
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 14px', borderBottom: `1px solid ${RULE}` }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-        <span style={{ ...label, color: INK, fontWeight: 700 }}>{unit ? `Step ${String(unit.i + 1).padStart(2, '0')} · ${k}-man` : 'Team'}</span>
-        <span style={{ ...label, marginLeft: 'auto', color: DIM }}>{Math.round(s.minutes).toLocaleString()} min</span>
-        {unit && <span title={r ? `#${r.rank} of ${r.of} ${k}-man units in the league that season` : view.seasons.length > 1 ? 'Ranks are a season’s' : 'Under the league’s minutes floor'} style={{ ...label, color: r ? rankColor(rankPct(r.rank, r.of)) : FAINT }}>{r ? `#${r.rank} / ${r.of}` : view.seasons.length > 1 ? 'span' : 'unranked'}</span>}
-      </div>
-      <div style={{ display: 'flex', gap: 6, minHeight: 50 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 12px 10px', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 20 }}>
+        <span style={{ ...label, color: INK, fontWeight: 700, whiteSpace: 'nowrap' }}>{unit ? `${String(unit.i + 1).padStart(2, '0')}` : 'Team'}</span>
         {unit
-          ? people.map((p, j) => (
-            <Link key={p.id} to={p.slug ? playerPath(p.slug) : '#'} state={{ season }} className="uv-pop" title={p.name} onClick={e => { if (!p.slug) e.preventDefault() }}
-              style={{ '--k': j, flex: '1 1 0', minWidth: 0, maxWidth: 70, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
-              <Face p={p} size={34} />
-              <span style={{ ...label, fontSize: 8.5, letterSpacing: '.02em', color: INK, maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{surname(p.name)}</span>
+          ? <span style={{ display: 'flex', gap: 3, minWidth: 0 }}>{people.map((p, j) => (
+            <Link key={p.id} to={p.slug ? playerPath(p.slug) : '#'} state={{ season }} className="uv-pop" title={p.name} onClick={e => { if (!p.slug) e.preventDefault() }} style={{ '--k': j, display: 'flex' }}>
+              <Face p={p} size={18} />
             </Link>
-          ))
-          : <span style={{ ...label, color: FAINT, alignSelf: 'center' }}>Point at a step, or click to hold it</span>}
+          ))}</span>
+          : <span style={{ ...label, fontSize: 8, color: FAINT, whiteSpace: 'nowrap' }}>point at a step</span>}
+        <span style={{ ...label, marginLeft: 'auto', color: DIM, whiteSpace: 'nowrap' }}>{Math.round(s.minutes).toLocaleString()} min</span>
+        {unit && <span title={r ? `#${r.rank} of ${r.of} ${k}-man units in the league that season` : view.seasons.length > 1 ? 'Ranks are a season’s' : 'Under the league’s minutes floor'} style={{ ...label, whiteSpace: 'nowrap', color: r ? rankColor(rankPct(r.rank, r.of)) : FAINT }}>{r ? `#${r.rank}/${r.of}` : view.seasons.length > 1 ? 'span' : '—'}</span>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', border: `1px solid ${EDGE}` }}>
         {heads.map(([name, v, good], i) => (
-          <div key={name} style={{ padding: '8px 10px 7px', borderLeft: i ? `1px solid ${EDGE}` : 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{ ...label, fontSize: 8.5 }}>{name}</span>
-            <span style={{ fontFamily: MONO, fontSize: 26, fontWeight: 700, lineHeight: 1, color: good === null ? FAINT : tone(good), fontVariantNumeric: 'tabular-nums' }}>
+          <div key={name} style={{ padding: '4px 8px 4px', borderLeft: i ? `1px solid ${EDGE}` : 0, display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+            <span style={{ ...label, fontSize: 8 }}>{name}</span>
+            <span style={{ fontFamily: MONO, fontSize: 15, fontWeight: 700, lineHeight: 1.2, color: good === null ? FAINT : tone(good), fontVariantNumeric: 'tabular-nums' }}>
               <CountUp stat={{ dec: 1, relative: rel || name === 'Net' }} value={v} delay={0} />
             </span>
-            <span style={{ ...label, fontSize: 8.5, color: FAINT, minHeight: 11 }}>{sub[i] === null || sub[i] === undefined ? '' : rel ? `raw ${sub[i].toFixed(1)}` : `vs lg ${signed(sub[i])}`}</span>
+            <span style={{ ...label, fontSize: 7.5, color: FAINT, whiteSpace: 'nowrap', overflow: 'hidden' }}>{sub[i] === null || sub[i] === undefined ? '' : rel ? sub[i].toFixed(1) : signed(sub[i])}</span>
           </div>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '54px minmax(0, 1fr) minmax(0, 1fr)', gap: '7px 14px', alignItems: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '46px minmax(0, 1fr) minmax(0, 1fr)', gap: '4px 10px', alignItems: 'center' }}>
         <span />
         <span style={{ ...label, fontSize: 8, color: FAINT }}>Offense</span>
         <span style={{ ...label, fontSize: 8, color: FAINT }}>Defense</span>
@@ -223,7 +219,7 @@ function Readout({ unit, view, rel, k, season }) {
           <Stepped key={`${f}d`} v={s.def[f]} team={unit ? t.def[f] : null} lo={lo} hi={hi} better={def} />
         ])}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <MixStrip name="Off" mix={s.off.mix} />
         <MixStrip name="Def" mix={s.def.mix} />
         <span style={{ display: 'flex', gap: 10, paddingLeft: 38 }}>
@@ -238,8 +234,8 @@ function Readout({ unit, view, rel, k, season }) {
 // so net's lines run at 45°, the team's own as a cross; REL: rORTG and rDRTG, the league
 // at the cross's place. Dots by minutes.
 function UnitMap({ cols, view, rel, lit, setHot, setPinned }) {
-  const W = 330
-  const H = 210
+  const W = 200
+  const H = 200
   const xOf = s => (rel ? s.rortg : s.ortg)
   const yOf = s => (rel ? s.rdrtg : s.drtg)
   const t = view.teamStats
@@ -256,7 +252,7 @@ function UnitMap({ cols, view, rel, lit, setHot, setPinned }) {
     return { n, x1: px(cx - reach * 2 + d), y1: py(cy - reach * 2 - d), x2: px(cx + reach * 2 + d), y2: py(cy + reach * 2 - d) }
   })
   return (
-    <div style={{ padding: '10px 14px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{ padding: '8px 12px 10px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <span style={{ ...label, fontSize: 8.5 }}>{rel ? 'rORTG × rDRTG' : 'ORTG × DRTG'}</span>
         <span style={{ ...label, fontSize: 8.5, color: FAINT }}>+ {rel ? 'league' : 'team'}</span>
@@ -285,12 +281,13 @@ function UnitMap({ cols, view, rel, lit, setHot, setPinned }) {
   )
 }
 
-// `seasons`: the board's (oldest first); `teams`: [{ team, name }] for the channel strip.
-export default function UnitsView({ team, seasons, teams, setTeam, onClose, size = 5 }) {
+// `seasons`: the board's (oldest first); `teams`: [{ team, name }], for the team's name.
+// A card in the units board's chart slot (UnitsBoard): the board's table picks the team
+// and its dropdown the size; the readout and map run under the sequencer.
+export default function UnitsView({ team, seasons, teams, onClose, size: k }) {
   // The files for the team and seasons last fetched; the previous ones stay up, dimmed,
   // till the next arrive.
   const [got, setGot] = useState(null)
-  const [k, setK] = useState(size)
   const [sort, setSort] = useState('min')
   const [read, setRead] = useState('raw')
   const [step, setStep] = useState(0)
@@ -325,38 +322,26 @@ export default function UnitsView({ team, seasons, teams, setTeam, onClose, size
   const span = seasons.length > 1 ? `${shortSeason(seasons[0])}–${shortSeason(seasons[seasons.length - 1])}` : seasons[0].replace('-', '–')
   return (
     <div className="uv lb-enter" style={{ '--team': color, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', border: `1px solid ${RULE}`, background: '#262422', fontFamily: MONO }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', borderBottom: `1px solid ${RULE}` }}>
-        <img src={asset(`logos/color/sm/${team}.webp`)} alt="" width={30} height={30} style={{ flex: 'none' }} />
-        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-          <span style={{ ...label, fontSize: 8.5, color: FAINT, whiteSpace: 'nowrap' }}>Units · {span}</span>
-          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 17, fontWeight: 800, textTransform: 'uppercase', color: INK, lineHeight: 1, whiteSpace: 'nowrap' }}>{name}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <img src={asset(`logos/color/sm/${team}.webp`)} alt="" width={20} height={20} style={{ flex: 'none' }} />
+          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, fontWeight: 800, textTransform: 'uppercase', color: INK, whiteSpace: 'nowrap' }}>{name}</span>
         </span>
-        <span role="group" aria-label="Team" className="uv-channels" style={{ marginLeft: 'auto', display: 'flex', gap: 2, overflowX: 'auto', scrollbarWidth: 'none', minWidth: 0 }}>
-          {teams.map(x => (
-            <button key={x.team} type="button" aria-pressed={x.team === team} title={x.name} onClick={() => { setTeam(x.team); setPinned(null) }}
-              style={{ flex: 'none', width: 24, height: 24, padding: 2, border: `1px solid ${x.team === team ? INK : 'transparent'}`, background: x.team === team ? '#3a3734' : 'transparent', cursor: 'pointer', opacity: x.team === team ? 1 : 0.5 }} className="uv-channel">
-              <img src={asset(`logos/color/sm/${x.team}.webp`)} alt={x.team} width={18} height={18} style={{ display: 'block' }} />
-            </button>
-          ))}
-        </span>
-        <button type="button" aria-label="Close units" onClick={onClose} style={{ flex: 'none', width: 24, height: 24, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 13, cursor: 'pointer', lineHeight: 1 }}>×</button>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '9px 14px', borderBottom: `1px solid ${RULE}`, flexWrap: 'wrap' }}>
-        <Keys name="Size" options={SIZES} value={k} set={x => { setK(x); setStep(0); setPinned(null) }} />
         <Keys name="Order" options={SORTS} value={sort} set={setSort} />
         <Keys name="Min ≥" options={floors.map((m, i) => [i, String(m)])} value={step} set={x => { setStep(x); setPinned(null) }} />
-        <span style={{ marginLeft: 'auto' }}><Keys name="Ratings" options={READS} value={read} set={setRead} /></span>
+        <Keys name="Ratings" bare options={READS} value={read} set={setRead} />
+        <button type="button" aria-label="Close units" onClick={onClose} style={{ flex: 'none', marginLeft: 'auto', width: 20, height: 20, border: `1px solid ${EDGE}`, background: 'transparent', color: INK, fontFamily: MONO, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
       {docs === null && <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="lb-skel" style={{ width: '60%', height: 220 }} /></div>}
       {docs && !view && <div style={{ ...label, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No units for {team} in {span}</div>}
       {view && (
-        <div className="uv-main" style={{ opacity: loading ? 0.4 : 1, transition: 'opacity .25s ease', flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px' }}>
-          <div className="uv-seq-wrap" style={{ minWidth: 0, minHeight: 0, overflow: 'auto', padding: '6px 14px 14px' }}>
+        <div className="uv-main" style={{ opacity: loading ? 0.4 : 1, transition: 'opacity .25s ease', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <div className="uv-seq-wrap" style={{ minWidth: 0, minHeight: 0, overflow: 'auto', padding: '2px 12px 8px' }}>
             {cols.length
               ? <Sequencer key={`${got.key}|${k}|${step}`} cols={cols} rows={rows} lit={lit} hotPlayer={hotPlayer} setHot={setHot} setHotPlayer={setHotPlayer} pinned={pinned} setPinned={setPinned} />
               : <div style={{ ...label, padding: 30 }}>No {k}-man units at {floors[step]}+ min</div>}
           </div>
-          <div className="uv-side" style={{ minHeight: 0, overflow: 'auto', borderLeft: `1px solid ${RULE}` }}>
+          <div className="uv-side" style={{ borderTop: `1px solid ${RULE}`, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 212px' }}>
             <Readout unit={unit} view={view} rel={read === 'rel'} k={k} season={seasons[seasons.length - 1]} />
             <UnitMap cols={cols} view={view} rel={read === 'rel'} lit={lit} setHot={setHot} setPinned={setPinned} />
           </div>

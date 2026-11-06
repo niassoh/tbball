@@ -20,9 +20,9 @@ import { UNIT_GROUPS, bestBy, combine, fieldUnits, statsOf, teamRow, unitRow } f
 // pointer in either is lit in the other; a click opens its units (UnitsView). A row's ▸
 // opens the units on its line of the field beneath it, in the table's columns and order;
 // a unit under the pointer in either is lit in the other, and a dot clicked opens its
-// team's units with it lit. MOST USED | BEST: the columns read the team's most-used unit,
-// or each its best unit in that stat of those on the field (the faces then the sorted column's),
-// so sorting a column puts the league's best unit in it on top.
+// team's units with it lit. MOST USED | BEST BY a stat: each team's row is one unit, its
+// most-used or its best in that stat of those on the field, and the columns sort the
+// teams by that unit (the field rings it; under the row it's marked ▸).
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -119,8 +119,10 @@ const Row = memo(function Row({ r, unit, cols, value, sortId, rank, pct, on, ope
 // A team's units under its row (the dots on its line of the field), in the table's
 // columns and order: unshaded (the shades place the 30 teams), each unit by its faces and
 // surnames.
+// The stats BEST can pick a unit by: every unit column that has a better way.
+const UNIT_STATS = UNIT_GROUPS.flatMap(g => g.cols).filter(c => !c.team && c.better)
 const surname = name => (name || '?').split(' ').slice(1).join(' ') || name || '?'
-function UnitRows({ r, cols, col, dir, sortId, lit, setLit }) {
+function UnitRows({ r, chosen, cols, col, dir, sortId, lit, setLit }) {
   const none = u => col.v(u) === null || col.v(u) === undefined
   const units = r.units.map(u => ({ u, row: unitRow(r.view, u, r.team) })).sort((a, b) => none(a.row) - none(b.row) || (col.v(b.row) - col.v(a.row)) * dir)
   return units.map(({ u, row }) => {
@@ -129,7 +131,8 @@ function UnitRows({ r, cols, col, dir, sortId, lit, setLit }) {
     return (
       <tr key={key} id={`uf-${key}`} className="lb-row uf-sub" aria-selected={on} onMouseEnter={() => setLit(key)} onMouseLeave={() => setLit(null)}>
         <td style={{ ...td, height: 26, padding: 0 }} />
-        <td style={{ ...td, height: 26, textAlign: 'left', borderRight: `1px solid ${RULE}`, paddingLeft: 38, maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 10.5, color: on ? INK : '#c9c3bc' }}>
+        <td style={{ ...td, height: 26, textAlign: 'left', borderRight: `1px solid ${RULE}`, paddingLeft: 24, maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 10.5, color: on || u.key === chosen ? INK : '#c9c3bc', fontWeight: u.key === chosen ? 700 : 400 }}>
+          <span aria-hidden="true" style={{ display: 'inline-block', width: 14, color: INK }}>{u.key === chosen ? '▸' : ''}</span>
           {u.ids.map(id => surname((r.view.players.find(p => p.id === id) || {}).name)).join(' · ')}
         </td>
         <td style={{ ...td, height: 26, textAlign: 'left' }}><Faces ids={u.ids} view={r.view} /></td>
@@ -229,6 +232,7 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, card, on
   const { views, loading } = useLeague(seasons, codes)
   const [sort, setSort] = useState({ id: 'net', reverse: false })
   const [pick, setPick] = useState('best')
+  const [bestStat, setBestStat] = useState('net')
   const [hot, setHot] = useState(null)
   // Teams whose units are open under their rows; the unit under the pointer (`team|unit`),
   // and the one a dot's click held.
@@ -260,11 +264,12 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, card, on
   const group = UNIT_GROUPS.find(g => g.id === groupId) || UNIT_GROUPS[0]
   const best = pick === 'best'
   const cols = group.cols
-  // Each team's best unit by each of the group's columns.
-  const bests = best ? new Map(rows.map(r => [r.code, new Map(group.cols.filter(c => !c.team).map(c => [c.id, bestBy(r.cands, c)]))])) : null
+  // In BEST each team's row is one unit, its best by `bestStat`, whatever the sort.
+  const statCol = UNIT_STATS.find(c => c.id === bestStat)
+  const bests = best ? new Map(rows.map(r => [r.code, bestBy(r.cands, statCol)])) : null
   const value = (r, c) => {
     if (!bests || c.team) return c.v(r)
-    const x = bests.get(r.code).get(c.id)
+    const x = bests.get(r.code)
     return x ? c.v(x.row) : null
   }
   // A group without the sorted stat sorts by its first.
@@ -274,8 +279,8 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, card, on
   const none = r => value(r, col) === null || value(r, col) === undefined
   const sorted = [...rows].sort((a, b) => none(a) - none(b) || (value(b, col) - value(a, col)) * dir)
   const pct = Object.fromEntries(group.cols.map(c => [c.id, percentiles(rows, c, value)]))
-  // The unit in a team's faces: its most-used, or in BEST the sorted column's best.
-  const unitOf = r => (bests && !col.team ? (bests.get(r.code).get(col.id) || {}).u || null : r.top)
+  // The unit in a team's row: its most-used, or in BEST its best by `bestStat`.
+  const unitOf = r => (bests ? (bests.get(r.code) || {}).u || null : r.top)
   const head = { position: 'sticky', top: 0, zIndex: 2, height: 46, boxSizing: 'border-box', padding: '15px 8px 6px', borderBottom: `1px solid ${RULE}`, background: '#262422', textAlign: 'right', verticalAlign: 'bottom' }
   return (
     <div className={`lb-body tb-body${loading ? ' lb-loading' : ''}`}>
@@ -288,7 +293,7 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, card, on
       <div className="lb-side" style={{ padding: '10px 12px 6px', display: card ? 'none' : undefined }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 2 }}>
           <span style={{ ...label, color: INK }}>Unit field · {k}-man</span>
-          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · ring: {best && !col.team ? `best by ${col.name}` : 'most used'} · tick: team</span>
+          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · ring: {best ? `best by ${statCol.name}` : 'most used'} · tick: team</span>
         </div>
         {rows.length > 0 && <Field key={`${seasons.join()}|${k}`} rows={sorted} ringOf={unitOf} k={k} hot={hot} setHot={setHot} onPick={onPick} lit={litUnit || held} setLit={setLitUnit} onUnit={holdUnit} />}
       </div>
@@ -306,7 +311,21 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, card, on
                         style={{ height: 18, padding: '0 8px', border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: pick === m ? '#3a3734' : 'transparent', color: pick === m ? INK : DIM, fontFamily: MONO, fontSize: 8.5, fontWeight: pick === m ? 700 : 500, letterSpacing: '.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', cursor: 'pointer' }}>{name}</button>
                     ))}
                   </span>
-                  <span style={{ ...label, fontSize: 8.5 }}>{best && !col.team ? `Best by ${col.name}` : 'Most-used unit'}</span>
+                  {best
+                    ? (
+                      <label style={{ ...label, fontSize: 8.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        By
+                        <select aria-label="Best by" value={bestStat} onChange={e => setBestStat(e.target.value)} className="lb-select"
+                          style={{ ...label, fontSize: 8.5, color: INK, background: 'transparent', border: 0, borderBottom: `1px solid ${EDGE}`, padding: '0 2px', cursor: 'pointer' }}>
+                          {UNIT_GROUPS.map(g => (
+                            <optgroup key={g.id} label={g.name}>
+                              {g.cols.filter(c => !c.team && c.better).map(c => <option key={c.id} value={c.id} style={{ background: '#262422' }}>{c.name}</option>)}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </label>
+                    )
+                    : <span style={{ ...label, fontSize: 8.5 }}>Most-used unit</span>}
                 </span>
               </th>
               {cols.map(c => {
@@ -325,7 +344,7 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, card, on
           <tbody>
             {sorted.map((r, i) => [
               <Row key={r.code} r={r} unit={unitOf(r)} cols={cols} value={value} sortId={by.id} rank={i + 1} pct={pct} on={hot === r.code || card === r.code} open={open.has(r.code)} toggle={toggle} setHot={setHot} onPick={onPick} />,
-              open.has(r.code) && <UnitRows key={`${r.code}-units`} r={r} cols={cols} col={col} dir={dir} sortId={by.id} lit={litUnit || held} setLit={setLitUnit} />
+              open.has(r.code) && <UnitRows key={`${r.code}-units`} r={r} chosen={(unitOf(r) || {}).key} cols={cols} col={col} dir={dir} sortId={by.id} lit={litUnit || held} setLit={setLitUnit} />
             ])}
           </tbody>
         </table>

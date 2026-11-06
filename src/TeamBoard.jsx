@@ -72,8 +72,9 @@ const td = { height: 30, padding: '0 8px', borderBottom: `1px solid ${RULE}`, te
 const RECORD = ['Wins', 'Losses']
 // A head's name where the sheet's is cryptic.
 const NAMES = { 'LA Bayes Win-pace': 'Luck Adjusted\nBayes Win-pace' }
-// The board's two views, the page's main switch: the lit one filled in the accent, each
-// with a mark (a team's crest; a unit's grid of players).
+// The board's two views, the page's main switch: larger and brighter than the board's
+// keys, the lit one underlined in the accent, each with a mark (a team's crest; a unit's
+// grid of players).
 const VIEWS = [['teams', 'Teams'], ['units', 'Units']]
 const ViewMark = ({ v }) => (
   <svg aria-hidden="true" width="11" height="11" viewBox="0 0 11 11" fill="currentColor">
@@ -84,10 +85,10 @@ const ViewMark = ({ v }) => (
 )
 function ViewSwitch({ view, set }) {
   return (
-    <div role="group" aria-label="Board" style={{ display: 'flex', border: '1px solid var(--accent)', flex: 'none' }}>
+    <div role="group" aria-label="Board" style={{ display: 'flex', border: `1px solid ${EDGE}`, flex: 'none' }}>
       {VIEWS.map(([v, name]) => (
         <button key={v} type="button" aria-pressed={view === v} onClick={() => set(v)} className="tb-view"
-          style={{ height: 28, padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, background: view === v ? 'var(--accent)' : 'transparent', color: view === v ? '#1c1b1a' : INK, fontFamily: MONO, fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+          style={{ height: 28, padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, background: view === v ? '#3a3734' : 'transparent', boxShadow: view === v ? 'inset 0 -2px 0 var(--accent)' : 'none', color: view === v ? INK : DIM, fontFamily: MONO, fontSize: 11, fontWeight: view === v ? 800 : 600, letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
           <ViewMark v={v} />{name}
         </button>
       ))}

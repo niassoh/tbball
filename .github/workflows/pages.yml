@@ -2,12 +2,27 @@
 # thinking-bball's nightly run has committed new data (it dispatches this workflow). The
 # data (public/api and the headshots) is exported here from that repo's data/, which the
 # deploy key in secret BACKEND_DEPLOY_KEY reads.
+#
+# The test site (niassoh/tbball-test, https://niassoh.github.io/tbball-test/) calls this
+# same workflow with a backend branch and its base path, and publishes to its own Pages.
+# Production passes neither: the backend's default branch, at /.
 name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      backend_ref:
+        type: string
+        default: ''
+      base:
+        type: string
+        default: ''
+    secrets:
+      BACKEND_DEPLOY_KEY:
+        required: true
 
 permissions:
   contents: read
@@ -22,7 +37,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Named, so a caller's run builds this site's code (its main), not the caller's repo.
       - uses: actions/checkout@v4
+        with:
+          repository: niassoh/tbball
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -34,6 +52,7 @@ jobs:
         id: backend
         with:
           repository: niassoh/thinking-bball
+          ref: ${{ inputs.backend_ref }}
           ssh-key: ${{ secrets.BACKEND_DEPLOY_KEY }}
           path: backend
       # The export takes half an hour and depends only on thinking-bball's commit, so a
@@ -53,6 +72,7 @@ jobs:
       - run: npm run build
         env:
           VITE_STATIC: '1'
+          VITE_BASE: ${{ inputs.base }}
           # Each deploy's data is new even when the app's commit isn't.
           VITE_DATA_VERSION: ${{ github.run_id }}
       # Pages publishes a site of up to 1 GB.

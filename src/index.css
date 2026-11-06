@@ -668,3 +668,9 @@ a:hover > .lineup-tile > * { filter: none; }
   .uv-side { border-left: 0 !important; border-top: 1px solid #3d3a37; }
 }
 .tc-units-all:hover { color: #ece8e3 !important; }
+/* The units board's field (UnitsBoard.jsx): a playhead crosses it on arrival and each dot
+   lights as it passes. */
+.uf-dot { animation: uv-on .25s steps(2, end) both; }
+.uf-playhead { fill: var(--accent); opacity: 0; animation: uf-run var(--ms, 1s) linear both; }
+@keyframes uf-run { 0% { opacity: .9; transform: translateX(0); } 92% { opacity: .9; } 100% { opacity: 0; transform: translateX(var(--run, 0)); } }
+@media (prefers-reduced-motion: reduce) { .uf-dot { animation: none; } .uf-playhead { display: none; } }

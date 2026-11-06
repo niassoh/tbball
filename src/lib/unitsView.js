@@ -15,13 +15,15 @@ const add = (a, b) => (a ? a.map((v, i) => v + (b[i] || 0)) : [...b])
 // face); the team's and the league's totals summed. Each unit also sums the league's
 // ORTG and DRTG weighted by its own possessions each season (lgOff, lgDef), so its rORTG
 // and rDRTG set it against the league of its own seasons. A unit's league rank is its
-// season's (null over many seasons, which have no league of units to rank in).
+// season's (null over many seasons, which have no league of units to rank in); the
+// league's minutes floors are the seasons' added up.
 export const combine = docs => {
   const one = docs.length === 1
   const units = Object.fromEntries(SIZES.map(k => [k, new Map()]))
   const players = new Map()
   let total = null
   let league = null
+  const floors = Object.fromEntries(SIZES.map(k => [k, 0]))
   for (const d of docs) {
     const at = fieldsOf(d.fields)
     const lgO = (100 * d.league.t[at.Points]) / d.league.offPoss
@@ -39,13 +41,14 @@ export const combine = docs => {
     const sum = (a, b) => ({ seconds: (a ? a.seconds : 0) + b.seconds, offPoss: (a ? a.offPoss : 0) + b.offPoss, defPoss: (a ? a.defPoss : 0) + b.defPoss, t: add(a && a.t, b.t), o: add(a && a.o, b.o) })
     total = { ...sum(total, d.total), lgOff: ((total || {}).lgOff || 0) + lgO * d.total.offPoss, lgDef: ((total || {}).lgDef || 0) + lgD * d.total.defPoss }
     league = sum(league, d.league)
+    for (const k of SIZES) floors[k] += (d.floors || {})[k] || 0
   }
   const last = docs[docs.length - 1]
   return {
     team: last.team,
     seasons: docs.map(d => d.season),
     fields: last.fields,
-    floors: one ? last.floors : null,
+    floors,
     viewFloors: last.viewFloors,
     players: [...players.values()].sort((a, b) => b.minutes - a.minutes),
     units: Object.fromEntries(SIZES.map(k => [k, [...units[k].values()]])),
@@ -126,4 +129,31 @@ export const tracks = (view, cols) => {
 export const floorSteps = (view, k) => {
   const base = (view.viewFloors || {})[k] || 0
   return [base, base * 2, base * 4, base * 8]
+}
+
+// A team's row on the units board, for units of size k (`view`: combine's, over the
+// board's seasons): its most-used unit (with its share of the team's minutes) and that
+// unit's ratings; the team's net in every other minute (rest: the team's counts less the
+// unit's); its best unit over the league's minutes floor, with its league rank (a single
+// season's); how many units clear the floor, and the share of their minutes in units with
+// a positive net.
+export const teamRow = (view, k) => {
+  const all = (view.units[k] || []).map(u => ({ ...u, s: statsOf(u, view.fields) })).filter(u => u.s.net !== null)
+  const top = all.reduce((a, u) => (!a || u.s.minutes > a.s.minutes ? u : a), null)
+  const team = statsOf(view.total, view.fields)
+  if (!top) return { team, top: null, share: null, rest: null, best: null, over: 0, positive: null }
+  const t = view.total
+  const rest = statsOf({ seconds: t.seconds - top.seconds, offPoss: t.offPoss - top.offPoss, defPoss: t.defPoss - top.defPoss, t: t.t.map((v, i) => v - top.t[i]), o: t.o.map((v, i) => v - top.o[i]), lgOff: t.lgOff - top.lgOff, lgDef: t.lgDef - top.lgDef }, view.fields)
+  const qualified = all.filter(u => u.s.minutes >= view.floors[k])
+  const best = qualified.reduce((a, u) => (!a || u.s.net > a.s.net ? u : a), null)
+  const minutes = qualified.reduce((a, u) => a + u.s.minutes, 0)
+  return {
+    team,
+    top,
+    share: team.minutes ? (100 * top.s.minutes) / team.minutes : null,
+    rest: rest.minutes > 0 ? rest : null,
+    best,
+    over: qualified.length,
+    positive: minutes ? (100 * qualified.filter(u => u.s.net > 0).reduce((a, u) => a + u.s.minutes, 0)) / minutes : null
+  }
 }

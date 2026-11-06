@@ -286,11 +286,11 @@ function UnitMap({ cols, view, rel, lit, setHot, setPinned }) {
 }
 
 // `seasons`: the board's (oldest first); `teams`: [{ team, name }] for the channel strip.
-export default function UnitsView({ team, seasons, teams, setTeam, onClose }) {
+export default function UnitsView({ team, seasons, teams, setTeam, onClose, size = 5 }) {
   // The files for the team and seasons last fetched; the previous ones stay up, dimmed,
   // till the next arrive.
   const [got, setGot] = useState(null)
-  const [k, setK] = useState(5)
+  const [k, setK] = useState(size)
   const [sort, setSort] = useState('min')
   const [read, setRead] = useState('raw')
   const [step, setStep] = useState(0)

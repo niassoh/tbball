@@ -15,6 +15,7 @@ import BrandMark from './components/BrandMark.jsx'
 import DeltaToggle from './components/DeltaToggle.jsx'
 import SiteNav from './components/SiteNav.jsx'
 import TeamCard from './components/TeamCard.jsx'
+import UnitsBoard from './components/UnitsBoard.jsx'
 import UnitsView from './components/UnitsView.jsx'
 
 // The Team board: the 30 teams' season from the team sheet (thinking-bball
@@ -31,9 +32,11 @@ import UnitsView from './components/UnitsView.jsx'
 // Δ VS PREV (the Leaderboard's switch) sets each season against the one before, or a
 // combined span against as many seasons before it (lib/teamboard.js teamChange); none for
 // runs or the first season. /teams?season=2018-19&team=PHI opens on that season with
-// that team's card open (a player page's team name links here). UNITS (or a card's ALL
-// UNITS) opens a team's units over the board's seasons in the board's place (UnitsView),
-// &view=units in the address, so a player page's lineups can link to it.
+// that team's card open (a player page's team name links here). UNITS turns the board to
+// the teams' units (UnitsBoard: a table of the 30 by their units of one size beside the
+// unit field) over the same seasons; a team there (or a card's ALL UNITS) opens its units
+// (UnitsView) in the board's place. &view=units in the address (with &team= for a team's),
+// so a player page's lineups can link to it.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -67,6 +70,8 @@ const td = { height: 30, padding: '0 8px', borderBottom: `1px solid ${RULE}`, te
 const RECORD = ['Wins', 'Losses']
 // A head's name where the sheet's is cryptic.
 const NAMES = { 'LA Bayes Win-pace': 'Luck Adjusted\nBayes Win-pace' }
+// UNITS mode's unit sizes, in the stat groups' place.
+const UNIT_SIZES = [2, 3, 4, 5].map(k => ({ id: k, name: `${k}-man` }))
 // RAW | RANK: a cell's value, or its place among the 30 ("1st", "4th", a shared one "T-6th").
 const MODES = [['raw', 'Raw'], ['rank', 'Rank']]
 // A row of the table; memoized, so a hover redraws only the rows it lights and unlights
@@ -162,22 +167,27 @@ export default function TeamBoard() {
   const [hot, setHot] = useState(null)
   const [picked, setPicked] = useState(() => params.get('team'))
   const close = useCallback(() => setPicked(null), [])
-  // The team whose units are open, if any (its card, if open, stays open under it).
+  // UNITS mode, its unit size, and the team whose units are open in it, if any (a card
+  // open under it stays open).
+  const [unitsMode, setUnitsMode] = useState(() => params.get('view') === 'units')
+  const [unitK, setUnitK] = useState(5)
   const [unitsOf, setUnitsOf] = useState(() => (params.get('view') === 'units' ? params.get('team') : null))
   const closeUnits = useCallback(() => setUnitsOf(null), [])
+  const openUnits = useCallback(team => { setUnitsMode(true); setUnitsOf(team) }, [])
   useEffect(() => {
     setParams(p => {
       const next = new URLSearchParams(p)
-      if (unitsOf) {
+      if (unitsMode) {
         next.set('view', 'units')
-        next.set('team', unitsOf)
+        if (unitsOf) next.set('team', unitsOf)
+        else next.delete('team')
       } else if (next.get('view')) {
         next.delete('view')
         next.delete('team')
       }
       return next
     }, { replace: true })
-  }, [unitsOf, setParams])
+  }, [unitsMode, unitsOf, setParams])
   // A row opens its card, or closes it when it's the one open.
   const toggle = useCallback(k => setPicked(p => (p === k ? null : k)), [])
   const [seasons, setSeasons] = useState(null)
@@ -240,8 +250,6 @@ export default function TeamBoard() {
   // The units' seasons: the open card's, else the board's (a run's board: its last season).
   const unitSeasons = row ? covered : era ? wanted.slice(-1) : wanted
   const boardTeams = doc ? [...new Map(doc.teams.map(t => [t.team, { team: t.team, name: t.name }])).values()].sort((a, b) => a.name.localeCompare(b.name)) : []
-  // UNITS opens the open card's team, else the one under the pointer, else the table's top.
-  const unitsTeam = () => (row || doc.teams.find(t => t.id === hot) || ranked(doc, doc.teams, by.label, by.reverse)[0]).team
   const choose = id => {
     const next = doc.groups.find(x => x.id === id)
     setGroup(id)
@@ -266,27 +274,30 @@ export default function TeamBoard() {
               extra={<Eras era={era} set={setEra} who="team" />} />
           )
           : <span className="lb-skel" style={{ width: 184, height: 30 }} />}
-        {doc ? <Groups groups={doc.groups} active={g.id} pick={choose} /> : <span className="lb-skel" style={{ width: 560, height: 30 }} />}
+        {doc && unitsMode
+          ? <Groups groups={UNIT_SIZES} active={unitK} pick={setUnitK} />
+          : doc ? <Groups groups={doc.groups} active={g.id} pick={choose} /> : <span className="lb-skel" style={{ width: 560, height: 30 }} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <button type="button" className="lb-group uv-enter" aria-pressed={!!unitsOf} disabled={!doc} onClick={() => setUnitsOf(u => (u ? null : unitsTeam()))} title="A team's 2- to 5-man units"
-            style={{ height: 30, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${unitsOf ? INK : EDGE}`, background: unitsOf ? '#3a3734' : 'transparent', color: unitsOf ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', cursor: doc ? 'pointer' : 'default' }}>
+          <button type="button" className="lb-group uv-enter" aria-pressed={unitsMode} disabled={!doc} onClick={() => { setUnitsMode(m => !m); setUnitsOf(null) }} title="The teams by their 2- to 5-man units"
+            style={{ height: 30, padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${unitsMode ? INK : EDGE}`, background: unitsMode ? '#3a3734' : 'transparent', color: unitsMode ? INK : '#c9c3bc', fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', cursor: doc ? 'pointer' : 'default' }}>
             <span aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 4px)', gap: 1 }}>{[1, 0, 1, 1, 1, 0, 0, 1, 1].map((on, i) => <span key={i} style={{ width: 4, height: 4, background: on ? 'currentColor' : EDGE }} />)}</span>
             Units
           </button>
-          <ModeSwitch name="Cells read in" options={MODES} mode={mode} setMode={setMode} />
+          {!unitsMode && <ModeSwitch name="Cells read in" options={MODES} mode={mode} setMode={setMode} />}
         </span>
       </div>
       {doc === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
-      {doc && unitsOf && unitSeasons.length > 0 && (
+      {doc && unitsMode && unitsOf && unitSeasons.length > 0 && (
         <div className="lb-body tb-body" style={{ display: 'flex' }}>
-          <UnitsView team={unitsOf} seasons={unitSeasons} teams={boardTeams} setTeam={setUnitsOf} onClose={closeUnits} />
+          <UnitsView key={unitK} size={unitK} team={unitsOf} seasons={unitSeasons} teams={boardTeams} setTeam={setUnitsOf} onClose={closeUnits} />
         </div>
       )}
-      {doc && !unitsOf && (
+      {doc && unitsMode && !unitsOf && unitSeasons.length > 0 && <UnitsBoard teams={boardTeams} seasons={unitSeasons} k={unitK} onPick={setUnitsOf} />}
+      {doc && !unitsMode && (
         <div className="lb-body tb-body lb-enter">
           <div className={`lb-side${row ? ' lb-carded' : ''}`}>
             {row
-              ? <TeamCard key={`${picked}|${!!doc.change}`} doc={doc} team={row} season={row.season || doc.season} against={against} trophies={trophies} onClose={close} onUnits={() => setUnitsOf(row.team)} />
+              ? <TeamCard key={`${picked}|${!!doc.change}`} doc={doc} team={row} season={row.season || doc.season} against={against} trophies={trophies} onClose={close} onUnits={() => openUnits(row.team)} />
               : <TeamScatter doc={doc} hot={hot} setHot={setHot} onPick={setPicked} />}
           </div>
           <div className="lb-table-wrap" style={{ scrollSnapType: 'none' }}>

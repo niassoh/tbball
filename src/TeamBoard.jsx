@@ -306,7 +306,7 @@ export default function TeamBoard() {
         <SiteNav at="teams" />
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
           <ModeSwitch name="Board" height={26} options={VIEWS} mode={unitsMode ? 'units' : 'teams'} setMode={m => { setUnitsMode(m === 'units'); setUnitsOf(null) }} />
-          <DeltaToggle on={changing} set={setDelta} disabled={!prior.length} who="team" />
+          <DeltaToggle on={changing && !unitsMode} set={setDelta} disabled={unitsMode || !prior.length} who="team" />
         </span>
       </header>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', flexWrap: 'wrap' }}>

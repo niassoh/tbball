@@ -127,6 +127,7 @@ const PICKS = (() => {
   return UNIT_GROUPS.map(g => ({ ...g, cols: g.cols.filter(c => !c.team && c.id !== 'rest' && (c.better || c.id === 'min') && !seen.has(c.name) && seen.add(c.name)) }))
 })()
 const UNIT_STATS = PICKS.flatMap(g => g.cols)
+const pickName = c => (c.id === 'min' ? 'Most used' : c.name)
 const surname = name => (name || '?').split(' ').slice(1).join(' ') || name || '?'
 function UnitRows({ r, chosen, cols, col, dir, sortId, lit, setLit }) {
   const none = u => col.v(u) === null || col.v(u) === undefined
@@ -307,17 +308,20 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, card, on
             <tr>
               <th style={{ ...head, width: 30, textAlign: 'center', padding: '15px 0 6px' }}><span style={label}>#</span></th>
               <th style={{ ...head, textAlign: 'left', borderRight: `1px solid ${RULE}` }}><span style={label}>Team</span></th>
-              <th style={{ ...head, textAlign: 'left', whiteSpace: 'nowrap', padding: '10px 8px 6px' }}>
-                <label title="Each team’s row is one unit: its best by this stat, of those listed under it (by Min, its most-used)" style={{ ...label, display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, padding: '0 6px', border: `1px solid ${EDGE}` }}>
-                  Best by
-                  <select aria-label="Best by" value={bestStat} onChange={e => setBestStat(e.target.value)} className="lb-select"
-                    style={{ ...label, color: INK, fontWeight: 700, background: 'transparent', border: 0, padding: 0, cursor: 'pointer' }}>
-                    {PICKS.map(g => (
-                      <optgroup key={g.id} label={g.name}>
-                        {g.cols.map(c => <option key={c.id} value={c.id} style={{ background: '#262422' }}>{c.id === 'min' ? 'Min (most used)' : c.name}</option>)}
-                      </optgroup>
-                    ))}
-                  </select>
+              <th style={{ ...head, textAlign: 'left', whiteSpace: 'nowrap', padding: '6px 8px 6px' }}>
+                <label title="Each team’s row is one unit: its best by this stat, of those listed under it (by Min, its most-used)" style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ ...label, fontSize: 8 }}>Best by</span>
+                  <span style={{ position: 'relative', display: 'flex' }}>
+                    <select aria-label="Best by" value={bestStat} onChange={e => setBestStat(e.target.value)} className="lb-select"
+                      style={{ ...label, fontSize: 8.5, letterSpacing: '.02em', appearance: 'none', width: `calc(${pickName(statCol).length} * (1ch + .02em) + 18px)`, height: 18, color: INK, fontWeight: 700, background: 'transparent', border: `1px solid ${EDGE}`, padding: '0 12px 0 4px', textOverflow: 'ellipsis', cursor: 'pointer' }}>
+                      {PICKS.map(g => (
+                        <optgroup key={g.id} label={g.name}>
+                          {g.cols.map(c => <option key={c.id} value={c.id} style={{ background: '#262422' }}>{pickName(c)}</option>)}
+                        </optgroup>
+                      ))}
+                    </select>
+                    <span aria-hidden="true" style={{ position: 'absolute', right: 4, top: 3, color: DIM, fontSize: 8, pointerEvents: 'none' }}>▾</span>
+                  </span>
                 </label>
               </th>
               {cols.map(c => {

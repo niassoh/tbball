@@ -78,7 +78,7 @@ const UNIT_SIZES = [2, 3, 4, 5]
 // UNITS' minutes filter, as the Leaderboard's MIN: the share of the league's minutes
 // floor (over the board's seasons, lib/unitsView.js combine) a unit needs to be on the
 // board; the panel says what that is in minutes. `floor`: that floor, for the size on show.
-const MIN_SHARES = [0.5, 0.75, 1, 1.5]
+const MIN_SHARES = [0.25, 0.5, 0.75, 1]
 const MIN_SHARE = 0.75
 function UnitMinutes({ share, set, floor }) {
   const at = sh => `${sh * 100}%`

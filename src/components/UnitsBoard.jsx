@@ -1,10 +1,10 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { fetchUnits, headshotUrl } from '../api.js'
+import { headshotUrl } from '../api.js'
 import { MONO, heat, signed } from '../lib/format.js'
 import { asset } from '../lib/static.js'
 import UnitsView from './UnitsView.jsx'
 import { initials } from '../lib/teams.js'
-import { UNIT_GROUPS, bestBy, combine, fieldUnits, statsOf, teamRow, unitRow } from '../lib/unitsView.js'
+import { UNIT_GROUPS, bestBy, fieldUnits, teamRow, unitRow } from '../lib/unitsView.js'
 
 // The Team board's UNITS mode: the 30 teams ranked by their units of one size (2 to 5) over
 // the board's seasons (lib/unitsView.js teamRow), in the board's own shape. On the right a
@@ -34,36 +34,6 @@ const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DI
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 const tone = v => (v === null || v === undefined ? FAINT : v >= 0 ? BLUE : ORANGE)
 
-// Each season's 30 unit files, fetched once a session.
-const FILES = new Map()
-const unitsFile = (season, team) => {
-  const key = `${season}|${team}`
-  if (!FILES.has(key)) FILES.set(key, fetchUnits(season, team).catch(() => null))
-  return FILES.get(key)
-}
-// Every team's units over `seasons`, combined (lib/unitsView.js combine), with how many of
-// its files are in (`got` of `of`) so the table fills in as they arrive.
-function useLeague(seasons, teams) {
-  const [state, setState] = useState({ key: null, views: new Map(), got: 0 })
-  const key = `${seasons.join()}|${teams.join()}`
-  useEffect(() => {
-    let live = true
-    let got = 0
-    const views = new Map()
-    Promise.all(teams.map(team => Promise.all(seasons.map(s => unitsFile(s, team))).then(docs => {
-      const have = docs.filter(Boolean)
-      if (have.length) {
-        const v = combine(have)
-        views.set(team, { ...v, teamStats: statsOf(v.total, v.fields) })
-      }
-      got++
-      // In batches, so 30 arrivals don't each redraw the board.
-      if (live && (got % 10 === 0 || got === teams.length)) setState({ key, views: new Map(views), got })
-    })))
-    return () => { live = false }
-  }, [key]) // eslint-disable-line react-hooks/exhaustive-deps -- seasons and teams are key's
-  return { views: state.key === key ? state.views : new Map(), loading: state.key !== key || state.got < teams.length }
-}
 
 // A value's place among the 30 as a percentile (100 the best), for its shade.
 const percentiles = (rows, col, value) => {
@@ -233,10 +203,11 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
 }
 
 // `teams`: [{ team, name }]; `seasons`: the board's; `k`: the unit size.
-// `card`: the team whose units (UnitsView) cover the field, if any; `onClose` closes it.
-export default function UnitsBoard({ teams, seasons, k, group: groupId, card, onPick, onClose }) {
-  const codes = useMemo(() => teams.map(t => t.team), [teams])
-  const { views, loading } = useLeague(seasons, codes)
+// `views`, `loading`: every team's units over `seasons` (useLeagueUnits); `minShare`: the
+// share of the league's minutes floor a unit needs to be on the board (lib/unitsView.js
+// fieldUnits); `card`: the team whose units (UnitsView) cover the field, if any;
+// `onClose` closes it.
+export default function UnitsBoard({ teams, seasons, views, loading, k, minShare, group: groupId, card, onPick, onClose }) {
   const [sort, setSort] = useState({ id: 'net', reverse: false })
   const [bestStat, setBestStat] = useState('net')
   const [hot, setHot] = useState(null)
@@ -261,12 +232,12 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, card, on
   }, [held])
   const rows = useMemo(() => teams.filter(t => views.has(t.team)).map(t => {
     const view = views.get(t.team)
-    const units = fieldUnits(view, k)
-    const row = teamRow(view, k)
+    const units = fieldUnits(view, k, minShare)
+    const row = teamRow(view, k, minShare)
     // BEST picks among the units listed under its row and on its line of the field.
     const cands = units.map(u => ({ u, row: unitRow(view, u, row.team) }))
     return { code: t.team, name: t.name, view, units, cands, ...row }
-  }), [teams, views, k])
+  }), [teams, views, k, minShare])
   const group = UNIT_GROUPS.find(g => g.id === groupId) || UNIT_GROUPS[0]
   const cols = group.cols
   // Each team's row is one unit, its best by `bestStat` (by minutes, its most-used),

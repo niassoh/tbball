@@ -16,7 +16,9 @@ import BrandMark from './components/BrandMark.jsx'
 import DeltaToggle from './components/DeltaToggle.jsx'
 import SiteNav from './components/SiteNav.jsx'
 import TeamCard from './components/TeamCard.jsx'
+import Popover from './components/Popover.jsx'
 import UnitsBoard from './components/UnitsBoard.jsx'
+import { useLeagueUnits } from './useLeagueUnits.js'
 
 // The Team board: the 30 teams' season from the team sheet (thinking-bball
 // lib/teamboard.js), 2013-14 on, the latest to begin with; the Leaderboard's season picker
@@ -73,6 +75,30 @@ const NAMES = { 'LA Bayes Win-pace': 'Luck Adjusted\nBayes Win-pace' }
 // The board's two views (TEAMS | UNITS), and UNITS mode's unit sizes.
 const VIEWS = [['teams', 'Teams'], ['units', 'Units']]
 const UNIT_SIZES = [2, 3, 4, 5]
+// UNITS' minutes filter, as the Leaderboard's MIN: the share of the league's minutes
+// floor (over the board's seasons, lib/unitsView.js combine) a unit needs to be on the
+// board; the panel says what that is in minutes. `floor`: that floor, for the size on show.
+const MIN_SHARES = [0.5, 0.75, 1, 1.5]
+const MIN_SHARE = 0.75
+function UnitMinutes({ share, set, floor }) {
+  const at = sh => `${sh * 100}%`
+  return (
+    <Popover name={`Unit minutes: ${at(share)} of the league floor`} minWidth={240} width={94} trigger={<><span style={{ ...label, fontWeight: 400 }}>Min</span>{at(share)}</>}>
+      {close => (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: `1px solid ${EDGE}` }}>
+            {MIN_SHARES.map((sh, i) => (
+              <button key={sh} type="button" className="lb-group" onClick={() => { set(sh); close() }}
+                style={{ height: 28, border: 0, borderLeft: i ? `1px solid ${EDGE}` : 0, background: sh === share ? '#3a3734' : 'transparent', color: sh === share ? INK : DIM, fontFamily: MONO, fontSize: 9.5, fontWeight: sh === share ? 700 : 400, letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', padding: '0 8px' }}>{at(sh)}</button>
+            ))}
+          </div>
+          <span style={{ ...label, color: '#b8b2ab' }}>A unit’s minutes together, as a share of the league’s floor{floor ? ` (${Math.round(floor).toLocaleString()} min): ${at(share)} is ${Math.round(floor * share).toLocaleString()}+` : ''}</span>
+        </>
+      )}
+    </Popover>
+  )
+}
+
 // The unit size, a dropdown in RAW | RANK's place.
 function SizeSelect({ k, set }) {
   return (
@@ -185,6 +211,7 @@ export default function TeamBoard() {
   const [unitsMode, setUnitsMode] = useState(() => params.get('view') === 'units')
   const [unitK, setUnitK] = useState(3)
   const [unitGroup, setUnitGroup] = useState('overview')
+  const [unitMin, setUnitMin] = useState(MIN_SHARE)
   const [unitsOf, setUnitsOf] = useState(() => (params.get('view') === 'units' ? params.get('team') : null))
   const closeUnits = useCallback(() => setUnitsOf(null), [])
   const openUnits = useCallback(team => { setUnitsMode(true); setUnitsOf(team) }, [])
@@ -261,10 +288,14 @@ export default function TeamBoard() {
   // The open card's seasons, for its trophies: a run's own, a combined span's all, else its season.
   const covered = !row ? [] : era ? seasonsBetween(...row.id.split('|')[1].split('..')) : doc.many && !each ? wanted : [row.season || doc.season]
   const trophies = row ? trophiesOf(docs, covered, row.team) : []
-  // The units' seasons: the open card's, else the board's (a run's board: its last season).
-  // Units have no runs (a run is a team's own seasons): UNITS reads the picked span.
+  // The units' seasons: the open card's, else the picked span (units have no runs: a run
+  // is a team's own seasons).
   const unitSeasons = row ? covered : wanted
   const boardTeams = doc ? [...new Map(doc.teams.map(t => [t.team, { team: t.team, name: t.name }])).values()].sort((a, b) => a.name.localeCompare(b.name)) : []
+  // Every team's units over them, fetched only in UNITS; the league's minutes floor for
+  // the size on show, for MIN.
+  const { views: unitViews, loading: unitsLoading } = useLeagueUnits(unitsMode ? unitSeasons : [], boardTeams.map(t => t.team))
+  const unitFloor = unitViews.size ? unitViews.values().next().value.floors[unitK] : null
   const choose = id => {
     const next = doc.groups.find(x => x.id === id)
     setGroup(id)
@@ -290,7 +321,7 @@ export default function TeamBoard() {
           )
           : <span className="lb-skel" style={{ width: 184, height: 30 }} />}
         {doc && unitsMode
-          ? <Groups groups={UNIT_GROUPS} active={unitGroup} pick={setUnitGroup} />
+          ? <><Groups groups={UNIT_GROUPS} active={unitGroup} pick={setUnitGroup} /><UnitMinutes share={unitMin} set={setUnitMin} floor={unitFloor} /></>
           : doc ? <Groups groups={doc.groups} active={g.id} pick={choose} /> : <span className="lb-skel" style={{ width: 560, height: 30 }} />}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
           <ModeSwitch name="Board" height={30} options={VIEWS} mode={unitsMode ? 'units' : 'teams'} setMode={m => { setUnitsMode(m === 'units'); setUnitsOf(null) }} />
@@ -298,7 +329,7 @@ export default function TeamBoard() {
         </span>
       </div>
       {doc === false && <div style={{ ...label, padding: 40, border: `1px dashed ${EDGE}`, textAlign: 'center' }}>Unavailable</div>}
-      {doc && unitsMode && unitSeasons.length > 0 && <UnitsBoard teams={boardTeams} seasons={unitSeasons} k={unitK} group={unitGroup} card={unitsOf} onPick={setUnitsOf} onClose={closeUnits} />}
+      {doc && unitsMode && unitSeasons.length > 0 && <UnitsBoard teams={boardTeams} seasons={unitSeasons} views={unitViews} loading={unitsLoading} k={unitK} minShare={unitMin} group={unitGroup} card={unitsOf} onPick={setUnitsOf} onClose={closeUnits} />}
       {doc && !unitsMode && (
         <div className="lb-body tb-body lb-enter">
           <div className={`lb-side${row ? ' lb-carded' : ''}`}>

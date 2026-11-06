@@ -140,12 +140,12 @@ export const floorSteps = (view, k) => {
 // unit's ratings; the team's net in every other minute (rest: the team's counts less the
 // unit's); how many units it has on the board (fieldUnits), and the share of their
 // minutes in units with a positive net.
-export const teamRow = (view, k) => {
+export const teamRow = (view, k, share = 0.75) => {
   const all = (view.units[k] || []).map(u => ({ ...u, s: statsOf(u, view.fields) })).filter(u => u.s.net !== null)
   const top = all.reduce((a, u) => (!a || u.s.minutes > a.s.minutes ? u : a), null)
   const team = statsOf(view.total, view.fields)
   if (!top) return { team, top: null, share: null, rest: null, over: 0, positive: null }
-  const qualified = fieldUnits(view, k)
+  const qualified = fieldUnits(view, k, share)
   const minutes = qualified.reduce((a, u) => a + u.s.minutes, 0)
   return {
     ...unitRow(view, top, team),
@@ -155,7 +155,7 @@ export const teamRow = (view, k) => {
   }
 }
 
-// One unit as a row of the table (the columns read a team's most-used unit as `top`): its
+// One unit as a row of the table (the columns read a team's unit on show as `top`): its
 // share of the team's minutes and the team's net in every other minute (rest: the team's
 // counts less the unit's), nothing for the team-wide columns.
 export const unitRow = (view, u, team = statsOf(view.total, view.fields)) => {
@@ -164,32 +164,32 @@ export const unitRow = (view, u, team = statsOf(view.total, view.fields)) => {
   return { top: u, share: team.minutes ? (100 * u.s.minutes) / team.minutes : null, rest: rest.minutes > 0 ? rest : null, over: null, positive: null }
 }
 
-// A team's units on the board's field and under its row: those with ¾ of the league's
-// minutes floor (the small ones would drown it; the whole floor leaves some teams none),
-// most minutes first.
-export const fieldUnits = (view, k) => (view.units[k] || [])
+// A team's units on the board's field and under its row: those with `share` of the
+// league's minutes floor (the reader's MIN; ¾ unless picked: the small ones would drown
+// it, the whole floor leaves some teams none), most minutes first.
+export const fieldUnits = (view, k, share = 0.75) => (view.units[k] || [])
   .map(u => ({ ...u, s: statsOf(u, view.fields) }))
-  .filter(u => u.s.net !== null && u.s.minutes >= view.floors[k] * 0.75)
+  .filter(u => u.s.net !== null && u.s.minutes >= view.floors[k] * share)
   .sort((a, b) => b.s.minutes - a.s.minutes)
 
 // The table's columns: a label, the value from a team's row, how it prints, and which way
 // is better (1 higher, -1 lower, 0 unshaded: a style, or how much); `team`: a column of
 // the team's units together, not of one unit. In groups, as the
-// board's stats are: Overview (the most-used unit, the rest of the team's minutes, its
-// best unit and how its units do), then the most-used unit's offense and defense.
+// board's stats are: Overview (the team's unit on show, the rest of the team's minutes, how
+// its units do), then that unit's offense and defense.
 const pctText = v => `${v.toFixed(1)}`
 const ofTop = f => r => (r.top ? f(r.top.s) : null)
 const COL_OVERVIEW = [
-  { id: 'min', name: 'Min', v: ofTop(s => s.minutes), text: v => Math.round(v).toLocaleString(), better: 0, title: 'The most-used unit’s minutes' },
-  { id: 'share', name: 'Share', v: r => r.share, text: v => `${v.toFixed(0)}%`, better: 0, title: 'Its share of the team’s minutes: how settled the rotation is' },
+  { id: 'min', name: 'Min', v: ofTop(s => s.minutes), text: v => Math.round(v).toLocaleString(), better: 0, title: 'The unit’s minutes' },
+  { id: 'share', name: 'Share', v: r => r.share, text: v => `${v.toFixed(0)}%`, better: 0, title: 'Its share of the team’s minutes' },
   { id: 'net', name: 'Net', v: ofTop(s => s.net), text: v => signed(v), better: 1, title: 'Its net rating (ORTG − DRTG)' },
   { id: 'ortg', name: 'ORTG', v: ofTop(s => s.ortg), text: v => v.toFixed(1), better: 1 },
   { id: 'drtg', name: 'DRTG', v: ofTop(s => s.drtg), text: v => v.toFixed(1), better: -1 },
   { id: 'rest', name: 'Rest net', v: r => r.rest && r.rest.net, text: v => signed(v), better: 1, title: 'The team’s net in every other minute' },
-  { id: 'over', team: true, name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Units on the board: ¾ of the league’s minutes floor' },
+  { id: 'over', team: true, name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Units on the board: those over MIN' },
   { id: 'positive', team: true, name: '+Min', v: r => r.positive, text: v => `${v.toFixed(0)}%`, better: 1, title: 'Share of those units’ minutes in units with a positive net' }
 ]
-// The most-used unit's shot mix on one end, as shares of FGA (a style: unshaded).
+// The unit's shot mix on one end, as shares of FGA (a style: unshaded).
 const mixCols = (end, pre) => [['rim', 'Rim'], ['short', 'Short mid'], ['long', 'Long mid'], ['corner', 'Corner 3'], ['above', 'Above-break 3']]
   .map(([k, name]) => ({ id: `${end}-${k}`, name: `${pre}${name}`, v: ofTop(s => s[end].mix[k]), text: v => `${v.toFixed(0)}%`, better: 0, title: `Share of ${end === 'off' ? 'its' : 'opponents’'} FGA` }))
 const COL_OFFENSE = [

@@ -75,7 +75,7 @@ describe('teamRow', () => {
       unit(['A', 'C'], 40, 40, 40, { Points: 52 }, { Points: 40 }), // +30, under the 200-min floor
       unit(['B', 'C'], 30, 30, 30, { Points: 27 }, { Points: 30 }) // −10
     ])])
-    view.floors[2] = 70 // its units on the board: 35 min and up
+    view.floors[2] = 50 // its units on the board: 37.5 min and up
     const r = teamRow(view, 2)
     expect(r.top.key).toBe('A-B')
     expect(r.share).toBeCloseTo(60) // 60 of the team's 100 minutes

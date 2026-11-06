@@ -18,8 +18,9 @@ const add = (a, b) => (a ? a.map((v, i) => v + (b[i] || 0)) : [...b])
 // ORTG and DRTG weighted by its own possessions each season (lgOff, lgDef), so its rORTG
 // and rDRTG set it against the league of its own seasons. A unit's league rank is its
 // season's (null over many seasons, which have no league of units to rank in). Over many
-// seasons a unit clears the league's minutes floor with what one season asks (the highest
-// of theirs), not their sum: few units play together every season of a long span.
+// seasons the league's minutes floor is the highest season's times √(seasons): their sum
+// leaves a long span almost no units (few play together every season), one season's
+// floor hundreds; √ keeps a team near the same number of units however long the span.
 export const combine = docs => {
   const one = docs.length === 1
   const units = Object.fromEntries(SIZES.map(k => [k, new Map()]))
@@ -51,7 +52,7 @@ export const combine = docs => {
     team: last.team,
     seasons: docs.map(d => d.season),
     fields: last.fields,
-    floors,
+    floors: Object.fromEntries(SIZES.map(k => [k, Math.round(floors[k] * Math.sqrt(docs.length))])),
     viewFloors: last.viewFloors,
     players: [...players.values()].sort((a, b) => b.minutes - a.minutes),
     units: Object.fromEntries(SIZES.map(k => [k, [...units[k].values()]])),
@@ -145,21 +146,33 @@ export const teamRow = (view, k) => {
   const top = all.reduce((a, u) => (!a || u.s.minutes > a.s.minutes ? u : a), null)
   const team = statsOf(view.total, view.fields)
   if (!top) return { team, top: null, share: null, rest: null, best: null, over: 0, positive: null }
-  const t = view.total
-  const rest = statsOf({ seconds: t.seconds - top.seconds, offPoss: t.offPoss - top.offPoss, defPoss: t.defPoss - top.defPoss, t: t.t.map((v, i) => v - top.t[i]), o: t.o.map((v, i) => v - top.o[i]), lgOff: t.lgOff - top.lgOff, lgDef: t.lgDef - top.lgDef }, view.fields)
   const qualified = all.filter(u => u.s.minutes >= view.floors[k])
   const best = qualified.reduce((a, u) => (!a || u.s.net > a.s.net ? u : a), null)
   const minutes = qualified.reduce((a, u) => a + u.s.minutes, 0)
   return {
+    ...unitRow(view, top, team),
     team,
-    top,
-    share: team.minutes ? (100 * top.s.minutes) / team.minutes : null,
-    rest: rest.minutes > 0 ? rest : null,
     best,
     over: qualified.length,
     positive: minutes ? (100 * qualified.filter(u => u.s.net > 0).reduce((a, u) => a + u.s.minutes, 0)) / minutes : null
   }
 }
+
+// One unit as a row of the table (the columns read a team's most-used unit as `top`): its
+// share of the team's minutes and the team's net in every other minute (rest: the team's
+// counts less the unit's), nothing for the team-wide columns.
+export const unitRow = (view, u, team = statsOf(view.total, view.fields)) => {
+  const t = view.total
+  const rest = statsOf({ seconds: t.seconds - u.seconds, offPoss: t.offPoss - u.offPoss, defPoss: t.defPoss - u.defPoss, t: t.t.map((v, i) => v - u.t[i]), o: t.o.map((v, i) => v - u.o[i]), lgOff: t.lgOff - u.lgOff, lgDef: t.lgDef - u.lgDef }, view.fields)
+  return { top: u, share: team.minutes ? (100 * u.s.minutes) / team.minutes : null, rest: rest.minutes > 0 ? rest : null, best: null, over: null, positive: null }
+}
+
+// A team's units on the board's field and under its row: those with half the league's
+// minutes floor (the small ones would drown it), most minutes first.
+export const fieldUnits = (view, k) => (view.units[k] || [])
+  .map(u => ({ ...u, s: statsOf(u, view.fields) }))
+  .filter(u => u.s.net !== null && u.s.minutes >= view.floors[k] / 2)
+  .sort((a, b) => b.s.minutes - a.s.minutes)
 
 // The table's columns: a label, the value from a team's row, how it prints, and which way
 // is better (1 higher, -1 lower, 0 unshaded: a style, or how much). In groups, as the
@@ -175,7 +188,6 @@ const COL_OVERVIEW = [
   { id: 'drtg', name: 'DRTG', v: ofTop(s => s.drtg), text: v => v.toFixed(1), better: -1 },
   { id: 'rest', name: 'Rest net', v: r => r.rest && r.rest.net, text: v => signed(v), better: 1, title: 'The team’s net in every other minute' },
   { id: 'best', name: 'Best net', v: r => r.best && r.best.s.net, text: v => signed(v), better: 1, title: 'Its best unit over the league’s minutes floor' },
-  { id: 'rank', name: 'Best #', v: r => r.best && r.best.rank && r.best.rank.rank, text: (v, r) => `${v}/${r.best.rank.of}`, better: -1, title: 'That unit’s rank among the league’s' },
   { id: 'over', name: 'Units', v: r => r.over, text: v => String(v), better: 0, title: 'Units over the league’s minutes floor' },
   { id: 'positive', name: '+Min', v: r => r.positive, text: v => `${v.toFixed(0)}%`, better: 1, title: 'Share of those units’ minutes in units with a positive net' }
 ]

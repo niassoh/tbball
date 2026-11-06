@@ -88,9 +88,10 @@ describe('teamRow', () => {
 })
 
 describe('combine floors', () => {
-  it('asks a span of seasons for one season’s minutes floor, the highest of them', () => {
+  it('asks a span of seasons for the highest season’s minutes floor times √(seasons)', () => {
     const a = { ...season('2000-01', 110, []), floors: { 2: 200, 3: 150, 4: 100, 5: 50 } }
     const b = { ...season('2001-02', 100, []), floors: { 2: 250, 3: 120, 4: 100, 5: 60 } }
-    expect(combine([a, b]).floors).toEqual({ 2: 250, 3: 150, 4: 100, 5: 60 })
+    expect(combine([a, b]).floors).toEqual({ 2: 354, 3: 212, 4: 141, 5: 85 })
+    expect(combine([a]).floors).toEqual(a.floors)
   })
 })

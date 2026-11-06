@@ -1,22 +1,25 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { fetchUnits, headshotUrl } from '../api.js'
 import { MONO, heat, signed } from '../lib/format.js'
 import { asset } from '../lib/static.js'
 import { initials } from '../lib/teams.js'
-import { ALL_COLS, UNIT_GROUPS, combine, statsOf, teamRow } from '../lib/unitsView.js'
+import { ALL_COLS, UNIT_GROUPS, combine, fieldUnits, statsOf, teamRow, unitRow } from '../lib/unitsView.js'
 
 // The Team board's UNITS mode: the 30 teams ranked by their units of one size (2 to 5) over
 // the board's seasons (lib/unitsView.js teamRow), in the board's own shape. On the right a
 // table: each team's most-used unit (its faces), its minutes and share of the team's, its
 // net, ORTG and DRTG; the team's net in every other minute (REST); its best unit over the
-// league's minutes floor and that unit's league rank; how many units clear the floor, and
+// league's minutes floor; how many units clear the floor, and
 // the share of their minutes in units that won them (+MIN). Every number shaded by its
 // place among the 30, as the board's are. On the left the unit field: a row per team in
 // the table's order, each of its units a dot along net (its area its minutes), the team's
 // own net a white tick, its most-used unit ringed, so where a team's minutes sit, and how
 // far apart its good and bad units are, read at a glance. It comes in as a sequencer
 // starts: a playhead crosses the field, lighting each dot as it passes. A team under the
-// pointer in either is lit in the other; a click opens its units (UnitsView).
+// pointer in either is lit in the other; a click opens its units (UnitsView). A row's ▸
+// opens the units on its line of the field beneath it, in the table's columns and order;
+// a unit under the pointer in either is lit in the other, and a dot clicked opens its
+// team's units with it lit.
 const INK = '#ece8e3'
 const DIM = '#a09a93'
 const FAINT = '#7a746e'
@@ -85,7 +88,7 @@ function Faces({ ids, view }) {
 }
 
 const td = { height: 30, padding: '0 8px', borderBottom: `1px solid ${RULE}`, textAlign: 'right', whiteSpace: 'nowrap' }
-const Row = memo(function Row({ r, cols, sortId, rank, pct, on, setHot, onPick }) {
+const Row = memo(function Row({ r, cols, sortId, rank, pct, on, open, toggle, setHot, onPick }) {
   return (
     <tr className="lb-row" aria-selected={on} onMouseEnter={() => setHot(r.code)} onMouseLeave={() => setHot(null)} onClick={() => onPick(r.code)}>
       <td style={{ ...td, textAlign: 'center', padding: 0, color: DIM, fontSize: 11 }}>{rank}</td>
@@ -93,6 +96,11 @@ const Row = memo(function Row({ r, cols, sortId, rank, pct, on, setHot, onPick }
         <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <img src={asset(`logos/color/sm/${r.code}.webp`)} alt="" width={20} height={20} style={{ flex: 'none' }} />
           <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: INK }}>{r.name}</span>
+          <button type="button" className="lb-expand" aria-expanded={open} aria-label={`${open ? 'Hide' : 'Show'} ${r.name} units`} title={`${open ? 'Hide' : 'Show'} its ${r.units.length} units on the field`}
+            onClick={e => { e.stopPropagation(); toggle(r.code) }}
+            style={{ marginLeft: 'auto', height: 20, padding: '0 6px', border: `1px solid ${open ? EDGE : 'transparent'}`, background: 'transparent', color: open ? INK : DIM, fontFamily: MONO, fontSize: 9.5, letterSpacing: '.06em', cursor: 'pointer' }}>
+            {open ? '▾' : '▸'} {r.units.length}
+          </button>
         </span>
       </td>
       <td style={{ ...td, textAlign: 'left' }}>{r.top ? <Faces ids={r.top.ids} view={r.view} /> : <span style={{ color: FAINT }}>—</span>}</td>
@@ -105,10 +113,36 @@ const Row = memo(function Row({ r, cols, sortId, rank, pct, on, setHot, onPick }
   )
 })
 
+// A team's units under its row (the dots on its line of the field), in the table's
+// columns and order: unshaded (the shades place the 30 teams), each unit by its faces and
+// surnames.
+const surname = name => (name || '?').split(' ').slice(1).join(' ') || name || '?'
+function UnitRows({ r, cols, col, dir, sortId, lit, setLit }) {
+  const none = u => col.v(u) === null || col.v(u) === undefined
+  const units = r.units.map(u => ({ u, row: unitRow(r.view, u, r.team) })).sort((a, b) => none(a.row) - none(b.row) || (col.v(b.row) - col.v(a.row)) * dir)
+  return units.map(({ u, row }) => {
+    const key = `${r.code}|${u.key}`
+    const on = lit === key
+    return (
+      <tr key={key} id={`uf-${key}`} className="lb-row uf-sub" aria-selected={on} onMouseEnter={() => setLit(key)} onMouseLeave={() => setLit(null)}>
+        <td style={{ ...td, height: 26, padding: 0 }} />
+        <td style={{ ...td, height: 26, textAlign: 'left', borderRight: `1px solid ${RULE}`, paddingLeft: 38, maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 10.5, color: on ? INK : '#c9c3bc' }}>
+          {u.ids.map(id => surname((r.view.players.find(p => p.id === id) || {}).name)).join(' · ')}
+        </td>
+        <td style={{ ...td, height: 26, textAlign: 'left' }}><Faces ids={u.ids} view={r.view} /></td>
+        {cols.map(c => {
+          const v = c.v(row)
+          return <td key={c.id} style={{ ...td, height: 26, fontSize: 11, color: v === null || v === undefined ? FAINT : c.id.endsWith('net') || c.id === 'net' ? tone(v) : DIM, fontWeight: sortId === c.id ? 600 : 400 }}>{v === null || v === undefined ? '' : c.text(v, row)}</td>
+        })}
+      </tr>
+    )
+  })
+}
+
 // The unit field: a row per team (`rows`, in the table's order), its units along net.
 const NET = 30
 const GUTTER = 34
-function Field({ rows, k, hot, setHot, onPick }) {
+function Field({ rows, k, hot, setHot, onPick, lit, setLit, onUnit }) {
   const box = useRef(null)
   const [size, setSize] = useState({ w: 560, h: 600 })
   useLayoutEffect(() => {
@@ -142,23 +176,24 @@ function Field({ rows, k, hot, setHot, onPick }) {
         ))}
         {rows.map((r, i) => {
           const y = top + i * rowH + rowH / 2
-          const lit = hot === r.code
-          const dim = hot && !lit
-          // Units with half the league's minutes floor, so the field isn't the small ones' noise.
-          const units = r.view ? r.view.units[k].map(u => ({ u, s: statsOf(u, r.view.fields) })).filter(d => d.s.net !== null && d.s.minutes >= r.view.floors[k] / 2).sort((a, b) => b.s.minutes - a.s.minutes) : []
+          const hotRow = hot === r.code
+          const dim = hot && !hotRow
           return (
             <g key={r.code} className="uf-row" opacity={dim ? 0.28 : 1} style={{ transition: 'opacity .15s' }} onMouseEnter={() => setHot(r.code)} onClick={() => onPick(r.code)} cursor="pointer">
-              <rect x={0} y={y - rowH / 2} width={w} height={rowH} fill={lit ? 'rgba(236,232,227,.05)' : 'transparent'} />
+              <rect x={0} y={y - rowH / 2} width={w} height={rowH} fill={hotRow ? 'rgba(236,232,227,.05)' : 'transparent'} />
               <image href={asset(`logos/color/sm/${r.code}.webp`)} x={4} y={y - 8} width={16} height={16} />
               <line x1={GUTTER} x2={w - 6} y1={y} y2={y} stroke={RULE} />
-              {units.map(({ u, s }, j) => {
+              {r.units.map((u, j) => {
+                const s = u.s
                 const cx = x(s.net)
+                const on = lit === `${r.code}|${u.key}`
                 // The biggest on the line, the rest a little above or below in turn.
                 const dy = j === 0 ? 0 : ((j % 2 ? -1 : 1) * Math.ceil(j / 2) * rowH) / 9 % (rowH / 2.6)
                 return (
-                  <circle key={u.key} className={intro ? 'uf-dot' : undefined} cx={cx} cy={y + dy} r={radius(s.minutes)} fill={tone(s.net)} fillOpacity={j === 0 ? 0.95 : 0.5}
-                    stroke={j === 0 ? INK : 'none'} strokeWidth={1.2} style={{ animationDelay: `${Math.round(((cx - GUTTER) / (w - GUTTER)) * run)}ms` }}
-                    onMouseEnter={() => setTip({ x: cx, y: y + dy, r, u, s })} onMouseLeave={() => setTip(null)} />
+                  <circle key={u.key} className={intro ? 'uf-dot' : undefined} cx={cx} cy={y + dy} r={radius(s.minutes)} fill={tone(s.net)} fillOpacity={on || j === 0 ? 0.95 : 0.5}
+                    stroke={on || j === 0 ? INK : 'none'} strokeWidth={on ? 2.2 : 1.2} style={{ animationDelay: `${Math.round(((cx - GUTTER) / (w - GUTTER)) * run)}ms` }}
+                    onMouseEnter={() => { setTip({ x: cx, y: y + dy, r, u, s }); setLit(`${r.code}|${u.key}`) }} onMouseLeave={() => { setTip(null); setLit(null) }}
+                    onClick={e => { e.stopPropagation(); onUnit(r.code, u.key) }} />
                 )
               })}
               {r.team.net !== null && <rect x={x(r.team.net) - 1} y={y - rowH / 2 + 3} width={2} height={rowH - 6} fill={INK} className={intro ? 'uf-dot' : undefined} style={{ animationDelay: `${run}ms` }} />}
@@ -188,9 +223,28 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, onPick }
   const { views, loading } = useLeague(seasons, codes)
   const [sort, setSort] = useState({ id: 'min', reverse: false })
   const [hot, setHot] = useState(null)
+  // Teams whose units are open under their rows; the unit under the pointer (`team|unit`),
+  // and the one a dot's click held.
+  const [open, setOpen] = useState(() => new Set())
+  const [litUnit, setLitUnit] = useState(null)
+  const [held, setHeld] = useState(null)
+  const toggle = useCallback(code => setOpen(o => {
+    const next = new Set(o)
+    if (next.has(code)) next.delete(code)
+    else next.add(code)
+    return next
+  }), [])
+  const holdUnit = useCallback((code, key) => {
+    setOpen(o => new Set(o).add(code))
+    setHeld(`${code}|${key}`)
+  }, [])
+  // A held unit's row comes into view.
+  useEffect(() => {
+    if (held) document.getElementById(`uf-${held}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [held])
   const rows = useMemo(() => teams.filter(t => views.has(t.team)).map(t => {
     const view = views.get(t.team)
-    return { code: t.team, name: t.name, view, ...teamRow(view, k) }
+    return { code: t.team, name: t.name, view, units: fieldUnits(view, k), ...teamRow(view, k) }
   }), [teams, views, k])
   const group = UNIT_GROUPS.find(g => g.id === groupId) || UNIT_GROUPS[0]
   // A group without the sorted stat sorts by its first.
@@ -209,7 +263,7 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, onPick }
           <span style={{ ...label, color: INK }}>Unit field · {k}-man</span>
           <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · ring: most used · tick: team</span>
         </div>
-        {rows.length > 0 && <Field key={`${seasons.join()}|${k}`} rows={sorted} k={k} hot={hot} setHot={setHot} onPick={onPick} />}
+        {rows.length > 0 && <Field key={`${seasons.join()}|${k}`} rows={sorted} k={k} hot={hot} setHot={setHot} onPick={onPick} lit={litUnit || held} setLit={setLitUnit} onUnit={holdUnit} />}
       </div>
       <div className="lb-table-wrap" style={{ scrollSnapType: 'none' }}>
         <table className="lb-table" style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
@@ -232,7 +286,10 @@ export default function UnitsBoard({ teams, seasons, k, group: groupId, onPick }
             </tr>
           </thead>
           <tbody>
-            {sorted.map((r, i) => <Row key={r.code} r={r} cols={group.cols} sortId={by.id} rank={i + 1} pct={pct} on={hot === r.code} setHot={setHot} onPick={onPick} />)}
+            {sorted.map((r, i) => [
+              <Row key={r.code} r={r} cols={group.cols} sortId={by.id} rank={i + 1} pct={pct} on={hot === r.code} open={open.has(r.code)} toggle={toggle} setHot={setHot} onPick={onPick} />,
+              open.has(r.code) && <UnitRows key={`${r.code}-units`} r={r} cols={group.cols} col={col} dir={dir} sortId={by.id} lit={litUnit || held} setLit={setLitUnit} />
+            ])}
           </tbody>
         </table>
       </div>

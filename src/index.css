@@ -639,3 +639,32 @@ a:hover > .lineup-tile > * { filter: none; }
 }
 @keyframes gate-swell { from { scale: 1; } to { scale: 1.08; } }
 @media (prefers-reduced-motion: reduce) { .gate *, .gate > * { animation: none !important; } .gate .bm-line { stroke-dasharray: none; } }
+/* The Team board's units view (UnitsView.jsx): it starts as a sequencer does, a playhead
+   running the steps as each column lights in turn (its lamp flashing white, then its
+   colour); a new order slides the columns to their places. */
+.uv-col, .uv-cell { transition: transform .4s cubic-bezier(.2, .8, .2, 1); }
+.uv-col { animation: uv-on .3s steps(3, end) both; animation-delay: calc(var(--k, 0) * 28ms); }
+.uv-cell { animation: uv-on .3s steps(3, end) both; animation-delay: calc(var(--k, 0) * 28ms + 40ms); }
+.uv-col .uv-lamp { animation: uv-lamp .5s ease-out both; animation-delay: calc(var(--k, 0) * 28ms + 60ms); }
+.uv-col .uv-bar { transform-origin: bottom; animation: lb-rise .35s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--k, 0) * 28ms); }
+@keyframes uv-on { from { opacity: 0; } to { opacity: 1; } }
+@keyframes uv-lamp { 0% { background: #ece8e3; box-shadow: 0 0 10px #ece8e3; } 100% { } }
+.uv-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); pointer-events: none; opacity: 0; animation: uv-run var(--ms, 1s) linear both; }
+@keyframes uv-run { 0% { opacity: .9; transform: translateX(0); } 92% { opacity: .9; } 100% { opacity: 0; transform: translateX(var(--run, 0)); } }
+.uv-pop { animation: uv-pop .3s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--k, 0) * 35ms); }
+@keyframes uv-pop { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.uv-track:hover { background: rgba(236, 232, 227, .04); }
+.uv-key:hover, .uv-channel:hover { color: #ece8e3 !important; opacity: 1 !important; }
+.uv-seq-wrap, .uv-side { scrollbar-width: thin; scrollbar-color: #544f4b transparent; }
+.uv-dot { transition: cx .4s cubic-bezier(.2, .8, .2, 1), cy .4s cubic-bezier(.2, .8, .2, 1), fill-opacity .15s; }
+@media (prefers-reduced-motion: reduce) {
+  .uv-col, .uv-cell, .uv-col .uv-lamp, .uv-col .uv-bar, .uv-pop { animation: none; transition: none; }
+  .uv-playhead { display: none; }
+  .uv-dot { transition: none; }
+}
+@media (max-width: 1000px), (max-height: 600px) {
+  .uv { position: fixed; inset: 0; z-index: 30; overflow: auto; }
+  .uv-main { grid-template-columns: minmax(0, 1fr) !important; }
+  .uv-side { border-left: 0 !important; border-top: 1px solid #3d3a37; }
+}
+.tc-units-all:hover { color: #ece8e3 !important; }

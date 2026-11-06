@@ -388,6 +388,8 @@ export default function LineupPanel({ profile: p, accent }) {
             <SizePicker size={size} setSize={setSize} open={menu === 'size'} setOpen={toggle('size')} />
             <span>·</span>
             <MinutesPicker open={menu === 'minutes'} setOpen={toggle('minutes')} value={floor} def={def} range={(L.floorRange && L.floorRange[size]) || [def, def]} onChange={v => setPicked(m => ({ ...m, [size]: v }))} />
+            {/* The Team board's units view (its regular seasons, 2013-14 on). */}
+            {p.seasonType !== 'playoffs' && L.season >= '2013-14' && <Link to={`/teams?season=${L.season}&team=${L.team}&view=units`} className="depth-link" title={`Every ${L.team} unit, on the Team board`} style={{ marginLeft: 'auto', color: INK, borderBottom: '1px solid transparent', whiteSpace: 'nowrap' }}>ALL {L.team} UNITS →</Link>}
           </div>
           <div className="lineup-units-wrap"><div className="lineup-units">
             <Unit {...unitProps} title="BEST" unit={best} empty={`NONE\n${floor}+ MIN`} onTip={hover('best')} tip={tip === 'best' && best && <RankTip unit={best} size={size} floor={floor} isDefault={isDefault} self={L.self} team={L.team} season={L.season} onHover={hover('best')} />} className="lineup-unit-a" />

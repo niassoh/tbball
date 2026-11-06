@@ -61,6 +61,8 @@ export const fetchTeamboardSeasons = () => getJson(api('teamboard', 'teamboard/i
 export const fetchTeamboard = season => getJson(api(`teamboard/${season}`, `teamboard/${season}.json`))
 // Each team's most-played and best units of each size in a season (the team card).
 export const fetchTeamUnits = season => getJson(api(`teamunits/${season}`, `teamunits/${season}.json`))
+// A team-season's units as counts, for the Team board's units view (lib/unitsView.js).
+export const fetchUnits = (season, team) => getJson(api(`units/${season}/${team}`, `units/${season}/${team}.json`))
 // The Footprint and Lonestar tabs' views (every season and span), fetched when the tab opens.
 export const fetchFootprint = slug => getJson(api(`footprint/${encodeURIComponent(slug)}`, `footprint/${encodeURIComponent(slug)}.json`)).then(d => (d && d.fields ? unpackFootprint(d) : d))
 // A player's every regular-season shot by season, packed (lib/shot.js unpackDots), for the

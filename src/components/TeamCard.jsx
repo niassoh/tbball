@@ -327,7 +327,7 @@ const PICKS = [['mostUsed', 'Most used'], ['best', 'Best net']]
 const INTRO_MS = 2000
 const QUICK_MS = 300
 let open = 0
-export default function TeamCard({ doc, team: t, season, against, trophies = [], onClose }) {
+export default function TeamCard({ doc, team: t, season, against, trophies = [], onClose, onUnits }) {
   const [quick] = useState(() => open > 0)
   const [settling, setSettling] = useState(true)
   useEffect(() => {
@@ -368,7 +368,7 @@ export default function TeamCard({ doc, team: t, season, against, trophies = [],
           <Depth team={t.team} season={season} doc={units} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 5, borderTop: `1px solid ${RULE}` }}>
             <span style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><span style={{ ...label, color: '#b8b2ab' }}>Units</span><Pick label="Unit size" options={SIZES} value={n} set={setN} /></span>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><button type="button" className="tc-units-all" onClick={onUnits} title="All of the team's units" style={{ ...label, padding: 0, border: 0, background: 'transparent', color: '#b8b2ab', cursor: 'pointer' }}>All units →</button><Pick label="Unit size" options={SIZES} value={n} set={setN} /></span>
               <Pick label="Unit shown" options={PICKS} value={pick} set={setPick} />
             </span>
             <Units team={t.team} season={season} doc={units} n={n} pick={pick} intro={intro} />

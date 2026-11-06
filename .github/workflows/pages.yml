@@ -4,8 +4,8 @@
 # deploy key in secret BACKEND_DEPLOY_KEY reads.
 #
 # The test site (niassoh/tbball-test, https://niassoh.github.io/tbball-test/) calls this
-# same workflow with a backend branch and its base path, and publishes to its own Pages.
-# Production passes neither: the backend's default branch, at /.
+# same workflow with a branch of this site, a backend branch and its base path, and
+# publishes to its own Pages. Production passes none: main, the backend's default branch, at /.
 name: Deploy to GitHub Pages
 
 on:
@@ -14,6 +14,9 @@ on:
   workflow_dispatch:
   workflow_call:
     inputs:
+      site_ref:
+        type: string
+        default: ''
       backend_ref:
         type: string
         default: ''
@@ -37,10 +40,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Named, so a caller's run builds this site's code (its main), not the caller's repo.
+      # Named, so a caller's run builds this site's code (main, or its site_ref), not the
+      # caller's repo.
       - uses: actions/checkout@v4
         with:
           repository: niassoh/tbball
+          ref: ${{ inputs.site_ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24

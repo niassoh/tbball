@@ -323,7 +323,9 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   const py = v => M.t + (1 - ay(v)) * (h - M.t - M.b)
   const cx = (M.l + w - M.r) / 2
   const cy = (M.t + h - M.b) / 2
-  const radius = p => radiusOf(p.mp || 0, most, 2, 11, least)
+  // The biggest dot scales with the plot, so a laptop's smaller chart isn't one blob.
+  const biggest = Math.max(6, Math.min(11, Math.min(w, h) / 60))
+  const radius = p => radiusOf(p.mp || 0, most, 2, biggest, least)
   // Toward the top right, bluer; toward the bottom left, more orange (the percentile scale,
   // from how far up and right he sits, each axis 0 to 1 with its median at the middle).
   const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (ax(d.vx) + ay(d.vy) - 1))))

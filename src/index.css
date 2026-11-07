@@ -662,3 +662,10 @@ a:hover > .lineup-tile > * { filter: none; }
 .lb-select:focus-visible { outline: 1px solid #a09a93; outline-offset: -1px; }
 .uf-sub td { background-color: #23211f !important; }
 .tb-view[aria-pressed="false"]:hover { color: #ece8e3 !important; }
+
+/* A laptop's width (a 13" MacBook Air is 1440-1470px): the tabs and Find tighten so the
+   controls stay on one line instead of wrapping half of them under the rest. */
+@media (max-width: 1560px) {
+  .lb-group { padding: 0 7px !important; letter-spacing: .05em !important; }
+  .lb-find { width: 64px !important; }
+}

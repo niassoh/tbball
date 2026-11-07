@@ -6,7 +6,7 @@
 // instead (only its SHA-256 is here), kept a year.
 export const DAILY_BOARD = 'https://thinkingbasketball.net/daily-board/'
 const PUBKEY = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEM9KAcJVu1UUI7efzbBjOmIB4UYmsqHfk2FBbhdMBuqIAr3JjGHak9jl9MPF2yeDQ5LYtAjOvJMX23fItszOk/Q=='
-const ADMIN_HASH = '2f7bc48219131a66bd99684ba603fc1acc02f5a4fdee4e343a1346ddce664998'
+const ADMIN_HASH = 'f45cd53a856c0ac964fcf2f13b08de58801465ea64ad13d9835857279454f510'
 const ADMIN_DAYS = 365
 const PASS_KEY = 'tb-pass'
 const ADMIN_KEY = 'tb-admin'

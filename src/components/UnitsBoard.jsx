@@ -310,7 +310,7 @@ export default function UnitsBoard({ teams, seasons, views, loading, k, min, gro
       )}
       <div className="lb-side" style={{ padding: '10px 12px 6px', display: card ? 'none' : undefined }}>
         <div style={{ paddingBottom: 2 }}>
-          <span style={{ ...label, color: INK }}>Sorted by {col.name}</span>
+          <span style={{ ...label, color: INK }}>{col.team ? `Sorted by ${col.name} · dots on Net` : col.id === statCol.id ? `Sorted by best ${col.name}` : `Best ${statCol.name} unit · sorted by its ${col.name}`}</span>
         </div>
         {rows.length > 0 && <Field key={`${seasons.join()}|${k}`} rows={sorted} col={col} ringOf={unitOf} k={k} hot={hot} setHot={setHot} onPick={onPick} lit={litUnit || held} setLit={setLitUnit} onUnit={holdUnit} />}
       </div>

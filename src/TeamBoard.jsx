@@ -100,7 +100,7 @@ const UNIT_SIZES = [2, 3, 4, 5]
 // (lib/unitsView.js minutesCut), or the top half, quarter or tenth of them by minutes
 // (a tenth, so a season's strictest asks well past the league floor). `cut`: what the pick asks, in minutes.
 const TOPS = [[1, 'All'], [0.5, 'Top 50%'], [0.25, 'Top 25%'], [0.1, 'Top 10%']]
-const UNIT_TOP = 0.25
+const UNIT_TOP = 0.5
 function UnitMinutes({ top, set, cut }) {
   return (
     <Popover name={`Unit minutes: ${top === 1 ? 'all' : `top ${top * 100}%`}`} minWidth={240} width={94} trigger={<><span style={{ ...label, fontWeight: 400 }}>Min</span>{top === 1 ? 'All' : `${top * 100}%`}</>}>

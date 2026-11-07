@@ -77,7 +77,7 @@ const NAMES = { 'LA Bayes Win-pace': 'Luck Adjusted\nBayes Win-pace' }
 // grid of players).
 const VIEWS = [['teams', 'Teams'], ['units', 'Units']]
 const ViewMark = ({ v }) => (
-  <svg aria-hidden="true" width="11" height="11" viewBox="0 0 11 11" fill="currentColor">
+  <svg aria-hidden="true" width="9" height="9" viewBox="0 0 11 11" fill="currentColor">
     {v === 'teams'
       ? <path d="M1 1h9v5.5L5.5 10 1 6.5z" />
       : [0, 4, 8].flatMap(x => [0, 4, 8].map(y => <rect key={`${x}${y}`} x={x} y={y} width="3" height="3" />))}
@@ -88,7 +88,7 @@ function ViewSwitch({ view, set }) {
     <div role="group" aria-label="Board" style={{ display: 'flex', border: `1px solid ${EDGE}`, flex: 'none' }}>
       {VIEWS.map(([v, name]) => (
         <button key={v} type="button" aria-pressed={view === v} onClick={() => set(v)} className="tb-view"
-          style={{ height: 28, padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, background: view === v ? '#3a3734' : 'transparent', boxShadow: view === v ? 'inset 0 -2px 0 var(--accent)' : 'none', color: view === v ? INK : DIM, fontFamily: MONO, fontSize: 11, fontWeight: view === v ? 800 : 600, letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+          style={{ height: 22, padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: 6, border: 0, background: view === v ? '#3a3734' : 'transparent', boxShadow: view === v ? 'inset 0 -2px 0 var(--accent)' : 'none', color: view === v ? INK : DIM, fontFamily: MONO, fontSize: 10, fontWeight: view === v ? 800 : 600, letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
           <ViewMark v={v} />{name}
         </button>
       ))}

@@ -205,7 +205,7 @@ function Field({ rows, col, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit 
                   )
                 })}
               </g>
-              {tv !== null && tv !== undefined && tv >= lo && tv <= hi && <rect x={x(tv) - 0.75} y={y - rowH * 0.28} width={1.5} height={rowH * 0.56} fill={r.units.length ? INK : FAINT} opacity={r.units.length ? 0.7 : 1} style={{ pointerEvents: 'none' }} />}
+              {tv !== null && tv !== undefined && tv >= lo && tv <= hi && <rect x={x(tv) - 0.5} y={y - rowH * (r.units.length ? 0.28 : 0.18)} width={r.units.length ? 1.5 : 1} height={rowH * (r.units.length ? 0.56 : 0.36)} fill={r.units.length ? INK : FAINT} opacity={r.units.length ? 0.7 : 0.45} style={{ pointerEvents: 'none' }} />}
               {i === firstEmpty && (
                 <g style={{ pointerEvents: 'none' }}>
                   <line x1={GUTTER} x2={right} y1={y - rowH / 2} y2={y - rowH / 2} stroke={RULE} />

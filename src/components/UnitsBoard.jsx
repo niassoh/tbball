@@ -14,7 +14,7 @@ import { UNIT_GROUPS, bestBy, fieldUnits, teamRow, unitRow } from '../lib/unitsV
 // the share of their minutes in units that won them (+MIN). Every number shaded by its
 // place among the 30, as the board's are. On the left the unit field: a row per team in
 // the table's order, each of its units a dot along net (its area its minutes), the team's
-// own net a white tick, its BEST BY unit ringed, the dots faint so that where a team's
+// own net a white tick, its BEST BY unit a solid square, the dots faint so that where a team's
 // minutes crowd reads darker, and how far apart its good and bad units are reads at a
 // glance. The dots fade in, row by row, on arrival. A team under the
 // pointer in either is lit in the other; a click opens its units (UnitsView). A row's ▸
@@ -124,7 +124,8 @@ function UnitRows({ r, chosen, cols, col, dir, sortId, lit, setLit }) {
 
 // The unit field: a row per team (`rows`, in the table's order), each of its units a dot
 // on its line at its net, sized by minutes, faint so that where they crowd reads darker;
-// the team's own net a white tick and its BEST BY unit (`ringOf`) solid and ringed. The
+// the team's own net a white tick and its BEST BY unit (`ringOf`) a solid square cut out
+// of the dots around it. The
 // row under the pointer comes up to full strength.
 const NET = 30
 const GUTTER = 34
@@ -172,7 +173,10 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
                 })}
               </g>
               {r.team.net !== null && <rect x={x(r.team.net) - 1} y={y - rowH / 2 + 4} width={2} height={rowH - 8} fill={INK} opacity={0.85} style={{ pointerEvents: 'none' }} />}
-              {best && <circle cx={x(best.s.net)} cy={y} r={Math.max(3.2, radius(best.s.minutes))} fill={tone(best.s.net)} stroke={INK} strokeWidth={1.3} style={{ pointerEvents: 'none' }} />}
+              {best && (() => {
+                const side = Math.round(Math.min(rowH * 0.55, 10))
+                return <rect x={x(best.s.net) - side / 2} y={y - side / 2} width={side} height={side} fill={tone(best.s.net)} stroke="#262422" strokeWidth={2.5} paintOrder="stroke" style={{ pointerEvents: 'none' }} />
+              })()}
             </g>
           )
         })}
@@ -258,7 +262,7 @@ export default function UnitsBoard({ teams, seasons, views, loading, k, min, gro
       <div className="lb-side" style={{ padding: '10px 12px 6px', display: card ? 'none' : undefined }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 2 }}>
           <span style={{ ...label, color: INK }}>Unit field · {k}-man</span>
-          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · ringed: best by {statCol.name} · tick: team</span>
+          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · ■ best by {statCol.name} · tick: team</span>
         </div>
         {rows.length > 0 && <Field key={`${seasons.join()}|${k}`} rows={sorted} ringOf={unitOf} k={k} hot={hot} setHot={setHot} onPick={onPick} lit={litUnit || held} setLit={setLitUnit} onUnit={holdUnit} />}
       </div>

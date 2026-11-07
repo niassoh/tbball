@@ -209,13 +209,7 @@ function Field({ rows, col, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit 
               {i === firstEmpty && (
                 <g style={{ pointerEvents: 'none' }}>
                   <line x1={GUTTER} x2={right} y1={y - rowH / 2} y2={y - rowH / 2} stroke={RULE} />
-                  {(() => {
-                    const band = (rows.length - i) * rowH
-                    const mid = y - rowH / 2 + band / 2
-                    return band > 100
-                      ? <text transform={`translate(${right - 4} ${mid}) rotate(-90)`} textAnchor="middle" style={{ ...label, fontSize: 8, fill: FAINT, letterSpacing: '.12em' }}>no units at min</text>
-                      : <text x={right - 4} y={mid + 3} textAnchor="end" style={{ ...label, fontSize: 8, fill: FAINT, letterSpacing: '.04em' }}>no units at min</text>
-                  })()}
+                  <text x={right} y={y - rowH / 2 - 4} textAnchor="end" style={{ ...label, fontSize: 8, fill: FAINT, letterSpacing: '.04em' }}>below: no units at min</text>
                 </g>
               )}
               {best && vals.get(best.key) !== null && vals.get(best.key) !== undefined && (() => {

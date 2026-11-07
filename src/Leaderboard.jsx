@@ -565,7 +565,7 @@ export default function Leaderboard() {
         <span style={{ marginLeft: 'auto', display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', maxWidth: '100%' }}>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', border: `1px solid ${EDGE}` }}>
             <span aria-hidden="true" style={{ ...label, color: FAINT }}>Find</span>
-            <input value={find} onChange={e => setFind(e.target.value)} aria-label="Find a player" spellCheck={false}
+            <input className="lb-find" value={find} onChange={e => setFind(e.target.value)} aria-label="Find a player" spellCheck={false}
               style={{ width: 96, background: 'transparent', border: 0, outline: 'none', color: INK, fontFamily: MONO, fontSize: 11, caretColor: 'var(--accent)' }} />
           </label>
           {doc ? <Teams teams={teams} team={team} set={setTeam} /> : <Skel w={TEAM_W} h={30} />}

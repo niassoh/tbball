@@ -14,9 +14,9 @@ import { UNIT_GROUPS, bestBy, fieldUnits, teamRow, unitRow } from '../lib/unitsV
 // the share of their minutes in units that won them (+MIN). Every number shaded by its
 // place among the 30, as the board's are. On the left the unit field: a row per team in
 // the table's order, each of its units a dot along net (its area its minutes), the team's
-// own net a white tick, its most-used unit ringed, so where a team's minutes sit, and how
-// far apart its good and bad units are, read at a glance. It comes in as a sequencer
-// starts: a playhead crosses the field, lighting each dot as it passes. A team under the
+// own net a white tick, its BEST BY unit ringed, the dots faint so that where a team's
+// minutes crowd reads darker, and how far apart its good and bad units are reads at a
+// glance. The dots fade in, row by row, on arrival. A team under the
 // pointer in either is lit in the other; a click opens its units (UnitsView). A row's ▸
 // opens the units on its line of the field beneath it, in the table's columns and order;
 // a unit under the pointer in either is lit in the other, and a dot clicked opens its
@@ -122,7 +122,10 @@ function UnitRows({ r, chosen, cols, col, dir, sortId, lit, setLit }) {
   })
 }
 
-// The unit field: a row per team (`rows`, in the table's order), its units along net.
+// The unit field: a row per team (`rows`, in the table's order), each of its units a dot
+// on its line at its net, sized by minutes, faint so that where they crowd reads darker;
+// the team's own net a white tick and its BEST BY unit (`ringOf`) solid and ringed. The
+// row under the pointer comes up to full strength.
 const NET = 30
 const GUTTER = 34
 function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
@@ -138,22 +141,14 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
   const top = 26
   const rowH = rows.length ? Math.max(12, (h - top - 8) / rows.length) : 20
   const x = v => GUTTER + 8 + ((Math.max(-NET, Math.min(NET, v)) + NET) / (2 * NET)) * (w - GUTTER - 20)
-  const maxMin = Math.max(1, ...rows.flatMap(r => (r.view ? r.view.units[k] : []).map(u => u.seconds / 60)))
-  const radius = m => 1.2 + 6 * Math.sqrt(m / maxMin)
-  const run = 1100
-  // The sweep plays once, on arrival (a new size or seasons remount the field); a new
-  // order just moves the rows.
-  const [intro, setIntro] = useState(true)
-  useEffect(() => {
-    const id = setTimeout(() => setIntro(false), run + 400)
-    return () => clearTimeout(id)
-  }, [])
+  const maxMin = Math.max(1, ...rows.flatMap(r => r.units.map(u => u.s.minutes)))
+  const radius = m => 1.6 + Math.min(rowH * 0.36, 7) * Math.sqrt(m / maxMin)
   return (
     <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 0 }} onMouseLeave={() => { setHot(null); setTip(null) }}>
       <svg width={w} height={h} style={{ display: 'block' }}>
         {[-20, -10, 0, 10, 20].map(t => (
           <g key={t}>
-            <line x1={x(t)} x2={x(t)} y1={top - 6} y2={h - 6} stroke={t ? RULE : EDGE} strokeDasharray={t ? '2 4' : undefined} />
+            <line x1={x(t)} x2={x(t)} y1={top - 6} y2={h - 6} stroke={t ? RULE : EDGE} strokeDasharray={t ? '1 5' : undefined} />
             <text x={x(t)} y={top - 11} textAnchor="middle" style={{ ...label, fontSize: 8, fill: t ? FAINT : DIM, letterSpacing: '.04em' }}>{t > 0 ? `+${t}` : t === 0 ? 'NET 0' : t}</text>
           </g>
         ))}
@@ -161,31 +156,26 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
           const y = top + i * rowH + rowH / 2
           const hotRow = hot === r.code
           const dim = hot && !hotRow
-          const ringKey = (ringOf(r) || {}).key
+          const best = ringOf(r)
           return (
-            <g key={r.code} className="uf-row" opacity={dim ? 0.28 : 1} style={{ transition: 'opacity .15s' }} onMouseEnter={() => setHot(r.code)} onClick={() => onPick(r.code)} cursor="pointer">
+            <g key={r.code} opacity={dim ? 0.3 : 1} style={{ transition: 'opacity .15s' }} onMouseEnter={() => setHot(r.code)} onClick={() => onPick(r.code)} cursor="pointer">
               <rect x={0} y={y - rowH / 2} width={w} height={rowH} fill={hotRow ? 'rgba(236,232,227,.05)' : 'transparent'} />
               <image href={asset(`logos/color/sm/${r.code}.webp`)} x={4} y={y - 8} width={16} height={16} />
-              <line x1={GUTTER} x2={w - 6} y1={y} y2={y} stroke={RULE} />
-              {r.units.map((u, j) => {
-                const s = u.s
-                const cx = x(s.net)
-                const on = lit === `${r.code}|${u.key}`
-                const ring = u.key === ringKey
-                // The biggest on the line, the rest a little above or below in turn.
-                const dy = j === 0 ? 0 : ((j % 2 ? -1 : 1) * Math.ceil(j / 2) * rowH) / 9 % (rowH / 2.6)
-                return (
-                  <circle key={u.key} className={intro ? 'uf-dot' : undefined} cx={cx} cy={y + dy} r={radius(s.minutes)} fill={tone(s.net)} fillOpacity={on || ring ? 0.95 : 0.5}
-                    stroke={on || ring ? INK : 'none'} strokeWidth={on ? 2.2 : 1.2} style={{ animationDelay: `${Math.round(((cx - GUTTER) / (w - GUTTER)) * run)}ms` }}
-                    onMouseEnter={() => { setTip({ x: cx, y: y + dy, r, u, s }); setLit(`${r.code}|${u.key}`) }} onMouseLeave={() => { setTip(null); setLit(null) }}
-                    onClick={e => { e.stopPropagation(); onUnit(r.code, u.key) }} />
-                )
-              })}
-              {r.team.net !== null && <rect x={x(r.team.net) - 1} y={y - rowH / 2 + 3} width={2} height={rowH - 6} fill={INK} className={intro ? 'uf-dot' : undefined} style={{ animationDelay: `${run}ms` }} />}
+              <g className="uf-dots" style={{ '--k': i }}>
+                {r.units.map(u => {
+                  const on = lit === `${r.code}|${u.key}`
+                  return (
+                    <circle key={u.key} cx={x(u.s.net)} cy={y} r={radius(u.s.minutes)} fill={tone(u.s.net)} fillOpacity={on ? 1 : hotRow ? 0.55 : 0.28} stroke={on ? INK : 'none'} strokeWidth={1.6}
+                      onMouseEnter={() => { setTip({ x: x(u.s.net), y, r, u, s: u.s }); setLit(`${r.code}|${u.key}`) }} onMouseLeave={() => { setTip(null); setLit(null) }}
+                      onClick={e => { e.stopPropagation(); onUnit(r.code, u.key) }} />
+                  )
+                })}
+              </g>
+              {r.team.net !== null && <rect x={x(r.team.net) - 1} y={y - rowH / 2 + 4} width={2} height={rowH - 8} fill={INK} opacity={0.85} style={{ pointerEvents: 'none' }} />}
+              {best && <circle cx={x(best.s.net)} cy={y} r={Math.max(3.2, radius(best.s.minutes))} fill={tone(best.s.net)} stroke={INK} strokeWidth={1.3} style={{ pointerEvents: 'none' }} />}
             </g>
           )
         })}
-        {intro && <rect className="uf-playhead" x={GUTTER} y={top - 6} width={2} height={Math.max(0, h - top)} style={{ '--run': `${w - GUTTER}px`, '--ms': `${run}ms` }} />}
       </svg>
       {tip && (
         <div style={{ position: 'absolute', left: Math.min(tip.x + 10, w - 230), top: tip.y + 10, width: 220, padding: '8px 10px', background: 'rgba(28,27,26,.94)', border: `1px solid ${EDGE}`, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -268,7 +258,7 @@ export default function UnitsBoard({ teams, seasons, views, loading, k, min, gro
       <div className="lb-side" style={{ padding: '10px 12px 6px', display: card ? 'none' : undefined }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 2 }}>
           <span style={{ ...label, color: INK }}>Unit field · {k}-man</span>
-          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · ring: best by {statCol.name} · tick: team</span>
+          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · ringed: best by {statCol.name} · tick: team</span>
         </div>
         {rows.length > 0 && <Field key={`${seasons.join()}|${k}`} rows={sorted} ringOf={unitOf} k={k} hot={hot} setHot={setHot} onPick={onPick} lit={litUnit || held} setLit={setLitUnit} onUnit={holdUnit} />}
       </div>

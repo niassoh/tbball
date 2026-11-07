@@ -4,7 +4,7 @@ import { MONO, heat, signed } from '../lib/format.js'
 import { asset } from '../lib/static.js'
 import UnitsView from './UnitsView.jsx'
 import { initials } from '../lib/teams.js'
-import { UNIT_GROUPS, bestBy, fieldUnits, teamRow, unitRow } from '../lib/unitsView.js'
+import { UNIT_GROUPS, axisOf, bestBy, fieldUnits, teamRow, unitRow } from '../lib/unitsView.js'
 
 // The Team board's UNITS mode: the 30 teams ranked by their units of one size (2 to 5) over
 // the board's seasons (lib/unitsView.js teamRow), in the board's own shape. On the right a
@@ -45,14 +45,14 @@ const percentiles = (rows, col, value) => {
   }
 }
 
-function Faces({ ids, view }) {
+function Faces({ ids, view, size = 20 }) {
   return (
     <span style={{ display: 'inline-flex' }}>
       {ids.map((id, j) => {
         const p = view.players.find(x => x.id === id) || { name: '?' }
         return (
-          <span key={id} title={p.name} style={{ width: 20, height: 20, marginLeft: j ? -4 : 0, borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: '1px solid #262422', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700, color: DIM, flex: 'none' }}>
-            {p.slug && p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={20} height={20} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(p.name || '?')}
+          <span key={id} title={p.name} style={{ width: size, height: size, marginLeft: j ? -size / 5 : 0, borderRadius: '50%', overflow: 'hidden', background: PORTRAIT_BG, border: '1px solid #262422', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700, color: DIM, flex: 'none' }}>
+            {p.slug && p.headshot ? <img src={headshotUrl(p.slug, 100, p.headshotVersion, p.headshot)} alt="" width={size} height={size} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 12%' }} /> : initials(p.name || '?')}
           </span>
         )
       })}
@@ -123,13 +123,16 @@ function UnitRows({ r, chosen, cols, col, dir, sortId, lit, setLit }) {
 }
 
 // The unit field: a row per team (`rows`, in the table's order), each of its units a dot
-// on its line at its net, sized by minutes, faint so that where they crowd reads darker;
-// the team's own net a white tick and its BEST BY unit (`ringOf`) solid, with a soft glow
-// of its colour. The
-// row under the pointer comes up to full strength.
-const NET = 30
+// on its line, along the stat the table sorts by (`col`; net for a team's own stat, which
+// its units don't have), better to the right; sized by minutes, faint so that where they
+// crowd reads darker. Blue on the better side (above even for a net, else of the league's
+// median unit), orange on the worse, grey for a stat with no better. The team's own value
+// a white tick, where it has one, and its BEST BY unit (`ringOf`) solid, with a soft halo
+// of its colour. The row under the pointer comes up to full strength.
+const NET_COL = UNIT_STATS.find(c => c.id === 'net')
+const NO_TEAM_TICK = new Set(['min', 'share', 'rest'])
 const GUTTER = 34
-function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
+function Field({ rows, col, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
   const box = useRef(null)
   const [size, setSize] = useState({ w: 560, h: 600 })
   useLayoutEffect(() => {
@@ -141,25 +144,42 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
   const { w, h } = size
   const top = 26
   const rowH = rows.length ? Math.max(12, (h - top - 8) / rows.length) : 20
-  const x = v => GUTTER + 8 + ((Math.max(-NET, Math.min(NET, v)) + NET) / (2 * NET)) * (w - GUTTER - 20)
+  const axis = col && !col.team ? col : NET_COL
+  const flip = axis.better === -1
+  const valOf = new Map(rows.map(r => [r.code, new Map(r.cands.map(c => [c.u.key, axis.v(c.row)]))]))
+  const all = rows.flatMap(r => [...valOf.get(r.code).values()])
+  const { lo, hi, ticks } = axisOf(all)
+  const left = GUTTER + 8
+  const right = w - 12
+  const x = v => {
+    const f = (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)
+    return left + (flip ? 1 - f : f) * (right - left)
+  }
+  const sorted = all.filter(v => v !== null).sort((p, q) => p - q)
+  const mid = axis.id === 'net' || axis.id === 'rest' || /^[od]-r/.test(axis.id) ? 0 : sorted[Math.floor(sorted.length / 2)]
+  const colorOf = v => (v === null || v === undefined ? FAINT : !axis.better ? '#b9b3ac' : (v - mid) * axis.better >= 0 ? BLUE : ORANGE)
+  const teamVal = r => (NO_TEAM_TICK.has(axis.id) ? null : axis.v({ top: { s: r.team } }))
   const maxMin = Math.max(1, ...rows.flatMap(r => r.units.map(u => u.s.minutes)))
-  const radius = m => 1.6 + Math.min(rowH * 0.36, 7) * Math.sqrt(m / maxMin)
+  const radius = m => 1.5 + 3 * Math.sqrt(m / maxMin)
+  const signedAxis = mid === 0
+  const firstEmpty = rows.findIndex(r => !r.units.length)
+  const tickText = t => (axis.id === 'net' && t === 0 ? 'NET 0' : signedAxis && t > 0 ? `+${t}` : String(t))
   return (
     <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 0 }} onMouseLeave={() => { setHot(null); setTip(null) }}>
       <svg width={w} height={h} style={{ display: 'block' }}>
         <defs>
-          {[['up', BLUE], ['down', ORANGE]].map(([id, c]) => (
+          {[['up', BLUE], ['down', ORANGE], ['flat', '#b9b3ac']].map(([id, c]) => (
             <radialGradient key={id} id={`uf-glow-${id}`}>
-              <stop offset="0%" stopColor={c} stopOpacity={0.55} />
-              <stop offset="45%" stopColor={c} stopOpacity={0.16} />
+              <stop offset="0%" stopColor={c} stopOpacity={0.5} />
+              <stop offset="45%" stopColor={c} stopOpacity={0.14} />
               <stop offset="100%" stopColor={c} stopOpacity={0} />
             </radialGradient>
           ))}
         </defs>
-        {[-20, -10, 0, 10, 20].map(t => (
+        {ticks.map(t => (
           <g key={t}>
-            <line x1={x(t)} x2={x(t)} y1={top - 6} y2={h - 6} stroke={t ? RULE : EDGE} strokeDasharray={t ? '1 5' : undefined} />
-            <text x={x(t)} y={top - 11} textAnchor="middle" style={{ ...label, fontSize: 8, fill: t ? FAINT : DIM, letterSpacing: '.04em' }}>{t > 0 ? `+${t}` : t === 0 ? 'NET 0' : t}</text>
+            <line x1={x(t)} x2={x(t)} y1={top - 6} y2={h - 6} stroke={t === mid && axis.better ? EDGE : RULE} strokeDasharray={t === mid && axis.better ? undefined : '1 5'} />
+            <text x={x(t)} y={top - 11} textAnchor="middle" style={{ ...label, fontSize: 8, fill: FAINT, letterSpacing: '.04em' }}>{tickText(t)}</text>
           </g>
         ))}
         {rows.map((r, i) => {
@@ -167,28 +187,39 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
           const hotRow = hot === r.code
           const dim = hot && !hotRow
           const best = ringOf(r)
+          const vals = valOf.get(r.code)
+          const tv = teamVal(r)
           return (
             <g key={r.code} opacity={dim ? 0.3 : 1} style={{ transition: 'opacity .15s' }} onMouseEnter={() => setHot(r.code)} onClick={() => onPick(r.code)} cursor="pointer">
               <rect x={0} y={y - rowH / 2} width={w} height={rowH} fill={hotRow ? 'rgba(236,232,227,.05)' : 'transparent'} />
               <image href={asset(`logos/color/sm/${r.code}.webp`)} x={4} y={y - 8} width={16} height={16} />
               <g className="uf-dots" style={{ '--k': i }}>
                 {r.units.map(u => {
+                  const v = vals.get(u.key)
+                  if (v === null || v === undefined) return null
                   const on = lit === `${r.code}|${u.key}`
                   return (
-                    <circle key={u.key} cx={x(u.s.net)} cy={y} r={radius(u.s.minutes)} fill={tone(u.s.net)} fillOpacity={on ? 1 : hotRow ? 0.55 : 0.28} stroke={on ? INK : 'none'} strokeWidth={1.6}
-                      onMouseEnter={() => { setTip({ x: x(u.s.net), y, r, u, s: u.s }); setLit(`${r.code}|${u.key}`) }} onMouseLeave={() => { setTip(null); setLit(null) }}
+                    <circle key={u.key} cx={x(v)} cy={y} r={radius(u.s.minutes)} fill={colorOf(v)} fillOpacity={on ? 1 : hotRow ? 0.6 : 0.32} stroke={on ? INK : 'none'} strokeWidth={1.4}
+                      onMouseEnter={() => { setTip({ x: x(v), y, r, u, s: u.s }); setLit(`${r.code}|${u.key}`) }} onMouseLeave={() => { setTip(null); setLit(null) }}
                       onClick={e => { e.stopPropagation(); onUnit(r.code, u.key) }} />
                   )
                 })}
               </g>
-              {r.team.net !== null && <rect x={x(r.team.net) - 1} y={y - rowH / 2 + 4} width={2} height={rowH - 8} fill={INK} opacity={0.85} style={{ pointerEvents: 'none' }} />}
-              {best && (() => {
-                const rr = Math.max(3.4, radius(best.s.minutes))
-                const up = best.s.net >= 0
+              {tv !== null && tv !== undefined && tv >= lo && tv <= hi && <rect x={x(tv) - 0.75} y={y - rowH * 0.28} width={1.5} height={rowH * 0.56} fill={r.units.length ? INK : FAINT} opacity={r.units.length ? 0.7 : 1} style={{ pointerEvents: 'none' }} />}
+              {i === firstEmpty && (
+                <g style={{ pointerEvents: 'none' }}>
+                  <line x1={GUTTER} x2={right} y1={y - rowH / 2} y2={y - rowH / 2} stroke={RULE} />
+                  <text x={right} y={y - rowH / 2 - 4} textAnchor="end" style={{ ...label, fontSize: 8, fill: FAINT, letterSpacing: '.04em' }}>below: no units at min</text>
+                </g>
+              )}
+              {best && vals.get(best.key) !== null && vals.get(best.key) !== undefined && (() => {
+                const v = vals.get(best.key)
+                const rr = Math.max(2.6, radius(best.s.minutes))
+                const glow = !axis.better ? 'flat' : (v - mid) * axis.better >= 0 ? 'up' : 'down'
                 return (
                   <g style={{ pointerEvents: 'none' }}>
-                    <circle cx={x(best.s.net)} cy={y} r={rr * 2.8} fill={`url(#uf-glow-${up ? 'up' : 'down'})`} />
-                    <circle cx={x(best.s.net)} cy={y} r={rr} fill={tone(best.s.net)} />
+                    <circle cx={x(v)} cy={y} r={rr * 2.6} fill={`url(#uf-glow-${glow})`} />
+                    <circle cx={x(v)} cy={y} r={rr} fill={colorOf(v)} />
                   </g>
                 )
               })()}
@@ -198,7 +229,10 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
       </svg>
       {tip && (
         <div style={{ position: 'absolute', left: Math.min(tip.x + 10, w - 230), top: tip.y + 10, width: 220, padding: '8px 10px', background: 'rgba(28,27,26,.94)', border: `1px solid ${EDGE}`, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <span style={{ ...label, color: INK }}>{tip.r.code} · {k}-man</span>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Faces ids={tip.u.ids} view={tip.r.view} size={28} />
+            <span style={{ ...label, color: INK }}>{tip.r.code} · {k}-man</span>
+          </span>
           <span style={{ fontFamily: MONO, fontSize: 11, color: INK, lineHeight: 1.35 }}>{tip.u.ids.map(id => ((tip.r.view.players.find(p => p.id === id) || {}).name || '?').split(' ').slice(1).join(' ')).join(' · ')}</span>
           <span style={{ ...label, display: 'flex', gap: 10 }}>
             <span>{Math.round(tip.s.minutes)} min</span>
@@ -276,10 +310,10 @@ export default function UnitsBoard({ teams, seasons, views, loading, k, min, gro
       )}
       <div className="lb-side" style={{ padding: '10px 12px 6px', display: card ? 'none' : undefined }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 2 }}>
-          <span style={{ ...label, color: INK }}>Unit field · {k}-man</span>
-          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · glow: best by {statCol.name} · tick: team</span>
+          <span style={{ ...label, color: INK }}>Unit field · {k}-man · {(col.team ? NET_COL : col).name}{(col.team ? NET_COL : col).better ? ' · better →' : ''}</span>
+          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · solid: best by {statCol.name} · tick: team</span>
         </div>
-        {rows.length > 0 && <Field key={`${seasons.join()}|${k}`} rows={sorted} ringOf={unitOf} k={k} hot={hot} setHot={setHot} onPick={onPick} lit={litUnit || held} setLit={setLitUnit} onUnit={holdUnit} />}
+        {rows.length > 0 && <Field key={`${seasons.join()}|${k}`} rows={sorted} col={col} ringOf={unitOf} k={k} hot={hot} setHot={setHot} onPick={onPick} lit={litUnit || held} setLit={setLitUnit} onUnit={holdUnit} />}
       </div>
       <div className="lb-table-wrap" style={{ scrollSnapType: 'none' }}>
         <table className="lb-table" style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontFamily: MONO, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>

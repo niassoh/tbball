@@ -229,6 +229,24 @@ export const UNIT_GROUPS = [
 ]
 export const ALL_COLS = UNIT_GROUPS.flatMap(g => g.cols)
 
+// An axis over `values`, padded, with ticks at a round step, about `n` of them.
+export const axisOf = (values, n = 5) => {
+  const v = values.filter(x => x !== null && x !== undefined && Number.isFinite(x))
+  if (!v.length) return { lo: 0, hi: 1, ticks: [] }
+  let lo = Math.min(...v)
+  let hi = Math.max(...v)
+  if (hi - lo < 1e-9) { lo -= 1; hi += 1 }
+  const pad = (hi - lo) * 0.05
+  lo -= pad
+  hi += pad
+  const raw = (hi - lo) / n
+  const mag = 10 ** Math.floor(Math.log10(raw))
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw)
+  const ticks = []
+  for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) ticks.push(Math.round(t / step) * step)
+  return { lo, hi, ticks }
+}
+
 // A team's best unit by a column, among `cands` ([{ u, row: unitRow }], its units over the
 // floor): the highest value, or the lowest where lower is better.
 export const bestBy = (cands, col) => {

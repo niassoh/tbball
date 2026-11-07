@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bestBy, columns, combine, minutesCut, statsOf, teamRow, tracks } from './unitsView.js'
+import { axisOf, bestBy, columns, combine, minutesCut, statsOf, teamRow, tracks } from './unitsView.js'
 
 const FIELDS = ['Points', 'FG2M', 'FG2A', 'FG3M', 'FG3A', 'AtRimFGM', 'AtRimFGA', 'ShortMidRangeFGM', 'ShortMidRangeFGA', 'LongMidRangeFGM', 'LongMidRangeFGA', 'Corner3FGM', 'Corner3FGA', 'FTA', 'Turnovers', 'LiveBallTurnovers', 'OffRebounds', 'DefRebounds', 'Assists', 'Steals', 'Blocks', 'Fouls']
 // Counts by name, the rest 0.
@@ -118,5 +118,16 @@ describe('minutesCut', () => {
     expect(minutesCut([view], 2, 0.5)).toBe(40)
     expect(minutesCut([view], 2, 0.25)).toBe(60)
     expect(minutesCut([], 2, 0.5)).toBe(0)
+  })
+})
+
+describe('axisOf', () => {
+  it('spans the values with a little room and round ticks', () => {
+    const a = axisOf([101, 112, null, 138])
+    expect(a.lo).toBeLessThan(101)
+    expect(a.hi).toBeGreaterThan(138)
+    expect(a.ticks).toEqual([100, 110, 120, 130, 140].filter(t => t >= a.lo && t <= a.hi))
+    expect(axisOf([]).ticks).toEqual([])
+    expect(axisOf([5, 5, 5]).lo).toBeLessThan(5)
   })
 })

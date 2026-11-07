@@ -14,7 +14,7 @@ import { UNIT_GROUPS, bestBy, fieldUnits, teamRow, unitRow } from '../lib/unitsV
 // the share of their minutes in units that won them (+MIN). Every number shaded by its
 // place among the 30, as the board's are. On the left the unit field: a row per team in
 // the table's order, each of its units a dot along net (its area its minutes), the team's
-// own net a white tick, its BEST BY unit a solid square, the dots faint so that where a team's
+// own net a white tick, its BEST BY unit solid and glowing, the dots faint so that where a team's
 // minutes crowd reads darker, and how far apart its good and bad units are reads at a
 // glance. The dots fade in, row by row, on arrival. A team under the
 // pointer in either is lit in the other; a click opens its units (UnitsView). A row's ▸
@@ -124,8 +124,8 @@ function UnitRows({ r, chosen, cols, col, dir, sortId, lit, setLit }) {
 
 // The unit field: a row per team (`rows`, in the table's order), each of its units a dot
 // on its line at its net, sized by minutes, faint so that where they crowd reads darker;
-// the team's own net a white tick and its BEST BY unit (`ringOf`) a solid square cut out
-// of the dots around it. The
+// the team's own net a white tick and its BEST BY unit (`ringOf`) solid, with a soft glow
+// of its colour. The
 // row under the pointer comes up to full strength.
 const NET = 30
 const GUTTER = 34
@@ -147,6 +147,15 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
   return (
     <div ref={box} style={{ position: 'relative', flex: 1, minHeight: 0 }} onMouseLeave={() => { setHot(null); setTip(null) }}>
       <svg width={w} height={h} style={{ display: 'block' }}>
+        <defs>
+          {[['up', BLUE], ['down', ORANGE]].map(([id, c]) => (
+            <radialGradient key={id} id={`uf-glow-${id}`}>
+              <stop offset="0%" stopColor={c} stopOpacity={0.55} />
+              <stop offset="45%" stopColor={c} stopOpacity={0.16} />
+              <stop offset="100%" stopColor={c} stopOpacity={0} />
+            </radialGradient>
+          ))}
+        </defs>
         {[-20, -10, 0, 10, 20].map(t => (
           <g key={t}>
             <line x1={x(t)} x2={x(t)} y1={top - 6} y2={h - 6} stroke={t ? RULE : EDGE} strokeDasharray={t ? '1 5' : undefined} />
@@ -174,8 +183,14 @@ function Field({ rows, ringOf, k, hot, setHot, onPick, lit, setLit, onUnit }) {
               </g>
               {r.team.net !== null && <rect x={x(r.team.net) - 1} y={y - rowH / 2 + 4} width={2} height={rowH - 8} fill={INK} opacity={0.85} style={{ pointerEvents: 'none' }} />}
               {best && (() => {
-                const side = Math.round(Math.min(rowH * 0.55, 10))
-                return <rect x={x(best.s.net) - side / 2} y={y - side / 2} width={side} height={side} fill={tone(best.s.net)} stroke="#262422" strokeWidth={2.5} paintOrder="stroke" style={{ pointerEvents: 'none' }} />
+                const rr = Math.max(3.4, radius(best.s.minutes))
+                const up = best.s.net >= 0
+                return (
+                  <g style={{ pointerEvents: 'none' }}>
+                    <circle cx={x(best.s.net)} cy={y} r={rr * 2.8} fill={`url(#uf-glow-${up ? 'up' : 'down'})`} />
+                    <circle cx={x(best.s.net)} cy={y} r={rr} fill={tone(best.s.net)} />
+                  </g>
+                )
               })()}
             </g>
           )
@@ -262,7 +277,7 @@ export default function UnitsBoard({ teams, seasons, views, loading, k, min, gro
       <div className="lb-side" style={{ padding: '10px 12px 6px', display: card ? 'none' : undefined }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 2 }}>
           <span style={{ ...label, color: INK }}>Unit field · {k}-man</span>
-          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · ■ best by {statCol.name} · tick: team</span>
+          <span style={{ ...label, fontSize: 8.5, color: FAINT }}>dot: unit · size: min · glow: best by {statCol.name} · tick: team</span>
         </div>
         {rows.length > 0 && <Field key={`${seasons.join()}|${k}`} rows={sorted} ringOf={unitOf} k={k} hot={hot} setHot={setHot} onPick={onPick} lit={litUnit || held} setLit={setLitUnit} onUnit={holdUnit} />}
       </div>

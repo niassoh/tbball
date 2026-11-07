@@ -13,7 +13,7 @@ import { CountUp } from './PlayerCard.jsx'
 // The Team board's units view: a team's 2- to 5-man units over the board's seasons. On the
 // left a table, a unit a row: its minutes, net (tinted blue above even and orange below,
 // stronger the bigger), ORTG and DRTG (or, RAW | REL, rORTG and rDRTG against its seasons'
-// league), then a column for each player, his face at its head, a dot where he's in the
+// league), then a column for each player, his face and slanted name at its head, a dot where he's in the
 // unit. A header sorts by its stat. On the right the team's units on ORTG × DRTG, and under
 // it the readout of the unit under the pointer, or the one clicked (pinned), else the
 // team's: its players, ratings, league rank, four factors on each end (blue where better
@@ -30,10 +30,11 @@ const ORANGE = '#fa962a'
 const label = { fontFamily: MONO, fontSize: 9, letterSpacing: '.12em', color: DIM, textTransform: 'uppercase' }
 const PORTRAIT_BG = 'radial-gradient(circle at 50% 38%, #1e1d1e 0%, #18181a 55%, #131314 100%)'
 // The table's grid: the stats' columns, a player's column, a row's height, the head's.
-const STAT_COLS = '20px 36px 44px 40px 40px'
-const PCOL = 22
+const STAT_COLS = '18px 42px 42px 38px 38px'
+const PCOL = 21
 const ROW = 22
-const HEAD = 104
+const HEAD = 92
+const NAME_RUN = 44
 const READS = [['raw', 'Raw'], ['rel', 'Rel']]
 const surname = name => (name || '?').split(' ').slice(1).join(' ') || name || '?'
 const tone = v => (v === null ? FAINT : v >= 0 ? BLUE : ORANGE)
@@ -67,7 +68,8 @@ function Face({ p, size = 22, lit = true }) {
 // The units, a row each; the stat headers sort (`sort`, `setSort`).
 const SORT_HEADS = [['min', 'Min'], ['net', 'Net'], ['ortg', 'ORTG'], ['drtg', 'DRTG']]
 function UnitTable({ cols, rows, rel, sort, setSort, lit, hotPlayer, setHot, setHotPlayer, pinned, setPinned }) {
-  const grid = `${STAT_COLS} repeat(${rows.length}, ${PCOL}px)`
+  // The last column's room for the slanted names to run past the faces.
+  const grid = `${STAT_COLS} repeat(${rows.length}, ${PCOL}px) ${NAME_RUN}px`
   const litUnit = cols.find(c => c.key === lit)
   const cell = { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6, fontFamily: MONO, fontSize: 10.5, fontVariantNumeric: 'tabular-nums' }
   return (
@@ -86,8 +88,8 @@ function UnitTable({ cols, rows, rel, sort, setSort, lit, hotPlayer, setHot, set
           const on = hotPlayer === p.id || (litUnit ? litUnit.ids.includes(p.id) : !hotPlayer)
           return (
             <span key={p.id} onMouseEnter={() => { setHotPlayer(p.id); setHot(null) }} title={`${p.name} · ${Math.round(p.minutes).toLocaleString()} min`}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, paddingBottom: 5, height: '100%', justifyContent: 'flex-end', cursor: 'default', background: hotPlayer === p.id ? 'rgba(236,232,227,.06)' : 'transparent' }}>
-              <span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontFamily: 'Montserrat, sans-serif', fontSize: 8.5, fontWeight: 800, letterSpacing: '.02em', textTransform: 'uppercase', color: on ? INK : FAINT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxHeight: HEAD - 30, transition: 'color .15s' }}>{surname(p.name)}</span>
+              style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: 5, height: '100%', justifyContent: 'flex-end', cursor: 'default', background: hotPlayer === p.id ? 'rgba(236,232,227,.06)' : 'transparent' }}>
+              <span style={{ position: 'absolute', left: '50%', bottom: 30, transform: 'rotate(-45deg)', transformOrigin: '0 100%', fontFamily: 'Montserrat, sans-serif', fontSize: 9, fontWeight: 800, letterSpacing: '.03em', textTransform: 'uppercase', color: on ? INK : DIM, whiteSpace: 'nowrap', pointerEvents: 'none', transition: 'color .15s' }}>{surname(p.name)}</span>
               <Face p={p} size={18} lit={on} />
             </span>
           )

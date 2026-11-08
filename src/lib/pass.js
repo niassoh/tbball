@@ -47,9 +47,10 @@ const save = (k, v) => {
 
 // Whether this visit may in: a pass just arrived in the address (kept, and taken out of
 // the address), one kept from before, or the admin password within its year.
-// Always on this machine (the dev server, a local preview): the gate is for visitors.
+// Always on this machine (the dev server, a local preview) and on a build made open (the
+// test site, VITE_OPEN): the gate is for visitors to the real one.
 export const admitted = async (now = Date.now()) => {
-  if (['localhost', '127.0.0.1'].includes(location.hostname)) return true
+  if (import.meta.env.VITE_OPEN || ['localhost', '127.0.0.1'].includes(location.hostname)) return true
   const fresh = location.hash.match(/^#pass=([\w.-]+)/)
   if (fresh) {
     history.replaceState(null, '', location.pathname + location.search)

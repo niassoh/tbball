@@ -64,7 +64,8 @@ Daily Board (WordPress, locked by the Patreon plugin) sends a patron to `/#pass=
 with a key kept in WordPress (`{ sub, tier, exp }`, 7 days). The site verifies it with the public key in
 `pass.js`, keeps it in localStorage, and without one shows a note linking to the Daily Board. Typing
 `tbadmin` on that note opens a password field for admin access (kept a year; `pass.js` holds only the
-password's SHA-256). The data files themselves stay public.
+password's SHA-256). The data files themselves stay public. The gate is off on this machine (localhost) and in
+a build with `VITE_OPEN=1` (the test site).
 
 ## Layout
 

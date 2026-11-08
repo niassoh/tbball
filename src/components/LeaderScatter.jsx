@@ -250,7 +250,7 @@ function Tip({ doc, d, x, y, left, top }) {
         </span>
         <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
           <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.005em', color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
-          <span style={{ ...label, fontSize: 8 }}>{[doc.many && `’${p.season.slice(5)}`, p.team, p.pos, rowAge(p) && `age ${rowAge(p)}`, p.mp !== null && `${p.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>
+          <span style={{ ...label, fontSize: 8 }}>{[(doc.many || doc.eras) && yearsOf(p), p.team, p.pos, rowAge(p) && `age ${rowAge(p)}`, p.mp !== null && `${p.mp.toLocaleString()} min`].filter(Boolean).join(' · ')}</span>
         </span>
       </div>
       <span style={{ height: 1, background: RULE }} />
@@ -264,6 +264,8 @@ function Tip({ doc, d, x, y, left, top }) {
 // dot on its right, or, near the chart's right edge, on its left (`flip`: placed by its
 // right edge, so it sits as close whatever the name's length).
 const MINI_W = 160
+// A row's seasons, as the table writes them: ’23–’27 for an era, ’25 for one season.
+const yearsOf = p => (p.era ? `’${p.era[0].slice(5)}–’${p.era[1].slice(5)}` : p.season ? `’${p.season.slice(5)}` : '')
 const surname = p => p.name.split(' ').slice(1).join(' ') || p.name
 function Mini({ p, left, top, flip }) {
   return (
@@ -276,7 +278,7 @@ function Mini({ p, left, top, flip }) {
   )
 }
 
-export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, seasonLabel, onHide }) {
+export default function LeaderScatter({ doc, shown, hot, runOf, x, y, setAxis, onPick, seasonLabel, onHide }) {
   const box = useRef(null)
   const [size, setSize] = useState({ w: 480, h: 420 })
   const [hover, setHover] = useState(null)
@@ -330,7 +332,13 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
   // from how far up and right he sits, each axis 0 to 1 with its median at the middle).
   const tint = d => col(50 + 50 * Math.max(-1, Math.min(1, 2 * (ax(d.vx) + ay(d.vy) - 1))))
   // Under TEAMS only a team answers the pointer: a player's dot (or row) under it does nothing.
-  const hv = !byTeam && (hover || hot) && byId.get(hover || hot)
+  // On a board of a player's peaks (`runOf`), his other rows come out around the lit one, a
+  // table row under the pointer lit where it sits.
+  const key = !byTeam && (hover || hot)
+  const run = key && runOf ? runOf.get(key) : null
+  const at = run && run.find(p => p.id === key)
+  const hv = key && (byId.get(key) || (at && valueOf(doc, at, x) !== null && valueOf(doc, at, y) !== null && { p: at, vx: valueOf(doc, at, x), vy: valueOf(doc, at, y) }))
+  const trail = hv && run && run.length > 1 ? [...run].sort((a, b) => (a.season < b.season ? -1 : 1)).map(p => ({ p, vx: valueOf(doc, p, x), vy: valueOf(doc, p, y) })).filter(d => d.vx !== null && d.vy !== null) : null
   const teams = useMemo(() => (byTeam ? teamsOf(pts.filter(d => shown.has(d.p.id))) : []), [byTeam, pts, shown])
   const lit = byTeam ? teamHover || pinned : null
   const litTeam = teams.find(t => t.team === lit)
@@ -412,7 +420,22 @@ export default function LeaderScatter({ doc, shown, hot, x, y, setAxis, onPick, 
           <line x1={M.l} x2={w - M.r} y1={cy} y2={cy} stroke={EDGE} strokeDasharray="2 3" />
           <text x={w - M.r - 6} y={M.t + 12} textAnchor="end" style={{ ...label, fontSize: 9, fill: TONE.both }}>+ +</text>
           <text x={M.l + 6} y={h - M.b - 6} style={{ ...label, fontSize: 9, fill: TONE.neither }}>− −</text>
-          {dots}
+          <g style={{ opacity: trail ? 0.3 : 1, transition: 'opacity .2s' }}>{dots}</g>
+          {/* His rows in season order, joined, each a small dot with its years. */}
+          {trail && (
+            <g pointerEvents="none">
+              <clipPath id="lb-plot"><rect x={M.l} y={M.t} width={w - M.l - M.r} height={h - M.t - M.b} /></clipPath>
+              <g clipPath="url(#lb-plot)">
+                <polyline points={trail.map(d => `${px(d.vx)},${py(d.vy)}`).join(' ')} fill="none" stroke={INK} strokeOpacity={0.45} strokeWidth={1} />
+                {trail.map(d => (
+                  <g key={d.p.id}>
+                    <circle cx={px(d.vx)} cy={py(d.vy)} r={3.5} fill={tint(d)} stroke="#1a1918" strokeWidth={1} />
+                    <text x={px(d.vx) + 6} y={py(d.vy) + 3} style={{ ...label, fontSize: 8, fill: INK, paintOrder: 'stroke', stroke: '#1a1918', strokeWidth: 3 }}>{yearsOf(d.p)}</text>
+                  </g>
+                ))}
+              </g>
+            </g>
+          )}
           {/* The lit team: a hairline from its logo to each of its players, glowing as strongly as
               his weight in its average (his share of its minutes, against the team's biggest).
               Squared: a rotation's shares sit close together, and a glow at half strength

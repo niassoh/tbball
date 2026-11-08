@@ -328,6 +328,8 @@ a:hover > .lineup-tile > * { filter: none; }
 .hero:hover .hero-bokeh { opacity: .72 !important; }
 .hero .hero-more { opacity: 0; transform: translateY(-3px); transition: opacity .2s ease .06s, transform .2s ease .06s; }
 .hero:hover .hero-more { opacity: 1; transform: none; }
+.hero .hero-rest { transition: opacity .2s ease .06s; }
+.hero:hover .hero-rest, .hero.loading .hero-rest { opacity: 0; }
 /* While the next player loads, the header holds its hover state and the team bar sweeps
    across the rule. */
 .hero.loading .hero-logo { filter: none; }
@@ -371,7 +373,7 @@ a:hover > .lineup-tile > * { filter: none; }
 .picker-in { animation: pickerIn .16s ease-out both; }
 @keyframes pickerIn { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: reduce) {
-  .hero .hero-logo, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more { transition: none; }
+  .hero .hero-logo, .hero .hero-bar, .hero .hero-face, .hero .hero-bokeh, .hero .hero-more, .hero .hero-rest { transition: none; }
   .hero.loading .hero-bar, .swap-in, .fade-in, .picker-in { animation: none; }
   .jersey-in, .jersey-out { animation: none; }
   .idx-tile .idx-face img, .idx-face .idx-in { transition: none; }

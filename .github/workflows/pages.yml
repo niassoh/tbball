@@ -85,6 +85,10 @@ jobs:
           VITE_OPEN: ${{ inputs.open && '1' || '' }}
           # Each deploy's data is new even when the app's commit isn't.
           VITE_DATA_VERSION: ${{ github.run_id }}
+      # The test site's WHAT'S NEW list (CHANGELOG.md, SiteNav) is left out of a build
+      # that isn't open; a production build that carries it fails here.
+      - if: ${{ !inputs.open }}
+        run: "! grep -rqE \"NOT ON PROD YET|## On test\" dist"
       # Pages publishes a site of up to 1 GB.
       - run: test "$(du -sm --apparent-size dist | cut -f1)" -lt 950
       # Pages has no SPA fallback: its 404 page is the app, so deep links

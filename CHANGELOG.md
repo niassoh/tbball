@@ -1,6 +1,6 @@
 # Changelog
 
-What's on the test site (https://niassoh.github.io/tbball-test/) and not on prod yet sits under "On test". When it ships, that heading becomes the ship date and a fresh "On test" starts above it. One line per thing to check, written to paste into Slack as is.
+What's on the test site (https://niassoh.github.io/tbball-test/) and not on prod yet sits under "On test". When it ships, that heading becomes the ship date and a fresh "On test" starts above it. One line per thing to check, written to paste into Slack as is. The test site shows this section under WHAT'S NEW in its header (only a test build has it; production's deploy checks).
 
 ## On test
 

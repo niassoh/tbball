@@ -3,6 +3,10 @@ import { MONO } from '../lib/format.js'
 import { withMode } from '../lib/mode.js'
 import { useSeasonType } from '../useSeasonType.js'
 import Popover from './Popover.jsx'
+import WhatsNew, { WhatsNewList } from './WhatsNew.jsx'
+
+// Only the test site's build is open, so production never ships the list (pages.yml checks).
+const OPEN = import.meta.env.VITE_OPEN
 
 // The site's pages, in every page's header row: muted links lit under the pointer
 // (index.css .site-nav), the one you're on (`at`; a player's page is under PLAYERS) in ink.
@@ -26,8 +30,11 @@ export default function SiteNav({ at }) {
     <nav className="site-nav" aria-label="Site" style={{ display: 'flex', alignItems: 'center', flex: 'none' }}>
       <span className="site-nav-row" style={{ display: 'flex', gap: 18 }}>{links()}</span>
       <span className="site-nav-menu">
-        <Popover name="Pages" minWidth={160} trigger={pages.find(p => p[0] === at)[1]}>{links}</Popover>
+        <Popover name="Pages" minWidth={160} trigger={pages.find(p => p[0] === at)[1]}>
+          {close => <>{links(close)}{OPEN && <div style={{ marginTop: 6, paddingTop: 12, borderTop: '1px solid #544f4b' }}><WhatsNewList /></div>}</>}
+        </Popover>
       </span>
+      {OPEN && <span className="site-nav-row" style={{ marginLeft: 18 }}><WhatsNew /></span>}
     </nav>
   )
 }

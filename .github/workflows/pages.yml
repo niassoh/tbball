@@ -5,7 +5,8 @@
 #
 # The test site (niassoh/tbball-test, https://niassoh.github.io/tbball-test/) calls this
 # same workflow with a branch of this site, a backend branch and its base path, and
-# publishes to its own Pages. Production passes none: main, the backend's default branch, at /.
+# publishes to its own Pages, open (no patron gate). Production passes none: main, the
+# backend's default branch, at /, gated.
 name: Deploy to GitHub Pages
 
 on:
@@ -23,6 +24,9 @@ on:
       base:
         type: string
         default: ''
+      open:
+        type: boolean
+        default: false
     secrets:
       BACKEND_DEPLOY_KEY:
         required: true
@@ -78,6 +82,7 @@ jobs:
         env:
           VITE_STATIC: '1'
           VITE_BASE: ${{ inputs.base }}
+          VITE_OPEN: ${{ inputs.open && '1' || '' }}
           # Each deploy's data is new even when the app's commit isn't.
           VITE_DATA_VERSION: ${{ github.run_id }}
       # Pages publishes a site of up to 1 GB.

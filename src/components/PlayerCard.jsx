@@ -91,11 +91,13 @@ const viewIn = (d, season, span) => {
 }
 // His footprint that season or span: the Footprint tab's icons for the swings that clear
 // the noise, in the swing's colour (blue a lift, orange a cost, ink a style effect; red
-// when among the league's 10 worst), with the tab's ribbon on a top-10 place.
+// when among the league's 10 worst), with the tab's ribbon on a top-10 place. A swing on
+// too few minutes to judge (`thin`) shows too when its z clears the same 2.5 bar, marked
+// as a small sample (thin swings carry no league share, so that half of the bar is skipped).
 const TONES = { good: BLUE, bad: ORANGE, neutral: INK }
-const footprintOf = view => (view ? view.effects.filter(e => e.status === 'notable') : []).map(e => {
+const footprintOf = view => (view ? view.effects.filter(e => e.status === 'notable' || (e.status === 'thin' && Math.abs(e.z) >= 2.5)) : []).map(e => {
   const place = topPlaceOf(e)
-  return { l: e.effect, e, tone: place && place.worst ? WORST : TONES[toneOf(e)], place }
+  return { l: e.effect, e, tone: place && place.worst ? WORST : TONES[toneOf(e)], place, thin: e.status === 'thin' }
 })
 
 // The card's head: his portrait beside, in small type, his numbers (team, position, age,
@@ -187,6 +189,7 @@ function Readout({ x }) {
       <span style={{ color: INK, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' }}>{x.l}</span>
       {'  '}<span style={{ color: x.tone, fontWeight: 700 }}>{swingText(x.e.diff)}</span> {unitOf(x.e.key, x.e.unit).toLowerCase()} on vs off
       {x.place && <span style={{ color: x.place.worst ? WORST : INK }}>{x.place.worst ? `  ▼ ${worstText(x.place.place).toLowerCase()}` : `  #${x.place.place} in the league`}</span>}
+      {x.thin && '  · small sample'}
     </span>
   )
 }
@@ -424,7 +427,12 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
           </div>
           <span className="pc-name" style={{ marginTop: 3, fontFamily: 'Montserrat, sans-serif', fontSize: 22, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.01em', lineHeight: 1, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pl.name}</span>
           {/* The line is held while the footprint loads (and when it has none), so nothing moves. */}
-          {doc.type === 'regular' && <div style={{ marginTop: 11, minHeight: ICON_MAX }}>{fpItems.length > 0 && <Icons items={fpItems} at={fpAt} setAt={setFpAt} />}</div>}
+          {doc.type === 'regular' && (
+            <div style={{ position: 'relative', marginTop: 11, minHeight: ICON_MAX }}>
+              {fpItems.length > 0 && <Icons items={fpItems} at={fpAt} setAt={setFpAt} />}
+              {fpItems.some(x => x.thin) && <span title="Some of these swings are on too few minutes to judge yet" style={{ position: 'absolute', right: 0, bottom: '100%', marginBottom: 1, ...label, fontSize: 6.5, letterSpacing: '.14em', color: FAINT, pointerEvents: 'auto' }}>SMALL SAMPLE</span>}
+            </div>
+          )}
           <div style={{ marginTop: 'auto', paddingTop: 12, display: 'grid', gridTemplateColumns: `repeat(${heroes.length}, minmax(0, 1fr))` }}>
             {heroes.map((l, k) => {
               const v = valueOf(doc, pl, l)

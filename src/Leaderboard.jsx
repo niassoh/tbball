@@ -474,17 +474,28 @@ export default function Leaderboard() {
   useEffect(() => { if (wrap.current) wrap.current.scrollTo({ top: 0 }) }, [pageN])
   // Made once per page, so the table (memo) isn't redrawn as a dot lights.
   const pager = useMemo(() => (pages > 1 ? <Pager n={pageN} pages={pages} total={rows.length} turn={n => setPaging({ rows, n })} /> : null), [pageN, pages, rows])
-  // The chart: everyone on the board (in eras, each player's best era for its two stats,
-  // and the page's own eras), the table's rows lit and the rest faint behind them; on a
-  // board in pages only the page's rows are lit (live), as thousands of live dots crawl.
-  const chartDoc = useMemo(() => {
-    if (!doc) return doc
-    const base = doc.eras && x && y ? bestEras(doc, x, y) : doc
-    if (pages === 1) return base
-    const ids = new Set(base.players.map(p => p.id))
-    return { ...base, players: [...base.players, ...drawn.filter(p => !ids.has(p.id))] }
-  }, [doc, pages, drawn, x, y])
-  const lit = useMemo(() => (pages > 1 ? new Set(drawn.map(p => p.id)) : shown), [pages, drawn, shown])
+  // The chart: everyone on the board, the table's rows lit and the rest faint behind them; on
+  // a board in pages only the page's rows are lit (live), as thousands of live dots crawl.
+  // A board with many rows a player (eras, or every season of a span) draws each player once,
+  // at his peak for the chart's two stats (bestEras; a lit player's best among the table's
+  // rows), his other rows coming out as his dot is hovered (`runOf`: each row's player's rows).
+  const { chartDoc, lit, runOf } = useMemo(() => {
+    if (!doc) return { chartDoc: doc, lit: shown, runOf: null }
+    if ((doc.eras || doc.many) && x && y) {
+      const peaks = bestEras({ ...doc, players: rows }, x, y).players
+      const up = new Set(peaks.map(p => p.slug))
+      const runs = new Map()
+      for (const p of rows) (runs.get(p.slug) || runs.set(p.slug, []).get(p.slug)).push(p)
+      return {
+        chartDoc: { ...doc, players: [...bestEras(doc, x, y).players.filter(p => !up.has(p.slug)), ...peaks] },
+        lit: new Set(peaks.map(p => p.id)),
+        runOf: new Map(rows.map(p => [p.id, runs.get(p.slug)]))
+      }
+    }
+    if (pages === 1) return { chartDoc: doc, lit: shown, runOf: null }
+    const ids = new Set(doc.players.map(p => p.id))
+    return { chartDoc: { ...doc, players: [...doc.players, ...drawn.filter(p => !ids.has(p.id))] }, lit: new Set(drawn.map(p => p.id)), runOf: null }
+  }, [doc, pages, drawn, rows, shown, x, y])
   const teams = doc ? [...new Set(doc.players.flatMap(p => p.teams || [p.team]))].filter(t => !/TM$/.test(t)).sort() : []
   const player = doc && picked ? doc.players.find(p => p.id === picked) : null
   useEffect(() => { wasOpen.current = !!player })
@@ -596,7 +607,7 @@ export default function Leaderboard() {
             {player
               ? <PlayerCard key={`${player.id}|${spanText}|${doc.type}|${doc.combined ? 'c' : 'e'}`} intro={!wasOpen.current} doc={doc} player={player} rank={rank.get(player.id)} sortLabel={sortLabel} onClose={close} spanText={player.era ? (player.era[0] === player.era[1] ? player.era[0].replace('-', '–') : spanYears(player.era[0], player.era[1])) : spanText} />
               : x && y
-                ? <LeaderScatter doc={chartDoc} shown={lit} hot={hot} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} onHide={() => setChart(false)} />
+                ? <LeaderScatter doc={chartDoc} shown={lit} hot={hot} runOf={runOf} x={x} y={y} setAxis={(k, v) => setAxes(a => ({ ...a, [k]: v }))} onPick={setPicked} seasonLabel={spanText} onHide={() => setChart(false)} />
                 : <div style={{ ...label, padding: 28, textAlign: 'center' }}>{none || 'Nothing to chart'}</div>}
           </div>}
         </div>

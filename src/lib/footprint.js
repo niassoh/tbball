@@ -4,9 +4,16 @@
 // A lift (his team is better for it), a cost, or neither (a style stat, such as pace).
 export const toneOf = e => (!e.good ? 'neutral' : e.good * e.diff >= 0 ? 'good' : 'bad')
 
+// Whether a swing lights: notable (thinking-bball lib/footprint.js: its z clears 2.5 and it
+// beats three quarters of players' swings), or on too few minutes to judge (`thin`) with its
+// z clearing the same bar; thin swings carry no league share, so that half is skipped, and
+// they are marked as a small sample where shown.
+const Z_MIN = 2.5
+export const litOf = e => e.status === 'notable' || (e.status === 'thin' && e.z !== null && e.z !== undefined && Math.abs(e.z) >= Z_MIN)
+
 // How strong a lit tile is, 0–1: how far its z clears the 2.5 bar, full at 7.
 const clamp01 = v => Math.max(0, Math.min(1, v))
-export const strengthOf = e => clamp01((Math.abs(e.z) - 2.5) / 4.5)
+export const strengthOf = e => clamp01((Math.abs(e.z) - Z_MIN) / 4.5)
 
 // A lit tile's color at its strength: the weakest 60% of it (in colour where an unlit
 // tile is grey), the strongest the full color.

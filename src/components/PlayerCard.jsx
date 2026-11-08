@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchFootprint, fetchLonestar, fetchPlayers, fetchProfile, headshotUrl } from '../api.js'
-import { swingText, toneOf, topPlaceOf, unitOf, worstText } from '../lib/footprint.js'
+import { litOf, swingText, toneOf, topPlaceOf, unitOf, worstText } from '../lib/footprint.js'
 import { rowAge } from '../lib/age.js'
 import { MONO, col, fmt } from '../lib/format.js'
 import { pctlOf, valueOf } from '../lib/leaderboard.js'
@@ -91,11 +91,10 @@ const viewIn = (d, season, span) => {
 }
 // His footprint that season or span: the Footprint tab's icons for the swings that clear
 // the noise, in the swing's colour (blue a lift, orange a cost, ink a style effect; red
-// when among the league's 10 worst), with the tab's ribbon on a top-10 place. A swing on
-// too few minutes to judge (`thin`) shows too when its z clears the same 2.5 bar, marked
-// as a small sample (thin swings carry no league share, so that half of the bar is skipped).
+// when among the league's 10 worst), with the tab's ribbon on a top-10 place; one on too few
+// minutes to judge marked as a small sample (litOf).
 const TONES = { good: BLUE, bad: ORANGE, neutral: INK }
-const footprintOf = view => (view ? view.effects.filter(e => e.status === 'notable' || (e.status === 'thin' && Math.abs(e.z) >= 2.5)) : []).map(e => {
+const footprintOf = view => (view ? view.effects.filter(litOf) : []).map(e => {
   const place = topPlaceOf(e)
   return { l: e.effect, e, tone: place && place.worst ? WORST : TONES[toneOf(e)], place, thin: e.status === 'thin' }
 })

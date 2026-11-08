@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { UNITS, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, tourExample, unitOf, valueText, worstText } from './footprint.js'
+import { UNITS, anchorName, bar, litOf, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, tourExample, unitOf, valueText, worstText } from './footprint.js'
 
 describe('footprint', () => {
   test('a lift or a cost by which way the stat helps, neither for a style stat', () => {
@@ -7,6 +7,14 @@ describe('footprint', () => {
     expect(toneOf({ good: -1, diff: 2.1 })).toBe('bad')
     expect(toneOf({ good: -1, diff: -0.4 })).toBe('good')
     expect(toneOf({ good: 0, diff: 4.5 })).toBe('neutral')
+  })
+
+  test('a notable swing lights, and a thin one whose z clears 2.5; nothing else', () => {
+    expect(litOf({ status: 'notable', z: 3 })).toBe(true)
+    expect(litOf({ status: 'thin', z: -2.5 })).toBe(true)
+    expect(litOf({ status: 'thin', z: 2.4 })).toBe(false)
+    expect(litOf({ status: 'thin', z: null })).toBe(false)
+    expect(litOf({ status: 'noise', z: 3 })).toBe(false)
   })
 
   test('strength grows with z from the 2.5 bar to 7, and shades the color', () => {

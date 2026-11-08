@@ -479,7 +479,9 @@ a:hover > .lineup-tile > * { filter: none; }
 @keyframes lb-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes lb-pop { from { opacity: 0; } to { opacity: 1; } }
 .lb-dot { transition: transform .55s cubic-bezier(.2, .8, .2, 1), fill .3s, opacity .3s; }
-.lb-dot-in { animation: lb-pop .45s ease-out both; }
+/* Backwards, not both: an animation held at its end keeps every dot on its own compositor
+   node, and with hundreds of dots each hover took ~75ms to redraw instead of ~5. */
+.lb-dot-in { animation: lb-pop .45s ease-out backwards; }
 /* TEAMS' gathering: a team's logo lands where its players met (LeaderScatter GATHER). */
 .lb-team-land { transform-box: fill-box; transform-origin: center; animation-name: lb-land; animation-timing-function: cubic-bezier(.2, .9, .3, 1.25); animation-fill-mode: both; }
 @keyframes lb-land { from { opacity: 0; transform: scale(.2); } 60% { opacity: 1; } to { opacity: 1; transform: scale(1); } }

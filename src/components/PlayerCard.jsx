@@ -430,6 +430,15 @@ export default function PlayerCard({ doc, player: pl, rank, sortLabel, onClose, 
           {doc.type === 'regular' && (
             <div style={{ position: 'relative', marginTop: 11, minHeight: ICON_MAX }}>
               {fpItems.length > 0 && <Icons items={fpItems} at={fpAt} setAt={setFpAt} />}
+              {/* Loaded and nothing to show: the line says so, a hairline between its two words. */}
+              {footprint !== null && !fpItems.length && (
+                <div className="pc-icon" style={{ '--d': '240ms', height: ICON_MAX, display: 'flex', alignItems: 'center', gap: 10, ...label, fontSize: 8.5, letterSpacing: '.14em' }}>
+                  <span aria-hidden="true" style={{ width: 7, height: 7, flex: 'none', boxSizing: 'border-box', border: `1px solid ${FAINT}` }} />
+                  <span>Footprint</span>
+                  <span aria-hidden="true" style={{ flex: 1, height: 1, background: RULE }} />
+                  <span style={{ color: FAINT }}>{fpView ? 'No swing clears the noise' : 'No data yet'}</span>
+                </div>
+              )}
               {fpItems.some(x => x.thin) && <span title="Some of these swings are on too few minutes to judge yet" style={{ position: 'absolute', right: 0, bottom: '100%', marginBottom: 1, ...label, fontSize: 6.5, letterSpacing: '.14em', color: FAINT, pointerEvents: 'auto' }}>SMALL SAMPLE</span>}
             </div>
           )}

@@ -112,6 +112,10 @@ export default function BioCard({ profile: p, season, loading = false, playing =
   // Spec strip: team logo, then position / height / age split by hard rules (labels as tooltips).
   // The age cut, not rounded, to its tenth: 34.96 is still 34.9, as the leaderboard's 34.
   const specs = [['POS', p.bio.position], ['HT', p.bio.height], ['AGE', v.age !== null ? (Math.floor(v.age * 10) / 10).toFixed(1) : null]].filter(([, x]) => x)
+  // The season's games and minutes, in the draft line's slot above the spec strip; the draft takes it on hover.
+  const sp = p.seasons[season]
+  const played = sp && sp.gp && sp.mp ? sp : null
+  const unit = { marginLeft: 2, fontSize: 8, fontWeight: 400, letterSpacing: '.06em', color: '#a09a93' }
   const lines = nameLines(p.name)
   // The season on show, for the trophies won in it.
   const shown = p.seasons[season] ? p.seasons[season].season : null
@@ -200,14 +204,19 @@ export default function BioCard({ profile: p, season, loading = false, playing =
             </div>
           )}
           {specs.map(([label, value], i) => (
-            <span key={label} title={label} style={{ display: 'flex', alignItems: 'center', margin: '5px 0', padding: '0 10px', paddingLeft: i === 0 && !color ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #837d76' : 'none', fontSize: 13, fontWeight: 600, color: '#ece8e3' }}>
+            <span key={label} title={label} style={{ display: 'flex', alignItems: 'center', margin: '13px 0 0', padding: '0 10px', paddingLeft: i === 0 && !color ? 0 : 10, borderRight: i < specs.length - 1 ? '1px solid #837d76' : 'none', fontSize: 12, fontWeight: 600, color: '#ece8e3' }}>
               {value}
-              {label === 'AGE' && <span style={{ marginLeft: 3, fontSize: 9, fontWeight: 400, letterSpacing: '.06em', color: '#a09a93' }}>YRS</span>}
+              {label === 'AGE' && <span style={{ marginLeft: 3, fontSize: 8, fontWeight: 400, letterSpacing: '.06em', color: '#a09a93' }}>YRS</span>}
             </span>
           ))}
         </div>
+        {played && (
+          <span key={`played-${p.slug}-${season}`} className={draft ? 'hero-rest' : undefined} title="Games and minutes this season" style={{ position: 'absolute', left: color ? 89 : 14, top: 10, fontFamily: MONO, fontSize: 9, fontWeight: 600, letterSpacing: '.08em', color: '#d9d3cc', whiteSpace: 'nowrap' }}>
+            {played.gp}<span style={unit}>GP</span><span style={{ margin: '0 6px', color: '#837d76' }}>·</span>{played.mp.toLocaleString()}<span style={unit}>MIN</span>
+          </span>
+        )}
         {draft && (
-          <span key={`draft-${p.slug}`} className="hero-more" style={{ position: 'absolute', left: color ? 89 : 14, top: 3, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#b3ada6', whiteSpace: 'nowrap' }}>{draft}</span>
+          <span key={`draft-${p.slug}`} className="hero-more" style={{ position: 'absolute', left: color ? 89 : 14, top: 10, fontFamily: MONO, fontSize: 9, letterSpacing: '.08em', color: '#b3ada6', whiteSpace: 'nowrap' }}>{draft}</span>
         )}
         {accent && <div className="hero-bar" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: accent }} />}
         <h1 ref={nameRef} key={`name-${p.slug}`} className="swap-in" style={{ position: 'absolute', left: 14, bottom: 12, margin: 0, fontSize: nameSize(lines), lineHeight: 1.02, fontWeight: 600, letterSpacing: '-.005em', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>

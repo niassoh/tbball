@@ -47,7 +47,9 @@ const save = (k, v) => {
 
 // Whether this visit may in: a pass just arrived in the address (kept, and taken out of
 // the address), one kept from before, or the admin password within its year.
+// On a build made open (the test site, VITE_OPEN) everyone is let in.
 export const admitted = async (now = Date.now()) => {
+  if (import.meta.env.VITE_OPEN) return true
   const fresh = location.hash.match(/^#pass=([\w.-]+)/)
   if (fresh) {
     history.replaceState(null, '', location.pathname + location.search)

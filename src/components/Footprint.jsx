@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchFootprint, fetchPlayers, headshotUrl } from '../api.js'
 import { seasonAges } from '../lib/age.js'
 import { MONO } from '../lib/format.js'
-import { MEDAL_SHARES, anchorName, bar, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, tourExample, UNIT_WORDS, unitOf, valueText, worstText } from '../lib/footprint.js'
+import { MEDAL_SHARES, anchorName, bar, litOf, medalOf, shade, strengthOf, swingText, toneOf, topPlaceOf, tourExample, UNIT_WORDS, unitOf, valueText, worstText } from '../lib/footprint.js'
 import { namesText, posOf, seasonRanges, starsText } from '../lib/lonestar.js'
 import { openingSeasons, spanId, spanText } from '../lib/seasons.js'
 import FootprintGlyph from './FootprintGlyph.jsx'
@@ -250,7 +250,8 @@ const HOVER = window.matchMedia('(hover: hover)').matches
 const TILE_MIN_H = 158
 function FootprintTile({ e, anchors, right, delay = 0, scale }) {
   const [open, setOpen] = useState(false)
-  const lit = e.status === 'notable'
+  const lit = litOf(e)
+  const small = e.status === 'thin'
   // An unlit swing stays grey, brighter the bigger it is among players' swings, never as
   // bright as a lit one.
   const size = lit ? 1 : (e.pctl || 0) / 100
@@ -270,6 +271,8 @@ function FootprintTile({ e, anchors, right, delay = 0, scale }) {
       style={{ position: 'relative', display: 'flex', flexDirection: 'column', width: '100%', aspectRatio: '1 / 1', minHeight: TILE_MIN_H, alignSelf: 'start', minWidth: 0, background: open ? '#302d2b' : lit ? '#2a2826' : '#2c2a28', boxShadow: `${lit && !mate ? `inset 0 3px 0 ${color}, ` : ''}0 0 0 1px ${RULE}`, outline: 'none', cursor: 'default', zIndex: open ? 2 : 'auto', transition: `box-shadow .35s ${delay}ms, background-color .2s` }}>
       {mate && <span aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: `repeating-linear-gradient(135deg, ${color} 0 4px, transparent 4px 7px)` }} />}
       {place && <Ribbon place={place.place} worst={place.worst} />}
+      {/* A small sample has no league place, so the ribbon's corner is free for the note. */}
+      {lit && small && <span title="On too few minutes to judge yet" style={{ position: 'absolute', top: 6, right: 8, fontFamily: MONO, fontSize: 7, letterSpacing: '.14em', color: '#7a746e' }}>SMALL SAMPLE</span>}
       <div style={{ flex: 1, minWidth: 0, padding: '15px 14px 13px', display: 'flex', flexDirection: 'column', gap: 10, opacity: lit ? 1 : 0.62 + 0.3 * size, transition: `opacity .35s ${delay}ms`, fontFamily: MONO }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', paddingRight: place ? 32 : 0 }}>
           <div style={{ flex: 'none', width: 22, height: 22, color: lit ? INK : DIM }}><FootprintGlyph stat={e.key} size={22} /></div>
@@ -311,7 +314,7 @@ function Method({ fp, from, to }) {
             <li>Teammate stats leave his own shots out: with him on, only his teammates&apos; shots count; with him off, everyone&apos;s. Their rim scoring is per 100 of their own shots, so a high-usage player doesn&apos;t drag it down by shooting more himself.</li>
             <li>Rim points are 2 per rim make plus free throws from two-shot shooting fouls and and-ones after a rim make. Paint extended adds short mid-range makes.</li>
             <li>Each team-season is measured against that team, then the seasons are combined; a player traded mid-season counts only over his time there.</li>
-            <li>A tile lights when its change clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; changes in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them. An unlit change stays grey, brighter the bigger it is among players&apos;.</li>
+            <li>A tile lights when its change clears its own noise (z of 2.5 or more) and is bigger than three quarters of players&apos; changes in that stat over the same seasons. Over several seasons, those players are the top half by minutes across them. An unlit change stays grey, brighter the bigger it is among players&apos;. On too few minutes on a side to judge, a change lights when its z alone clears 2.5, marked SMALL SAMPLE.</li>
             <li>REMOVE BEST shows the MATES and OFFENSE tiles again over only the minutes some of his teammates sit (off the floor on both sides), measured and lit the same way, except that a tile lit on all his minutes stays lit while its change keeps at least half of itself there. Offense (the green box) offers the stars the Lonestar tab does for these seasons: each star, each top two, and all combined, each season without its own. Defense (the lavender box) goes without a defensive monster: a teammate on the floor for a quarter of the minutes whose defensive EPM (Dunks &amp; Threes, 2001-02 on) is in the top 10% of the league&apos;s rotation players that season; for a player who is one himself, his next-best defender by it. A row with no such teammate stays on all his minutes.</li>
             <li>A lit tile is marked as a teammate effect when its change keeps less than half of itself, or turns round, with REMOVE BEST&apos;s first pick (all combined where there is one): most of it is those teammates&apos; minutes.</li>
             <li>In a tile&apos;s details, the small badge on CHANGE is the change&apos;s percentile among players&apos; changes in that stat; the one on ON and the chart&apos;s LG place his team&apos;s on value against the league&apos;s that season.</li>

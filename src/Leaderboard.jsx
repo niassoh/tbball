@@ -321,9 +321,9 @@ export default function Leaderboard() {
   const inSpan = useMemo(() => (!seasons ? [] : eraOn || ageOn ? seasons : span ? seasonsBetween(span.from, span.to).filter(x => seasons.includes(x)) : []), [span, seasons, eraOn, ageOn])
   const many = !windowed && inSpan.length > 1
   // The minutes qualifier (the top share by minutes): the reader's pick, else the view's
-  // default: the top half for anything over several seasons (a span, an age, runs), the
-  // top three-quarters for one playoff season, everyone for one regular season.
-  const top = chosenTop ?? (eraOn || ageOn || many ? 0.5 : playoffs ? 0.75 : 1)
+  // default: the top three-quarters for one playoff season, else the top half (one regular
+  // season too: its sheet has no minutes floor).
+  const top = chosenTop ?? (playoffs && !eraOn && !ageOn && !many ? 0.75 : 0.5)
   const kinds = windowed ? ['recent'] : !playoffs ? ['regular'] : !delta || eraOn || ageOn ? ['playoffs'] : many && !each ? ['playoffs', 'regular'] : ['delta']
   // The regular season's Δ sets the span against the seasons before it: the one before each
   // of its seasons, or for a combined span as many as it has; none for runs, ages or the

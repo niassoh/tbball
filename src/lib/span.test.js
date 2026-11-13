@@ -22,7 +22,7 @@ describe('span averages', () => {
   })
 
   test('seasons without a value, or a shooting season without attempts, are left out', () => {
-    const p = { seasons: seasons([1000, 1000, 1000]), stats: { BPM: stat([2, null, 4]), 'FT%': stat([80, 90, 70]), FTA: stat([5, null, 5]) } }
+    const p = { seasons: seasons([1000, 1000, 1000]), stats: { BPM: stat([2, null, 4]), 'FT%': stat([80, 90, 70]), 'FTA / 75': stat([5, null, 5]) } }
     expect(spanMean(p, 'BPM', 0, 2)).toBe(3)
     expect(spanMean(p, 'FT%', 0, 2)).toBe(75)
   })

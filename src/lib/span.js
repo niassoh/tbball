@@ -7,7 +7,7 @@
 export const SHOT_VOLUME = {
   'Rim FG%': 'Rim FGA',
   'Midrange FG%': 'Midrange FGA',
-  'FT%': 'FTA',
+  'FT%': 'FTA / 75',
   'Drives TS%': 'Drives / 36',
   'Wide Open 3%': 'Wide Open 3s/36',
   'Pullup 3%': 'Pullup 3s/36',

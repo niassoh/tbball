@@ -10,6 +10,7 @@ What's on the test site (https://niassoh.github.io/tbball-test/) and not on prod
 - Leaderboard card: footprint badges now show on small samples, marked SMALL SAMPLE. A quiet "none notable" line when there's nothing to show
 - Profile: games and minutes for the season in the bio header (GP · MIN)
 - Profile Footprint tab: small-sample swings light up too, marked SMALL SAMPLE
+- Ben's new stats sheet (DEV): every regular season 2000-01 to 2026-27 now comes from it, with 22 new stats (matchup defense, steal types, assisted shares, ORTG/DRTG off and on/off, off-ball and movement scoring, rim assisted %), each with a definition. FTA is now per 75. Touches per drive is gone (hidden in Ben's sheet)
 - Leaderboard: opens filtered to the top 50% by minutes (one playoff season stays at 75%)
 - Salaries: Leaderboard chart can plot Salary or Salary % Cap (Player group in the axis picker, chart only). Profile header hover shows the season's salary next to the draft pick
 - Data: past seasons (2000-01 to 2025-26) re-pulled to include low-minute players; on/off and AuPM re-pulled; 2013-14 BPM and rTS% filled in

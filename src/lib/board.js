@@ -16,20 +16,21 @@ export const percentileOf = (value, pool, lowerBetter = false) => {
 }
 
 // The Player group: each row's age (the site's own, in the season: lib/age.js liveAges),
-// listed height in inches (`ht`) and salary in dollars as stats, for the chart's axes only
+// listed height in inches (`ht`), salary in dollars and that as a share of the season's
+// salary cap (`capPct`) as stats, for the chart's axes only
 // (`axesOnly`: not one of the table's tabs); their percentiles are a style's (neither end
 // is better).
 export const withPlayer = doc => {
   if (doc.labels.includes('Age')) return doc
-  const vals = doc.players.map(p => [p.age ?? null, p.ht ?? null, p.salary ?? null])
+  const vals = doc.players.map(p => [p.age ?? null, p.ht ?? null, p.salary ?? null, p.capPct ?? null])
   // Sorted once and counted by halving (countBelow, as ranked): runs make thousands of rows.
-  const pools = [0, 1, 2].map(k => Float64Array.from(vals.map(v => v[k]).filter(v => v !== null)).sort())
+  const pools = [0, 1, 2, 3].map(k => Float64Array.from(vals.map(v => v[k]).filter(v => v !== null)).sort())
   const pct = (v, k) => (v === null || !pools[k].length ? null : Math.round((countBelow(pools[k], v, true) / pools[k].length) * 100))
   return {
     ...doc,
-    labels: [...doc.labels, 'Age', 'Height', 'Salary'],
-    stats: { ...doc.stats, Age: { dec: 1, neutral: true }, Height: { dec: 0, neutral: true, feet: true }, Salary: { dec: 0, neutral: true, money: true, desc: 'His salary that season' } },
-    groups: [...doc.groups, { id: 'player', name: 'Player', stats: ['Age', 'Height', 'Salary'], axesOnly: true }],
+    labels: [...doc.labels, 'Age', 'Height', 'Salary', 'Salary % Cap'],
+    stats: { ...doc.stats, Age: { dec: 1, neutral: true }, Height: { dec: 0, neutral: true, feet: true }, Salary: { dec: 0, neutral: true, money: true, desc: 'His salary that season' }, 'Salary % Cap': { dec: 1, neutral: true, pct: true, desc: "His salary as a share of that season's salary cap" } },
+    groups: [...doc.groups, { id: 'player', name: 'Player', stats: ['Age', 'Height', 'Salary', 'Salary % Cap'], axesOnly: true }],
     players: doc.players.map((p, i) => ({ ...p, v: [...p.v, ...vals[i]], p: [...p.p, ...vals[i].map(pct)] }))
   }
 }

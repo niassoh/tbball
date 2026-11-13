@@ -133,7 +133,7 @@ export function CountUp({ stat, value, delay, instant }) {
     return () => cancelAnimationFrame(raf)
     // By what it prints, not the stat object, which callers often build each render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stat.dec, stat.relative, stat.feet, value, delay, instant])
+  }, [stat.dec, stat.relative, stat.feet, stat.money, value, delay, instant])
   return <span ref={el} />
 }
 

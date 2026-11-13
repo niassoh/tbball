@@ -61,6 +61,8 @@ export const fmt = (stat, n) => {
     const r = Math.round(n)
     return `${Math.floor(r / 12)}'${r % 12}"`
   }
+  // Dollars, as $48.7M (or $850K under a million).
+  if (stat.money) return n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : `$${Math.round(n / 1e3)}K`
   // Sign by the rounded value, so +0.04 at one decimal reads 0.0, not +0.0 (or −0.0).
   const rounded = Number(n.toFixed(stat.dec))
   let t = Math.abs(rounded) === 0 ? (0).toFixed(stat.dec) : n.toFixed(stat.dec)

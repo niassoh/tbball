@@ -16,14 +16,15 @@ describe('board', () => {
     expect(percentileOf(null, [1, 2])).toBe(null)
   })
 
-  test('withPlayer: age and height as a Player group for the chart axes, with their own percentiles', () => {
-    const d = withPlayer(doc('2024-25', [P('a', 1000, [1, 30, 2], { age: 24.5, ht: 80 }), P('b', 900, [0, 30, 2], { age: 31, ht: null })]))
-    expect(d.labels.slice(-2)).toEqual(['Age', 'Height'])
-    expect(d.groups.at(-1)).toEqual({ id: 'player', name: 'Player', stats: ['Age', 'Height'], axesOnly: true })
-    expect(d.players[0].v.slice(-2)).toEqual([24.5, 80])
-    expect(d.players[1].v.slice(-1)).toEqual([null])
-    expect(d.players[1].p.at(-2)).toBe(50)
+  test('withPlayer: age, height and salary as a Player group for the chart axes, with their own percentiles', () => {
+    const d = withPlayer(doc('2024-25', [P('a', 1000, [1, 30, 2], { age: 24.5, ht: 80, salary: 30e6 }), P('b', 900, [0, 30, 2], { age: 31, ht: null })]))
+    expect(d.labels.slice(-3)).toEqual(['Age', 'Height', 'Salary'])
+    expect(d.groups.at(-1)).toEqual({ id: 'player', name: 'Player', stats: ['Age', 'Height', 'Salary'], axesOnly: true })
+    expect(d.players[0].v.slice(-3)).toEqual([24.5, 80, 30e6])
+    expect(d.players[1].v.slice(-2)).toEqual([null, null])
+    expect(d.players[1].p.at(-3)).toBe(50)
     expect(d.stats.Height.feet).toBe(true)
+    expect(d.stats.Salary.money).toBe(true)
     // Once only.
     expect(withPlayer(d).labels.length).toBe(d.labels.length)
   })

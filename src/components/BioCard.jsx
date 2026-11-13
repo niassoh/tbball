@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { Link } from 'react-router-dom'
 import { headshotUrl, jerseyUrl, loadTeams } from '../api.js'
 import { ageIn } from '../lib/age.js'
-import { MONO } from '../lib/format.js'
+import { fmt, MONO } from '../lib/format.js'
 import { splitIds } from '../lib/jersey.js'
 import TeamInitials from './TeamInitials.jsx'
 import TeamPicker from './TeamPicker.jsx'
@@ -140,9 +140,10 @@ export default function BioCard({ profile: p, season, loading = false, playing =
   const color = teamColor(v.team)
   // Black (BKN, SAS) would vanish on the dark banner, so those teams' bar is silver.
   const accent = color === '#000000' ? '#c4ced4' : color
-  // Hover line over the specs: the draft pick, e.g. "2017 DRAFT · R1 #30 · UTA" (the specs'
-  // dividers stop short of the row's top to leave it room).
-  const draft = draftLine(p.bio.draft)
+  // Hover line over the specs: the draft pick and the season's salary, e.g. "2017 DRAFT · R1
+  // #30 · UTA · $34.8M SALARY" (the specs' dividers stop short of the row's top to leave it room).
+  const salary = p.seasons[season] && p.seasons[season].salary
+  const draft = [draftLine(p.bio.draft), salary && `${fmt({ money: true }, salary)} SALARY`].filter(Boolean).join(' · ') || null
   // The header logo toggles the team switcher, which opens just below it (picking holds
   // that element); the depth chart's team name opens the team on the Team board.
   const [picking, setPicking] = useState(null)
